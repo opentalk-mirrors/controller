@@ -197,6 +197,9 @@ exceptions = [
   ], name = "opentalk-cache" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-controller-api-authorization" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-controller-service" },
   { allow = [
     "EUPL-1.2",
@@ -494,7 +497,7 @@ skip = [
   { name = "icu_properties_data", version = "1" },
   { name = "icu_provider", version = "1" },
   { name = "imagesize", version = "0.13" },
-  { name = "indexmap", version = "1.9" },
+  { name = "indexmap", version = "1" },
   { name = "itertools", version = "0.10" },
   { name = "itertools", version = "0.11" },
   { name = "itertools", version = "0.12" },
