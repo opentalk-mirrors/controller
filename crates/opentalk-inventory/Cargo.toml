@@ -29,7 +29,6 @@ derive_more = { workspace = true, features = [
 futures-util.workspace = true
 icu_locid = { workspace = true, features = ["serde"] }
 opentalk-inventory-common.workspace = true
-opentalk-kustos-inventory.workspace = true
 opentalk-types-common.workspace = true
 scoped-futures.workspace = true
 serde = { workspace = true, features = ["derive"] }

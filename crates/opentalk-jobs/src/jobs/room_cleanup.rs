@@ -5,8 +5,8 @@
 use std::{collections::HashSet, sync::Arc};
 
 use async_trait::async_trait;
-use kustos::Authz;
 use log::Log;
+use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{Inventory, InventoryProvider};
 use opentalk_log::{debug, info};
@@ -47,7 +47,7 @@ impl Job for RoomCleanup {
     async fn execute(
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
-        authz: Authz,
+        authorizer: Authorizer,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {
@@ -68,7 +68,7 @@ impl Job for RoomCleanup {
         delete_orphaned_rooms(
             logger,
             inventory.as_mut(),
-            &authz,
+            authorizer,
             settings,
             &object_storage,
             orphaned_rooms,

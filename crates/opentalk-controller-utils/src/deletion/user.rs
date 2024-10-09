@@ -5,8 +5,8 @@
 //! Functionality to delete users including all associated resources
 
 use diesel_async::scoped_futures::ScopedFutureExt;
-use kustos::Authz;
 use log::Log;
+use opentalk_controller_api_authorization::authorization::{AuthorizationChange, Authorizer};
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{Inventory, transaction};
 use opentalk_log::debug;
@@ -45,7 +45,7 @@ impl Deleter for UserDeleter {
         &self,
         _prepared_commit: &Self::PreparedCommit,
         _logger: &dyn Log,
-        _authz: &Authz,
+        _authorizer: Authorizer,
         _user_id: Option<UserId>,
     ) -> Result<(), Error> {
         Ok(())
@@ -90,11 +90,16 @@ impl Deleter for UserDeleter {
         _commit_output: (),
         _logger: &dyn Log,
         _settings: &Settings,
-        authz: &Authz,
+        _authorizer: Authorizer,
         _storage: &ObjectStorage,
     ) -> Result<(), Error> {
-        let _ = authz.remove_all_user_groups_and_roles(self.user_id).await?;
-
         Ok(())
+    }
+
+    fn authorization_changes(
+        &self,
+        _commit_output: &Self::CommitOutput,
+    ) -> Vec<AuthorizationChange> {
+        vec![AuthorizationChange::DeleteUser { user: self.user_id }]
     }
 }

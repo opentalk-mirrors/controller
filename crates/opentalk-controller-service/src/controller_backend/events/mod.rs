@@ -8,13 +8,10 @@ use std::{cmp::Ordering, collections::BTreeSet, pin::Pin, sync::Arc};
 
 use chrono::{DateTime, Datelike, NaiveTime, Utc};
 use chrono_tz::Tz;
+use diesel_async::scoped_futures::ScopedFutureExt;
 use futures_core::Stream;
 use futures_util::{TryStreamExt, pin_mut, stream::StreamExt};
-use kustos::{
-    AccessMethod, Resource,
-    policies_builder::{GrantingAccess, PoliciesBuilder},
-    prelude::IsSubject,
-};
+use opentalk_controller_api_authorization::authorization::AuthorizationChange;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::{
@@ -58,14 +55,12 @@ use opentalk_types_common::{
     users::Language,
 };
 use rrule::{Frequency, RRuleSet};
-use scoped_futures::ScopedFutureExt as _;
 use snafu::Report;
 
 use crate::{
-    ControllerBackend, ToUserProfile,
+    ControllerBackend, ToUserProfile as _,
     controller_backend::{
-        RoomsPoliciesBuilderExt, delete_shared_folders, put_shared_folder,
-        utils::interweave_result_streams,
+        delete_shared_folders, put_shared_folder, utils::interweave_result_streams,
     },
     email_to_libravatar_url,
     events::{
@@ -219,15 +214,22 @@ impl ControllerBackend {
 
         drop(inventory);
 
-        let policies = PoliciesBuilder::new()
-            .grant_user_access(event_resource.created_by.id)
-            .event_read_access(event_resource.id)
-            .event_write_access(event_resource.id)
-            .room_read_access(event_resource.room.id)
-            .room_write_access(event_resource.room.id)
-            .finish();
-
-        self.authz.add_policies(policies).await?;
+        self.authorizer
+            .apply_changes(&[
+                AuthorizationChange::CreateEvent {
+                    event: event_resource.id,
+                    creator: event_resource.created_by.id,
+                },
+                AuthorizationChange::CreateRoom {
+                    room: event_resource.room.id,
+                    creator: event_resource.created_by.id,
+                },
+            ])
+            .await
+            .map_err(|e| {
+                log::error!("Could not apply changes in the authorization database: {e:?}");
+                ApiError::internal()
+            })?;
 
         if let (Some(mail_resource), Some(mail_service)) =
             (mail_resource, self.mail_service.as_ref())
@@ -1000,12 +1002,16 @@ impl ControllerBackend {
         // Add the access policy for the invite code, just in case it has been created by
         // the `Invite::get_first_for_room(…)` call above. That function is not able to
         // add the policy, because it has no access to the `RoomsPoliciesBuilderExt` trait.
-        let policies = PoliciesBuilder::new()
-            // Grant invitee access
-            .grant_invite_access(invite_for_room.invite_code)
-            .room_guest_read_access(room.id)
-            .finish();
-        self.authz.add_policies(policies).await?;
+        self.authorizer
+            .apply_change(&AuthorizationChange::AddInviteCodeToRoom {
+                room: room.id,
+                invite_code: invite_for_room.invite_code,
+            })
+            .await
+            .map_err(|e| {
+                log::error!("Could not apply changes in the authorization database: {e:?}");
+                ApiError::internal()
+            })?;
 
         let (invitees, invitees_truncated) =
             get_invitees_for_event(&settings, inventory.as_mut(), event_id, query.invitees_max)
@@ -1186,7 +1192,7 @@ impl ControllerBackend {
             .perform(
                 log::logger(),
                 inventory.as_mut(),
-                &self.authz,
+                self.authorizer.clone(),
                 Some(current_user_id),
                 &settings,
                 &self.storage,
@@ -1899,89 +1905,6 @@ fn parse_event_dt_params(
         ))
     } else {
         Ok((None, ends_at.to_datetime_tz(), ends_at.timezone))
-    }
-}
-
-/// Helper trait to to reduce boilerplate in the single route handlers
-///
-/// Bundles multiple resources into groups.
-pub trait EventPoliciesBuilderExt {
-    /// Adds permissions for reading events
-    fn event_read_access(self, event_id: EventId) -> Self;
-    /// Adds permissions for writing events
-    fn event_write_access(self, event_id: EventId) -> Self;
-
-    /// Adds permissions for event invites
-    fn event_invite_invitee_access(self, event_id: EventId) -> Self;
-}
-
-impl<T> EventPoliciesBuilderExt for PoliciesBuilder<GrantingAccess<T>>
-where
-    T: IsSubject + Clone,
-{
-    /// GET access to the event and related endpoints.
-    /// PUT and DELETE to the event_favorites endpoint.
-    fn event_read_access(self, event_id: EventId) -> Self {
-        self.add_resource(event_id.resource_id(), [AccessMethod::Get])
-            .add_resource(
-                event_id.resource_id().with_suffix("/instances"),
-                [AccessMethod::Get],
-            )
-            .add_resource(
-                event_id.resource_id().with_suffix("/instances/*"),
-                [AccessMethod::Get],
-            )
-            .add_resource(
-                event_id.resource_id().with_suffix("/invites"),
-                [AccessMethod::Get],
-            )
-            .add_resource(
-                event_id.resource_id().with_suffix("/shared_folder"),
-                [AccessMethod::Get],
-            )
-            .add_resource(
-                format!("/users/me/event_favorites/{event_id}"),
-                [AccessMethod::Put, AccessMethod::Delete],
-            )
-    }
-
-    /// PATCH and DELETE to the event
-    /// POST to reschedule and invites of the event
-    /// PATCH to instances
-    /// DELETE to invites
-    fn event_write_access(self, event_id: EventId) -> Self {
-        self.add_resource(
-            event_id.resource_id(),
-            [AccessMethod::Patch, AccessMethod::Delete],
-        )
-        .add_resource(
-            event_id.resource_id().with_suffix("/reschedule"),
-            [AccessMethod::Post],
-        )
-        .add_resource(
-            event_id.resource_id().with_suffix("/instances/*"),
-            [AccessMethod::Patch],
-        )
-        .add_resource(
-            event_id.resource_id().with_suffix("/invites"),
-            [AccessMethod::Post],
-        )
-        .add_resource(
-            event_id.resource_id().with_suffix("/invites/*"),
-            [AccessMethod::Patch, AccessMethod::Delete],
-        )
-        .add_resource(
-            event_id.resource_id().with_suffix("/shared_folder"),
-            [AccessMethod::Put, AccessMethod::Delete],
-        )
-    }
-
-    /// PATCH and DELETE to event invite
-    fn event_invite_invitee_access(self, event_id: EventId) -> Self {
-        self.add_resource(
-            format!("/events/{event_id}/invite"),
-            [AccessMethod::Patch, AccessMethod::Delete],
-        )
     }
 }
 

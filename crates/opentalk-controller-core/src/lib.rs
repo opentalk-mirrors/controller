@@ -15,9 +15,12 @@ use std::{
 
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, Scope, web, web::Data};
-use kustos::Authz;
 use lapin_pool::RabbitMqPool;
 use opentalk_controller_api_actix_web::{v1, well_known};
+use opentalk_controller_api_authorization::{
+    authorization::Authorizer, middleware::AuthorizationTransform,
+};
+use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
 use opentalk_controller_service::{
     ControllerBackend, Whatever,
     oidc::{Cache, OidcTokenHandler, build_oidc_token_handler},
@@ -56,16 +59,15 @@ use tokio::{
 use tracing_actix_web::TracingLogger;
 
 use crate::{
-    acl::check_or_create_kustos_default_permissions,
     api::v1::{middleware::metrics::RequestMetrics, response::error::json_error_handler},
     trace::ReducedSpanBuilder,
 };
 
+mod authorization;
 mod metrics;
 mod swagger;
 mod trace;
 
-pub mod acl;
 pub mod api;
 
 #[derive(Debug, Snafu)]
@@ -122,7 +124,7 @@ pub struct Controller {
 
     user_search_client: Arc<Option<KeycloakAdminClient>>,
 
-    authz: Authz,
+    authorizer: Authorizer,
 
     /// RabbitMQ connection pool, can be used to create connections and channels
     pub rabbitmq_pool: Arc<Option<Arc<RabbitMqPool>>>,
@@ -207,6 +209,29 @@ impl Controller {
         db.set_metrics(metrics.database.clone());
         let db = Arc::new(db);
 
+        // TODO: move this into a location that does not block http service instantiation
+        let authorization_changes = authorization::load_authorization_changes(&db)
+            .await
+            .unwrap();
+
+        let authorizer = Authorizer::new(if settings.authorization.synchronize_controllers {
+            log::warn!(
+                "no auth synchronization between controllers happens for now, this needs to be implemented"
+            );
+            OpenTalkAuthorizerBackend::new_from_changeset(&authorization_changes)
+            // TODO: this will become something like this:
+            //
+            // OpenTalkAuthorizer::new_with_autoload_and_metrics(
+            //     self.db.clone(),
+            //     self.rabbitmq_pool.clone(),
+            //     self.metrics.kustos.clone(),
+            // )
+            // .await
+            // .whatever_context("Failed to initialize OpenTalkAuthorizer")?
+        } else {
+            OpenTalkAuthorizerBackend::new_from_changeset(&authorization_changes)
+        });
+
         // Connect to MinIO
         let storage = Arc::new(
             ObjectStorage::new(&settings.minio)
@@ -271,24 +296,7 @@ impl Controller {
 
         let (shutdown, _) = broadcast::channel::<()>(1);
         let (reload, _) = broadcast::channel::<()>(4);
-
         let inventory_provider = Arc::new(DatabaseConnectionPool::new(db));
-        let authz = match (
-            settings.authz.synchronize_controllers,
-            rabbitmq_pool.as_ref(),
-        ) {
-            (true, Some(rabbitmq_pool)) => kustos::Authz::new_with_autoload_and_metrics(
-                inventory_provider.clone(),
-                rabbitmq_pool.clone(),
-                metrics.kustos.clone(),
-            )
-            .await
-            .whatever_context("Failed to initialize kustos/authz")?,
-            _ => kustos::Authz::new(inventory_provider.clone())
-                .await
-                .whatever_context("Failed to initialize kustos/authz")?,
-        };
-        let inventory_provider: Arc<dyn InventoryProvider> = inventory_provider;
 
         let mail_service = Arc::new(match rabbitmq_pool.as_ref() {
             Some(rabbitmq_pool) => Some(MailService::new(
@@ -321,7 +329,7 @@ impl Controller {
 
             ControllerBackend::new(
                 settings_provider.clone(),
-                authz.clone(),
+                authorizer.clone(),
                 inventory_provider.clone(),
                 oidc_cache.clone(),
                 oidc.clone(),
@@ -346,7 +354,7 @@ impl Controller {
             storage,
             oidc,
             user_search_client,
-            authz,
+            authorizer,
             rabbitmq_pool,
             exchange_handle,
             shutdown,
@@ -368,7 +376,7 @@ impl Controller {
         // Start JobExecutor
         JobRunner::start(
             self.inventory_provider.clone(),
-            self.authz.clone(),
+            self.authorizer.clone(),
             self.shutdown.subscribe(),
             self.startup_settings.clone(),
         )
@@ -388,18 +396,12 @@ impl Controller {
 
             let user_search_client = Data::from(self.user_search_client);
 
-            log::info!("Making sure the default permissions are set");
-            check_or_create_kustos_default_permissions(&self.authz)
-                .await
-                .whatever_context("Failed to create default permissions")?;
-
-            let authz_middleware = self.authz.actix_web_middleware(true).await;
-
             let metrics = Data::new(self.metrics);
 
             let caches = Data::from(self.oidc_cache.clone());
             let service = Data::from(self.service);
 
+            let authorization = AuthorizationTransform::new(self.authorizer.clone());
             let service_auth_middleware = settings_provider
                 .get()
                 .http
@@ -417,9 +419,9 @@ impl Controller {
                 let storage = Data::from(storage.upgrade().unwrap());
 
                 let oidc_ctx = Data::from(oidc_ctx.upgrade().unwrap());
-                let authz = Data::new(self.authz.clone());
+                let authorizer = Data::new(self.authorizer.clone());
 
-                let acl = authz_middleware.clone();
+                let authorization = authorization.clone();
                 let service_auth_middleware = service_auth_middleware.clone();
 
                 let swagger_service_enabled = !settings_provider.get().endpoints.disable_openapi;
@@ -447,7 +449,7 @@ impl Controller {
                     .app_data(storage)
                     .app_data(oidc_ctx.clone())
                     .app_data(user_search_client.clone())
-                    .app_data(authz.clone())
+                    .app_data(authorizer.clone())
                     .app_data(Data::new(shutdown.clone()))
                     .app_data(signaling_metrics.clone())
                     .app_data(metrics.clone())
@@ -459,10 +461,10 @@ impl Controller {
                     .service(internal_service_scope(service_auth_middleware))
                     .service(v1_scope(
                         settings_provider.clone(),
-                        authz,
+                        authorizer,
                         inventory_provider.clone(),
                         oidc_ctx.clone(),
-                        acl,
+                        authorization,
                     ))
             })
         };
@@ -863,10 +865,10 @@ impl utoipa::Modify for SecurityAddon {
 
 fn v1_scope(
     settings_provider: SettingsProvider,
-    authz: Data<kustos::Authz>,
+    authorizer: Data<Authorizer>,
     inventory_provider: Data<dyn InventoryProvider>,
     oidc_ctx: Data<dyn OidcTokenHandler>,
-    acl: kustos::actix_web::KustosService,
+    authorization: AuthorizationTransform,
 ) -> Scope {
     // the latest version contains the root services
 
@@ -891,11 +893,11 @@ fn v1_scope(
         .service(
             // empty scope to differentiate between auth endpoints
             web::scope("")
-                .wrap(acl)
+                .wrap(authorization)
                 .wrap(api::v1::middleware::user_auth::OidcAuth {
                     settings_provider,
                     inventory_provider,
-                    authz,
+                    authorizer,
                     oidc_ctx,
                 })
                 .service(v1::users::find::get)

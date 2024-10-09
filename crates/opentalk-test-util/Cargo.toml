@@ -25,7 +25,8 @@ tokio.workspace = true
 fern = "0.7"
 pretty_assertions.workspace = true
 
-kustos = { workspace = true, optional = true }
+opentalk-controller-api-authorization.workspace = true
+opentalk-controller-api-authorization-database.workspace = true
 opentalk-database = { workspace = true, optional = true }
 opentalk-db-storage = { workspace = true, optional = true }
 opentalk-inventory.workspace = true
@@ -38,7 +39,7 @@ opentalk-types-signaling = { workspace = true, features = ["backend"] }
 serde.workspace = true
 
 [features]
-controller = ["database", "dep:kustos"]
+controller = ["database"]
 database = ["dep:opentalk-database", "dep:opentalk-db-storage"]
 
 [package.metadata.cargo-machete]

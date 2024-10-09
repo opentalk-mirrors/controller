@@ -3,11 +3,38 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 /// Outcome of an authorization check.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Admission {
     /// Admission to the requested resource is allowed.
     Allowed,
 
     /// Admission to the requested resource is denied.
     Denied,
+}
+
+impl Admission {
+    /// Check whether the admission is [`Admission::Allowed`].
+    pub const fn is_allowed(&self) -> bool {
+        matches!(self, Self::Allowed)
+    }
+
+    /// Check whether the admission is [`Admission::Denied`].
+    pub const fn is_denied(&self) -> bool {
+        matches!(self, Self::Denied)
+    }
+}
+
+impl From<bool> for Admission {
+    fn from(value: bool) -> Self {
+        match value {
+            true => Admission::Allowed,
+            false => Admission::Denied,
+        }
+    }
+}
+
+impl From<Admission> for bool {
+    fn from(value: Admission) -> Self {
+        value.is_allowed()
+    }
 }

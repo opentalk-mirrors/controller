@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-mod authz;
+mod authorization;
 mod avatar;
 mod call_in;
 mod database;
@@ -44,7 +44,7 @@ mod user_search_backend;
 mod users_find_behavior;
 mod ws_rate_limit;
 
-pub(crate) use authz::Authz;
+pub(crate) use authorization::Authorization;
 pub(crate) use avatar::Avatar;
 pub(crate) use call_in::CallIn;
 pub(crate) use database::Database;

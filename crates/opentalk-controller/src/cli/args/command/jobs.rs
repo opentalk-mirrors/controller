@@ -5,8 +5,9 @@
 use std::{path::Path, sync::Arc, time::Duration};
 
 use clap::Subcommand;
-use kustos::Authz;
 use log::Log;
+use opentalk_controller_api_authorization::authorization::Authorizer;
+use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
 use opentalk_controller_core::load_settings_provider;
 use opentalk_controller_settings::Settings;
 use opentalk_database::Db;
@@ -101,14 +102,13 @@ async fn execute_job(
 
     let inventory_provider = Arc::new(DatabaseConnectionPool::new(db));
 
-    let authz = Authz::new(inventory_provider.clone())
-        .await
-        .whatever_context("Falied to create authz instance")?;
+    // TODO: load the auth data from the inventory
+    let authorizer = Authorizer::new(OpenTalkAuthorizerBackend::new());
 
     let data = JobExecutionData {
         logger: &logger,
         inventory_provider,
-        authz,
+        authorizer,
         settings: &settings,
         parameters,
         timeout,
@@ -199,7 +199,7 @@ impl Log for Logger {
 struct JobExecutionData<'a> {
     logger: &'a dyn Log,
     inventory_provider: Arc<dyn InventoryProvider>,
-    authz: Authz,
+    authorizer: Authorizer,
     settings: &'a Settings,
     parameters: serde_json::Value,
     timeout: Duration,
@@ -211,7 +211,7 @@ impl JobExecutionData<'_> {
         opentalk_jobs::execute::<J>(
             self.logger,
             self.inventory_provider,
-            self.authz,
+            self.authorizer,
             self.settings,
             self.parameters,
             self.timeout,

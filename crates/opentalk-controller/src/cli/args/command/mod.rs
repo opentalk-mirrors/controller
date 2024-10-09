@@ -8,8 +8,6 @@ use clap::Subcommand;
 
 use crate::Result;
 
-mod acl;
-mod fix_acl;
 mod health;
 mod jobs;
 mod migrate_db;
@@ -23,14 +21,6 @@ mod tenants;
 #[clap(rename_all = "kebab_case")]
 #[allow(clippy::large_enum_variant)]
 pub enum Command {
-    /// Recreate all ACL entries from the current database content. Existing entries will not be touched unless the
-    /// command is told to delete them all beforehand.
-    FixAcl(fix_acl::Command),
-
-    /// Modify the ACLs.
-    #[clap(subcommand)]
-    Acl(acl::Command),
-
     /// Migrate the db. This is done automatically during start of the controller,
     /// but can be done without starting the controller using this command.
     MigrateDb(migrate_db::Command),
@@ -66,12 +56,6 @@ pub enum Command {
 impl Command {
     pub async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
         match self {
-            Command::FixAcl(command) => {
-                command.exec(optional_config_path).await?;
-            }
-            Command::Acl(command) => {
-                command.exec(optional_config_path).await?;
-            }
             Command::MigrateDb(command) => {
                 command.exec(optional_config_path).await?;
             }

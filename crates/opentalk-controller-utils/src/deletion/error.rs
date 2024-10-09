@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use opentalk_controller_api_authorization::authorization::AuthorizationError;
 use opentalk_signaling_core::ObjectStorageError;
 use opentalk_types_api_v1::error::ApiError;
 use snafu::Snafu;
@@ -19,11 +20,11 @@ pub enum Error {
         source: opentalk_inventory::Error,
     },
 
-    /// Kustos error
-    #[snafu(display("Authorization error (kustos): {source}"), context(false))]
-    Kustos {
+    /// Authorization error
+    #[snafu(display("Authorization error"))]
+    Authorization {
         /// the cause of the error
-        source: kustos::Error,
+        source: AuthorizationError,
     },
 
     /// Forbidden action by user
@@ -76,7 +77,12 @@ impl From<Error> for CaptureApiError {
     fn from(value: Error) -> Self {
         match value {
             Error::Inventory { source } => source.into(),
-            Error::Kustos { source } => source.into(),
+            Error::Authorization { source } => {
+                log::error!("Permission system error: {source}");
+                ApiError::internal()
+                    .with_message("Permission system error")
+                    .into()
+            }
             Error::Forbidden => ApiError::forbidden().into(),
             Error::Conflict { message } => ApiError::conflict().with_message(message).into(),
             Error::ObjectDeletion { source } => {

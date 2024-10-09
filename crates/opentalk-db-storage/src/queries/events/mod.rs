@@ -844,6 +844,18 @@ pub async fn get_all_events_for_user_paginated(
     Ok(events_with_invite_room_and_exceptions)
 }
 
+/// Select all room ids and their creator
+#[tracing::instrument(err(level = "debug"), skip_all)]
+pub async fn get_all_event_and_creator_ids(
+    conn: &mut DbConnection,
+) -> Result<Vec<(EventId, UserId)>> {
+    events::table
+        .select((events::id, events::created_by))
+        .load::<(EventId, UserId)>(conn)
+        .await
+        .map_err(DatabaseError::from)
+}
+
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_by_id(conn: &mut DbConnection, event_id: EventId) -> Result<()> {
     let _ = diesel::delete(events::table)

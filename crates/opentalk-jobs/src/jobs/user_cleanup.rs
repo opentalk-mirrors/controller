@@ -6,8 +6,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{Days, Utc};
-use kustos::Authz;
 use log::Log;
+use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::InventoryProvider;
 use opentalk_log::{debug, error, info};
@@ -50,7 +50,7 @@ impl Job for UserCleanup {
     async fn execute(
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
-        authz: Authz,
+        authorizer: Authorizer,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {
@@ -70,7 +70,7 @@ impl Job for UserCleanup {
         perform_deletion(
             logger,
             inventory_provider,
-            authz,
+            authorizer,
             settings,
             parameters.fail_on_shared_folder_deletion_error,
             DeleteSelector::DisabledBefore(delete_before.into()),
@@ -94,8 +94,9 @@ mod tests {
     use std::path::Path;
 
     use chrono::{DateTime, Days, Utc};
-    use kustos::Authz;
     use log::logger;
+    use opentalk_controller_api_authorization::authorization::Authorizer;
+    use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
     use opentalk_controller_settings::SettingsProvider;
     use opentalk_inventory::{
         Event, Inventory, InventoryProvider as _, UpdateEvent, UpdateUser, User,
@@ -206,12 +207,13 @@ mod tests {
             .any(|u| u.id == updated_by.id);
         assert!(user_exists);
 
-        let authz = Authz::new(db_ctx.inventory_provider.clone()).await.unwrap();
+        // TODO: load the auth data from the inventory
+        let authorizer = Authorizer::new(OpenTalkAuthorizerBackend::new());
 
         UserCleanup::execute(
             logger(),
             db_ctx.inventory_provider.clone(),
-            authz,
+            authorizer,
             &settings,
             serde_json::from_str("{}").unwrap(),
         )
@@ -257,12 +259,13 @@ mod tests {
             .any(|u| u.id == inviter.id);
         assert!(user_exists);
 
-        let authz = Authz::new(db_ctx.inventory_provider.clone()).await.unwrap();
+        // TODO: load the auth data from the inventory
+        let authorizer = Authorizer::new(OpenTalkAuthorizerBackend::new());
 
         UserCleanup::execute(
             logger(),
             db_ctx.inventory_provider.clone(),
-            authz,
+            authorizer,
             &settings,
             serde_json::from_str("{}").unwrap(),
         )

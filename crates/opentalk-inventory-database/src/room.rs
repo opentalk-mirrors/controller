@@ -7,6 +7,7 @@ use opentalk_inventory::{NewRoom, Room, RoomInventory, UpdateRoom, User};
 use opentalk_types_common::{
     pagination::{ItemCount, Page, PageSize},
     rooms::RoomId,
+    users::UserId,
 };
 use snafu::ResultExt as _;
 
@@ -113,6 +114,30 @@ impl RoomInventory for DatabaseConnection {
         .context(DatabaseSnafu)?;
         Ok((
             rooms
+                .into_iter()
+                .map(|(room, user)| (room.into(), user.into()))
+                .collect(),
+            overall,
+        ))
+    }
+
+    #[tracing::instrument(err, skip_all)]
+    async fn get_rooms_accessible_to_user_with_creator_paginated(
+        &mut self,
+        user: UserId,
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<(Room, User)>, ItemCount)> {
+        let (items, overall) = db::queries::rooms::get_accessible_to_user_with_creator_paginated(
+            &mut self.inner,
+            user,
+            limit,
+            page,
+        )
+        .await
+        .context(DatabaseSnafu)?;
+        Ok((
+            items
                 .into_iter()
                 .map(|(room, user)| (room.into(), user.into()))
                 .collect(),

@@ -4,8 +4,8 @@
 
 use std::{collections::HashSet, sync::Arc};
 
-use kustos::Authz;
 use log::Log;
+use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::deletion::{Deleter, user::UserDeleter};
 use opentalk_inventory::{Inventory, InventoryProvider, UpdateEvent, UpdateRoomInvite};
@@ -24,7 +24,7 @@ pub(crate) enum DeleteSelector {
 pub(crate) async fn perform_deletion(
     logger: &dyn Log,
     inventory_provider: Arc<dyn InventoryProvider>,
-    authz: Authz,
+    authorizer: Authorizer,
     settings: &Settings,
     fail_on_shared_folder_deletion_error: bool,
     delete_selector: DeleteSelector,
@@ -35,7 +35,7 @@ pub(crate) async fn perform_deletion(
     delete_users(
         logger,
         inventory.as_mut(),
-        &authz,
+        authorizer,
         settings,
         &object_storage,
         fail_on_shared_folder_deletion_error,
@@ -51,7 +51,7 @@ pub(crate) async fn perform_deletion(
 async fn delete_users(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
-    authz: &Authz,
+    authorizer: Authorizer,
     settings: &Settings,
     object_storage: &ObjectStorage,
     fail_on_shared_folder_deletion_error: bool,
@@ -70,7 +70,7 @@ async fn delete_users(
     let orphaned_rooms = delete_user_events(
         logger,
         inventory,
-        authz,
+        authorizer.clone(),
         settings,
         object_storage,
         fail_on_shared_folder_deletion_error,
@@ -81,7 +81,7 @@ async fn delete_users(
     super::events::delete_orphaned_rooms(
         logger,
         inventory,
-        authz,
+        authorizer.clone(),
         settings,
         object_storage,
         orphaned_rooms,
@@ -92,7 +92,7 @@ async fn delete_users(
     delete_users_internal(
         logger,
         inventory,
-        authz,
+        authorizer,
         settings,
         object_storage,
         &user_candidates,
@@ -108,7 +108,7 @@ async fn delete_users(
 pub(crate) async fn delete_users_internal(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
-    authz: &Authz,
+    authorizer: Authorizer,
     settings: &Settings,
     object_storage: &ObjectStorage,
     user_ids: &[UserId],
@@ -121,7 +121,14 @@ pub(crate) async fn delete_users_internal(
         let deleter = UserDeleter::new(user_id);
 
         if let Err(e) = deleter
-            .perform(logger, inventory, authz, None, settings, object_storage)
+            .perform(
+                logger,
+                inventory,
+                authorizer.clone(),
+                None,
+                settings,
+                object_storage,
+            )
             .await
         {
             warn!(log: logger, "Failed deletion: {}", Report::from_error(e));
@@ -143,7 +150,7 @@ pub(crate) async fn delete_users_internal(
 async fn delete_user_events(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
-    authz: &Authz,
+    authorizer: Authorizer,
     settings: &Settings,
     object_storage: &ObjectStorage,
     fail_on_shared_folder_deletion_error: bool,
@@ -168,7 +175,7 @@ async fn delete_user_events(
     let orphaned_rooms = super::events::delete_event_candidates(
         logger,
         inventory,
-        authz,
+        authorizer,
         settings,
         object_storage,
         fail_on_shared_folder_deletion_error,

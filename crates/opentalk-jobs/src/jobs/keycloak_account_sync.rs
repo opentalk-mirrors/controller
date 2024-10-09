@@ -5,8 +5,8 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use kustos::Authz;
 use log::Log;
+use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::{Settings, UserSearchBackend, UserSearchBackendKeycloak};
 use opentalk_inventory::InventoryProvider;
 use opentalk_keycloak_admin::{AuthorizedClient, KeycloakAdminClient};
@@ -56,7 +56,7 @@ impl Job for KeycloakAccountSync {
     async fn execute(
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
-        _authz: Authz,
+        _authorizer: Authorizer,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {

@@ -5,8 +5,8 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use kustos::Authz;
 use log::Log;
+use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::InventoryProvider;
 use opentalk_log::{debug, error, info, trace, warn};
@@ -24,7 +24,7 @@ impl Job for SelfCheck {
     async fn execute(
         logger: &dyn Log,
         _inventory_provider: Arc<dyn InventoryProvider>,
-        _authz: Authz,
+        _authorizer: Authorizer,
         _settings: &Settings,
         _parameters: Self::Parameters,
     ) -> Result<(), Error> {

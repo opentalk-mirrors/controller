@@ -24,8 +24,8 @@ use std::{
 use async_trait::async_trait;
 use bytes::Bytes;
 use futures_core::Stream;
-use kustos::Authz;
 use openidconnect::AccessToken;
+use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_service_facade::{
     AssetDownloadProxyStream, OpenTalkControllerService, RequestUser,
 };
@@ -104,9 +104,8 @@ use opentalk_types_common::{
 };
 use utils::{verify_invite_read, verify_invite_write};
 
-pub use crate::controller_backend::{
-    events::shared_folder::{delete_shared_folders, put_shared_folder},
-    rooms::RoomsPoliciesBuilderExt,
+pub use crate::controller_backend::events::shared_folder::{
+    delete_shared_folders, put_shared_folder,
 };
 use crate::{
     oidc::{Cache, OidcTokenHandler},
@@ -116,7 +115,7 @@ use crate::{
 /// The default [`OpenTalkControllerService`] implementation.
 pub struct ControllerBackend {
     settings_provider: SettingsProvider,
-    authz: Authz,
+    authorizer: Authorizer,
     inventory_provider: Arc<dyn InventoryProvider>,
     oidc_cache: Arc<Cache>,
     oidc_token_handler: Arc<dyn OidcTokenHandler>,
@@ -133,7 +132,7 @@ impl ControllerBackend {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         settings_provider: SettingsProvider,
-        authz: Authz,
+        authorizer: Authorizer,
         inventory_provider: Arc<dyn InventoryProvider>,
         oidc_cache: Arc<Cache>,
         oidc_token_handler: Arc<dyn OidcTokenHandler>,
@@ -146,7 +145,7 @@ impl ControllerBackend {
     ) -> Self {
         Self {
             settings_provider,
-            authz,
+            authorizer,
             inventory_provider,
             oidc_cache,
             oidc_token_handler,

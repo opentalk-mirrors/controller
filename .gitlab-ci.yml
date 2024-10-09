@@ -249,7 +249,6 @@ test:cargo_test:
     # Used for integration tests
     POSTGRES_BASE_URL: postgres://postgres:password123@postgres:5432
     DATABASE_NAME: opentalk
-    KUSTOS_TESTS_DATABASE_URL: postgres://postgres:password123@postgres:5432/kustos
     REDIS_ADDR: redis://redis:6379/
     TYPST_PACKAGE_CACHE_PATH: $CI_PROJECT_DIR/target/typst/packages
   services:

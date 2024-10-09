@@ -299,24 +299,11 @@ checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
 name = "ahash"
-version = "0.7.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "891477e0c6a8957309ee5c45a6368af3ae14bb510732d2684ffa19af310920f9"
-dependencies = [
- "getrandom 0.2.17",
- "once_cell",
- "version_check",
-]
-
-[[package]]
-name = "ahash"
 version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a15f179cd60c4584b8a8c596927aadc462e27f2ca70c04e0071964a73ba7a75"
 dependencies = [
  "cfg-if",
- "const-random",
- "getrandom 0.3.4",
  "once_cell",
  "version_check",
  "zerocopy",
@@ -1455,24 +1442,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "casbin"
-version = "2.0.9"
-source = "git+https://github.com/kbalt/casbin-rs.git?rev=fddb52d61385913727e24a5c7337eed489cb0d56#fddb52d61385913727e24a5c7337eed489cb0d56"
-dependencies = [
- "async-trait",
- "fixedbitset 0.4.2",
- "once_cell",
- "parking_lot",
- "petgraph 0.6.5",
- "regex",
- "rhai",
- "ritelinked",
- "serde",
- "thiserror 1.0.69",
- "tokio",
-]
-
-[[package]]
 name = "cc"
 version = "1.2.60"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1765,26 +1734,6 @@ name = "const-oid"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6ef517f0926dd24a1582492c791b6a4818a4d94e789a334894aa15b0d12f55c"
-
-[[package]]
-name = "const-random"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87e00182fe74b066627d63b85fd550ac2998d4b0bd86bfed477a0ae4c7c71359"
-dependencies = [
- "const-random-macro",
-]
-
-[[package]]
-name = "const-random-macro"
-version = "0.1.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9d839f2a20b0aee515dc581a6172f2321f96cab76c1a38a4c584a194955390e"
-dependencies = [
- "getrandom 0.2.17",
- "once_cell",
- "tiny-keccak",
-]
 
 [[package]]
 name = "constant_time_eq"
@@ -3310,15 +3259,6 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
-version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab5ef0d4909ef3724cc8cce6ccc8572c5c817592e9285f5464f8e86f8bd3726e"
-dependencies = [
- "ahash 0.7.8",
-]
-
-[[package]]
-name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
@@ -4413,63 +4353,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "kustos"
-version = "0.33.0"
-dependencies = [
- "actix-web",
- "async-trait",
- "casbin",
- "diesel-async",
- "env_logger",
- "futures",
- "itertools 0.14.0",
- "kustos-shared",
- "lapin",
- "lapin-pool",
- "log",
- "opentalk-database",
- "opentalk-db-storage",
- "opentalk-inventory-database",
- "opentalk-kustos-inventory",
- "opentelemetry",
- "opentelemetry_sdk",
- "parking_lot",
- "pretty_assertions",
- "serde",
- "serde_json",
- "serial_test",
- "snafu 0.9.0",
- "tokio",
- "tracing",
- "tracing-futures",
- "url",
- "uuid",
-]
-
-[[package]]
-name = "kustos-db"
-version = "0.33.0"
-dependencies = [
- "barrel",
- "diesel",
- "diesel-async",
- "opentalk-database",
- "tracing",
-]
-
-[[package]]
-name = "kustos-shared"
-version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "654b83457173b4ce11ea03250ccdb1ce18635ea896c167a5fb9beeb3911d965e"
-dependencies = [
- "http 1.4.0",
- "itertools 0.14.0",
- "snafu 0.9.0",
- "uuid",
-]
-
-[[package]]
 name = "language-tags"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4796,7 +4679,7 @@ version = "0.24.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d5312e9ba3771cfa961b585728215e3d972c950a3eed9252aa093d6301277e8"
 dependencies = [
- "ahash 0.8.12",
+ "ahash",
  "portable-atomic",
 ]
 
@@ -4992,15 +4875,6 @@ dependencies = [
  "cfg-if",
  "cfg_aliases",
  "libc",
-]
-
-[[package]]
-name = "no-std-compat"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b93853da6d84c2e3c7d730d6473e8817692dd89be387eb01b94d7f108ecb5b8c"
-dependencies = [
- "spin 0.5.2",
 ]
 
 [[package]]
@@ -5335,9 +5209,6 @@ name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
-dependencies = [
- "portable-atomic",
-]
 
 [[package]]
 name = "once_cell_polyfill"
@@ -5457,9 +5328,10 @@ dependencies = [
  "humansize",
  "itertools 0.14.0",
  "jsonwebtoken",
- "kustos",
  "log",
  "nix 0.31.2",
+ "opentalk-controller-api-authorization",
+ "opentalk-controller-api-authorization-database",
  "opentalk-controller-core",
  "opentalk-controller-service",
  "opentalk-controller-settings",
@@ -5468,7 +5340,6 @@ dependencies = [
  "opentalk-inventory",
  "opentalk-inventory-database",
  "opentalk-jobs",
- "opentalk-kustos-inventory",
  "opentalk-roomserver-modules",
  "opentalk-types-common",
  "opentalk-version",
@@ -5508,8 +5379,27 @@ dependencies = [
 name = "opentalk-controller-api-authorization"
 version = "0.33.0"
 dependencies = [
+ "actix-router",
  "actix-web",
  "async-trait",
+ "http 0.2.12",
+ "log",
+ "opentalk-types-api-v1",
+ "opentalk-types-common",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "snafu 0.9.0",
+ "tokio",
+]
+
+[[package]]
+name = "opentalk-controller-api-authorization-database"
+version = "0.33.0"
+dependencies = [
+ "async-trait",
+ "log",
+ "opentalk-controller-api-authorization",
  "opentalk-types-common",
 ]
 
@@ -5531,11 +5421,12 @@ dependencies = [
  "futures",
  "http 1.4.0",
  "itertools 0.14.0",
- "kustos",
  "lapin-pool",
  "log",
  "openidconnect",
  "opentalk-controller-api-actix-web",
+ "opentalk-controller-api-authorization",
+ "opentalk-controller-api-authorization-database",
  "opentalk-controller-service",
  "opentalk-controller-service-facade",
  "opentalk-controller-settings",
@@ -5599,13 +5490,13 @@ dependencies = [
  "http 1.4.0",
  "icu_locid",
  "jsonwebtoken",
- "kustos",
  "lapin",
  "lapin-pool",
  "log",
  "md5",
  "openidconnect",
  "opentalk-cache",
+ "opentalk-controller-api-authorization",
  "opentalk-controller-service-facade",
  "opentalk-controller-settings",
  "opentalk-controller-utils",
@@ -5632,7 +5523,6 @@ dependencies = [
  "ring",
  "rkyv",
  "rrule",
- "scoped-futures",
  "serde",
  "serde_json",
  "snafu 0.9.0",
@@ -5699,10 +5589,9 @@ dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
- "kustos",
- "kustos-shared",
  "log",
  "opentalk-cache",
+ "opentalk-controller-api-authorization",
  "opentalk-controller-service-facade",
  "opentalk-controller-settings",
  "opentalk-database",
@@ -5751,7 +5640,6 @@ dependencies = [
  "diesel-async",
  "futures-core",
  "icu_locid",
- "kustos-db",
  "log",
  "opentalk-database",
  "opentalk-diesel-newtype",
@@ -5827,7 +5715,6 @@ dependencies = [
  "futures-util",
  "icu_locid",
  "opentalk-inventory-common",
- "opentalk-kustos-inventory",
  "opentalk-types-common",
  "pretty_assertions",
  "scoped-futures",
@@ -5854,12 +5741,10 @@ dependencies = [
  "chrono",
  "diesel-async",
  "futures-util",
- "kustos-db",
  "opentalk-database",
  "opentalk-db-storage",
  "opentalk-inventory",
  "opentalk-inventory-common",
- "opentalk-kustos-inventory",
  "opentalk-types-common",
  "snafu 0.9.0",
  "tracing",
@@ -5876,8 +5761,9 @@ dependencies = [
  "env_logger",
  "etcd-client",
  "futures",
- "kustos",
  "log",
+ "opentalk-controller-api-authorization",
+ "opentalk-controller-api-authorization-database",
  "opentalk-controller-settings",
  "opentalk-controller-utils",
  "opentalk-inventory",
@@ -5910,36 +5796,6 @@ dependencies = [
  "snafu 0.8.9",
  "tokio",
  "url",
-]
-
-[[package]]
-name = "opentalk-kustos-inventory"
-version = "0.33.0"
-dependencies = [
- "async-trait",
- "opentalk-inventory-common",
-]
-
-[[package]]
-name = "opentalk-kustos-prefix"
-version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38547db73c085053159e4dc72725596d57498b755ca72303e2a1a5b75c57ce51"
-dependencies = [
- "kustos-shared",
- "opentalk-kustos-prefix-impl",
-]
-
-[[package]]
-name = "opentalk-kustos-prefix-impl"
-version = "0.32.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6c6f67f15c7103f6455267da78f5b4ff1ea190770101bb88b330b5d65240d91"
-dependencies = [
- "proc-macro-crate",
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -6860,8 +6716,9 @@ dependencies = [
  "diesel",
  "diesel-async",
  "fern",
- "kustos",
  "log",
+ "opentalk-controller-api-authorization",
+ "opentalk-controller-api-authorization-database",
  "opentalk-database",
  "opentalk-db-storage",
  "opentalk-inventory",
@@ -6946,9 +6803,7 @@ dependencies = [
  "email_address",
  "icu_locid",
  "itertools 0.14.0",
- "kustos-shared",
  "opentalk-diesel-newtype",
- "opentalk-kustos-prefix",
  "opentalk-types-common-identifiers",
  "opentalk-types-common-macros",
  "rand 0.10.1",
@@ -8658,36 +8513,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rhai"
-version = "1.24.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f9ef5dabe4c0b43d8f1187dc6beb67b53fe607fff7e30c5eb7f71b814b8c2c1"
-dependencies = [
- "ahash 0.8.12",
- "bitflags 2.11.1",
- "no-std-compat",
- "num-traits",
- "once_cell",
- "rhai_codegen",
- "serde",
- "smallvec",
- "smartstring",
- "thin-vec",
- "web-time",
-]
-
-[[package]]
-name = "rhai_codegen"
-version = "3.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4322a2a4e8cf30771dd9f27f7f37ca9ac8fe812dddd811096a98483080dabe6"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "ring"
 version = "0.17.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8699,16 +8524,6 @@ dependencies = [
  "libc",
  "untrusted 0.9.0",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "ritelinked"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98f2771d255fd99f0294f13249fecd0cae6e074f86b4197ec1f1689d537b44d3"
-dependencies = [
- "ahash 0.7.8",
- "hashbrown 0.11.2",
 ]
 
 [[package]]
@@ -9595,21 +9410,6 @@ name = "smallvec"
 version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "smartstring"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fb72c633efbaa2dd666986505016c32c3044395ceaf881518399d2f4127ee29"
-dependencies = [
- "autocfg",
- "serde",
- "static_assertions",
- "version_check",
-]
 
 [[package]]
 name = "snafu"
@@ -9685,12 +9485,6 @@ dependencies = [
 
 [[package]]
 name = "spin"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
-
-[[package]]
-name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
@@ -9742,12 +9536,6 @@ dependencies = [
  "psm",
  "windows-sys 0.59.0",
 ]
-
-[[package]]
-name = "static_assertions"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "strict-num"
@@ -9998,9 +9786,6 @@ name = "thin-vec"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "259cdf8ed4e4aca6f1e9d011e10bd53f524a2d0637d7b28450f6c64ac298c4c6"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "thiserror"
@@ -10082,15 +9867,6 @@ checksum = "2e70e4c5a0e0a8a4823ad65dfe1a6930e4f4d756dcd9dd7939022b5e8c501215"
 dependencies = [
  "num-conv",
  "time-core",
-]
-
-[[package]]
-name = "tiny-keccak"
-version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c9d3793400a45f954c52e73d068316d76b6f4e36977e3fcebb13a2721e80237"
-dependencies = [
- "crunchy",
 ]
 
 [[package]]

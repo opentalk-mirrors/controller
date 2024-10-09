@@ -21,4 +21,6 @@
 )]
 
 pub mod authorization;
+
+#[cfg(feature = "actix-web")]
 pub mod middleware;

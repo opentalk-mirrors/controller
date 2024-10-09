@@ -5,6 +5,7 @@
 use opentalk_types_common::{
     pagination::{ItemCount, Page, PageSize},
     rooms::RoomId,
+    users::UserId,
 };
 
 use super::{NewRoom, Room, UpdateRoom};
@@ -49,6 +50,14 @@ pub trait RoomInventory {
     async fn get_rooms_paginated_by_id_with_creator(
         &mut self,
         room_ids: &[RoomId],
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<(Room, User)>, ItemCount)>;
+
+    /// Get all rooms accessible to a specific user, paginated and with the creator user.
+    async fn get_rooms_accessible_to_user_with_creator_paginated(
+        &mut self,
+        user: UserId,
         limit: PageSize,
         page: Page,
     ) -> Result<(Vec<(Room, User)>, ItemCount)>;

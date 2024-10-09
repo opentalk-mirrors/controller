@@ -5,10 +5,9 @@
 use std::collections::BTreeSet;
 
 use diesel_async::scoped_futures::ScopedFutureExt as _;
-use kustos::prelude::PoliciesBuilder;
 use openidconnect::AccessToken;
+use opentalk_controller_api_authorization::authorization::{AuthorizationChange, Authorizer};
 use opentalk_controller_service::{
-    controller_backend::RoomsPoliciesBuilderExt,
     oidc::{OidcTokenHandler, OpenIdConnectUserInfo},
     phone_numbers::parse_phone_number,
 };
@@ -21,20 +20,19 @@ use opentalk_inventory::{
 };
 use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use opentalk_types_common::{
-    events::EventId,
+    events::{EventId, invites::InviteRole},
     rooms::RoomId,
     tariffs::TariffStatus,
     tenants::TenantId,
     users::{DisplayName, GroupId, GroupName, UserTitle},
 };
 
-use crate::api::v1::events::EventPoliciesBuilderExt;
-
 enum LoginResult {
     UserCreated {
         user: User,
         groups: BTreeSet<GroupId>,
-        event_and_room_ids: Vec<(EventId, RoomId)>,
+        events: BTreeSet<EventId>,
+        rooms: BTreeSet<RoomId>,
     },
     UserUpdated {
         user: User,
@@ -47,7 +45,7 @@ enum LoginResult {
 /// Synchronizes user data from the access token with the inventory
 pub(super) async fn provision_user(
     settings: &Settings,
-    authz: &kustos::Authz,
+    authorizer: &Authorizer,
     inventory_provider: &dyn InventoryProvider,
     oidc_ctx: &dyn OidcTokenHandler,
     access_token: &AccessToken,
@@ -150,7 +148,7 @@ pub(super) async fn provision_user(
         .await?
     };
 
-    let user = update_core_user_permissions(authz, login_result).await?;
+    let user = update_core_user_permissions(authorizer, login_result).await?;
 
     Ok((tenant, user))
 }
@@ -220,14 +218,17 @@ async fn create_or_update_user(
         UpsertOutcome::Inserted(user) => {
             let groups = inventory.add_user_to_groups(user.id, groups).await?;
 
-            let event_and_room_ids = inventory
+            let (events, rooms) = inventory
                 .migrate_event_email_invites_to_user_invites(user.clone())
-                .await?;
+                .await?
+                .into_iter()
+                .unzip();
 
             Ok(LoginResult::UserCreated {
                 user,
                 groups,
-                event_and_room_ids,
+                events,
+                rooms,
             })
         }
         UpsertOutcome::Updated(user) => {
@@ -246,7 +247,7 @@ async fn create_or_update_user(
 }
 
 async fn update_core_user_permissions(
-    authz: &kustos::Authz,
+    authorizer: &Authorizer,
     db_result: LoginResult,
 ) -> Result<User, CaptureApiError> {
     match db_result {
@@ -255,43 +256,50 @@ async fn update_core_user_permissions(
             groups_added_to,
             groups_removed_from,
         } => {
-            for group_id in groups_added_to {
-                authz.add_user_to_group(user.id, group_id).await?;
-            }
-
-            for group_id in groups_removed_from {
-                authz.remove_user_from_group(user.id, group_id).await?;
-            }
+            authorizer
+                .apply_changes(&[
+                    AuthorizationChange::AddUserToGroups {
+                        user: user.id,
+                        groups: groups_added_to,
+                    },
+                    AuthorizationChange::RemoveUserFromGroups {
+                        user: user.id,
+                        groups: groups_removed_from,
+                    },
+                ])
+                .await?;
 
             Ok(user)
         }
         LoginResult::UserCreated {
             user,
             groups,
-            event_and_room_ids,
+            events,
+            rooms,
         } => {
-            authz.add_user_to_role(user.id, "user").await?;
-
-            for group_id in groups {
-                authz.add_user_to_group(user.id, group_id).await?;
-            }
-
-            // Migrate email invites to user invites
-            // Add permissions for user to events that the email was invited to
-            if event_and_room_ids.is_empty() {
-                return Ok(user);
-            }
-
-            let mut policies = PoliciesBuilder::new().grant_user_access(user.id);
-
-            for (event_id, room_id) in event_and_room_ids {
-                policies = policies
-                    .event_read_access(event_id)
-                    .room_read_access(room_id)
-                    .event_invite_invitee_access(event_id);
-            }
-
-            authz.add_policies(policies.finish()).await?;
+            authorizer
+                .apply_changes(&[
+                    AuthorizationChange::CreateUser { user: user.id },
+                    AuthorizationChange::AddUserToGroups {
+                        user: user.id,
+                        groups,
+                    },
+                    AuthorizationChange::AddUserToEvents {
+                        user: user.id,
+                        role: InviteRole::User,
+                        events,
+                    },
+                    AuthorizationChange::AddUserToRooms {
+                        user: user.id,
+                        role: InviteRole::User,
+                        rooms,
+                    },
+                ])
+                .await
+                .map_err(|e| {
+                    log::error!("Could not apply changes in the authorization database: {e:?}");
+                    ApiError::internal()
+                })?;
 
             Ok(user)
         }

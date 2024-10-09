@@ -11,7 +11,7 @@ use chrono::{DateTime, Duration, Utc};
 use futures::pin_mut;
 use futures_core::Stream;
 use futures_util::{StreamExt, TryStreamExt};
-use kustos::policies_builder::PoliciesBuilder;
+use opentalk_controller_api_authorization::authorization::AuthorizationChange;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::{
@@ -46,7 +46,6 @@ use opentalk_types_common::{
 use crate::{
     ControllerBackend,
     controller_backend::{
-        RoomsPoliciesBuilderExt,
         events::{DateTimeTzFromInventory, EventRoomInfoExt, ONE_HUNDRED_YEARS_IN_DAYS},
         utils::interweave_result_streams,
     },
@@ -728,15 +727,19 @@ impl ControllerBackend {
                 inventory.get_user(event.created_by).await?
             };
 
-            // Add the access policy for the invite code, just in case it has been created by
+            // Add the permission for the invite code, just in case it has been created by
             // the `Invite::get_first_for_room(…)` call above. That function is not able to
             // add the policy, because it has no access to the `RoomsPoliciesBuilderExt` trait.
-            let policies = PoliciesBuilder::new()
-                // Grant invitee access
-                .grant_invite_access(invite_for_room.invite_code)
-                .room_guest_read_access(room.id)
-                .finish();
-            self.authz.add_policies(policies).await?;
+            self.authorizer
+                .apply_change(&AuthorizationChange::AddInviteCodeToRoom {
+                    room: room.id,
+                    invite_code: invite_for_room.invite_code,
+                })
+                .await
+                .map_err(|e| {
+                    log::error!("Could not apply changes in the authorization database: {e:?}");
+                    ApiError::internal()
+                })?;
 
             if let Some(mail_service) = self.mail_service.as_ref() {
                 let notification_values = UpdateNotificationValues {

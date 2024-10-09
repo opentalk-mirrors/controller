@@ -66,8 +66,6 @@ cat $ER_DIAGRAM_MERMAID | codify mermaid > $DB_DIR/er-diagram.md
 codify toml < example/controller.toml > "$CONFIG_DIR"/controller.toml.md
 
 $OPENTALK_CONTROLLER_CMD help | codify text > "$CLI_DIR"/"$CMDNAME"-help.md
-$OPENTALK_CONTROLLER_CMD fix-acl --help | codify text > "$CLI_DIR"/"$CMDNAME"-fix-acl-help.md
-$OPENTALK_CONTROLLER_CMD acl --help | codify text > "$CLI_DIR"/"$CMDNAME"-acl-help.md
 $OPENTALK_CONTROLLER_CMD migrate-db --help | codify text > "$CLI_DIR"/"$CMDNAME"-migrate-db-help.md
 $OPENTALK_CONTROLLER_CMD tenants --help | codify text > "$CLI_DIR"/"$CMDNAME"-tenants-help.md
 $OPENTALK_CONTROLLER_CMD tenants list --help | codify text > "$CLI_DIR"/"$CMDNAME"-tenants-list-help.md

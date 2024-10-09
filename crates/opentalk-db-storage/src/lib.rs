@@ -10,8 +10,6 @@
 #[macro_use]
 extern crate diesel;
 
-extern crate kustos_db as kustos;
-
 // postgres functions
 use diesel::sql_types::Text;
 

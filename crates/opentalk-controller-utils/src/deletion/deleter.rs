@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use kustos::Authz;
 use log::Log;
+use opentalk_controller_api_authorization::authorization::{AuthorizationChange, Authorizer};
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::Inventory;
 use opentalk_signaling_core::ObjectStorage;
@@ -32,20 +32,28 @@ pub trait Deleter: Sync {
         &self,
         logger: &dyn Log,
         inventory: &mut dyn Inventory,
-        authz: &Authz,
+        authorizer: Authorizer,
         user_id: Option<UserId>,
         settings: &Settings,
         object_storage: &ObjectStorage,
     ) -> Result<(), Error> {
         let prepared_commit = self.prepare_commit(logger, inventory).await?;
-        self.check_permissions(&prepared_commit, logger, authz, user_id)
+        self.check_permissions(&prepared_commit, logger, authorizer.clone(), user_id)
             .await?;
         self.pre_commit(&prepared_commit, logger, inventory, settings)
             .await?;
         let commit_output = self
             .commit_to_inventory(prepared_commit, logger, inventory)
             .await?;
-        self.post_commit(commit_output, logger, settings, authz, object_storage)
+
+        let authorization_changes = self.authorization_changes(&commit_output);
+        if let Err(e) = authorizer.apply_changes(&authorization_changes).await {
+            log::warn!(
+                "Could not apply authorization changes, {e:?}. Attempted to perform these changes: {authorization_changes:?}"
+            );
+        }
+
+        self.post_commit(commit_output, logger, settings, authorizer, object_storage)
             .await?;
         Ok(())
     }
@@ -73,7 +81,7 @@ pub trait Deleter: Sync {
         &self,
         prepared_commit: &Self::PreparedCommit,
         logger: &dyn Log,
-        authz: &Authz,
+        authorizer: Authorizer,
         user_id: Option<UserId>,
     ) -> Result<(), Error>;
 
@@ -102,9 +110,13 @@ pub trait Deleter: Sync {
         _commit_output: Self::CommitOutput,
         _logger: &dyn Log,
         _settings: &Settings,
-        _authz: &Authz,
+        _authorizer: Authorizer,
         _storage: &ObjectStorage,
     ) -> Result<(), Error> {
         Ok(())
     }
+
+    /// Get the changes that must be applied the authorization system once the deletion succeeds.
+    fn authorization_changes(&self, commit_output: &Self::CommitOutput)
+    -> Vec<AuthorizationChange>;
 }

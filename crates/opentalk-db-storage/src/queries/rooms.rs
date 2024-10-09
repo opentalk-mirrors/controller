@@ -10,12 +10,13 @@ use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{
     pagination::{ItemCount, Page, PageSize},
     rooms::RoomId,
+    users::UserId,
 };
 
 use crate::{
     self as db,
     paginate::Paginate,
-    schema::{events, rooms, users},
+    schema::{event_invites, events, rooms, users},
     tables::{
         rooms::{NewRoom, Room, UpdateRoom},
         tariffs::Tariff,
@@ -72,6 +73,32 @@ pub async fn get_all_rooms_paginated_with_creator(
         .map_err(DatabaseError::from)
 }
 
+/// Select all rooms accessible to a certain user
+#[tracing::instrument(err, skip_all)]
+pub async fn get_accessible_to_user_with_creator_paginated(
+    conn: &mut DbConnection,
+    user: UserId,
+    limit: PageSize,
+    page: Page,
+) -> Result<(Vec<(Room, User)>, ItemCount)> {
+    let query = rooms::table
+        .inner_join(users::table)
+        .left_join(events::table)
+        .left_join(event_invites::table.on(event_invites::event_id.eq(events::id)))
+        .filter(
+            rooms::created_by
+                .eq(user)
+                .or(event_invites::invitee.eq(user)),
+        )
+        .order_by(rooms::id.desc())
+        .select((rooms::all_columns, users::all_columns))
+        .paginate_by(limit, page);
+
+    let rooms_with_total = query.load_and_count(conn).await?;
+
+    Ok(rooms_with_total)
+}
+
 /// Select all rooms filtered by ids
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_by_ids_with_creator_paginated(
@@ -109,6 +136,18 @@ pub async fn get_tariff(conn: &mut DbConnection, room: Room) -> Result<Tariff> {
     let user = db::queries::users::get_user(conn, room.created_by).await?;
 
     db::queries::tariffs::get_tariff(conn, user.tariff_id).await
+}
+
+/// Select all room ids and their creator
+#[tracing::instrument(err(level = "debug"), skip_all)]
+pub async fn get_all_room_and_creator_ids(
+    conn: &mut DbConnection,
+) -> Result<Vec<(RoomId, UserId)>> {
+    rooms::table
+        .select((rooms::id, rooms::created_by))
+        .load::<(RoomId, UserId)>(conn)
+        .await
+        .map_err(DatabaseError::from)
 }
 
 /// Delete a room using the given id

@@ -6,8 +6,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{Days, Utc};
-use kustos::Authz;
 use log::Log;
+use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::InventoryProvider;
 use opentalk_log::{debug, error, info};
@@ -50,7 +50,7 @@ impl Job for EventCleanup {
     async fn execute(
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
-        authz: Authz,
+        authorizer: Authorizer,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {
@@ -75,7 +75,7 @@ impl Job for EventCleanup {
         perform_deletion(
             logger,
             inventory_provider.clone(),
-            authz,
+            authorizer,
             settings,
             parameters.fail_on_shared_folder_deletion_error,
             DeleteSelector::ScheduledThatEndedBefore(delete_before.into()),
