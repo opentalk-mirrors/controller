@@ -19,3 +19,5 @@ workspace = true
 
 [dependencies]
 actix-web.workspace = true
+async-trait.workspace = true
+opentalk-types-common.workspace = true

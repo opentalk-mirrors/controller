@@ -20,4 +20,5 @@
     unused_results
 )]
 
+pub mod authorization;
 pub mod middleware;

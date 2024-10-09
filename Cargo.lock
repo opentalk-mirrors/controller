@@ -5509,6 +5509,8 @@ name = "opentalk-controller-api-authorization"
 version = "0.33.0"
 dependencies = [
  "actix-web",
+ "async-trait",
+ "opentalk-types-common",
 ]
 
 [[package]]
