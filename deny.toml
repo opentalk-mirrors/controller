@@ -200,6 +200,9 @@ exceptions = [
   ], name = "opentalk-controller-api-authorization-database" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-controller-api-authorization-synchronization" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-controller-service" },
   { allow = [
     "EUPL-1.2",
