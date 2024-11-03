@@ -10,6 +10,7 @@ use super::{
 };
 
 /// A trait for implementing authorization queries against the OpenTalk Controller API.
+#[cfg_attr(feature = "mockall", mockall::automock)]
 #[async_trait]
 pub trait AuthorizerBackend: Send + Sync {
     /// Attempt to authorize for a specific resource as a subject.

@@ -21,6 +21,24 @@ workspace = true
 async-trait.workspace = true
 flume.workspace = true
 log.workspace = true
+mockall = { workspace = true, optional = true }
 opentalk-controller-api-authorization.workspace = true
 snafu.workspace = true
-tokio = { workspace = true, features = ["rt"] }
+tokio = { workspace = true, features = ["macros", "rt"] }
+
+[dev-dependencies]
+mockall.workspace = true
+opentalk-controller-api-authorization = { workspace = true, features = [
+  "mockall",
+] }
+opentalk-types-common.workspace = true
+pretty_assertions.workspace = true
+tokio = { workspace = true, features = [
+  "macros",
+  "rt",
+  "rt-multi-thread",
+  "time",
+] }
+
+[features]
+mockall = ["dep:mockall"]

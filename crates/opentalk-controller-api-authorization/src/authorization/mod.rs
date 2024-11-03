@@ -24,6 +24,8 @@ pub use authorization_error::AuthorizationError;
 pub use authorization_target::AuthorizationTarget;
 pub use authorizer::Authorizer;
 pub use authorizer_backend::AuthorizerBackend;
+#[cfg(feature = "mockall")]
+pub use authorizer_backend::MockAuthorizerBackend;
 pub use resource::Resource;
 pub use subject::Subject;
 pub use subject_collection::SubjectCollection;
