@@ -2881,6 +2881,7 @@ checksum = "da0e4dd2a88388a1f4ccc7c9ce104604dab68d9f408dc34cd45823d5a9069095"
 dependencies = [
  "futures-core",
  "futures-sink",
+ "nanorand",
  "spin 0.9.8",
 ]
 
@@ -4837,6 +4838,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e94e1e6445d314f972ff7395df2de295fe51b71821694f0b0e1e79c4f12c8577"
 
 [[package]]
+name = "nanorand"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a51313c5820b0b02bd422f4b44776fbf47961755c74ce64afc73bfad10226c3"
+dependencies = [
+ "getrandom 0.2.17",
+]
+
+[[package]]
 name = "native-tls"
 version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5406,6 +5416,14 @@ dependencies = [
 [[package]]
 name = "opentalk-controller-api-authorization-synchronization"
 version = "0.33.0"
+dependencies = [
+ "async-trait",
+ "flume",
+ "log",
+ "opentalk-controller-api-authorization",
+ "snafu 0.9.0",
+ "tokio",
+]
 
 [[package]]
 name = "opentalk-controller-core"
