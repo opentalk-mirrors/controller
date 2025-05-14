@@ -51,10 +51,10 @@ impl From<TrainingParticipationReportParameterSet>
         }: TrainingParticipationReportParameterSet,
     ) -> Self {
         Self {
-            initial_checkpoint_delay_after: Some(initial_checkpoint_delay.after.into()),
-            initial_checkpoint_delay_within: Some(initial_checkpoint_delay.within.into()),
-            checkpoint_interval_after: Some(checkpoint_interval.after.into()),
-            checkpoint_interval_within: Some(checkpoint_interval.within.into()),
+            initial_checkpoint_delay_after: Some(initial_checkpoint_delay.after()),
+            initial_checkpoint_delay_within: Some(initial_checkpoint_delay.within()),
+            checkpoint_interval_after: Some(checkpoint_interval.after()),
+            checkpoint_interval_within: Some(checkpoint_interval.within()),
         }
     }
 }

@@ -2,11 +2,12 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use icu_locid::LanguageIdentifier;
 use opentalk_types_common::{
     tariffs::{TariffId, TariffStatus},
     tenants::TenantId,
     time::TimeZone,
-    users::{DisplayName, Language, UserTitle},
+    users::{DisplayName, UserTitle},
 };
 
 /// The representation of a new user that is intended to be stored in the inventory.
@@ -28,7 +29,7 @@ pub struct NewUser {
     pub lastname: String,
 
     /// The language of the user.
-    pub language: Language,
+    pub language: LanguageIdentifier,
 
     /// The display name of the user.
     pub display_name: DisplayName,

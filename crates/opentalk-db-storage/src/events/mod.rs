@@ -28,7 +28,7 @@ use opentalk_types_common::{
     sql_enum,
     tenants::TenantId,
     time::TimeZone,
-    training_participation_report::TrainingParticipationReportParameterSet,
+    training_participation_report::{TimeRange, TrainingParticipationReportParameterSet},
     users::UserId,
 };
 use redis_args::{FromRedisValue, ToRedisArgs};
@@ -36,6 +36,7 @@ use serde::{Deserialize, Serialize};
 
 use self::shared_folders::EventSharedFolder;
 use crate::{
+    newtypes::Duration,
     paginate::Paginate as _,
     rooms::Room,
     schema::{
@@ -1660,10 +1661,10 @@ impl NewEventFavorite {
 #[diesel(belongs_to(Event, foreign_key = event_id))]
 pub struct EventTrainingParticipationReportParameterSet {
     pub event_id: EventId,
-    pub initial_checkpoint_delay_after: i64,
-    pub initial_checkpoint_delay_within: i64,
-    pub checkpoint_interval_after: i64,
-    pub checkpoint_interval_within: i64,
+    pub initial_checkpoint_delay_after: Duration,
+    pub initial_checkpoint_delay_within: Duration,
+    pub checkpoint_interval_after: Duration,
+    pub checkpoint_interval_within: Duration,
 }
 
 impl From<EventTrainingParticipationReportParameterSet>
@@ -1680,10 +1681,14 @@ impl From<EventTrainingParticipationReportParameterSet>
     ) -> Self {
         Self {
             event_id,
-            initial_checkpoint_delay_after,
-            initial_checkpoint_delay_within,
-            checkpoint_interval_after,
-            checkpoint_interval_within,
+            initial_checkpoint_delay: TimeRange::new_with_clamped_durations(
+                initial_checkpoint_delay_after.into(),
+                initial_checkpoint_delay_within.into(),
+            ),
+            checkpoint_interval: TimeRange::new_with_clamped_durations(
+                checkpoint_interval_after.into(),
+                checkpoint_interval_within.into(),
+            ),
         }
     }
 }
@@ -1694,18 +1699,16 @@ impl From<opentalk_inventory::EventTrainingParticipationReportParameterSet>
     fn from(
         opentalk_inventory::EventTrainingParticipationReportParameterSet {
             event_id,
-            initial_checkpoint_delay_after,
-            initial_checkpoint_delay_within,
-            checkpoint_interval_after,
-            checkpoint_interval_within,
+            initial_checkpoint_delay,
+            checkpoint_interval,
         }: opentalk_inventory::EventTrainingParticipationReportParameterSet,
     ) -> Self {
         Self {
             event_id,
-            initial_checkpoint_delay_after,
-            initial_checkpoint_delay_within,
-            checkpoint_interval_after,
-            checkpoint_interval_within,
+            initial_checkpoint_delay_after: initial_checkpoint_delay.after().into(),
+            initial_checkpoint_delay_within: initial_checkpoint_delay.within().into(),
+            checkpoint_interval_after: checkpoint_interval.after().into(),
+            checkpoint_interval_within: checkpoint_interval.within().into(),
         }
     }
 }
@@ -1757,10 +1760,10 @@ impl EventTrainingParticipationReportParameterSet {
 #[derive(AsChangeset)]
 #[diesel(table_name = event_training_participation_report_parameter_sets)]
 pub struct UpdateEventTrainingParticipationReportParameterSet {
-    pub initial_checkpoint_delay_after: Option<i64>,
-    pub initial_checkpoint_delay_within: Option<i64>,
-    pub checkpoint_interval_after: Option<i64>,
-    pub checkpoint_interval_within: Option<i64>,
+    pub initial_checkpoint_delay_after: Option<Duration>,
+    pub initial_checkpoint_delay_within: Option<Duration>,
+    pub checkpoint_interval_after: Option<Duration>,
+    pub checkpoint_interval_within: Option<Duration>,
 }
 
 impl From<opentalk_inventory::UpdateEventTrainingParticipationReportParameterSet>
@@ -1775,10 +1778,10 @@ impl From<opentalk_inventory::UpdateEventTrainingParticipationReportParameterSet
         }: opentalk_inventory::UpdateEventTrainingParticipationReportParameterSet,
     ) -> Self {
         Self {
-            initial_checkpoint_delay_after,
-            initial_checkpoint_delay_within,
-            checkpoint_interval_after,
-            checkpoint_interval_within,
+            initial_checkpoint_delay_after: initial_checkpoint_delay_after.map(Into::into),
+            initial_checkpoint_delay_within: initial_checkpoint_delay_within.map(Into::into),
+            checkpoint_interval_after: checkpoint_interval_after.map(Into::into),
+            checkpoint_interval_within: checkpoint_interval_within.map(Into::into),
         }
     }
 }

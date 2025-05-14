@@ -24,10 +24,11 @@ use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
     path::Path,
     sync::Arc,
+    time::Duration,
 };
 
 use bytes::Bytes;
-use chrono::{Duration, Local, Utc};
+use chrono::{Local, Utc};
 use chrono_tz::Tz;
 use either::Either;
 use futures::{FutureExt as _, stream::once};
@@ -51,10 +52,7 @@ use opentalk_types_common::{
     modules::ModuleId,
     rooms::RoomId,
     time::{TimeZone, Timestamp},
-    training_participation_report::{
-        SECONDS_PER_MINUTE, TimeRange, TimeRangeStart, TimeRangeWindow,
-        TrainingParticipationReportParameterSet,
-    },
+    training_participation_report::{TimeRange, TrainingParticipationReportParameterSet},
     users::{DisplayName, UserId},
 };
 use opentalk_types_signaling::ParticipantId;
@@ -69,7 +67,7 @@ use opentalk_types_signaling_training_participation_report::{
     state::{ParticipationLoggingState, TrainingParticipationReportState},
 };
 use rand::Rng as _;
-use snafu::{Report, ResultExt as _};
+use snafu::{Report, ResultExt};
 use storage::{RoomState, TrainingParticipationReportStorage, TrainingReportState};
 use template::ReportTemplateParameter;
 use tokio::time::sleep;
@@ -80,14 +78,13 @@ mod template;
 
 const DEFAULT_TEMPLATE: &str = include_str!("training_participation_report.typ");
 
-const DEFAULT_INITIAL_CHECKPOINT_DELAY: TimeRange = TimeRange {
-    after: TimeRangeStart::from_i64_clamped(10 * SECONDS_PER_MINUTE),
-    within: TimeRangeWindow::from_i64_clamped(20 * SECONDS_PER_MINUTE),
-};
-const DEFAULT_CHECKPOINT_INTERVAL: TimeRange = TimeRange {
-    after: TimeRangeStart::from_i64_clamped((60 + 45) * SECONDS_PER_MINUTE),
-    within: TimeRangeWindow::from_i64_clamped(30 * SECONDS_PER_MINUTE),
-};
+fn default_initial_checkpoint_delay() -> TimeRange {
+    TimeRange::new_with_clamped_durations(Duration::from_mins(10), Duration::from_mins(20))
+}
+
+fn default_checkpoint_interval() -> TimeRange {
+    TimeRange::new_with_clamped_durations(Duration::from_mins(60 + 45), Duration::from_mins(30))
+}
 
 /// An event queued by the runner for itself to handle a timeout
 #[derive(Debug, PartialEq, Eq)]
@@ -431,10 +428,10 @@ impl TrainingParticipationReport {
             .unwrap_or_default();
         let initial_checkpoint_delay = initial_checkpoint_delay
             .or(parameter_set_initial_checkpoint_delay)
-            .unwrap_or(DEFAULT_INITIAL_CHECKPOINT_DELAY);
+            .unwrap_or_else(default_initial_checkpoint_delay);
         let checkpoint_interval = checkpoint_interval
             .or(parameter_set_checkpoint_interval)
-            .unwrap_or(DEFAULT_CHECKPOINT_INTERVAL);
+            .unwrap_or_else(default_checkpoint_interval);
 
         // Initialize the room with all other present participants
         storage
@@ -501,16 +498,12 @@ impl TrainingParticipationReport {
         ctx: &mut ModuleContext<'_, Self>,
         time_range: &TimeRange,
     ) -> Result<Timestamp, SignalingModuleError> {
-        let seconds_to_wait = Self::random_waiting_duration_seconds(time_range);
-
-        let wait_duration = Duration::new(
-            seconds_to_wait
-                .try_into()
-                .expect("value must not be greater than i64::MAXIMUM"),
-            0,
-        )
-        .expect("value should be a valid duration");
-        let checkpoint = ctx.timestamp + wait_duration;
+        let wait_duration = Self::random_waiting_duration(time_range);
+        let checkpoint = ctx.timestamp
+            + chrono::Duration::from_std(wait_duration)
+                .with_whatever_context::<_, _, SignalingModuleError>(|e| {
+                    format!("Duration out of range: {e}")
+                })?;
         Self::start_checkpoint_timer(checkpoint_runner_data, ctx, checkpoint);
 
         ctx.volatile
@@ -636,15 +629,11 @@ impl TrainingParticipationReport {
         Ok(())
     }
 
-    fn random_waiting_duration_seconds(range: &TimeRange) -> u64 {
-        let offset = if range.within == TimeRangeWindow::from_i64_clamped(0) {
-            0
-        } else {
-            let mut rng = rand::rng();
-            rng.random_range(0..range.within.into())
-        };
-        let x: i64 = range.after.saturating_add(offset).into();
-        x as u64
+    fn random_waiting_duration(range: &TimeRange) -> Duration {
+        let mut rng = rand::rng();
+        range
+            .after()
+            .saturating_add(rng.random_range(Duration::ZERO..range.within()))
     }
 
     async fn handle_timeout(

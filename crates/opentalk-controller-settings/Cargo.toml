@@ -25,6 +25,7 @@ cidr = { version = "0.3", features = ["serde"] }
 config.workspace = true
 dirs.workspace = true
 iana-time-zone.workspace = true
+icu_locid = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 log = { workspace = true, features = ["serde"] }
 openidconnect.workspace = true

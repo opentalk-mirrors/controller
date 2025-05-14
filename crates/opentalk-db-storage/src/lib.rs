@@ -26,6 +26,7 @@ pub mod invites;
 pub mod jobs;
 pub mod migrations;
 pub mod module_resources;
+pub mod newtypes;
 pub mod paginate;
 pub mod paginated;
 pub mod rooms;

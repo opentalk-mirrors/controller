@@ -16,14 +16,15 @@ pub(crate) use training_report_state::TrainingReportState;
 
 #[cfg(test)]
 mod test_common {
-    use std::collections::{BTreeMap, BTreeSet};
+    use std::{
+        collections::{BTreeMap, BTreeSet},
+        time::Duration,
+    };
 
     use opentalk_signaling_core::SignalingModuleError;
     use opentalk_types_common::{
         rooms::RoomId,
-        training_participation_report::{
-            TimeRange, TimeRangeStart, TimeRangeWindow, TrainingParticipationReportParameterSet,
-        },
+        training_participation_report::{TimeRange, TrainingParticipationReportParameterSet},
     };
     use opentalk_types_signaling::ParticipantId;
     use opentalk_types_signaling_training_participation_report::state::ParticipationLoggingState;
@@ -59,14 +60,14 @@ mod test_common {
         let room = RoomId::generate();
 
         let parameter_set = TrainingParticipationReportParameterSet {
-            initial_checkpoint_delay: TimeRange {
-                after: TimeRangeStart::from_i64_clamped(100),
-                within: TimeRangeWindow::from_i64_clamped(200),
-            },
-            checkpoint_interval: TimeRange {
-                after: TimeRangeStart::from_i64_clamped(300),
-                within: TimeRangeWindow::from_i64_clamped(400),
-            },
+            initial_checkpoint_delay: TimeRange::new_with_clamped_durations(
+                Duration::from_secs(100),
+                Duration::from_secs(200),
+            ),
+            checkpoint_interval: TimeRange::new_with_clamped_durations(
+                Duration::from_secs(300),
+                Duration::from_secs(400),
+            ),
         };
 
         assert!(storage.get_parameter_set(room).await.unwrap().is_none());
@@ -94,14 +95,10 @@ mod test_common {
             .parse()
             .expect("value must be parsable as Timestamp");
         let report_state = TrainingReportState::WaitingForInitialTimeout;
-        let initial_checkpoint_delay = TimeRange {
-            after: 60.try_into().expect("value must be a positive number"),
-            within: TimeRangeWindow::from_i64_clamped(20),
-        };
-        let checkpoint_interval = TimeRange {
-            after: 60.try_into().expect("value must be a positive number"),
-            within: TimeRangeWindow::from_i64_clamped(40),
-        };
+        let initial_checkpoint_delay =
+            TimeRange::new_with_clamped_durations(Duration::from_secs(60), Duration::from_secs(20));
+        let checkpoint_interval =
+            TimeRange::new_with_clamped_durations(Duration::from_secs(60), Duration::from_secs(40));
 
         let known_participants = BTreeSet::from_iter([ALICE, BOB]);
 
@@ -140,14 +137,10 @@ mod test_common {
             .parse()
             .expect("value must be parsable as Timestamp");
         let report_state = TrainingReportState::WaitingForInitialTimeout;
-        let initial_checkpoint_delay = TimeRange {
-            after: 60.try_into().expect("value must be a positive number"),
-            within: TimeRangeWindow::from_i64_clamped(20),
-        };
-        let checkpoint_interval = TimeRange {
-            after: 60.try_into().expect("value must be a positive number"),
-            within: TimeRangeWindow::from_i64_clamped(40),
-        };
+        let initial_checkpoint_delay =
+            TimeRange::new_with_clamped_durations(Duration::from_secs(60), Duration::from_secs(20));
+        let checkpoint_interval =
+            TimeRange::new_with_clamped_durations(Duration::from_secs(60), Duration::from_secs(40));
         let known_participants = BTreeSet::from_iter([ALICE, BOB]);
 
         storage
@@ -211,10 +204,7 @@ mod test_common {
 
         assert_eq!(
             storage.get_initial_checkpoint_delay(room).await.unwrap(),
-            TimeRange {
-                after: 60.try_into().unwrap(),
-                within: TimeRangeWindow::from_i64_clamped(20)
-            }
+            TimeRange::new_with_clamped_durations(Duration::from_secs(60), Duration::from_secs(20))
         );
 
         _ = storage.cleanup_room(room).await.unwrap();
@@ -231,10 +221,7 @@ mod test_common {
 
         assert_eq!(
             storage.get_checkpoint_interval(room).await.unwrap(),
-            TimeRange {
-                after: 60.try_into().unwrap(),
-                within: TimeRangeWindow::from_i64_clamped(40)
-            }
+            TimeRange::new_with_clamped_durations(Duration::from_secs(60), Duration::from_secs(40))
         );
 
         _ = storage.cleanup_room(room).await.unwrap();

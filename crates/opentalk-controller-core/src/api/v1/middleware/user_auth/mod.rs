@@ -22,6 +22,7 @@ use actix_web::{
 use actix_web_httpauth::headers::authorization::Authorization;
 use chrono::{DateTime, Utc};
 use diesel_async::scoped_futures::ScopedFutureExt as _;
+use icu_locid::LanguageIdentifier;
 use kustos::prelude::PoliciesBuilder;
 use openidconnect::AccessToken;
 use opentalk_controller_service::{
@@ -44,7 +45,7 @@ use opentalk_types_common::{
     rooms::{RoomId, invite_codes::InviteCode},
     tariffs::TariffStatus,
     tenants::TenantId,
-    users::{DisplayName, GroupId, GroupName, Language, UserTitle},
+    users::{DisplayName, GroupId, GroupName, UserTitle},
 };
 use snafu::Report;
 use tracing_futures::Instrument;
@@ -241,7 +242,7 @@ pub async fn check_access_token(
     oidc_ctx: &OidcContext,
     cache: &UserAccessTokenCache,
     access_token: &AccessToken,
-    fallback_locale: Language,
+    fallback_locale: LanguageIdentifier,
 ) -> Result<(Tenant, User), CaptureApiError> {
     if let Some(cached_result) = get_cached_result(cache, access_token).await? {
         return cached_result;
@@ -363,7 +364,7 @@ async fn check_access_token_inner(
     inventory_provider: &dyn InventoryProvider,
     oidc_ctx: &OidcContext,
     access_token: &AccessToken,
-    fallback_locale: Language,
+    fallback_locale: LanguageIdentifier,
 ) -> Result<(Tenant, User), CaptureApiError> {
     let info = oidc_ctx.user_info(access_token.clone()).await?;
 
@@ -478,7 +479,7 @@ async fn create_or_update_user(
     groups: &[GroupId],
     tariff: Tariff,
     tariff_status: TariffStatus,
-    fallback_locale: Language,
+    fallback_locale: LanguageIdentifier,
 ) -> Result<LoginResult, CaptureApiError> {
     let display_name = build_info_display_name(&info);
     let enforce_display_name = settings.endpoints.disallow_custom_display_name;

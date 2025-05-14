@@ -9,13 +9,14 @@ use std::ops::Deref;
 use chrono::{DateTime, Utc};
 use claims::OpenTalkAdditionalClaims;
 use http::async_http_client;
+use icu_locid::LanguageIdentifier;
 use openidconnect::{
     AccessToken, ClientId, ClientSecret, LocalizedClaim, TokenIntrospectionResponse,
     UserInfoClaims, core::CoreGenderClaim,
 };
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_types_api_v1::error::ApiError;
-use opentalk_types_common::{time::TimeZone, users::Language};
+use opentalk_types_common::time::TimeZone;
 use provider::ProviderClient;
 use snafu::{ResultExt, Whatever};
 use url::Url;
@@ -127,7 +128,7 @@ impl OidcContext {
             .whatever_context::<_, Whatever>("Failed to fetch userinfo")?;
 
         let locale_parse_result = claims.locale().map(|loc| (loc, loc.parse()));
-        let locale: Option<Language> = match locale_parse_result {
+        let locale: Option<LanguageIdentifier> = match locale_parse_result {
             // Locale exists and has correct BCP47 format
             Some((_, Ok(lang))) => Some(lang),
             // Locale exists but has wrong format
@@ -246,7 +247,7 @@ pub struct OpenIdConnectUserInfo {
     /// The URL to get the avatar from
     pub avatar_url: Option<String>,
     /// The locale of the user
-    pub locale: Option<Language>,
+    pub locale: Option<LanguageIdentifier>,
     /// The timezone of the user
     pub timezone: Option<TimeZone>,
     /// The groups

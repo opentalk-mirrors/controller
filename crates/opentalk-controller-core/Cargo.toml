@@ -34,6 +34,7 @@ fluent-langneg.workspace = true
 futures.workspace = true
 http.workspace = true
 humansize.workspace = true
+icu_locid = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 kustos.workspace = true
 lapin-pool.workspace = true
