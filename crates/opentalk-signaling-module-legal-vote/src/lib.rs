@@ -11,7 +11,7 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
-    path::Path,
+    path::{Path, PathBuf},
     sync::Arc,
 };
 
@@ -20,6 +20,7 @@ use chrono::{DateTime, Utc};
 use either::Either;
 use error::LegalVoteError;
 use futures::{FutureExt, stream::once};
+use icu_locid::LanguageIdentifier;
 use kustos::{Authz, Resource, prelude::AccessMethod};
 use opentalk_inventory::{
     InventoryProvider, ModuleResourceFilter, ModuleResourceOperation, NewModuleResource,
@@ -105,6 +106,14 @@ pub struct LegalVote {
     user_id: Option<UserId>,
     tenant_id: TenantId,
     room_id: SignalingRoomId,
+    system_default_language: LanguageIdentifier,
+    typst_packages_path: PathBuf,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LegalVoteParams {
+    pub system_default_language: LanguageIdentifier,
+    pub typst_packages_path: PathBuf,
 }
 
 impl SignalingModuleDescription for LegalVote {
@@ -117,7 +126,7 @@ impl SignalingModuleDescription for LegalVote {
 impl SignalingModule for LegalVote {
     const NAMESPACE: ModuleId = MODULE_ID;
 
-    type Params = ();
+    type Params = LegalVoteParams;
 
     type Incoming = LegalVoteCommand;
     type Outgoing = LegalVoteEvent;
@@ -129,7 +138,10 @@ impl SignalingModule for LegalVote {
 
     async fn init(
         ctx: InitContext<'_, Self>,
-        _params: &Self::Params,
+        Self::Params {
+            system_default_language,
+            typst_packages_path,
+        }: &Self::Params,
         _protocol: &'static str,
     ) -> Result<Option<Self>, SignalingModuleError> {
         let user_id = match ctx.participant() {
@@ -144,6 +156,8 @@ impl SignalingModule for LegalVote {
             user_id,
             tenant_id: ctx.room().tenant_id,
             room_id: ctx.room_id(),
+            system_default_language: system_default_language.clone(),
+            typst_packages_path: typst_packages_path.clone(),
         }))
     }
 
@@ -326,9 +340,14 @@ impl SignalingModule for LegalVote {
     }
 
     fn build_params(
-        _init: SignalingModuleInitData,
+        init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
-        Ok(Some(()))
+        let typst_packages_path = init.startup_settings.reports.typst.packages_path.clone();
+        let system_default_language = init.startup_settings.defaults.user_language.clone();
+        Ok(Some(LegalVoteParams {
+            system_default_language,
+            typst_packages_path,
+        }))
     }
 }
 
@@ -1469,12 +1488,22 @@ impl LegalVote {
         let timezone = explicit_timezone.unwrap_or(ctx.timezone);
 
         let user_names = self.get_referenced_user_names(&protocol).await?;
+        let room_owner_language: LanguageIdentifier = {
+            let mut inventory = self.inventory_provider.get_inventory().await?;
+            let (_room, owner) = inventory
+                .get_room_with_creator(self.room_id.room_id())
+                .await?;
+            owner.language.into()
+        };
 
         let pdf_data = report::generate(
             user_names,
             protocol,
             &timezone,
+            &room_owner_language,
+            &self.system_default_language,
             Path::new(&format!("{MODULE_ID}/{timestamp}")),
+            &self.typst_packages_path,
         )
         .whatever_context::<_, LegalVoteError>("Failed to generate legal vote PDF")?;
 

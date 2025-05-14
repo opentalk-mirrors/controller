@@ -4,8 +4,8 @@
 
 use super::{
     Authz, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Etherpad, Frontend, Http, LiveKit,
-    Logging, Metrics, MinIO, Monitoring, Oidc, OperatorInformation, RabbitMq, Redis, SharedFolder,
-    Spacedeck, SubroomAudio, Tariffs, Tenants, UserSearchBackend,
+    Logging, Metrics, MinIO, Monitoring, Oidc, OperatorInformation, RabbitMq, Redis, Reports,
+    SharedFolder, Spacedeck, SubroomAudio, Tariffs, Tenants, UserSearchBackend,
     oidc_and_user_search_builder::OidcAndUserSearchBuilder,
 };
 use crate::{
@@ -64,6 +64,9 @@ pub struct Settings {
 
     /// The SubroomAudio settings.
     pub subroom_audio: SubroomAudio,
+
+    /// The Reports settings.
+    pub reports: Reports,
 
     /// The SharedFolder settings.
     pub shared_folder: Option<SharedFolder>,
@@ -143,6 +146,7 @@ impl TryFrom<SettingsRaw> for Settings {
         let etcd = raw.etcd.clone().map(Into::into);
         let etherpad = raw.etherpad.clone().map(Into::into);
         let spacedeck = raw.spacedeck.clone().map(Into::into);
+        let reports = raw.reports.clone().map(Into::into).unwrap_or_default();
         let subroom_audio = raw
             .subroom_audio
             .clone()
@@ -177,6 +181,7 @@ impl TryFrom<SettingsRaw> for Settings {
             etcd,
             etherpad,
             spacedeck,
+            reports,
             subroom_audio,
             shared_folder,
             endpoints,
@@ -258,6 +263,7 @@ pub(crate) fn minimal_example() -> Settings {
         etcd: None,
         etherpad: None,
         spacedeck: None,
+        reports: Reports::default(),
         subroom_audio: SubroomAudio {
             enable_whisper: false,
         },

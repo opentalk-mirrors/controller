@@ -5,6 +5,7 @@
 use std::collections::BTreeMap;
 
 use chrono_tz::Tz;
+use icu_locid::LanguageIdentifier;
 use opentalk_report_generation::{ReportDateTime, ToReportDateTime as _};
 use opentalk_types_common::users::{DisplayName, UserId};
 use snafu::OptionExt as _;
@@ -42,13 +43,15 @@ impl Builder {
         mut self,
         protocol: Vec<ProtocolEntry>,
         timezone: &Tz,
+        report_language: LanguageIdentifier,
     ) -> Result<ReportData, Error> {
         for ProtocolEntry { timestamp, event } in protocol {
             let time = timestamp.to_report_date_time(timezone);
             self.handle_event(event, time)?;
         }
 
-        self.data.finalize(&self.user_names, timezone)
+        self.data
+            .finalize(&self.user_names, timezone, report_language)
     }
 
     fn handle_event(

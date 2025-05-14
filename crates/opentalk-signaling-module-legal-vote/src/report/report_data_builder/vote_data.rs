@@ -5,6 +5,7 @@
 use std::collections::BTreeMap;
 
 use chrono_tz::Tz;
+use icu_locid::LanguageIdentifier;
 use opentalk_report_generation::ToReportDateTime as _;
 use opentalk_types_common::users::{DisplayName, UserId};
 use snafu::OptionExt as _;
@@ -12,7 +13,7 @@ use snafu::OptionExt as _;
 use super::StopInfo;
 use crate::{
     report::{
-        Error,
+        AVAILABLE_LANGUAGES, Error,
         data::{ReportData, ResolvedVote, Summary, TimedEvent},
         error::UserDisplayNameNotFoundSnafu,
     },
@@ -33,6 +34,7 @@ impl VoteData {
         self,
         user_names: &BTreeMap<UserId, DisplayName>,
         timezone: &Tz,
+        report_language: LanguageIdentifier,
     ) -> Result<ReportData, Error> {
         let VoteData {
             start,
@@ -79,9 +81,11 @@ impl VoteData {
         };
 
         Ok(ReportData {
+            available_languages: Vec::from_iter(AVAILABLE_LANGUAGES.iter().cloned()),
             summary,
             votes,
             events,
+            report_language,
         })
     }
 }

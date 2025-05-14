@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+#import "@preview/linguify:0.4.2": *
+
 #set page(
   paper: "a4",
 )
@@ -10,131 +12,135 @@
 )
 
 #let data = json("data.json")
+
+#set-database(eval(load_ftl_data("./l10n", data.available_languages)))
+#set text(lang: data.report_language)
+
 #let parse_datetime(s) = toml.decode("date = " + s).date
 #let datetime_format = "[year]-[month]-[day] [hour]:[minute]:[second]"
 #let vote_kind = (
-  pseudonymous: "Pseudonymous vote",
-  roll_call: "Roll call",
-  live_roll_call: "Live roll call",
+  pseudonymous: linguify("pseudonymous_vote"),
+  roll_call: linguify("roll_call"),
+  live_roll_call: linguify("live_roll_call"),
 )
 #let vote_option = (
-  yes: "Yes",
-  no: "No",
-  abstain: "Abstain",
+  yes: linguify("approval"),
+  no: linguify("disapproval"),
+  abstain: linguify("abstention"),
 )
 
-= OpenTalk Vote Report
+= #linguify("opentalk_vote_report")
 
 #let metadata_table_content = (
   (
-    [Title],
+    linguify("title"),
     data.summary.title,
   ),
 )
 
 #if "subtitle" in data.summary {
   metadata_table_content.push((
-    [Subtitle],
+    linguify("subtitle"),
     data.summary.subtitle,
   ))
 }
 
 #if "topic" in data.summary {
   metadata_table_content.push((
-    [Topic],
+    linguify("topic"),
     data.summary.topic,
   ))
 }
 
 #metadata_table_content.push((
-  [Vote kind],
+  linguify("vote_kind"),
   [#vote_kind.at(data.summary.kind)],
 ))
 
 #metadata_table_content.push((
-  [Referendum leader],
+  linguify("referendum_leader"),
   data.summary.creator,
 ))
 
 #metadata_table_content.push((
-  [Vote id],
+  linguify("vote_id"),
   data.summary.id,
 ))
 
 #metadata_table_content.push((
-  [Start],
+  linguify("start"),
   [ #parse_datetime(data.summary.start_time).display(datetime_format) ],
 ))
 
 #if "end_time" in data.summary {
   metadata_table_content.push((
-    [End],
+    linguify("end"),
     [ #parse_datetime(data.summary.end_time).display(datetime_format) ],
   ))
 }
 
 #metadata_table_content.push((
-  [Report timezone],
+  linguify("report_timezone"),
   data.summary.report_timezone,
 ))
 
 #metadata_table_content.push((
-  [Participant count],
+  linguify("participant_count"),
   data.summary.participant_count,
 ))
 
 #metadata_table_content.push((
-  [Scheduled duration],
+  linguify("scheduled_duration"),
   if "duration" in data.summary {
     [#data.summary.duration s]
   } else {
-    [Unlimited]
+    linguify("unlimited")
   }
 ))
 
 #metadata_table_content.push((
-  [Abstention],
+  linguify("abstention"),
   if data.summary.enable_abstain {
-    [Allowed]
+    linguify("allowed")
   } else {
-    [Disallowed]
+    linguify("disallowed")
   }
 ))
 
 #metadata_table_content.push((
-  [Automatic close],
+  linguify("automatic_close"),
   if data.summary.auto_close {
-    [Enabled]
+    linguify("enabled")
   } else {
-    [Disabled]
+    linguify("disabled")
   }
 ))
 
 #metadata_table_content.push((
-  [Vote ended due to],
-  if data.summary.stop_reason.kind == "by_user" [
-    User *#data.summary.stop_reason.user* ended the vote
-  ] else if data.summary.stop_reason.kind == "auto" [
-    All users voted
-  ] else if data.summary.stop_reason.kind == "expired" [
-    Expired
-  ] else if data.summary.stop_reason.kind == "canceled" {
-    if data.summary.stop_reason.reason == "room_destroyed" [
-      Aborted by room being closed
-    ] else if data.summary.stop_reason.reason == "initiator_left" [
-      Aborted by vote initiator leaving
-    ] else if data.summary.stop_reason.reason == "custom" [
-      Aborted for custom reason: #data.summary.stop_reason.custom
-    ] else [
-      Aborted for unknown reason
-    ]
-  } else [
-    Unknown reason
-  ]
+  linguify("vote_ended_due_to"),
+  if data.summary.stop_reason.kind == "by_user" {
+    linguify("user_ended_the_vote", args: (user: data.summary.stop_reason.user))
+  } else if data.summary.stop_reason.kind == "auto" {
+    linguify("all_users_voted")
+  } else if data.summary.stop_reason.kind == "expired" {
+    linguify("expired")
+  } else if data.summary.stop_reason.kind == "canceled" {
+    if data.summary.stop_reason.reason == "room_destroyed" {
+      linguify("aborted_by_room_closed")
+    } else if data.summary.stop_reason.reason == "initiator_left" {
+      linguify("aborted_by_vote_initiator_leaving")
+    } else if data.summary.stop_reason.reason == "custom" {
+      linguify("aborted_for_custom_reason", args: (reason: data.summary.stop_reason.custom))
+    } else {
+      linguify("aborted_for_unknown_reason")
+    }
+  } else {
+    linguify("unknown_reason")
+  }
 ))
 
 #metadata_table_content.push((
-  [Number of votes],
+  linguify("number_of_votes"),
   data.summary.vote_count,
 ))
 
@@ -150,22 +156,22 @@
 
 #if "final_results" in data.summary and data.summary.final_results.results == "valid" [
 
-== Results
+== #linguify("results")
 
 #let results_table_content = (
   (
-    [Yes],
+    linguify("approval"),
     data.summary.final_results.yes,
   ),
   (
-    [No],
+    linguify("disapproval"),
     data.summary.final_results.no,
   ),
 )
 
 #if "abstain" in data.summary.final_results {
   results_table_content.push((
-    [Abstain],
+    linguify("abstention"),
     data.summary.final_results.abstain,
   ))
 }
@@ -175,8 +181,8 @@
   stroke: none,
   columns: (auto, 1fr),
   table.header(
-    [*Vote*],
-    [*Count*],
+    [*#linguify("vote")*],
+    [*#linguify("count")*],
   ),
   table.hline(y: 0),
   table.hline(y: 1),
@@ -194,10 +200,10 @@
   stroke: none,
   columns: (auto, auto, auto, 1fr),
   table.header(
-    [*Name*],
-    [*Token*],
-    [*Vote*],
-    [*Timestamp*],
+    [*#linguify("name")*],
+    [*#linguify("token")*],
+    [*#linguify("vote")*],
+    [*#linguify("timestamp")*],
   ),
   table.hline(y: 0),
   table.hline(y: 1),
@@ -205,9 +211,9 @@
     (
       if "name" in vote [
         #vote.name
-      ] else [
-        Hidden
-      ],
+      ] else {
+        linguify("hidden")
+      },
 
       [#vote.token],
 
@@ -222,16 +228,16 @@
   }
 )
 
-== Event log
+== #linguify("event_log")
 
 #set table.hline(stroke: 0.5pt + rgb("bfbfbf"))
 #table(
   stroke: none,
   columns: (auto, auto, 1fr),
   table.header(
-    [*Name*],
-    [*Timestamp*],
-    [*Event*],
+    [*#linguify("name")*],
+    [*#linguify("timestamp")*],
+    [*#linguify("event")*],
   ),
   table.hline(y: 0),
   table.hline(y: 1),
@@ -239,9 +245,9 @@
     (
       if "name" in event.event_details [
         #event.event_details.name
-      ] else [
-        Anonymous
-      ],
+      ] else {
+        linguify("anonymous")
+      },
 
       if "time" in event [
         #parse_datetime(event.time).display(datetime_format)
@@ -251,26 +257,26 @@
 
       {
         if event.kind == "issue" {
-          let issue = if "kind" not in event.event_details [
-            Reports a problem
-          ] else if event.event_details.kind == "audio" [
-            Reports an audio issue
-          ] else if event.event_details.kind == "video"  [
-            Reports a video issue
-          ] else if event.event_details.kind == "screenshare"  [
-            Reports a screenshare issue
-          ]
+          let issue = if "kind" not in event.event_details {
+            linguify("reports_a_problem")
+          } else if event.event_details.kind == "audio" {
+            linguify("reports_an_audio_issue")
+          } else if event.event_details.kind == "video" {
+            linguify("reports_a_video_issue")
+          } else if event.event_details.kind == "screenshare" {
+            linguify("reports_a_screenshare_issue")
+          }
 
           if "description" in event.event_details [
             #issue: #event.event_details.description
           ] else [
             #issue
           ]
-        } else if event.kind == "user_joined" [
-          User joined
-        ] else if event.kind == "user_left" [
-          User left
-        ]
+        } else if event.kind == "user_joined" {
+          linguify("user_joined")
+        } else if event.kind == "user_left" {
+          linguify("user_left")
+        }
       },
     )
   }

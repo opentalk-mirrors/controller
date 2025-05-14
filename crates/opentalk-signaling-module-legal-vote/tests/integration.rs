@@ -2,16 +2,17 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{collections::HashMap, time::Duration};
+use std::{collections::HashMap, path::PathBuf, time::Duration};
 
 use chrono::{DateTime, TimeZone, Utc};
+use icu_locid::langid;
 use opentalk_inventory::{InventoryProvider as _, ModuleResourceFilter, User};
 use opentalk_signaling_core::{
     SignalingModule, SignalingModuleError,
     module_tester::{ModuleTester, WsMessageOutgoing},
 };
 use opentalk_signaling_module_legal_vote::{
-    LegalVote,
+    LegalVote, LegalVoteParams,
     storage::{Protocol, v1::ProtocolEntry},
 };
 use opentalk_test_util::{
@@ -57,6 +58,13 @@ fn compare_stopped_message_except_for_timestamp(
     timestamp
 }
 
+fn default_params() -> LegalVoteParams {
+    LegalVoteParams {
+        system_default_language: langid!("en"),
+        typst_packages_path: PathBuf::new(),
+    }
+}
+
 #[actix_rt::test]
 #[serial]
 async fn serial_test_basic_vote_roll_call_redis() {
@@ -71,7 +79,8 @@ async fn serial_test_basic_vote_roll_call_memory() {
 
 async fn basic_vote_roll_call(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
-    let (mut module_tester, user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (mut module_tester, user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
     let mut inventory = test_ctx
         .db_ctx
         .inventory_provider
@@ -326,7 +335,8 @@ async fn serial_test_basic_vote_live_roll_call_memory() {
 
 async fn basic_vote_live_roll_call(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
-    let (mut module_tester, user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (mut module_tester, user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
     let mut inventory = test_ctx
         .db_ctx
         .inventory_provider
@@ -581,7 +591,8 @@ async fn serial_test_basic_vote_pseudonymous_memory() {
 
 async fn basic_vote_pseudonymous(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
-    let (mut module_tester, user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (mut module_tester, user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
     let mut inventory = test_ctx
         .db_ctx
         .inventory_provider
@@ -792,7 +803,8 @@ async fn serial_test_hidden_legal_vote_memory() {
 
 async fn hidden_legal_vote(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
-    let (mut module_tester, user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (mut module_tester, user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
     let mut inventory = test_ctx
         .db_ctx
         .inventory_provider
@@ -1004,7 +1016,8 @@ async fn serial_test_basic_vote_abstain_memory() {
 
 async fn basic_vote_abstain(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
-    let (mut module_tester, user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (mut module_tester, user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
     let mut inventory = test_ctx
         .db_ctx
         .inventory_provider
@@ -1259,7 +1272,8 @@ async fn serial_test_expired_vote_memory() {
 
 async fn expired_vote(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
-    let (mut module_tester, user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (mut module_tester, user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
     let mut inventory = test_ctx
         .db_ctx
         .inventory_provider
@@ -1401,7 +1415,8 @@ async fn serial_test_auto_stop_vote_memory() {
 
 async fn auto_stop_vote(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
-    let (mut module_tester, user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (mut module_tester, user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
     let mut inventory = test_ctx
         .db_ctx
         .inventory_provider
@@ -1659,7 +1674,8 @@ async fn serial_test_start_with_one_participant_memory() {
 
 async fn start_with_one_participant(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
-    let (module_tester, _user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (module_tester, _user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
 
     // Start legal vote as user 1
     let start_parameters = UserParameters {
@@ -1699,7 +1715,8 @@ async fn serial_test_initiator_left_memory() {
 
 async fn initiator_left(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
-    let (mut module_tester, _user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (mut module_tester, _user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
 
     default_start_setup(&mut module_tester).await;
 
@@ -1740,7 +1757,8 @@ async fn serial_test_ineligible_voter_memory() {
 
 async fn ineligible_voter(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
-    let (mut module_tester, _user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (mut module_tester, _user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
 
     let start_parameters = UserParameters {
         kind: VoteKind::RollCall,
@@ -1807,7 +1825,8 @@ async fn serial_test_start_with_allowed_guest_memory() {
 
 async fn start_with_allowed_guest(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
-    let (mut module_tester, _user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (mut module_tester, _user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
 
     // start the vote with a guest as an allowed participant
     let guest = ParticipantId::from_u128(11311);
@@ -1868,7 +1887,8 @@ async fn serial_test_vote_on_nonexistent_vote_memory() {
 
 async fn vote_on_nonexistent_vote(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
-    let (mut module_tester, _user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (mut module_tester, _user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
 
     let legal_vote_id = LegalVoteId::from_u128(11311);
 
@@ -1912,7 +1932,8 @@ async fn serial_test_vote_on_completed_vote_memory() {
 
 async fn vote_on_completed_vote(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
-    let (mut module_tester, _user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (mut module_tester, _user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
 
     let (legal_vote_id, tokens) = default_start_setup(&mut module_tester).await;
 
@@ -1976,7 +1997,8 @@ async fn serial_test_vote_twice_memory() {
 
 async fn vote_twice(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
-    let (mut module_tester, _user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (mut module_tester, _user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
 
     let start_parameters = UserParameters {
         kind: VoteKind::RollCall,
@@ -2096,7 +2118,8 @@ async fn serial_test_non_moderator_stop_memory() {
 
 async fn non_moderator_stop(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
-    let (mut module_tester, _user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (mut module_tester, _user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
 
     let (legal_vote_id, _) = default_start_setup(&mut module_tester).await;
 
@@ -2134,7 +2157,8 @@ async fn serial_test_non_moderator_cancel_memory() {
 
 async fn non_moderator_cancel(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
-    let (mut module_tester, _user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (mut module_tester, _user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
 
     let (legal_vote_id, _) = default_start_setup(&mut module_tester).await;
 
@@ -2198,7 +2222,11 @@ async fn join_as_guest(storage: TestContextVolatileStorage) {
 
     // Join with guest
     if let Err(error) = module_tester
-        .join_guest(guest, &DisplayName::from_str_lossy("Guest"), ())
+        .join_guest(
+            guest,
+            &DisplayName::from_str_lossy("Guest"),
+            default_params(),
+        )
         .await
     {
         let is_guest_error = matches!(error, SignalingModuleError::NoInitError { .. });
@@ -2232,7 +2260,7 @@ async fn frontend_data(storage: TestContextVolatileStorage) {
                 user3.clone(),
                 Role::User,
                 &USER_3.display_name(),
-                (),
+                default_params(),
             )
             .await
             .unwrap();
@@ -2274,7 +2302,8 @@ async fn frontend_data(storage: TestContextVolatileStorage) {
     }
 
     let test_ctx = TestContext::new(storage).await;
-    let (mut module_tester, _user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
+    let (mut module_tester, _user1, _user2) =
+        common::setup_users::<LegalVote>(&test_ctx, default_params()).await;
 
     const USER_3: TestUser = TestUser {
         n: 3,

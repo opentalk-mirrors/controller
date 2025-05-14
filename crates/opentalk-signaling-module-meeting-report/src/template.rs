@@ -7,6 +7,7 @@
 // IMPORTANT: when changing the structs below, make sure to update the following documentation:
 // * docs/admin/core/meeting_reports.md
 
+use fluent_langneg::LanguageIdentifier;
 use opentalk_report_generation::ReportDateTime;
 use opentalk_types_common::{
     events::{EventDescription, EventTitle},
@@ -16,6 +17,8 @@ use opentalk_types_signaling::{ParticipantId, ParticipationKind, Role};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ReportTemplateParameter {
+    pub available_languages: Vec<LanguageIdentifier>,
+
     pub title: EventTitle,
 
     pub description: EventDescription,
@@ -33,6 +36,9 @@ pub struct ReportTemplateParameter {
 
     /// The timezone in which the timestamps in this report are represented.
     pub report_timezone: TimeZone,
+
+    /// The language in which the report should be created.
+    pub report_language: LanguageIdentifier,
 
     /// The participants in the meeting.
     pub participants: Vec<ReportParticipant>,
@@ -65,9 +71,11 @@ pub(crate) mod tests {
     use serde_json::json;
 
     use super::{ReportParticipant, ReportTemplateParameter};
+    use crate::AVAILABLE_LANGUAGES;
 
     pub fn example_small() -> ReportTemplateParameter {
         ReportTemplateParameter {
+            available_languages: Vec::from_iter(AVAILABLE_LANGUAGES.iter().cloned()),
             title: "Testmeeting"
                 .parse()
                 .expect("value must be parsable as EventTitle"),
@@ -91,11 +99,13 @@ pub(crate) mod tests {
                 joined_at: None,
                 left_at: None,
             }],
+            report_language: "en".parse().expect("value must be parsable as Language"),
         }
     }
 
     fn example_small_json() -> serde_json::Value {
         json!({
+            "available_languages": ["en", "de"],
             "title": "Testmeeting",
             "description": "",
             "report_created_at": "2025-02-06T09:16:47",
@@ -108,11 +118,13 @@ pub(crate) mod tests {
                     "kind": "user"
                 },
             ],
+            "report_language": "en"
         })
     }
 
     pub fn example_medium() -> ReportTemplateParameter {
         ReportTemplateParameter {
+            available_languages: Vec::from_iter(AVAILABLE_LANGUAGES.iter().cloned()),
             title: "Testmeeting"
                 .parse()
                 .expect("value must be parsable as EventTitle"),
@@ -176,11 +188,13 @@ pub(crate) mod tests {
                     left_at: None,
                 },
             ],
+            report_language: "en".parse().expect("value must be parsable as Language"),
         }
     }
 
     fn example_medium_json() -> serde_json::Value {
         json!({
+            "available_languages": ["en", "de"],
             "title": "Testmeeting",
             "description": "A medium sized test meeting",
             "starts_at": "2025-02-06T08:18:23",
@@ -212,11 +226,13 @@ pub(crate) mod tests {
                     "kind": "user",
                 },
             ],
+            "report_language": "en"
         })
     }
 
     pub fn example_large() -> ReportTemplateParameter {
         ReportTemplateParameter {
+            available_languages: Vec::from_iter(AVAILABLE_LANGUAGES.iter().cloned()),
             title: "Large Testmeeting"
                 .parse()
                 .expect("value must be parsable as EventTitle"),
@@ -329,11 +345,13 @@ pub(crate) mod tests {
                     left_at: None,
                 },
             ],
+            report_language: "en".parse().expect("value must be parsable as Language"),
         }
     }
 
     fn example_large_json() -> serde_json::Value {
         json!({
+            "available_languages": ["en", "de"],
             "title": "Large Testmeeting",
             "description": "The large test meeting",
             "starts_at": "2025-02-06T08:18:23",
@@ -392,6 +410,7 @@ pub(crate) mod tests {
                     "kind": "user",
                 },
             ],
+            "report_language": "en",
         })
     }
 
