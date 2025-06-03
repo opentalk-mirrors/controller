@@ -45,6 +45,16 @@ impl From<DatabaseError> for CaptureApiError {
     }
 }
 
+impl From<opentalk_inventory::Error> for CaptureApiError {
+    fn from(value: opentalk_inventory::Error) -> Self {
+        log::error!(
+            "REST API threw internal error from data storage backend: {}",
+            snafu::Report::from_error(value)
+        );
+        CaptureApiError(ApiError::internal())
+    }
+}
+
 impl From<diesel::result::Error> for CaptureApiError {
     fn from(value: diesel::result::Error) -> Self {
         Self::from(<diesel::result::Error as Into<DatabaseError>>::into(value))
@@ -116,3 +126,11 @@ impl actix_web::ResponseError for CaptureApiError {
         self.0.error_response()
     }
 }
+
+/*
+impl From<CaptureApiError> for opentalk_inventory::Error {
+    fn from(value: CaptureApiError) -> Self {
+        value.0.into()
+    }
+}
+*/

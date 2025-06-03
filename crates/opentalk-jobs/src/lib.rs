@@ -36,18 +36,21 @@ use std::{
 use async_trait::async_trait;
 pub use distributed::job_runner;
 pub use error::Error;
+use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::Settings;
-use opentalk_database::Db;
+use opentalk_inventory::InventoryProvider;
 use opentalk_log::{error, info};
 use opentalk_signaling_core::ExchangeHandle;
 use serde_json::json;
 use snafu::Report;
 
 /// Execute a job
+#[allow(clippy::too_many_arguments)]
 pub async fn execute<J: Job>(
     logger: &dyn Log,
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
+    authz: Authz,
     exchange_handle: ExchangeHandle,
     settings: &Settings,
     parameters: serde_json::Value,
@@ -69,7 +72,14 @@ pub async fn execute<J: Job>(
 
     match tokio::time::timeout(
         timeout,
-        J::execute(logger, db, exchange_handle, settings, parameters),
+        J::execute(
+            logger,
+            inventory_provider,
+            authz,
+            exchange_handle,
+            settings,
+            parameters,
+        ),
     )
     .await
     {
@@ -131,7 +141,8 @@ pub trait Job {
     /// Execute the job
     async fn execute(
         logger: &dyn Log,
-        db: Arc<Db>,
+        inventory_provider: Arc<dyn InventoryProvider>,
+        authz: Authz,
         exchange_handle: ExchangeHandle,
         settings: &Settings,
         parameters: Self::Parameters,

@@ -31,8 +31,7 @@ use chrono::{Duration, Local, Utc};
 use chrono_tz::Tz;
 use either::Either;
 use futures::{FutureExt as _, stream::once};
-use opentalk_database::Db;
-use opentalk_db_storage::{events::EventTrainingParticipationReportParameterSet, users::User};
+use opentalk_inventory::InventoryProvider;
 use opentalk_signaling_core::{
     ChunkFormat, CleanupScope, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage,
     ObjectStorageError, SignalingModule, SignalingModuleError, SignalingModuleInitData,
@@ -98,7 +97,7 @@ pub struct TrainingParticipationReport {
     room: RoomId,
     owner: UserId,
     participant: ParticipantId,
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
     storage: Arc<ObjectStorage>,
     room_owner_data: Option<RoomOwnerData>,
 }
@@ -150,7 +149,7 @@ impl SignalingModule for TrainingParticipationReport {
             room: ctx.room_id().room_id(),
             owner: ctx.room().created_by,
             participant: ctx.participant_id(),
-            db: ctx.db().clone(),
+            inventory_provider: ctx.inventory_provider().clone(),
             storage: ctx.storage().clone(),
             // The data required for the room owner instance of this module
             // is only available on join, so we will store it when the join
@@ -318,15 +317,15 @@ impl TrainingParticipationReport {
         &mut self,
         storage: &mut dyn TrainingParticipationReportStorage,
     ) -> Result<Option<TrainingParticipationReportParameterSet>, SignalingModuleError> {
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let Some(event) = storage.get_event(self.room).await? else {
             return Ok(None);
         };
-        let parameter_set =
-            EventTrainingParticipationReportParameterSet::get_for_event(&mut conn, event.id)
-                .await?
-                .map(TrainingParticipationReportParameterSet::from);
+        let parameter_set = inventory
+            .get_event_training_participation_report_parameter_set(event.id)
+            .await?
+            .map(TrainingParticipationReportParameterSet::from);
 
         if let Some(parameter_set) = &parameter_set {
             storage
@@ -950,14 +949,14 @@ impl TrainingParticipationReport {
         ctx: &mut ModuleContext<'_, Self>,
         room_state: RoomState,
     ) -> Result<(), SignalingModuleError> {
-        let mut conn = self.db.get_conn().await?;
-        let event = opentalk_db_storage::events::Event::get_for_room(&mut conn, self.room)
-            .await?
-            .ok_or(SignalingModuleError::NotFoundError {
+        let mut inventory = self.inventory_provider.get_inventory().await?;
+        let event = inventory.get_event_for_room(self.room).await?.ok_or(
+            SignalingModuleError::NotFoundError {
                 message: "Event for room not found".to_string(),
-            })?;
+            },
+        )?;
 
-        let event_creator = User::get(&mut conn, event.created_by).await?;
+        let event_creator = inventory.get_user(event.created_by).await?;
         let timezone = event_creator.timezone.unwrap_or(TimeZone::from(Tz::UTC));
 
         let required_participants = Vec::from_iter(room_state.known_participants.clone());
@@ -1050,7 +1049,7 @@ impl TrainingParticipationReport {
         let report = Box::pin(report);
         let result = save_asset(
             &self.storage,
-            self.db.clone(),
+            self.inventory_provider.as_ref(),
             self.room,
             Some(Self::NAMESPACE),
             file_name,

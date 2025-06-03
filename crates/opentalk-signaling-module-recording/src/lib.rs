@@ -10,8 +10,7 @@ use std::{
 use either::Either;
 use futures::{FutureExt, stream::once};
 use lapin_pool::{RabbitMqChannel, RabbitMqPool};
-use opentalk_database::Db;
-use opentalk_db_storage::streaming_targets::RoomStreamingTargetRecord;
+use opentalk_inventory::InventoryProvider;
 use opentalk_signaling_core::{
     CleanupScope, DestroyContext, Event, InitContext, ModuleContext, SignalingModule,
     SignalingModuleError, SignalingModuleInitData, SignalingRoomId, VolatileStorage,
@@ -82,8 +81,7 @@ pub struct Recording {
 
     enabled_features: BTreeSet<RecordingFeature>,
 
-    /// Whether or not the current participant is the recorder
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
 
     /// RabbitMQ channel used to send the recording start command over
     rabbitmq_channel: RabbitMqChannel,
@@ -163,7 +161,7 @@ impl SignalingModule for Recording {
             room_encryption_enabled: ctx.room().e2e_encryption,
             params: params.clone(),
             enabled_features,
-            db: ctx.db().clone(),
+            inventory_provider: ctx.inventory_provider().clone(),
             rabbitmq_channel,
             recorder_started: false,
         }))
@@ -347,10 +345,12 @@ impl Recording {
         let streams = if self.room.breakout_room_id().is_some() || !can_stream {
             BTreeMap::from_iter(stock_streams)
         } else {
-            let mut conn = self.db.get_conn().await?;
-
-            let streaming_targets =
-                RoomStreamingTargetRecord::get_all_for_room(&mut conn, self.room.room_id()).await?;
+            let streaming_targets = self
+                .inventory_provider
+                .get_inventory()
+                .await?
+                .get_room_streaming_target_records(self.room.room_id())
+                .await?;
             stock_streams
                 .into_iter()
                 .map(Ok)

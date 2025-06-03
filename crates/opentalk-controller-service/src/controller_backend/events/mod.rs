@@ -4,9 +4,10 @@
 
 //! Handles events
 
+use std::collections::BTreeSet;
+
 use chrono::{DateTime, Datelike, NaiveTime, Utc};
 use chrono_tz::Tz;
-use diesel_async::{AsyncConnection, scoped_futures::ScopedFutureExt};
 use kustos::{
     AccessMethod, Resource,
     policies_builder::{GrantingAccess, PoliciesBuilder},
@@ -18,24 +19,19 @@ use opentalk_controller_utils::{
     CaptureApiError,
     deletion::{Deleter, EventDeleter},
 };
-use opentalk_database::DbConnection;
 use opentalk_db_storage::{
     events::{
         Event, EventException, EventExceptionKind, EventInvite,
         EventTrainingParticipationReportParameterSet, NewEvent, UpdateEvent,
         UpdateEventTrainingParticipationReportParameterSet, email_invites::EventEmailInvite,
-        shared_folders::EventSharedFolder,
     },
-    invites::Invite,
     rooms::{NewRoom, Room, UpdateRoom},
     sip_configs::{NewSipConfig, SipConfig},
-    streaming_targets::{
-        get_room_streaming_targets, insert_room_streaming_target, override_room_streaming_targets,
-    },
     tariffs::Tariff,
     tenants::Tenant,
     users::User,
 };
+use opentalk_inventory::{Inventory, transaction};
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
     Cursor,
@@ -59,6 +55,7 @@ use opentalk_types_common::{
     training_participation_report::TrainingParticipationReportParameterSet,
 };
 use rrule::{Frequency, RRuleSet};
+use scoped_futures::ScopedFutureExt as _;
 use serde::Deserialize;
 use snafu::Report;
 
@@ -92,14 +89,13 @@ impl ControllerBackend {
         query: EventOptionsQuery,
     ) -> Result<EventResource, CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let current_user = User::get(&mut conn, current_user.id).await?;
+        let current_user = inventory.get_user(current_user.id).await?;
 
         let transaction_settings = settings.clone();
-        let (event_resource, mail_resource) = conn
-            .transaction(|conn| {
-                async move {
+        let (event_resource, mail_resource) = transaction(inventory.as_mut(), |inventory| {
+            async move {
                     // simplify logic by splitting the event creation
                     // into two paths: time independent and time dependent
                     let (mut event_resource, mail_resource) = match event {
@@ -122,7 +118,7 @@ impl ControllerBackend {
                         } if recurrence_pattern.is_empty() => {
                             create_time_independent_event(
                                 &transaction_settings,
-                                conn,
+                                inventory,
                                 current_user,
                                 title,
                                 description,
@@ -156,7 +152,7 @@ impl ControllerBackend {
                         } => {
                             create_time_dependent_event(
                                 &transaction_settings,
-                                conn,
+                                inventory,
                                 current_user,
                                 title,
                                 description,
@@ -187,17 +183,17 @@ impl ControllerBackend {
                     };
 
                     if event.has_shared_folder {
-                        let (shared_folder, _) = put_shared_folder(&transaction_settings, event_resource.id, conn).await?;
+                        let (shared_folder, _) = put_shared_folder(&transaction_settings, event_resource.id, inventory)
+                                .await?;
                         event_resource.shared_folder = Some(SharedFolder::from(shared_folder));
                     }
 
                     Ok((event_resource, mail_resource))
-                }
-                    .scope_boxed()
-            })
-            .await?;
+                }.scope_boxed()
+        })
+        .await?;
 
-        drop(conn);
+        drop(inventory);
 
         let policies = PoliciesBuilder::new()
             .grant_user_access(event_resource.created_by.id)
@@ -256,33 +252,33 @@ impl ControllerBackend {
                     from_starts_at: cursor.event_starts_at.map(DateTime::from),
                 });
 
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let current_tenant = Tenant::get(&mut conn, current_user.tenant_id).await?;
-        let current_user = User::get(&mut conn, current_user.id).await?;
+        let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
+        let current_user = inventory.get_user(current_user.id).await?;
 
-        let events = Event::get_all_for_user_paginated(
-            &mut conn,
-            &current_user,
-            query.favorites,
-            query.invite_status,
-            query.time_min.map(DateTime::from),
-            query.time_max.map(DateTime::from),
-            query.created_before.map(DateTime::from),
-            query.created_after.map(DateTime::from),
-            query.adhoc,
-            query.time_independent,
-            get_events_cursor,
-            per_page,
-        )
-        .await?;
+        let events = inventory
+            .get_all_events_for_user_paginated(
+                &current_user,
+                query.favorites,
+                BTreeSet::from_iter(query.invite_status),
+                query.time_min,
+                query.time_max,
+                query.created_before,
+                query.created_after,
+                query.adhoc,
+                query.time_independent,
+                get_events_cursor,
+                per_page,
+            )
+            .await?;
 
         for (event, _, _, _, exceptions, _, _, _, _) in &events {
             _ = users.add(event);
             _ = users.add(exceptions);
         }
 
-        let users = users.fetch(&settings, &mut conn).await?;
+        let users = users.fetch(&settings, inventory.as_mut()).await?;
 
         let event_refs: Vec<&Event> = events.iter().map(|(event, ..)| event).collect();
 
@@ -291,7 +287,9 @@ impl ControllerBackend {
             // Do not query event invites if invitees_max is zero, instead create dummy value
             (0..events.len()).map(|_| Vec::new()).collect()
         } else {
-            EventInvite::get_for_events(&mut conn, &event_refs).await?
+            inventory
+                .get_event_user_invites_for_events(&event_refs)
+                .await?
         };
 
         // Build list of additional email event invites, grouped by events
@@ -299,10 +297,12 @@ impl ControllerBackend {
             // Do not query email event invites if invitees_max is zero, instead create dummy value
             (0..events.len()).map(|_| Vec::new()).collect()
         } else {
-            EventEmailInvite::get_for_events(&mut conn, &event_refs).await?
+            inventory
+                .get_event_email_invites_for_events(&event_refs)
+                .await?
         };
 
-        drop(conn);
+        drop(inventory);
 
         type InvitesByEvent = Vec<(Vec<(EventInvite, User)>, Vec<EventEmailInvite>)>;
         let invites_grouped_by_event: InvitesByEvent = invites_with_users_grouped_by_event
@@ -450,7 +450,7 @@ impl ControllerBackend {
         query: GetEventQuery,
     ) -> Result<EventResource, CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let (
             event,
@@ -461,20 +461,22 @@ impl ControllerBackend {
             shared_folder,
             tariff,
             training_participation_report,
-        ) = Event::get_with_related_items(&mut conn, current_user.id, event_id).await?;
-        let room_streaming_targets = get_room_streaming_targets(&mut conn, room.id).await?;
+        ) = inventory
+            .get_event_with_related_items(current_user.id, event_id)
+            .await?;
+        let room_streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
         let (invitees, invitees_truncated) =
-            get_invitees_for_event(&settings, &mut conn, event_id, query.invitees_max).await?;
+            get_invitees_for_event(&settings, inventory.as_mut(), event_id, query.invitees_max)
+                .await?;
 
         let users = GetUserProfilesBatched::new()
             .add(&event)
-            .fetch(&settings, &mut conn)
+            .fetch(&settings, inventory.as_mut())
             .await?;
 
-        let current_tenant = Tenant::get(&mut conn, current_user.tenant_id).await?;
-        let current_user = User::get(&mut conn, current_user.id).await?;
-
-        drop(conn);
+        let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
+        let current_user = inventory.get_user(current_user.id).await?;
+        drop(inventory);
 
         let starts_at = DateTimeTz::starts_at_of(&event);
         let ends_at = DateTimeTz::ends_at_of(&event);
@@ -551,7 +553,7 @@ impl ControllerBackend {
             .then(|| self.mail_service.as_ref().clone())
             .flatten();
 
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let (
             event,
@@ -562,45 +564,52 @@ impl ControllerBackend {
             shared_folder,
             tariff,
             training_participation_report,
-        ) = Event::get_with_related_items(&mut conn, current_user.id, event_id).await?;
+        ) = inventory
+            .get_event_with_related_items(current_user.id, event_id)
+            .await?;
 
         let room = if patch.password.is_some() || patch.waiting_room.is_some() {
             // Update the event's room if at least one of the fields is set
-            UpdateRoom {
-                password: patch.password.clone(),
-                waiting_room: patch.waiting_room,
-                e2e_encryption: patch.e2e_encryption,
-            }
-            .apply(&mut conn, event.room)
-            .await?
+            inventory
+                .update_room(
+                    event.room,
+                    UpdateRoom {
+                        password: patch.password.clone(),
+                        waiting_room: patch.waiting_room,
+                        e2e_encryption: patch.e2e_encryption,
+                    },
+                )
+                .await?
         } else {
             room
         };
 
-        let current_tenant = Tenant::get(&mut conn, current_user.tenant_id).await?;
-        let current_user = User::get(&mut conn, current_user.id).await?;
+        let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
+        let current_user = inventory.get_user(current_user.id).await?;
 
         let created_by = if event.created_by == current_user.id {
             current_user.clone()
         } else {
-            User::get(&mut conn, event.created_by).await?
+            inventory.get_user(event.created_by).await?
         };
 
         let streaming_targets = if let Some(streaming_targets) = patch.streaming_targets.clone() {
-            override_room_streaming_targets(&mut conn, room.id, streaming_targets).await?
+            inventory
+                .replace_room_streaming_targets(room.id, streaming_targets)
+                .await?
         } else {
-            get_room_streaming_targets(&mut conn, room.id).await?
+            inventory.get_room_streaming_targets(room.id).await?
         };
 
         match patch.has_shared_folder {
             Some(true) => {
-                _ = put_shared_folder(&settings, event_id, &mut conn).await?;
+                _ = put_shared_folder(&settings, event_id, inventory.as_mut()).await?;
             }
             Some(false) => {
-                if let Some(folder) = EventSharedFolder::get_for_event(&mut conn, event_id).await? {
+                if let Some(folder) = inventory.get_event_shared_folder(event_id).await? {
                     let shared_folders = std::slice::from_ref(&folder);
                     delete_shared_folders(&settings, shared_folders).await?;
-                    folder.delete(&mut conn).await?;
+                    inventory.delete_shared_folder_by_event_id(event_id).await?;
                 }
             }
             None => {}
@@ -610,23 +619,29 @@ impl ControllerBackend {
             Some(Some(parameter_set)) => {
                 if training_participation_report.is_some() {
                     Some(
-                        UpdateEventTrainingParticipationReportParameterSet::from(
-                            parameter_set.clone(),
-                        )
-                        .apply(&mut conn, event.id)
-                        .await?,
+                        inventory
+                            .update_training_participation_report_parameter_set(
+                                event.id,
+                                UpdateEventTrainingParticipationReportParameterSet::from(
+                                    parameter_set.clone(),
+                                ),
+                            )
+                            .await?,
                     )
                 } else {
-                    EventTrainingParticipationReportParameterSet::from((
-                        event.id,
-                        parameter_set.clone(),
-                    ))
-                    .try_insert(&mut conn)
-                    .await?
+                    inventory
+                        .try_create_event_training_participation_report_parameter_set(
+                            EventTrainingParticipationReportParameterSet::from((
+                                event.id,
+                                parameter_set.clone(),
+                            )),
+                        )
+                        .await?
                 }
             }
             Some(None) => {
-                EventTrainingParticipationReportParameterSet::delete_by_id(&mut conn, event.id)
+                inventory
+                    .delete_event_training_participation_report_parameter_set(event.id)
                     .await?;
                 None
             }
@@ -646,25 +661,29 @@ impl ControllerBackend {
                 (true, _) | (false, Some(true)) => {
                     // The patch will modify an time-independent event or
                     // change an event to a time-independent event
-                    patch_time_independent_event(&mut conn, &current_user, &event, patch).await?
+                    patch_time_independent_event(inventory.as_mut(), &current_user, &event, patch)
+                        .await?
                 }
                 _ => {
                     // The patch modifies an time dependent event
-                    patch_time_dependent_event(&mut conn, &current_user, &event, patch).await?
+                    patch_time_dependent_event(inventory.as_mut(), &current_user, &event, patch)
+                        .await?
                 }
             };
 
-            update_event.apply(&mut conn, event_id).await?
+            inventory.update_event(event_id, update_event).await?
         };
 
-        let invited_users = get_invited_mail_recipients_for_event(&mut conn, event_id).await?;
+        let invited_users =
+            get_invited_mail_recipients_for_event(inventory.as_mut(), event_id).await?;
         let current_user_mail_recipient = MailRecipient::Registered(current_user.clone().into());
         let users_to_notify = invited_users
             .into_iter()
             .chain(std::iter::once(current_user_mail_recipient))
             .collect::<Vec<_>>();
-        let invite_for_room =
-            Invite::get_valid_or_create_for_room(&mut conn, room.id, current_user.id).await?;
+        let invite_for_room = inventory
+            .get_or_create_valid_invite_for_room(room.id, current_user.id)
+            .await?;
 
         // Add the access policy for the invite code, just in case it has been created by
         // the `Invite::get_first_for_room(…)` call above. That function is not able to
@@ -688,9 +707,10 @@ impl ControllerBackend {
         };
 
         let (invitees, invitees_truncated) =
-            get_invitees_for_event(&settings, &mut conn, event_id, query.invitees_max).await?;
+            get_invitees_for_event(&settings, inventory.as_mut(), event_id, query.invitees_max)
+                .await?;
 
-        drop(conn);
+        drop(inventory);
 
         let starts_at = DateTimeTz::starts_at_of(&event);
         let ends_at = DateTimeTz::ends_at_of(&event);
@@ -772,7 +792,7 @@ impl ControllerBackend {
         }: DeleteEventsQuery,
     ) -> Result<(), CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let mail_service = (!suppress_email_notification)
             .then(|| self.mail_service.as_ref().clone())
@@ -788,21 +808,24 @@ impl ControllerBackend {
             shared_folder,
             _tariff,
             _training_participation_report,
-        ) = Event::get_with_related_items(&mut conn, current_user.id, event_id).await?;
+        ) = inventory
+            .get_event_with_related_items(current_user.id, event_id)
+            .await?;
 
-        let streaming_targets = get_room_streaming_targets(&mut conn, room.id).await?;
+        let streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
 
-        let current_tenant = Tenant::get(&mut conn, current_user.tenant_id).await?;
-        let current_user = User::get(&mut conn, current_user.id).await?;
+        let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
+        let current_user = inventory.get_user(current_user.id).await?;
 
         let current_user_id = current_user.id;
         let created_by = if event.created_by == current_user_id {
             current_user
         } else {
-            User::get(&mut conn, event.created_by).await?
+            inventory.get_user(event.created_by).await?
         };
 
-        let invited_users = get_invited_mail_recipients_for_event(&mut conn, event_id).await?;
+        let invited_users =
+            get_invited_mail_recipients_for_event(inventory.as_mut(), event_id).await?;
         let created_by_mail_recipient = MailRecipient::Registered(created_by.clone().into());
         let users_to_notify = invited_users
             .into_iter()
@@ -813,7 +836,7 @@ impl ControllerBackend {
         deleter
             .perform(
                 log::logger(),
-                &mut conn,
+                inventory.as_mut(),
                 &self.authz,
                 Some(current_user_id),
                 self.exchange_handle.clone(),
@@ -822,7 +845,7 @@ impl ControllerBackend {
             )
             .await?;
 
-        drop(conn);
+        drop(inventory);
 
         if let Some(mail_service) = &mail_service {
             let notification_values = CancellationNotificationValues {
@@ -1014,23 +1037,26 @@ impl EventRoomInfoExt for EventRoomInfo {
 }
 
 async fn store_event_streaming_targets(
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     event_id: EventId,
     streaming_targets: Vec<StreamingTarget>,
 ) -> Result<Vec<RoomStreamingTarget>, CaptureApiError> {
-    let room_id = Event::get(conn, event_id).await?.room;
+    let room_id = inventory.get_event(event_id).await?.room;
 
     let mut room_streaming_targets: Vec<RoomStreamingTarget> = Vec::new();
     for streaming_target in streaming_targets {
-        room_streaming_targets
-            .push(insert_room_streaming_target(conn, room_id, streaming_target).await?);
+        room_streaming_targets.push(
+            inventory
+                .create_room_streaming_target(room_id, streaming_target)
+                .await?,
+        );
     }
 
     Ok(room_streaming_targets)
 }
 
 async fn store_training_participation_report(
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     event_id: EventId,
     TrainingParticipationReportParameterSet {
         initial_checkpoint_delay,
@@ -1044,15 +1070,17 @@ async fn store_training_participation_report(
     let checkpoint_interval_after = i64::try_from(checkpoint_interval.after).unwrap_or(i64::MAX);
     let checkpoint_interval_within = i64::try_from(checkpoint_interval.within).unwrap_or(i64::MAX);
 
-    let inserted = EventTrainingParticipationReportParameterSet {
-        event_id,
-        initial_checkpoint_delay_after,
-        initial_checkpoint_delay_within,
-        checkpoint_interval_after,
-        checkpoint_interval_within,
-    }
-    .try_insert(conn)
-    .await?;
+    let inserted = inventory
+        .try_create_event_training_participation_report_parameter_set(
+            EventTrainingParticipationReportParameterSet {
+                event_id,
+                initial_checkpoint_delay_after,
+                initial_checkpoint_delay_within,
+                checkpoint_interval_after,
+                checkpoint_interval_within,
+            },
+        )
+        .await?;
 
     Ok(inserted.map(Into::into))
 }
@@ -1068,7 +1096,7 @@ struct MailResource {
 #[allow(clippy::too_many_arguments)]
 async fn create_time_independent_event(
     settings: &Settings,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     current_user: User,
     title: EventTitle,
     description: EventDescription,
@@ -1081,50 +1109,52 @@ async fn create_time_independent_event(
     query: EventOptionsQuery,
     training_participation_report: Option<TrainingParticipationReportParameterSet>,
 ) -> Result<(EventResource, Option<MailResource>), CaptureApiError> {
-    let room = NewRoom {
-        created_by: current_user.id,
-        password,
-        waiting_room,
-        tenant_id: current_user.tenant_id,
-        e2e_encryption,
-    }
-    .insert(conn)
-    .await?;
+    let room = inventory
+        .create_room(NewRoom {
+            created_by: current_user.id,
+            password,
+            waiting_room,
+            tenant_id: current_user.tenant_id,
+            e2e_encryption,
+        })
+        .await?;
 
-    let sip_config = NewSipConfig::new(room.id, false).insert(conn).await?;
+    let sip_config = inventory
+        .create_room_sip_config(NewSipConfig::new(room.id, false))
+        .await?;
 
-    let event = NewEvent {
-        title,
-        description,
-        room: room.id,
-        created_by: current_user.id,
-        updated_by: current_user.id,
-        is_time_independent: true,
-        is_all_day: None,
-        starts_at: None,
-        starts_at_tz: None,
-        ends_at: None,
-        ends_at_tz: None,
-        duration_secs: None,
-        is_recurring: None,
-        recurrence_pattern: None,
-        is_adhoc,
-        show_meeting_details,
-        tenant_id: current_user.tenant_id,
-    }
-    .insert(conn)
-    .await?;
+    let event = inventory
+        .create_event(NewEvent {
+            title,
+            description,
+            room: room.id,
+            created_by: current_user.id,
+            updated_by: current_user.id,
+            is_time_independent: true,
+            is_all_day: None,
+            starts_at: None,
+            starts_at_tz: None,
+            ends_at: None,
+            ends_at_tz: None,
+            duration_secs: None,
+            is_recurring: None,
+            recurrence_pattern: None,
+            is_adhoc,
+            show_meeting_details,
+            tenant_id: current_user.tenant_id,
+        })
+        .await?;
 
     let streaming_targets =
-        store_event_streaming_targets(conn, event.id, streaming_targets).await?;
+        store_event_streaming_targets(inventory, event.id, streaming_targets).await?;
 
     let training_participation_report = if let Some(parameters) = training_participation_report {
-        store_training_participation_report(conn, event.id, parameters).await?
+        store_training_participation_report(inventory, event.id, parameters).await?
     } else {
         None
     };
 
-    let tariff = Tariff::get_by_user_id(conn, &current_user.id).await?;
+    let tariff = inventory.get_tariff_for_user(current_user.id).await?;
 
     let suppress_email_notification = is_adhoc || query.suppress_email_notification;
 
@@ -1170,7 +1200,7 @@ async fn create_time_independent_event(
 #[allow(clippy::too_many_arguments)]
 async fn create_time_dependent_event(
     settings: &Settings,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     current_user: User,
     title: EventTitle,
     description: EventDescription,
@@ -1192,50 +1222,52 @@ async fn create_time_dependent_event(
     let (duration_secs, ends_at_dt, ends_at_tz) =
         parse_event_dt_params(is_all_day, starts_at, ends_at, &recurrence_pattern)?;
 
-    let room = NewRoom {
-        created_by: current_user.id,
-        password,
-        waiting_room,
-        tenant_id: current_user.tenant_id,
-        e2e_encryption,
-    }
-    .insert(conn)
-    .await?;
+    let room = inventory
+        .create_room(NewRoom {
+            created_by: current_user.id,
+            password,
+            waiting_room,
+            tenant_id: current_user.tenant_id,
+            e2e_encryption,
+        })
+        .await?;
 
-    let sip_config = NewSipConfig::new(room.id, false).insert(conn).await?;
+    let sip_config = inventory
+        .create_room_sip_config(NewSipConfig::new(room.id, false))
+        .await?;
 
-    let event = NewEvent {
-        title,
-        description,
-        room: room.id,
-        created_by: current_user.id,
-        updated_by: current_user.id,
-        is_time_independent: false,
-        is_all_day: Some(is_all_day),
-        starts_at: Some(starts_at.to_datetime_tz()),
-        starts_at_tz: Some(starts_at.timezone),
-        ends_at: Some(ends_at_dt),
-        ends_at_tz: Some(ends_at_tz),
-        duration_secs,
-        is_recurring: Some(recurrence_pattern.is_some()),
-        recurrence_pattern,
-        is_adhoc,
-        show_meeting_details,
-        tenant_id: current_user.tenant_id,
-    }
-    .insert(conn)
-    .await?;
+    let event = inventory
+        .create_event(NewEvent {
+            title,
+            description,
+            room: room.id,
+            created_by: current_user.id,
+            updated_by: current_user.id,
+            is_time_independent: false,
+            is_all_day: Some(is_all_day),
+            starts_at: Some(starts_at.to_datetime_tz()),
+            starts_at_tz: Some(starts_at.timezone),
+            ends_at: Some(ends_at_dt),
+            ends_at_tz: Some(ends_at_tz),
+            duration_secs,
+            is_recurring: Some(recurrence_pattern.is_some()),
+            recurrence_pattern,
+            is_adhoc,
+            show_meeting_details,
+            tenant_id: current_user.tenant_id,
+        })
+        .await?;
 
     let streaming_targets =
-        store_event_streaming_targets(conn, event.id, streaming_targets).await?;
+        store_event_streaming_targets(inventory, event.id, streaming_targets).await?;
 
     let training_participation_report = if let Some(parameters) = training_participation_report {
-        store_training_participation_report(conn, event.id, parameters).await?
+        store_training_participation_report(inventory, event.id, parameters).await?
     } else {
         None
     };
 
-    let tariff = Tariff::get_by_user_id(conn, &current_user.id).await?;
+    let tariff = inventory.get_tariff_for_user(current_user.id).await?;
 
     let suppress_email_notification = is_adhoc || query.suppress_email_notification;
 
@@ -1359,7 +1391,7 @@ fn patch_event_change_to_time_dependent(
 ///
 /// Patch event which is time dependent into a time independent event
 async fn patch_time_independent_event(
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     current_user: &User,
     event: &Event,
     patch: PatchEventBody,
@@ -1398,7 +1430,9 @@ async fn patch_time_independent_event(
 
     if event.is_recurring.unwrap_or_default() {
         // delete all exceptions as the time dependence has been removed
-        EventException::delete_all_for_event(conn, event.id).await?;
+        inventory
+            .delete_event_exceptions_for_event(event.id)
+            .await?;
     }
 
     Ok(UpdateEvent {
@@ -1424,7 +1458,7 @@ async fn patch_time_independent_event(
 ///
 /// Patch fields on an time dependent event (without changing the time dependence field)
 async fn patch_time_dependent_event(
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     current_user: &User,
     event: &Event,
     patch: PatchEventBody,
@@ -1448,7 +1482,9 @@ async fn patch_time_dependent_event(
         // Delete all exceptions for recurring events as the patch may modify fields that influence the
         // timestamps at which instances (occurrences) are generated, making it impossible to match the
         // exceptions to instances
-        EventException::delete_all_for_event(conn, event.id).await?;
+        inventory
+            .delete_event_exceptions_for_event(event.id)
+            .await?;
     }
 
     Ok(UpdateEvent {
@@ -1539,15 +1575,16 @@ pub struct EventRescheduleBody {
 
 async fn get_invitees_for_event(
     settings: &Settings,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     event_id: EventId,
     invitees_max: i64,
-) -> opentalk_database::Result<(Vec<EventInvitee>, bool)> {
+) -> opentalk_inventory::Result<(Vec<EventInvitee>, bool)> {
     if invitees_max > 0 {
         // Get regular invitees up to the maximum invitee count specified.
 
-        let (invites_with_user, total_invites_count) =
-            EventInvite::get_for_event_paginated(conn, event_id, invitees_max, 1, None).await?;
+        let (invites_with_user, total_invites_count) = inventory
+            .get_event_invites_paginated(event_id, invitees_max, 1, None)
+            .await?;
 
         let mut invitees: Vec<EventInvitee> = invites_with_user
             .into_iter()
@@ -1561,8 +1598,9 @@ async fn get_invitees_for_event(
 
         let invitees_max = invitees_max - loaded_invites_count;
         if invitees_max > 0 {
-            let (email_invites, total_email_invites_count) =
-                EventEmailInvite::get_for_event_paginated(conn, event_id, invitees_max, 1).await?;
+            let (email_invites, total_email_invites_count) = inventory
+                .get_event_email_invites_paginated(event_id, invitees_max, 1)
+                .await?;
 
             let email_invitees: Vec<EventInvitee> = email_invites
                 .into_iter()
@@ -1806,7 +1844,6 @@ where
 mod tests {
     use std::time::SystemTime;
 
-    use opentalk_test_util::assert_eq_json;
     use opentalk_types_common::{
         events::invites::InviteRole,
         rooms::RoomId,
@@ -1814,6 +1851,7 @@ mod tests {
         training_participation_report::TimeRange,
         users::{UserId, UserInfo},
     };
+    use serde_json::json;
 
     use super::*;
 
@@ -1904,81 +1942,82 @@ mod tests {
             }),
         };
 
-        assert_eq_json!(
-            event_resource,
-            {
-                "id": "00000000-0000-0000-0000-000000000000",
-                "created_by": {
+        assert_eq!(
+            json!(event_resource),
+            json!({
                     "id": "00000000-0000-0000-0000-000000000000",
-                    "email": "test@example.org",
-                    "title": "",
-                    "firstname": "Test",
-                    "lastname": "Test",
-                    "display_name": "Tester",
-                    "avatar_url": "https://example.org/avatar"
-                },
-                "created_at": "1970-01-01T00:00:00Z",
-                "updated_by": {
-                    "id": "00000000-0000-0000-0000-000000000000",
-                    "email": "test@example.org",
-                    "title": "",
-                    "firstname": "Test",
-                    "lastname": "Test",
-                    "display_name": "Tester",
-                    "avatar_url": "https://example.org/avatar"
-                },
-                "updated_at": "1970-01-01T00:00:00Z",
-                "title": "Event title",
-                "description": "Event description",
-                "room": {
-                    "id": "00000000-0000-0000-0000-000000000000",
-                    "waiting_room": false,
-                    "e2e_encryption": false
-                },
-                "invitees_truncated": false,
-                "invitees": [
-                    {
-                        "profile": {
-                            "kind": "registered",
-                            "id": "00000000-0000-0000-0000-000000000000",
-                            "email": "test@example.org",
-                            "title": "",
-                            "firstname": "Test",
-                            "lastname": "Test",
-                            "display_name": "Tester",
-                            "avatar_url": "https://example.org/avatar",
-                            "role": "moderator"
+                    "created_by": {
+                        "id": "00000000-0000-0000-0000-000000000000",
+                        "email": "test@example.org",
+                        "title": "",
+                        "firstname": "Test",
+                        "lastname": "Test",
+                        "display_name": "Tester",
+                        "avatar_url": "https://example.org/avatar"
+                    },
+                    "created_at": "1970-01-01T00:00:00Z",
+                    "updated_by": {
+                        "id": "00000000-0000-0000-0000-000000000000",
+                        "email": "test@example.org",
+                        "title": "",
+                        "firstname": "Test",
+                        "lastname": "Test",
+                        "display_name": "Tester",
+                        "avatar_url": "https://example.org/avatar"
+                    },
+                    "updated_at": "1970-01-01T00:00:00Z",
+                    "title": "Event title",
+                    "description": "Event description",
+                    "room": {
+                        "id": "00000000-0000-0000-0000-000000000000",
+                        "waiting_room": false,
+                        "e2e_encryption": false
+                    },
+                    "invitees_truncated": false,
+                    "invitees": [
+                        {
+                            "profile": {
+                                "kind": "registered",
+                                "id": "00000000-0000-0000-0000-000000000000",
+                                "email": "test@example.org",
+                                "title": "",
+                                "firstname": "Test",
+                                "lastname": "Test",
+                                "display_name": "Tester",
+                                "avatar_url": "https://example.org/avatar",
+                                "role": "moderator"
+                            },
+                            "status": "accepted"
+                        }
+                    ],
+                    "is_time_independent": false,
+                    "is_all_day": false,
+                    "starts_at": {
+                        "datetime": "1970-01-01T00:00:00Z",
+                        "timezone": "Europe/Berlin"
+                    },
+                    "ends_at": {
+                        "datetime": "1970-01-01T00:00:00Z",
+                        "timezone": "Europe/Berlin"
+                    },
+                    "type": "single",
+                    "invite_status": "accepted",
+                    "is_favorite": false,
+                    "can_edit": true,
+                    "is_adhoc": false,
+                    "show_meeting_details": true,
+                    "training_participation_report": {
+                        "initial_checkpoint_delay": {
+                            "after": 100,
+                            "within": 200,
                         },
-                        "status": "accepted"
-                    }
-                ],
-                "is_time_independent": false,
-                "is_all_day": false,
-                "starts_at": {
-                    "datetime": "1970-01-01T00:00:00Z",
-                    "timezone": "Europe/Berlin"
-                },
-                "ends_at": {
-                    "datetime": "1970-01-01T00:00:00Z",
-                    "timezone": "Europe/Berlin"
-                },
-                "type": "single",
-                "invite_status": "accepted",
-                "is_favorite": false,
-                "can_edit": true,
-                "is_adhoc": false,
-                "show_meeting_details": true,
-                "training_participation_report": {
-                    "initial_checkpoint_delay": {
-                        "after": 100,
-                        "within": 200,
+                        "checkpoint_interval": {
+                            "after": 300,
+                            "within": 400,
+                        },
                     },
-                    "checkpoint_interval": {
-                        "after": 300,
-                        "within": 400,
-                    },
-                },
-            }
+                }
+            )
         );
     }
 
@@ -2053,77 +2092,78 @@ mod tests {
             }),
         };
 
-        assert_eq_json!(
-            event_resource,
-            {
-                "id": "00000000-0000-0000-0000-000000000000",
-                "created_by": {
+        assert_eq!(
+            json!(event_resource),
+            json!({
                     "id": "00000000-0000-0000-0000-000000000000",
-                    "email": "test@example.org",
-                    "title": "",
-                    "firstname": "Test",
-                    "lastname": "Test",
-                    "display_name": "Tester",
-                    "avatar_url": "https://example.org/avatar"
-                },
-                "created_at": "1970-01-01T00:00:00Z",
-                "updated_by": {
-                    "id": "00000000-0000-0000-0000-000000000000",
-                    "email": "test@example.org",
-                    "title": "",
-                    "firstname": "Test",
-                    "lastname": "Test",
-                    "display_name": "Tester",
-                    "avatar_url": "https://example.org/avatar"
-                },
-                "updated_at": "1970-01-01T00:00:00Z",
-                "title": "Event title",
-                "description": "Event description",
-                "room": {
-                    "id": "00000000-0000-0000-0000-000000000000",
-                    "waiting_room": false,
-                    "e2e_encryption": false,
-                    "call_in": {
-                        "tel": "030123456",
-                        "id": "1234567890",
-                        "password": "1234567890",
-                    }
-                },
-                "invitees_truncated": false,
-                "invitees": [
-                    {
-                        "profile": {
-                            "kind": "registered",
-                            "id": "00000000-0000-0000-0000-000000000000",
-                            "email": "test@example.org",
-                            "title": "",
-                            "firstname": "Test",
-                            "lastname": "Test",
-                            "display_name": "Tester",
-                            "avatar_url": "https://example.org/avatar",
-                            "role": "user"
+                    "created_by": {
+                        "id": "00000000-0000-0000-0000-000000000000",
+                        "email": "test@example.org",
+                        "title": "",
+                        "firstname": "Test",
+                        "lastname": "Test",
+                        "display_name": "Tester",
+                        "avatar_url": "https://example.org/avatar"
+                    },
+                    "created_at": "1970-01-01T00:00:00Z",
+                    "updated_by": {
+                        "id": "00000000-0000-0000-0000-000000000000",
+                        "email": "test@example.org",
+                        "title": "",
+                        "firstname": "Test",
+                        "lastname": "Test",
+                        "display_name": "Tester",
+                        "avatar_url": "https://example.org/avatar"
+                    },
+                    "updated_at": "1970-01-01T00:00:00Z",
+                    "title": "Event title",
+                    "description": "Event description",
+                    "room": {
+                        "id": "00000000-0000-0000-0000-000000000000",
+                        "waiting_room": false,
+                        "e2e_encryption": false,
+                        "call_in": {
+                            "tel": "030123456",
+                            "id": "1234567890",
+                            "password": "1234567890",
+                        }
+                    },
+                    "invitees_truncated": false,
+                    "invitees": [
+                        {
+                            "profile": {
+                                "kind": "registered",
+                                "id": "00000000-0000-0000-0000-000000000000",
+                                "email": "test@example.org",
+                                "title": "",
+                                "firstname": "Test",
+                                "lastname": "Test",
+                                "display_name": "Tester",
+                                "avatar_url": "https://example.org/avatar",
+                                "role": "user"
+                            },
+                            "status": "accepted"
+                        }
+                    ],
+                    "is_time_independent": true,
+                    "type": "single",
+                    "invite_status": "accepted",
+                    "is_favorite": true,
+                    "can_edit": false,
+                    "is_adhoc": false,
+                    "show_meeting_details": false,
+                    "training_participation_report": {
+                        "initial_checkpoint_delay": {
+                            "after": 100,
+                            "within": 200,
                         },
-                        "status": "accepted"
-                    }
-                ],
-                "is_time_independent": true,
-                "type": "single",
-                "invite_status": "accepted",
-                "is_favorite": true,
-                "can_edit": false,
-                "is_adhoc": false,
-                "show_meeting_details": false,
-                "training_participation_report": {
-                    "initial_checkpoint_delay": {
-                        "after": 100,
-                        "within": 200,
+                        "checkpoint_interval": {
+                            "after": 300,
+                            "within": 400,
+                        },
                     },
-                    "checkpoint_interval": {
-                        "after": 300,
-                        "within": 400,
-                    },
-                },
-            }
+                }
+            )
         );
     }
 
@@ -2176,51 +2216,52 @@ mod tests {
             can_edit: false,
         };
 
-        assert_eq_json!(
-            instance,
-            {
-                "id": "00000000-0000-0000-0000-000000000000_19700101T000000Z",
-                "recurring_event_id": "00000000-0000-0000-0000-000000000000",
-                "instance_id": "19700101T000000Z",
-                "created_by": {
-                    "id": "00000000-0000-0000-0000-000000000000",
-                    "email": "test@example.org",
-                    "title": "",
-                    "firstname": "Test",
-                    "lastname": "Test",
-                    "display_name": "Tester",
-                    "avatar_url": "https://example.org/avatar"
-                },
-                "created_at": "1970-01-01T00:00:00Z",
-                "updated_by": {
-                    "id": "00000000-0000-0000-0000-000000000000",
-                    "email": "test@example.org",
-                    "title": "",
-                    "firstname": "Test",
-                    "lastname": "Test",
-                    "display_name": "Tester",
-                    "avatar_url": "https://example.org/avatar"
-                },
-                "updated_at": "1970-01-01T00:00:00Z",
-                "title": "Instance title",
-                "description": "Instance description",
-                "is_all_day": false,
-                "starts_at": {
-                    "datetime": "1970-01-01T00:00:00Z",
-                    "timezone": "Europe/Berlin"
-                },
-                "ends_at": {
-                    "datetime": "1970-01-01T00:00:00Z",
-                    "timezone": "Europe/Berlin"
-                },
-                "original_starts_at": {
-                    "datetime": "1970-01-01T00:00:00Z",
-                    "timezone": "Europe/Berlin"
-                },
-                "type": "exception",
-                "status": "ok",
-                "can_edit": false,
-            }
+        assert_eq!(
+            json!(instance),
+            json! ({
+                    "id": "00000000-0000-0000-0000-000000000000_19700101T000000Z",
+                    "recurring_event_id": "00000000-0000-0000-0000-000000000000",
+                    "instance_id": "19700101T000000Z",
+                    "created_by": {
+                        "id": "00000000-0000-0000-0000-000000000000",
+                        "email": "test@example.org",
+                        "title": "",
+                        "firstname": "Test",
+                        "lastname": "Test",
+                        "display_name": "Tester",
+                        "avatar_url": "https://example.org/avatar"
+                    },
+                    "created_at": "1970-01-01T00:00:00Z",
+                    "updated_by": {
+                        "id": "00000000-0000-0000-0000-000000000000",
+                        "email": "test@example.org",
+                        "title": "",
+                        "firstname": "Test",
+                        "lastname": "Test",
+                        "display_name": "Tester",
+                        "avatar_url": "https://example.org/avatar"
+                    },
+                    "updated_at": "1970-01-01T00:00:00Z",
+                    "title": "Instance title",
+                    "description": "Instance description",
+                    "is_all_day": false,
+                    "starts_at": {
+                        "datetime": "1970-01-01T00:00:00Z",
+                        "timezone": "Europe/Berlin"
+                    },
+                    "ends_at": {
+                        "datetime": "1970-01-01T00:00:00Z",
+                        "timezone": "Europe/Berlin"
+                    },
+                    "original_starts_at": {
+                        "datetime": "1970-01-01T00:00:00Z",
+                        "timezone": "Europe/Berlin"
+                    },
+                    "type": "exception",
+                    "status": "ok",
+                    "can_edit": false,
+                }
+            )
         );
     }
 }

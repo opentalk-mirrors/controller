@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_db_storage::sip_configs::SipConfig;
 use opentalk_signaling_core::Participant;
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -21,10 +20,11 @@ impl ControllerBackend {
         request: PostCallInStartRequestBody,
     ) -> Result<PostServiceStartResponseBody, CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
         let mut volatile = self.volatile.clone();
 
-        let (sip_config, room) = SipConfig::get_with_room(&mut conn, &request.id)
+        let (sip_config, room) = inventory
+            .get_room_sip_config_with_room(request.id)
             .await?
             .ok_or_else(invalid_credentials_error)?;
 
@@ -36,7 +36,7 @@ impl ControllerBackend {
         }
 
         require_feature(
-            &mut conn,
+            inventory.as_mut(),
             &settings,
             room.created_by,
             &features::CALL_IN_MODULE_FEATURE_ID,
@@ -47,7 +47,7 @@ impl ControllerBackend {
             return Err(invalid_credentials_error().into());
         }
 
-        drop(conn);
+        drop(inventory);
 
         let (ticket, resumption) = start_or_continue_signaling_session(
             &mut volatile,

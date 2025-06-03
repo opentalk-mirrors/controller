@@ -5,9 +5,10 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use kustos::Authz;
 use opentalk_controller_settings::Settings;
-use opentalk_database::{DatabaseError, Db, DbConnection};
-use opentalk_db_storage::assets::{Asset, UpdateAsset};
+use opentalk_db_storage::assets::UpdateAsset;
+use opentalk_inventory::{Inventory, InventoryProvider};
 use opentalk_log::{debug, info, warn};
 use opentalk_signaling_core::{ExchangeHandle, ObjectStorage, assets::asset_key};
 use serde::{Deserialize, Serialize};
@@ -52,7 +53,8 @@ impl Job for SyncStorageFiles {
 
     async fn execute(
         logger: &dyn log::Log,
-        db: Arc<Db>,
+        inventory_provider: Arc<dyn InventoryProvider>,
+        _authz: Authz,
         _exchange_handle: ExchangeHandle,
         settings: &Settings,
         parameters: Self::Parameters,
@@ -60,13 +62,12 @@ impl Job for SyncStorageFiles {
         info!(log: logger, "Starting storage file synchronization job");
         debug!(log: logger, "Job parameters: {parameters:?}");
 
-        let mut conn = db.get_conn().await?;
-
         let object_storage = ObjectStorage::new(&settings.minio).await?;
 
+        let inventory = inventory_provider.get_inventory().await?;
         sync_files(
             logger,
-            &mut conn,
+            inventory,
             &object_storage,
             &parameters.missing_storage_file_handling,
         )
@@ -78,14 +79,14 @@ impl Job for SyncStorageFiles {
 
 async fn sync_files(
     logger: &dyn log::Log,
-    conn: &mut DbConnection,
+    mut inventory: Box<dyn Inventory>,
     object_storage: &ObjectStorage,
     missing_file_handling: &MissingStorageFileHandling,
 ) -> Result<(), Error> {
     let mut missing_asset_count = 0;
     let mut updated_asset_count = 0;
 
-    let assets = Asset::get_all_ids_and_size(conn).await?;
+    let assets = inventory.as_mut().get_all_assets_with_size().await?;
     let total = assets.len();
 
     for (index, asset) in assets.iter().enumerate() {
@@ -110,8 +111,8 @@ async fn sync_files(
                 match missing_file_handling {
                     MissingStorageFileHandling::SetFileSizeToZero => 0,
                     MissingStorageFileHandling::DeleteAssetEntry => {
-                        warn!(log: logger,"Deleting asset {} from database", asset_id);
-                        Asset::internal_delete_by_id(conn, &asset_id).await?;
+                        warn!(log: logger,"Deleting asset {} from inventory", asset_id);
+                        inventory.delete_asset_by_id_internal(asset_id).await?;
                         continue;
                     }
                 }
@@ -131,12 +132,12 @@ async fn sync_files(
             warn!(log: logger,"Setting file size of asset {} to zero", asset_id)
         }
 
-        if let Err(e) = update.apply(conn, asset_id).await {
-            if matches!(e, DatabaseError::NotFound) {
+        match inventory.update_asset(asset_id, update).await {
+            Ok(Some(_)) => {}
+            Ok(None) => {
                 warn!(log: logger,"Could not update asset {}, it appears to be deleted from the database", asset_id);
-            } else {
-                return Err(e.into());
             }
+            Err(e) => return Err(e.into()),
         }
 
         updated_asset_count += 1;
@@ -182,7 +183,7 @@ mod tests {
     use bytes::Bytes;
     use futures::stream;
     use opentalk_controller_settings::MinIO;
-    use opentalk_db_storage::assets::{Asset, NewAsset, UpdateAsset};
+    use opentalk_db_storage::assets::{NewAsset, UpdateAsset};
     use opentalk_signaling_core::{
         ChunkFormat, ObjectStorage, ObjectStorageError,
         assets::{NewAssetFileName, save_asset},
@@ -247,11 +248,16 @@ mod tests {
 
         let object_storage = ObjectStorage::new(&minio).await.unwrap();
 
-        let mut conn = test_ctx.db_ctx.db.get_conn().await.unwrap();
+        let inventory = test_ctx
+            .db_ctx
+            .inventory_provider
+            .get_inventory()
+            .await
+            .unwrap();
 
         sync_files(
             log::logger(),
-            &mut conn,
+            inventory,
             &object_storage,
             &MissingStorageFileHandling::DeleteAssetEntry,
         )
@@ -276,18 +282,29 @@ mod tests {
 
         prepare_db_and_storage(&test_ctx, &object_storage, valid_asset_count).await;
 
-        let mut conn = test_ctx.db_ctx.db.get_conn().await.unwrap();
+        let inventory = test_ctx
+            .db_ctx
+            .inventory_provider
+            .get_inventory()
+            .await
+            .unwrap();
 
         sync_files(
             log::logger(),
-            &mut conn,
+            inventory,
             &object_storage,
             missing_file_handling,
         )
         .await
         .unwrap();
 
-        let assets = Asset::get_all_ids_and_size(&mut conn).await.unwrap();
+        let mut inventory = test_ctx
+            .db_ctx
+            .inventory_provider
+            .get_inventory()
+            .await
+            .unwrap();
+        let assets = inventory.get_all_assets_with_size().await.unwrap();
 
         assert_eq!(assets.len(), valid_asset_count);
 
@@ -303,7 +320,7 @@ mod tests {
     ) {
         let db_ctx = &test_ctx.db_ctx;
 
-        let mut conn = db_ctx.db.get_conn().await.unwrap();
+        let mut inventory = db_ctx.inventory_provider.get_inventory().await.unwrap();
 
         let user = db_ctx.create_test_user(0, Vec::new()).await.unwrap();
 
@@ -322,7 +339,7 @@ mod tests {
 
             let (asset_id, _filename) = save_asset(
                 object_storage,
-                db_ctx.db.clone(),
+                db_ctx.inventory_provider.as_ref(),
                 room.id,
                 None,
                 filename,
@@ -334,26 +351,33 @@ mod tests {
 
             // The first and every 40th asset will have a wrong file size
             if i % 40 == 0 {
-                UpdateAsset {
-                    size: Some(23456),
-                    filename: None,
-                }
-                .apply(&mut conn, asset_id)
-                .await
-                .unwrap();
+                inventory
+                    .update_asset(
+                        asset_id,
+                        UpdateAsset {
+                            size: Some(23456),
+                            filename: None,
+                        },
+                    )
+                    .await
+                    .unwrap();
             }
         }
 
         // create an asset that does not have a related file in the object storage
-        let asset = NewAsset {
-            id: LOST_ASSET_ID,
-            namespace: None,
-            kind: "LostAsset".into(),
-            filename: "does_not_exist_in_storage.txt".into(),
-            tenant_id: user.tenant_id,
-            size: 42,
-        };
-
-        asset.insert_for_room(&mut conn, room.id).await.unwrap();
+        inventory
+            .create_asset_for_room(
+                room.id,
+                NewAsset {
+                    id: LOST_ASSET_ID,
+                    namespace: None,
+                    kind: "LostAsset".into(),
+                    filename: "does_not_exist_in_storage.txt".into(),
+                    tenant_id: user.tenant_id,
+                    size: 42,
+                },
+            )
+            .await
+            .unwrap();
     }
 }

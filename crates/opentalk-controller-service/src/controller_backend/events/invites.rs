@@ -5,25 +5,23 @@
 //! Handles event invites
 
 use chrono::Utc;
-use diesel_async::{AsyncConnection, scoped_futures::ScopedFutureExt};
+use diesel_async::scoped_futures::ScopedFutureExt;
 use kustos::{Authz, policies_builder::PoliciesBuilder};
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_database::{DatabaseError, Db};
 use opentalk_db_storage::{
     events::{
-        Event, EventFavorite, EventInvite, NewEventInvite, UpdateEventInvite,
-        email_invites::{EventEmailInvite, NewEventEmailInvite, UpdateEventEmailInvite},
-        shared_folders::EventSharedFolder,
+        Event, EventInvite, NewEventInvite, UpdateEventInvite,
+        email_invites::{NewEventEmailInvite, UpdateEventEmailInvite},
     },
     invites::NewInvite,
     rooms::Room,
     sip_configs::SipConfig,
-    streaming_targets::get_room_streaming_targets,
     tenants::Tenant,
     users::User,
 };
+use opentalk_inventory::{Inventory, InventoryProvider, transaction};
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -75,15 +73,15 @@ impl ControllerBackend {
         }: GetEventsInvitesQuery,
     ) -> Result<(Vec<EventInvitee>, i64, i64, i64), CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
         // FIXME: Preliminary solution, consider using UNION when Diesel supports it.
         // As in #[get("/events")], we simply get all invitees and truncate them afterwards.
         // Note that get_for_event_paginated returns a total record count of 0 when paging beyond the end.
 
-        let (event_invites_with_user, event_invites_total) =
-            EventInvite::get_for_event_paginated(&mut conn, event_id, i64::MAX, 1, status_filter)
-                .await?;
+        let (event_invites_with_user, event_invites_total) = inventory
+            .get_event_invites_paginated(event_id, i64::MAX, 1, status_filter)
+            .await?;
 
         let event_invitees_iter =
             event_invites_with_user
@@ -92,12 +90,13 @@ impl ControllerBackend {
                     EventInvitee::from_invite_with_user(event_invite, user, &settings)
                 });
 
-        let (event_email_invites, event_email_invites_total) =
-            EventEmailInvite::get_for_event_paginated(&mut conn, event_id, i64::MAX, 1).await?;
+        let (event_email_invites, event_email_invites_total) = inventory
+            .get_event_email_invites_paginated(event_id, i64::MAX, 1)
+            .await?;
 
-        let current_tenant = Tenant::get(&mut conn, current_user.tenant_id).await?;
+        let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
 
-        drop(conn);
+        drop(inventory);
 
         let event_email_invitees_iter = event_email_invites.into_iter().map(|event_email_invite| {
             EventInvitee::from_email_invite(event_email_invite, &settings)
@@ -134,20 +133,21 @@ impl ControllerBackend {
         create_invite: PostEventInviteBody,
     ) -> Result<bool, CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let mail_service = (!query.suppress_email_notification)
             .then(|| self.mail_service.as_ref().clone())
             .flatten();
 
-        let current_tenant = Tenant::get(&mut conn, current_user.tenant_id).await?;
-        let current_user = User::get(&mut conn, current_user.id).await?;
+        let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
+        let current_user = inventory.get_user(current_user.id).await?;
 
         match create_invite {
             PostEventInviteBody::User(user_invite) => {
                 create_user_event_invite(
                     &settings,
-                    &self.db,
+                    inventory,
                     &self.authz,
                     current_user,
                     event_id,
@@ -159,7 +159,7 @@ impl ControllerBackend {
             PostEventInviteBody::Email(email_invite) => {
                 create_email_event_invite(
                     &settings,
-                    &self.db,
+                    self.inventory_provider.as_ref(),
                     &self.authz,
                     &self.user_search_client,
                     &current_tenant,
@@ -180,20 +180,24 @@ impl ControllerBackend {
         user_id: UserId,
         update_invite: &PatchInviteBody,
     ) -> Result<(), CaptureApiError> {
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let event = Event::get(&mut conn, event_id).await?;
+        let event = inventory.get_event(event_id).await?;
 
         if event.created_by != current_user.id {
             return Err(ApiError::forbidden().into());
         }
 
-        let changeset = UpdateEventInvite {
-            status: None,
-            role: update_invite.role,
-        };
-
-        _ = changeset.apply(&mut conn, user_id, event_id).await?;
+        _ = inventory
+            .update_event_user_invite(
+                event_id,
+                user_id,
+                UpdateEventInvite {
+                    status: None,
+                    role: update_invite.role,
+                },
+            )
+            .await?;
 
         Ok(())
     }
@@ -204,20 +208,22 @@ impl ControllerBackend {
         event_id: EventId,
         update_invite: &PatchEmailInviteBody,
     ) -> Result<(), CaptureApiError> {
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let event = Event::get(&mut conn, event_id).await?;
+        let event = inventory.get_event(event_id).await?;
 
         if event.created_by != current_user.id {
             return Err(ApiError::forbidden().into());
         }
 
-        let changeset = UpdateEventEmailInvite {
-            role: update_invite.role,
-        };
-
-        _ = changeset
-            .apply(&mut conn, update_invite.email.as_ref(), event_id)
+        _ = inventory
+            .update_event_email_invite(
+                event_id,
+                update_invite.email.as_str(),
+                UpdateEventEmailInvite {
+                    role: update_invite.role,
+                },
+            )
             .await?;
 
         Ok(())
@@ -234,7 +240,7 @@ impl ControllerBackend {
         let mail_service = (!query.suppress_email_notification)
             .then(|| self.mail_service.as_ref().clone())
             .flatten();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
         // TODO(w.rabl) Further DB access optimization (replacing call to get_with_invite_and_room)?
         let (
@@ -246,39 +252,44 @@ impl ControllerBackend {
             shared_folder,
             _tariff,
             _training_participation_report_parameter_set,
-        ) = Event::get_with_related_items(&mut conn, current_user.id, event_id).await?;
-        let streaming_targets = get_room_streaming_targets(&mut conn, room.id).await?;
+        ) = inventory
+            .get_event_with_related_items(current_user.id, event_id)
+            .await?;
+        let streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
 
-        let current_tenant = Tenant::get(&mut conn, current_user.tenant_id).await?;
-        let current_user = User::get(&mut conn, current_user.id).await?;
+        let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
+        let current_user = inventory.get_user(current_user.id).await?;
 
         let created_by = if event.created_by == current_user.id {
             current_user.clone()
         } else {
-            User::get(&mut conn, event.created_by).await?
+            inventory.get_user(event.created_by).await?
         };
 
-        let invited_users = get_invited_mail_recipients_for_event(&mut conn, event_id).await?;
+        let invited_users =
+            get_invited_mail_recipients_for_event(inventory.as_mut(), event_id).await?;
 
-        let (room_id, invite) = conn
-            .transaction(|conn| {
-                async move {
-                    // delete invite to the event
-                    let invite = EventInvite::delete_by_invitee(conn, event_id, user_id).await?;
+        let (room_id, invite) = transaction(inventory.as_mut(), |inventory| {
+            async move {
+                // delete invite to the event
+                let invite = inventory
+                    .delete_event_invite_by_invitee(event_id, user_id)
+                    .await?;
 
-                    // user access is going to be removed for the event, remove favorite entry if it exists
-                    _ = EventFavorite::delete_by_id(conn, current_user.id, event_id).await?;
+                // user access is going to be removed for the event, remove favorite entry if it exists
+                _ = inventory
+                    .delete_event_favorite_for_user(event_id, current_user.id)
+                    .await?;
 
-                    let event = Event::get(conn, invite.event_id).await?;
+                let event = inventory.get_event(invite.event_id).await?;
 
-                    // TODO: type inference just dies here with this
-                    Ok::<(RoomId, EventInvite), DatabaseError>((event.room, invite))
-                }
-                .scope_boxed()
-            })
-            .await?;
+                Ok::<_, opentalk_inventory::Error>((event.room, invite))
+            }
+            .scope_boxed()
+        })
+        .await?;
 
-        drop(conn);
+        drop(inventory);
 
         if let Some(mail_service) = &mail_service {
             // Notify just the specified user. Currently, unlike the create_invite_to_event counterpart, this endpoint
@@ -327,12 +338,12 @@ impl ControllerBackend {
         query: EventOptionsQuery,
     ) -> Result<(), CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let email = email.to_lowercase().to_string();
 
-        let current_tenant = Tenant::get(&mut conn, current_user.tenant_id).await?;
-        let current_user = User::get(&mut conn, current_user.id).await?;
+        let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
+        let current_user = inventory.get_user(current_user.id).await?;
 
         let tenant_filter = get_tenant_filter(&current_tenant, &settings.tenants.assignment);
 
@@ -349,31 +360,39 @@ impl ControllerBackend {
             shared_folder,
             _tariff,
             _training_participation_report_parameter_set,
-        ) = Event::get_with_related_items(&mut conn, current_user.id, event_id).await?;
-        let streaming_targets = get_room_streaming_targets(&mut conn, room.id).await?;
+        ) = inventory
+            .get_event_with_related_items(current_user.id, event_id)
+            .await?;
+        let streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
 
         let created_by = if event.created_by == current_user.id {
             current_user.clone()
         } else {
-            User::get(&mut conn, event.created_by).await?
+            inventory.get_user(event.created_by).await?
         };
 
-        let user_from_db = User::get_by_email(&mut conn, current_tenant.id, &email).await?;
+        let user_from_db = inventory
+            .get_user_by_email(current_tenant.id, &email)
+            .await?;
 
         let mail_recipient = if let Some(user) = user_from_db {
             let user_id = user.id;
 
-            conn.transaction(|conn| {
+            transaction(inventory.as_mut(), |inventory| {
                 async move {
                     // delete invite to the event
                     log::error!("deleting: {event_id}, {user_id}");
 
-                    _ = EventInvite::delete_by_invitee(conn, event_id, user_id).await?;
+                    _ = inventory
+                        .delete_event_invite_by_invitee(event_id, current_user.id)
+                        .await?;
 
                     // user access is going to be removed for the event, remove favorite entry if it exists
-                    _ = EventFavorite::delete_by_id(conn, current_user.id, event_id).await?;
+                    _ = inventory
+                        .delete_event_favorite_for_user(event_id, current_user.id)
+                        .await?;
 
-                    Ok::<(), DatabaseError>(())
+                    Ok::<_, opentalk_inventory::Error>(())
                 }
                 .scope_boxed()
             })
@@ -394,7 +413,9 @@ impl ControllerBackend {
                 Ok(None)
             }
         } {
-            _ = EventEmailInvite::delete(&mut conn, &event_id, &email).await?;
+            _ = inventory
+                .delete_event_invite_by_email(event_id, &email)
+                .await?;
 
             MailRecipient::Unregistered(UnregisteredMailRecipient {
                 email,
@@ -402,7 +423,9 @@ impl ControllerBackend {
                 last_name: user.last_name,
             })
         } else {
-            _ = EventEmailInvite::delete(&mut conn, &event_id, &email).await?;
+            _ = inventory
+                .delete_event_invite_by_email(event_id, &email)
+                .await?;
 
             MailRecipient::External(ExternalMailRecipient { email })
         };
@@ -435,9 +458,11 @@ impl ControllerBackend {
         &self,
         user_id: UserId,
     ) -> Result<GetEventInvitesPendingResponseBody, CaptureApiError> {
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let event_invites = EventInvite::get_pending_for_user(&mut conn, user_id).await?;
+        let event_invites = inventory
+            .get_email_invites_pending_for_user(user_id)
+            .await?;
 
         Ok(GetEventInvitesPendingResponseBody {
             total_pending_invites: event_invites.len() as u32,
@@ -449,14 +474,18 @@ impl ControllerBackend {
         user_id: UserId,
         event_id: EventId,
     ) -> Result<(), CaptureApiError> {
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let changeset = UpdateEventInvite {
-            status: Some(EventInviteStatus::Accepted),
-            role: None,
-        };
-
-        _ = changeset.apply(&mut conn, user_id, event_id).await?;
+        _ = inventory
+            .update_event_user_invite(
+                event_id,
+                user_id,
+                UpdateEventInvite {
+                    status: Some(EventInviteStatus::Accepted),
+                    role: None,
+                },
+            )
+            .await?;
 
         Ok(())
     }
@@ -466,14 +495,18 @@ impl ControllerBackend {
         user_id: UserId,
         event_id: EventId,
     ) -> Result<(), CaptureApiError> {
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let changeset = UpdateEventInvite {
-            status: Some(EventInviteStatus::Declined),
-            role: None,
-        };
-
-        _ = changeset.apply(&mut conn, user_id, event_id).await?;
+        _ = inventory
+            .update_event_user_invite(
+                event_id,
+                user_id,
+                UpdateEventInvite {
+                    status: Some(EventInviteStatus::Declined),
+                    role: None,
+                },
+            )
+            .await?;
 
         Ok(())
     }
@@ -482,38 +515,40 @@ impl ControllerBackend {
 #[allow(clippy::too_many_arguments)]
 async fn create_user_event_invite(
     settings: &Settings,
-    db: &Db,
+    mut inventory: Box<dyn Inventory>,
     authz: &Authz,
     inviter: User,
     event_id: EventId,
     user_invite: UserInvite,
     mail_service: &Option<MailService>,
 ) -> Result<bool, CaptureApiError> {
-    let mut conn = db.get_conn().await?;
-
-    let (event, room, sip_config) = Event::get_with_room(&mut conn, event_id).await?;
-    let invitee =
-        User::get_filtered_by_tenant(&mut conn, event.tenant_id, user_invite.invitee).await?;
-    let shared_folder = EventSharedFolder::get_for_event(&mut conn, event_id)
+    let (event, room, sip_config) = inventory
+        .get_event_with_room_and_sip_config(event_id)
+        .await?;
+    let invitee = inventory
+        .get_user_for_tenant(event.tenant_id, user_invite.invitee)
+        .await?;
+    let shared_folder = inventory
+        .get_event_shared_folder(event_id)
         .await?
         .map(SharedFolder::from);
-    let streaming_targets = get_room_streaming_targets(&mut conn, room.id).await?;
+    let streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
 
     if event.created_by == user_invite.invitee {
         return Ok(false);
     }
 
-    let res = NewEventInvite {
-        event_id,
-        invitee: user_invite.invitee,
-        role: user_invite.role,
-        created_by: inviter.id,
-        created_at: None,
-    }
-    .try_insert(&mut conn)
-    .await?;
+    let res = inventory
+        .try_create_event_invite(NewEventInvite {
+            event_id,
+            invitee: user_invite.invitee,
+            role: user_invite.role,
+            created_by: inviter.id,
+            created_at: None,
+        })
+        .await?;
 
-    drop(conn);
+    drop(inventory);
 
     match res {
         Some(_invite) => {
@@ -560,7 +595,7 @@ async fn create_user_event_invite(
 #[allow(clippy::too_many_arguments)]
 async fn create_email_event_invite(
     settings: &Settings,
-    db: &Db,
+    inventory_provider: &dyn InventoryProvider,
     authz: &Authz,
     user_search_client: &Option<KeycloakAdminClient>,
     current_tenant: &Tenant,
@@ -593,30 +628,34 @@ async fn create_email_event_invite(
     }
 
     let state = {
-        let mut conn = db.get_conn().await?;
+        let mut inventory = inventory_provider.get_inventory().await?;
 
-        let (event, room, sip_config) = Event::get_with_room(&mut conn, event_id).await?;
-        let shared_folder = EventSharedFolder::get_for_event(&mut conn, event_id)
+        let (event, room, sip_config) = inventory
+            .get_event_with_room_and_sip_config(event_id)
+            .await?;
+        let shared_folder = inventory
+            .get_event_shared_folder(event_id)
             .await?
             .map(SharedFolder::from);
-        let streaming_targets = get_room_streaming_targets(&mut conn, room.id).await?;
+        let streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
 
-        let invitee_user =
-            User::get_by_email(&mut conn, current_user.tenant_id, email.as_ref()).await?;
+        let invitee_user = inventory
+            .get_user_by_email(current_user.tenant_id, email.as_ref())
+            .await?;
 
         if let Some(invitee_user) = invitee_user {
             if event.created_by == invitee_user.id {
                 UserState::ExistsAndIsAlreadyInvited
             } else {
-                let res = NewEventInvite {
-                    event_id,
-                    invitee: invitee_user.id,
-                    role: email_invite.role.into(),
-                    created_by: current_user.id,
-                    created_at: None,
-                }
-                .try_insert(&mut conn)
-                .await?;
+                let res = inventory
+                    .try_create_event_invite(NewEventInvite {
+                        event_id,
+                        invitee: invitee_user.id,
+                        role: email_invite.role.into(),
+                        created_by: current_user.id,
+                        created_at: None,
+                    })
+                    .await?;
 
                 match res {
                     Some(invite) => UserState::ExistsAndWasInvited {
@@ -693,7 +732,7 @@ async fn create_email_event_invite(
         } => {
             create_invite_to_non_matching_email(
                 settings,
-                db,
+                inventory_provider,
                 authz,
                 user_search_client,
                 mail_service,
@@ -718,7 +757,7 @@ async fn create_email_event_invite(
 #[allow(clippy::too_many_arguments)]
 async fn create_invite_to_non_matching_email(
     settings: &Settings,
-    db: &Db,
+    inventory_provider: &dyn InventoryProvider,
     authz: &Authz,
     user_search_client: &Option<KeycloakAdminClient>,
     mail_service: &Option<MailService>,
@@ -750,20 +789,20 @@ async fn create_invite_to_non_matching_email(
         let inviter = current_user.clone();
         let invitee_email = email.clone();
 
-        let mut conn = db.get_conn().await?;
+        let mut inventory = inventory_provider.get_inventory().await?;
 
         let res = {
             let event_id = event.id;
             let current_user_id = current_user.id;
 
-            NewEventEmailInvite {
-                event_id,
-                email: email.into(),
-                role,
-                created_by: current_user_id,
-            }
-            .try_insert(&mut conn)
-            .await?
+            inventory
+                .try_create_event_email_invite(NewEventEmailInvite {
+                    event_id,
+                    email: email.into(),
+                    role,
+                    created_by: current_user_id,
+                })
+                .await?
         };
 
         match res {
@@ -789,15 +828,15 @@ async fn create_invite_to_non_matching_email(
                             ApiError::internal()
                         })?;
                 } else {
-                    let invite = NewInvite {
-                        active: true,
-                        created_by: current_user.id,
-                        updated_by: current_user.id,
-                        room: room.id,
-                        expiration: None,
-                    }
-                    .insert(&mut conn)
-                    .await?;
+                    let invite = inventory
+                        .create_room_invite(NewInvite {
+                            active: true,
+                            created_by: current_user.id,
+                            updated_by: current_user.id,
+                            room: room.id,
+                            expiration: None,
+                        })
+                        .await?;
 
                     let policies = PoliciesBuilder::new()
                         // Grant invitee access

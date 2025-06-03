@@ -4,17 +4,10 @@
 
 //! Provides roomserver-related implementation
 
-use chrono::Utc;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_database::{DatabaseError, DbConnection};
-use opentalk_db_storage::{
-    events::{Event, shared_folders::EventSharedFolder},
-    invites::Invite,
-    sip_configs::SipConfig,
-    streaming_targets::RoomStreamingTargetRecord,
-};
+use opentalk_inventory::Inventory;
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
     room_parameters::{EventContext, RoomParameters},
@@ -190,16 +183,18 @@ impl ControllerBackend {
         &self,
         room: RoomResource,
     ) -> Result<RoomParameters, CaptureApiError> {
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
+
         let settings = self.settings_provider.get();
 
-        let call_in = Self::get_call_in_info(&mut conn, &settings, room.id).await?;
+        let call_in = Self::get_call_in_info(inventory.as_mut(), &settings, room.id).await?;
 
-        let event = Self::get_event_context(&mut conn, room.id).await?;
+        let event = Self::get_event_context(inventory.as_mut(), room.id).await?;
 
-        let streaming_links = Self::build_streaming_links(&mut conn, room.id).await?;
+        let streaming_links = Self::build_streaming_links(inventory.as_mut(), room.id).await?;
 
-        let invite_code = Invite::get_valid_for_room(&mut conn, room.id, Utc::now())
+        let invite_code = inventory
+            .get_valid_invite_for_room(room.id)
             .await?
             .map(|invite| invite.id);
 
@@ -221,14 +216,14 @@ impl ControllerBackend {
     }
 
     async fn get_event_context(
-        conn: &mut DbConnection,
+        inventory: &mut dyn Inventory,
         room_id: RoomId,
     ) -> Result<Option<EventContext>, CaptureApiError> {
-        let Some(event) = Event::get_for_room(conn, room_id).await? else {
+        let Some(event) = inventory.get_event_for_room(room_id).await? else {
             return Ok(None);
         };
 
-        let shared_folder = match EventSharedFolder::get_for_event(conn, event.id).await? {
+        let shared_folder = match inventory.get_event_shared_folder(event.id).await? {
             Some(event_shared_folder) => Some(SharedFolder {
                 read: SharedFolderAccess {
                     url: event_shared_folder.read_url,
@@ -254,7 +249,7 @@ impl ControllerBackend {
     }
 
     async fn get_call_in_info(
-        conn: &mut DbConnection,
+        inventory: &mut dyn Inventory,
         settings: &Settings,
         room_id: RoomId,
     ) -> Result<Option<CallInInfo>, CaptureApiError> {
@@ -262,22 +257,21 @@ impl ControllerBackend {
             return Ok(None);
         };
 
-        match SipConfig::get_by_room(conn, room_id).await {
-            Ok(sip_config) => Ok(Some(CallInInfo {
+        Ok(inventory
+            .get_room_sip_config(room_id)
+            .await?
+            .map(|sip_config| CallInInfo {
                 tel,
                 id: sip_config.sip_id,
                 password: sip_config.password,
-            })),
-            Err(DatabaseError::NotFound) => Ok(None),
-            Err(err) => Err(CaptureApiError::from(err)),
-        }
+            }))
     }
 
     async fn build_streaming_links(
-        conn: &mut DbConnection,
+        inventory: &mut dyn Inventory,
         room_id: RoomId,
     ) -> Result<Vec<StreamingLink>, CaptureApiError> {
-        let streaming_targets = RoomStreamingTargetRecord::get_all_for_room(conn, room_id).await?;
+        let streaming_targets = inventory.get_room_streaming_target_records(room_id).await?;
         let mut streaming_links = Vec::new();
 
         for target in streaming_targets {

@@ -7,8 +7,8 @@
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_database::DbConnection;
-use opentalk_db_storage::{assets::Asset, tariffs::Tariff, users::User};
+use opentalk_db_storage::{assets::Asset, users::User};
+use opentalk_inventory::Inventory;
 use opentalk_types_api_v1::{
     assets::AssetResource,
     error::ApiError,
@@ -120,7 +120,7 @@ pub fn email_to_libravatar_url(libravatar_url: &str, email: &str) -> String {
 ///
 /// Return an [`ApiError`] if the given feature is disabled, differentiating between a config disable or tariff restriction.
 pub async fn require_feature(
-    db_conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     settings: &Settings,
     user_id: UserId,
     feature: &ModuleFeatureId,
@@ -132,7 +132,7 @@ pub async fn require_feature(
             .into());
     }
 
-    let tariff = Tariff::get_by_user_id(db_conn, &user_id).await?;
+    let tariff = inventory.get_tariff_for_user(user_id).await?;
 
     if tariff.is_feature_disabled(feature) {
         return Err(ApiError::forbidden()

@@ -32,13 +32,13 @@ use opentalk_controller_settings::{
     Settings, SettingsProvider, TariffAssignment, TariffStatusMapping, TenantAssignment,
 };
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_database::{Db, OptionalExt};
 use opentalk_db_storage::{
-    groups::{Group, get_or_create_groups_by_name},
-    tariffs::{ExternalTariffId, Tariff},
-    tenants::{OidcTenantId, Tenant, get_or_create_tenant_by_oidc_id},
+    groups::Group,
+    tariffs::ExternalTariffId,
+    tenants::{OidcTenantId, Tenant},
     users::User,
 };
+use opentalk_inventory::InventoryProvider;
 use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use opentalk_types_common::{
     events::EventId,
@@ -73,7 +73,7 @@ pub type UserAccessTokenCache = Cache<String, Result<(Tenant, User), CacheableAp
 /// Transforms into [`OidcAuthMiddleware`]
 pub struct OidcAuth {
     pub settings_provider: SettingsProvider,
-    pub db: Data<Db>,
+    pub inventory_provider: Data<dyn InventoryProvider>,
     pub authz: Data<kustos::Authz>,
     pub oidc_ctx: Data<OidcContext>,
 }
@@ -94,7 +94,7 @@ where
             service: Rc::new(service),
             settings_provider: self.settings_provider.clone(),
             authz: self.authz.clone(),
-            db: self.db.clone(),
+            inventory_provider: self.inventory_provider.clone(),
             oidc_ctx: self.oidc_ctx.clone(),
         }))
     }
@@ -108,7 +108,7 @@ pub struct OidcAuthMiddleware<S> {
     service: Rc<S>,
     settings_provider: SettingsProvider,
     authz: Data<kustos::Authz>,
-    db: Data<Db>,
+    inventory_provider: Data<dyn InventoryProvider>,
     oidc_ctx: Data<OidcContext>,
 }
 
@@ -131,7 +131,7 @@ where
         let service = self.service.clone();
         let settings_provider = self.settings_provider.clone();
         let authz = self.authz.clone();
-        let db = self.db.clone();
+        let inventory_provider = self.inventory_provider.clone();
         let oidc_ctx = self.oidc_ctx.clone();
         let caches = req
             .app_data::<Data<Caches>>()
@@ -187,8 +187,8 @@ where
                     AccessTokenOrInviteCode::AccessToken(access_token) => match check_access_token(
                         &settings,
                         &authz,
-                        db,
-                        oidc_ctx,
+                        inventory_provider.as_ref(),
+                        &oidc_ctx,
                         &caches.user_access_tokens,
                         &access_token,
                         fallback_locale,
@@ -244,8 +244,8 @@ fn build_request_user(user: User) -> RequestUser {
 pub async fn check_access_token(
     settings: &Settings,
     authz: &kustos::Authz,
-    db: Data<Db>,
-    oidc_ctx: Data<OidcContext>,
+    inventory_provider: &dyn InventoryProvider,
+    oidc_ctx: &OidcContext,
     cache: &UserAccessTokenCache,
     access_token: &AccessToken,
     fallback_locale: Language,
@@ -263,14 +263,20 @@ pub async fn check_access_token(
     } else {
         // Miss, do the check and cache the result
 
-        let expires_at = verify_access_token(&oidc_ctx, access_token).await?;
+        let expires_at = verify_access_token(oidc_ctx, access_token).await?;
 
         // Calculate the remaining ttl of the token
         let token_ttl = expires_at - Utc::now();
 
-        let check_result =
-            check_access_token_inner(settings, authz, db, oidc_ctx, access_token, fallback_locale)
-                .await;
+        let check_result = check_access_token_inner(
+            settings,
+            authz,
+            inventory_provider,
+            oidc_ctx,
+            access_token,
+            fallback_locale,
+        )
+        .await;
 
         match check_result {
             Ok((tenant, user)) => {
@@ -351,19 +357,19 @@ async fn verify_access_token(
 async fn check_access_token_inner(
     settings: &Settings,
     authz: &kustos::Authz,
-    db: Data<Db>,
-    oidc_ctx: Data<OidcContext>,
+    inventory_provider: &dyn InventoryProvider,
+    oidc_ctx: &OidcContext,
     access_token: &AccessToken,
     fallback_locale: Language,
 ) -> Result<(Tenant, User), CaptureApiError> {
     let info = oidc_ctx.user_info(access_token.clone()).await?;
 
-    let mut conn = db.get_conn().await?;
+    let mut inventory = inventory_provider.get_inventory().await?;
 
     // Get tariff depending on the configured assignment
     let (tariff, tariff_status) = match &settings.tariffs.assignment {
         TariffAssignment::Static { static_tariff_name } => (
-            Tariff::get_by_name(&mut conn, static_tariff_name).await?,
+            inventory.get_tariff_by_name(static_tariff_name).await?,
             TariffStatus::Default,
         ),
         TariffAssignment::ByExternalTariffId { status_mapping } => {
@@ -373,15 +379,14 @@ async fn check_access_token_inner(
                     .with_message("tariff_id missing in id_token claims")
             })?;
 
-            let tariff =
-                Tariff::get_by_external_id(&mut conn, &ExternalTariffId::from(external_tariff_id))
-                    .await
-                    .optional()?
-                    .ok_or_else(|| {
-                        ApiError::internal()
-                            .with_code("invalid_tariff_id")
-                            .with_message("JWT contained unknown tariff_id")
-                    })?;
+            let tariff = inventory
+                .get_tariff_by_external_tariff_id(&ExternalTariffId::from(external_tariff_id))
+                .await?
+                .ok_or_else(|| {
+                    ApiError::internal()
+                        .with_code("invalid_tariff_id")
+                        .with_message("JWT contained unknown tariff_id")
+                })?;
 
             if let Some(mapping) = status_mapping.as_ref() {
                 let status_name = info.tariff_status.clone().ok_or_else(|| {
@@ -393,7 +398,8 @@ async fn check_access_token_inner(
                 let status = map_tariff_status_name(mapping, &status_name);
 
                 let tariff = if matches!(status, TariffStatus::Downgraded) {
-                    Tariff::get_by_name(&mut conn, &mapping.downgraded_tariff_name)
+                    inventory
+                        .get_tariff_by_name(&mapping.downgraded_tariff_name)
                         .await
                         .map_err(|_| {
                             ApiError::internal()
@@ -418,23 +424,25 @@ async fn check_access_token_inner(
             ApiError::unauthorized().with_www_authenticate(AuthenticationError::InvalidAccessToken)
         })?,
     };
-    let tenant = get_or_create_tenant_by_oidc_id(&mut conn, &OidcTenantId::from(tenant_id)).await?;
+    let tenant = inventory
+        .get_or_create_tenant_by_oidc_id(&OidcTenantId::from(tenant_id))
+        .await?;
 
     let groups: Vec<(TenantId, GroupName)> = info
         .groups
         .iter()
         .map(|group| (tenant.id, GroupName::from(group.clone())))
         .collect();
-    let groups = get_or_create_groups_by_name(&mut conn, &groups).await?;
+    let groups = inventory.get_or_create_groups_by_name(&groups).await?;
 
-    let user = User::get_by_oidc_sub(&mut conn, tenant.id, &info.sub).await?;
+    let user = inventory.get_user_by_odic_sub(tenant.id, &info.sub).await?;
 
     let login_result = match user {
         Some(user) => {
             // Found a matching user, update its attributes, tenancy and groups
             update_user::update_user(
                 settings,
-                &mut conn,
+                inventory.as_mut(),
                 user,
                 info,
                 groups,
@@ -447,7 +455,7 @@ async fn check_access_token_inner(
             // No matching user, create a new one with inside the given tenants and groups
             create_user::create_user(
                 settings,
-                &mut conn,
+                inventory.as_mut(),
                 info,
                 &tenant,
                 groups,

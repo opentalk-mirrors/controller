@@ -5,7 +5,6 @@
 use std::{
     fmt::Display,
     pin::Pin,
-    sync::Arc,
     task::{self, Poll},
 };
 
@@ -13,13 +12,11 @@ use aws_sdk_s3::primitives::{ByteStream, ByteStreamError};
 use bigdecimal::BigDecimal;
 use bytes::Bytes;
 use futures::Stream;
-use opentalk_database::{Db, DbConnection};
 use opentalk_db_storage::{
     assets::{Asset, NewAsset},
     rooms::Room,
-    tariffs::Tariff,
-    users::User,
 };
+use opentalk_inventory::{Inventory, InventoryProvider};
 use opentalk_types_common::{
     assets::{AssetFileKind, AssetId, FileExtension},
     events::EventTitle,
@@ -35,15 +32,11 @@ use crate::{ObjectStorage, ObjectStorageError, object_storage::ChunkFormat};
 
 #[derive(Debug, Snafu)]
 pub enum AssetError {
-    #[snafu(display("Database connection failed: {source}"))]
-    DbConnection {
-        source: opentalk_database::DatabaseError,
-    },
+    #[snafu(display("Error connecting to inventory: {source}"))]
+    InventoryConnection { source: opentalk_inventory::Error },
 
-    #[snafu(display("Database query failed: {source}"))]
-    DbQuery {
-        source: opentalk_database::DatabaseError,
-    },
+    #[snafu(display("Error querying information from inventory: {source}"))]
+    InventoryQuery { source: opentalk_inventory::Error },
 
     #[snafu(display("Failed to upload asset to storage: {source}"))]
     ObjectStorage {
@@ -141,7 +134,7 @@ impl Display for NewAssetFileName {
 /// Returns a tuple containing the asset id and the filename on success.
 pub async fn save_asset<E>(
     storage: &ObjectStorage,
-    db: Arc<Db>,
+    inventory_provider: &dyn InventoryProvider,
     room_id: RoomId,
     namespace: Option<ModuleId>,
     mut filename: NewAssetFileName,
@@ -151,9 +144,12 @@ pub async fn save_asset<E>(
 where
     ObjectStorageError: From<E>,
 {
-    let mut conn = db.get_conn().await.context(DbConnectionSnafu)?;
+    let mut inventory = inventory_provider
+        .get_inventory()
+        .await
+        .context(InventoryConnectionSnafu)?;
 
-    let room = prepare_storage(room_id, &mut conn).await?;
+    let room = prepare_storage(room_id, inventory.as_mut()).await?;
 
     let asset_id = AssetId::generate();
 
@@ -167,16 +163,17 @@ where
     let size = match size {
         Ok(size) => size,
         Err(e) => {
-            drop(conn);
+            drop(inventory);
             rollback_object_storage(storage, &asset_id).await?;
             return Err(e);
         }
     };
 
     if filename.event_title.is_none() {
-        filename.event_title = opentalk_db_storage::events::Event::get_for_room(&mut conn, room.id)
+        filename.event_title = inventory
+            .get_event_for_room(room.id)
             .await
-            .context(DbQuerySnafu)?
+            .context(InventoryQuerySnafu)?
             .map(|e| e.title);
     }
 
@@ -185,7 +182,7 @@ where
 
     // Create a database entry for the uploaded asset
     let result = insert_asset_into_database(
-        &mut conn,
+        inventory.as_mut(),
         namespace,
         filename.clone(),
         kind,
@@ -194,10 +191,10 @@ where
         size,
     )
     .await
-    .context(DbQuerySnafu);
+    .context(InventoryQuerySnafu);
 
     if let Err(e) = result {
-        drop(conn);
+        drop(inventory);
         // if there was an error, we roll back and return the original error.
         // if the rollback fails, we return a rollback error with the cause of
         // the rollback and the reason why the rollback failed.
@@ -225,29 +222,38 @@ async fn rollback_object_storage(storage: &ObjectStorage, asset_id: &AssetId) ->
 }
 
 async fn insert_asset_into_database(
-    db_conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     namespace: Option<ModuleId>,
     filename: String,
     kind: AssetFileKind,
     asset_id: AssetId,
     room: Room,
     size: i64,
-) -> opentalk_database::Result<Asset> {
-    NewAsset {
-        id: asset_id,
-        namespace,
-        filename,
-        kind: kind.to_string(),
-        tenant_id: room.tenant_id,
-        size,
-    }
-    .insert_for_room(db_conn, room.id)
-    .await
+) -> opentalk_inventory::Result<Asset> {
+    inventory
+        .create_asset_for_room(
+            room.id,
+            NewAsset {
+                id: asset_id,
+                namespace,
+                filename,
+                kind: kind.to_string(),
+                tenant_id: room.tenant_id,
+                size,
+            },
+        )
+        .await
 }
 
-async fn prepare_storage(room_id: RoomId, conn: &mut DbConnection) -> Result<Room, AssetError> {
-    let room = Room::get(conn, room_id).await.context(DbQuerySnafu)?;
-    verify_storage_usage(conn, room.created_by).await?;
+async fn prepare_storage(
+    room_id: RoomId,
+    inventory: &mut dyn Inventory,
+) -> Result<Room, AssetError> {
+    let room = inventory
+        .get_room(room_id)
+        .await
+        .context(InventoryQuerySnafu)?;
+    verify_storage_usage(inventory, room.created_by).await?;
     Ok(room)
 }
 
@@ -273,14 +279,18 @@ pub async fn get_asset(
 /// Delete an asset from the object storage
 pub async fn delete_asset(
     storage: &ObjectStorage,
-    db: &Db,
+    inventory_provider: &dyn InventoryProvider,
     room_id: RoomId,
     asset_id: AssetId,
 ) -> Result<()> {
-    let mut conn = db.get_conn().await.context(DbConnectionSnafu)?;
-    Asset::delete_by_id(&mut conn, asset_id, room_id)
+    let mut inventory = inventory_provider
+        .get_inventory()
         .await
-        .context(DbQuerySnafu)?;
+        .context(InventoryConnectionSnafu)?;
+    inventory
+        .delete_asset_from_room(room_id, asset_id)
+        .await
+        .context(InventoryQuerySnafu)?;
 
     storage
         .delete(asset_key(&asset_id))
@@ -294,13 +304,15 @@ pub fn asset_key(asset_id: &AssetId) -> String {
 
 /// Verify that the storage quota wasn't exhausted. Files don't need to fit into the remaining quota,
 /// there only needs to be available quota.
-pub async fn verify_storage_usage(db_conn: &mut DbConnection, user_id: UserId) -> Result<()> {
-    let used_storage = User::get_used_storage(db_conn, &user_id)
+pub async fn verify_storage_usage(inventory: &mut dyn Inventory, user_id: UserId) -> Result<()> {
+    let used_storage = inventory
+        .get_user_storage_used_size(user_id)
         .await
-        .context(DbQuerySnafu)?;
-    let user_tariff = Tariff::get_by_user_id(db_conn, &user_id)
+        .context(InventoryQuerySnafu)?;
+    let user_tariff = inventory
+        .get_tariff_for_user(user_id)
         .await
-        .context(DbQuerySnafu)?;
+        .context(InventoryQuerySnafu)?;
 
     if let Some(max_storage) = user_tariff.quota(&QuotaType::MaxStorage) {
         if used_storage > BigDecimal::from(max_storage) {

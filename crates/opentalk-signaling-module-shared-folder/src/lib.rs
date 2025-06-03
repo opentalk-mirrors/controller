@@ -11,8 +11,7 @@
 use std::sync::Arc;
 
 use either::Either;
-use opentalk_database::Db;
-use opentalk_db_storage::events::shared_folders::EventSharedFolder;
+use opentalk_inventory::InventoryProvider;
 use opentalk_signaling_core::{
     CleanupScope, DestroyContext, Event, InitContext, ModuleContext, SignalingModule,
     SignalingModuleError, SignalingModuleInitData, SignalingRoomId, VolatileStorage,
@@ -30,7 +29,7 @@ mod storage;
 
 pub struct SharedFolder {
     room: SignalingRoomId,
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
 }
 
 impl SharedFolder {
@@ -90,7 +89,7 @@ impl SignalingModule for SharedFolder {
     ) -> Result<Option<Self>, SignalingModuleError> {
         Ok(Some(Self {
             room: ctx.room_id(),
-            db: ctx.db().clone(),
+            inventory_provider: ctx.inventory_provider().clone(),
         }))
     }
 
@@ -117,9 +116,12 @@ impl SignalingModule for SharedFolder {
                         .get_event(self.room.room_id())
                         .await?
                     {
-                        let mut conn = self.db.get_conn().await?;
-                        if let Some(shared_folder) =
-                            EventSharedFolder::get_for_event(&mut conn, event.id).await?
+                        if let Some(shared_folder) = self
+                            .inventory_provider
+                            .get_inventory()
+                            .await?
+                            .get_event_shared_folder(event.id)
+                            .await?
                         {
                             ctx.volatile
                                 .storage()

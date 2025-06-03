@@ -7,8 +7,9 @@
 use std::collections::HashMap;
 
 use opentalk_controller_settings::Settings;
-use opentalk_database::{DbConnection, Result};
-use opentalk_db_storage::{users::User, utils::HasUsers};
+use opentalk_database::Result;
+use opentalk_db_storage::utils::HasUsers;
+use opentalk_inventory::Inventory;
 use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::users::UserId;
 
@@ -35,8 +36,8 @@ impl GetUserProfilesBatched {
     pub async fn fetch(
         &mut self,
         settings: &Settings,
-        conn: &mut DbConnection,
-    ) -> Result<UserProfilesBatch> {
+        inventory: &mut dyn Inventory,
+    ) -> Result<UserProfilesBatch, opentalk_inventory::Error> {
         if self.users.is_empty() {
             return Ok(UserProfilesBatch {
                 users: HashMap::new(),
@@ -46,7 +47,8 @@ impl GetUserProfilesBatched {
         self.users.sort_unstable();
         self.users.dedup();
 
-        User::get_all_by_ids(conn, &self.users)
+        inventory
+            .get_users_by_ids(&self.users)
             .await
             .map(|users| {
                 users

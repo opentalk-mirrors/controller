@@ -4,44 +4,39 @@
 
 use std::{collections::HashSet, sync::Arc};
 
-use chrono::{DateTime, Utc};
 use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::deletion::{Deleter, user::UserDeleter};
-use opentalk_database::{Db, DbConnection};
-use opentalk_db_storage::{
-    events::{Event, UpdateEvent},
-    invites::{Invite, UpdateInvite},
-    users::User,
-};
+use opentalk_db_storage::{events::UpdateEvent, invites::UpdateInvite};
+use opentalk_inventory::{Inventory, InventoryProvider};
 use opentalk_log::{debug, info, warn};
 use opentalk_signaling_core::{ExchangeHandle, ObjectStorage};
-use opentalk_types_common::{events::EventId, rooms::RoomId, users::UserId};
+use opentalk_types_common::{events::EventId, rooms::RoomId, time::Timestamp, users::UserId};
 use snafu::Report;
 
 use crate::Error;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) enum DeleteSelector {
-    DisabledBefore(DateTime<Utc>),
+    DisabledBefore(Timestamp),
 }
 
 pub(crate) async fn perform_deletion(
     logger: &dyn Log,
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
+    authz: Authz,
     exchange_handle: ExchangeHandle,
     settings: &Settings,
     fail_on_shared_folder_deletion_error: bool,
     delete_selector: DeleteSelector,
 ) -> Result<(), Error> {
-    let authz = Authz::new(db.clone()).await?;
-    let mut conn = db.get_conn().await?;
+    let mut inventory = inventory_provider.get_inventory().await?;
     let object_storage = ObjectStorage::new(&settings.minio).await?;
 
     delete_users(
         logger,
-        &mut conn,
+        inventory.as_mut(),
         &authz,
         exchange_handle.clone(),
         settings,
@@ -58,7 +53,7 @@ pub(crate) async fn perform_deletion(
 #[allow(clippy::too_many_arguments)]
 async fn delete_users(
     logger: &dyn Log,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     authz: &Authz,
     exchange_handle: ExchangeHandle,
     settings: &Settings,
@@ -68,17 +63,17 @@ async fn delete_users(
 ) -> Result<(), Error> {
     debug!(log: logger, "Retrieving list of users that should be deleted");
 
-    let user_candidates = retrieve_deletion_candidate_users(conn, delete_selector).await?;
+    let user_candidates = retrieve_deletion_candidate_users(inventory, delete_selector).await?;
     let user_candidate_count = user_candidates.len();
 
     info!(log: logger, "Identified {user_candidate_count} users for deletion");
 
-    invite_replace_updated_by(logger, conn, &user_candidates).await?;
-    event_replace_updated_by(logger, conn, &user_candidates).await?;
+    invite_replace_updated_by(logger, inventory, &user_candidates).await?;
+    event_replace_updated_by(logger, inventory, &user_candidates).await?;
 
     let orphaned_rooms = delete_user_events(
         logger,
-        conn,
+        inventory,
         authz,
         exchange_handle.clone(),
         settings,
@@ -90,7 +85,7 @@ async fn delete_users(
 
     super::events::delete_orphaned_rooms(
         logger,
-        conn,
+        inventory,
         authz,
         exchange_handle.clone(),
         settings,
@@ -102,7 +97,7 @@ async fn delete_users(
 
     delete_users_internal(
         logger,
-        conn,
+        inventory,
         authz,
         exchange_handle.clone(),
         settings,
@@ -119,7 +114,7 @@ async fn delete_users(
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn delete_users_internal(
     logger: &dyn Log,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     authz: &Authz,
     exchange_handle: ExchangeHandle,
     settings: &Settings,
@@ -136,7 +131,7 @@ pub(crate) async fn delete_users_internal(
         if let Err(e) = deleter
             .perform(
                 logger,
-                conn,
+                inventory,
                 authz,
                 None,
                 exchange_handle.clone(),
@@ -163,7 +158,7 @@ pub(crate) async fn delete_users_internal(
 #[allow(clippy::too_many_arguments)]
 async fn delete_user_events(
     logger: &dyn Log,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     authz: &Authz,
     exchange_handle: ExchangeHandle,
     settings: &Settings,
@@ -178,15 +173,18 @@ async fn delete_user_events(
     for &user_id in user_candidates {
         let event_delete_selector = super::events::DeleteSelector::BelongingToUser(user_id);
 
-        let mut candidates =
-            super::events::retrieve_deletion_candidate_events(logger, conn, event_delete_selector)
-                .await?;
+        let mut candidates = super::events::retrieve_deletion_candidate_events(
+            logger,
+            inventory,
+            event_delete_selector,
+        )
+        .await?;
         event_candidates.append(&mut candidates);
     }
 
     let orphaned_rooms = super::events::delete_event_candidates(
         logger,
-        conn,
+        inventory,
         authz,
         exchange_handle,
         settings,
@@ -201,23 +199,27 @@ async fn delete_user_events(
 
 async fn invite_replace_updated_by(
     logger: &dyn Log,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     user_candidates: &[UserId],
 ) -> Result<(), Error> {
     let mut touched_invites: usize = 0;
     for &user_id in user_candidates {
-        let invites = Invite::get_updated_by(conn, user_id).await?;
+        let invites = inventory.get_room_invites_updated_by(user_id).await?;
 
         for invite in invites {
-            UpdateInvite {
-                updated_by: Some(invite.created_by),
-                updated_at: None,
-                room: None,
-                active: None,
-                expiration: None,
-            }
-            .apply(conn, invite.room, invite.id)
-            .await?;
+            inventory
+                .update_room_invite(
+                    invite.room,
+                    invite.id,
+                    UpdateInvite {
+                        updated_by: Some(invite.created_by),
+                        updated_at: None,
+                        room: None,
+                        active: None,
+                        expiration: None,
+                    },
+                )
+                .await?;
             touched_invites += 1;
         }
     }
@@ -227,34 +229,37 @@ async fn invite_replace_updated_by(
 
 async fn event_replace_updated_by(
     logger: &dyn Log,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     user_candidates: &[UserId],
 ) -> Result<(), Error> {
     let mut touched_events: usize = 0;
 
     for &user_id in user_candidates {
-        let events = Event::get_all_updated_by_user(conn, user_id).await?;
+        let events = inventory.get_all_events_updated_by_user(user_id).await?;
 
         for event in events {
-            UpdateEvent {
-                title: None,
-                description: None,
-                updated_by: event.created_by,
-                updated_at: event.updated_at,
-                is_time_independent: None,
-                is_all_day: None,
-                starts_at: None,
-                starts_at_tz: None,
-                ends_at: None,
-                ends_at_tz: None,
-                duration_secs: None,
-                is_recurring: None,
-                recurrence_pattern: None,
-                is_adhoc: None,
-                show_meeting_details: None,
-            }
-            .apply(conn, event.id)
-            .await?;
+            inventory
+                .update_event(
+                    event.id,
+                    UpdateEvent {
+                        title: None,
+                        description: None,
+                        updated_by: event.created_by,
+                        updated_at: event.updated_at,
+                        is_time_independent: None,
+                        is_all_day: None,
+                        starts_at: None,
+                        starts_at_tz: None,
+                        ends_at: None,
+                        ends_at_tz: None,
+                        duration_secs: None,
+                        is_recurring: None,
+                        recurrence_pattern: None,
+                        is_adhoc: None,
+                        show_meeting_details: None,
+                    },
+                )
+                .await?;
             touched_events += 1;
         }
     }
@@ -264,12 +269,12 @@ async fn event_replace_updated_by(
 }
 
 async fn retrieve_deletion_candidate_users(
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     delete_selector: DeleteSelector,
 ) -> Result<Vec<UserId>, Error> {
     let users = match delete_selector {
         DeleteSelector::DisabledBefore(delete_before) => {
-            User::get_disabled_before(conn, delete_before).await
+            inventory.get_user_ids_disabled_before(delete_before).await
         }
     }?;
 

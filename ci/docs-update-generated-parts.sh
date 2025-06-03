@@ -76,13 +76,6 @@ $OPENTALK_CONTROLLER_CMD tariffs delete --help | codify text > "$CLI_DIR"/"$CMDN
 $OPENTALK_CONTROLLER_CMD tariffs edit --help | codify text > "$CLI_DIR"/"$CMDNAME"-tariffs-edit.md
 $OPENTALK_CONTROLLER_CMD jobs --help | codify text > "$CLI_DIR"/"$CMDNAME"-jobs-help.md
 $OPENTALK_CONTROLLER_CMD jobs execute --help | codify text > "$CLI_DIR"/"$CMDNAME"-jobs-execute-help.md
-$OPENTALK_CONTROLLER_CMD \
-  --config example/controller.toml \
-  jobs \
-  execute \
-  self-check \
-  --hide-duration \
-  | codify text > "$CLI_DIR"/"$CMDNAME"-jobs-execute-self-check.md
 $OPENTALK_CONTROLLER_CMD jobs default-parameters --help | codify text > "$CLI_DIR"/"$CMDNAME"-jobs-default-parameters-help.md
 $OPENTALK_CONTROLLER_CMD modules --help | codify text > "$CLI_DIR"/"$CMDNAME"-modules-help.md
 $OPENTALK_CONTROLLER_CMD modules list --help | codify text > "$CLI_DIR"/"$CMDNAME"-modules-list-help.md

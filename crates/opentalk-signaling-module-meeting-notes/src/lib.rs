@@ -7,8 +7,8 @@ use std::sync::Arc;
 use chrono::{Duration, Utc};
 use either::Either;
 use exchange::GenerateUrl;
-use opentalk_database::Db;
 use opentalk_etherpad_client::EtherpadClient;
+use opentalk_inventory::InventoryProvider;
 use opentalk_signaling_core::{
     ChunkFormat, CleanupScope, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage,
     SignalingModule, SignalingModuleError, SignalingModuleInitData, SignalingRoomId,
@@ -56,7 +56,7 @@ pub struct MeetingNotes {
     etherpad: EtherpadClient,
     participant_id: ParticipantId,
     room_id: SignalingRoomId,
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
     storage: Arc<ObjectStorage>,
 }
 
@@ -95,7 +95,7 @@ impl SignalingModule for MeetingNotes {
             etherpad,
             participant_id: ctx.participant_id(),
             room_id: ctx.room_id(),
-            db: ctx.db().clone(),
+            inventory_provider: ctx.inventory_provider().clone(),
             storage: ctx.storage().clone(),
         }))
     }
@@ -380,7 +380,7 @@ impl MeetingNotes {
 
                     let (asset_id, filename) = match save_asset(
                         &self.storage,
-                        self.db.clone(),
+                        self.inventory_provider.as_ref(),
                         self.room_id.room_id(),
                         Some(Self::NAMESPACE),
                         filename,

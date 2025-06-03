@@ -7,11 +7,8 @@
 pub(crate) mod notifications;
 
 use opentalk_controller_settings::{Settings, TenantAssignment};
-use opentalk_database::DbConnection;
-use opentalk_db_storage::{
-    events::{EventInvite, email_invites::EventEmailInvite, shared_folders::EventSharedFolder},
-    tenants::Tenant,
-};
+use opentalk_db_storage::{events::shared_folders::EventSharedFolder, tenants::Tenant};
+use opentalk_inventory::Inventory;
 use opentalk_keycloak_admin::{KeycloakAdminClient, users::TenantFilter};
 use opentalk_types_api_v1::{
     events::{EventInvitee, EventInviteeProfile},
@@ -27,18 +24,20 @@ use crate::services::{ExternalMailRecipient, MailRecipient, UnregisteredMailReci
 
 /// Gets the invited mail recipients for an event
 pub async fn get_invited_mail_recipients_for_event(
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     event_id: EventId,
-) -> opentalk_database::Result<Vec<MailRecipient>> {
+) -> opentalk_inventory::Result<Vec<MailRecipient>> {
     // TODO(w.rabl) Further DB access optimization (replacing call to get_for_event_paginated)?
-    let (invites_with_user, _) =
-        EventInvite::get_for_event_paginated(conn, event_id, i64::MAX, 1, None).await?;
+    let (invites_with_user, _) = inventory
+        .get_event_invites_paginated(event_id, i64::MAX, 1, None)
+        .await?;
     let user_invitees = invites_with_user
         .into_iter()
         .map(|(_, user)| MailRecipient::Registered(user.into()));
 
-    let (email_invites, _) =
-        EventEmailInvite::get_for_event_paginated(conn, event_id, i64::MAX, 1).await?;
+    let (email_invites, _) = inventory
+        .get_event_email_invites_paginated(event_id, i64::MAX, 1)
+        .await?;
     let email_invitees = email_invites.into_iter().map(|invitee| {
         MailRecipient::External(ExternalMailRecipient {
             email: invitee.email,

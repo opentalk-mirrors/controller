@@ -109,7 +109,25 @@ fn parse_quota(s: &str) -> Result<(QuotaType, u64), CliParameterError> {
     Ok((QuotaType::from_str(name).context(QuotaTypeSnafu)?, value))
 }
 
-pub async fn handle_command(settings: &Settings, command: Command) -> Result<(), DatabaseError> {
+#[derive(Debug, Snafu)]
+pub enum CliExecutionError {
+    /// Database error
+    #[snafu(transparent)]
+    Database { source: DatabaseError },
+
+    /// Diesel error
+    #[snafu(transparent)]
+    Diesel { source: diesel::result::Error },
+
+    /// Inventory error
+    #[snafu(transparent)]
+    Inventory { source: opentalk_inventory::Error },
+}
+
+pub async fn handle_command(
+    settings: &Settings,
+    command: Command,
+) -> Result<(), CliExecutionError> {
     match command {
         Command::List => list_all_tariffs(settings).await,
         Command::Create {
@@ -160,7 +178,7 @@ pub async fn handle_command(settings: &Settings, command: Command) -> Result<(),
     }
 }
 
-async fn list_all_tariffs(settings: &Settings) -> Result<(), DatabaseError> {
+async fn list_all_tariffs(settings: &Settings) -> Result<(), CliExecutionError> {
     let db = Db::connect(&settings.database)?;
     let mut conn = db.get_conn().await?;
 
@@ -176,7 +194,7 @@ async fn create_tariff(
     disabled_modules: BTreeSet<ModuleId>,
     disabled_features: BTreeSet<ModuleFeatureId>,
     quotas: BTreeMap<QuotaType, u64>,
-) -> Result<(), DatabaseError> {
+) -> Result<(), CliExecutionError> {
     let db = Db::connect(&settings.database)?;
     let mut conn = db.get_conn().await?;
 
@@ -205,7 +223,7 @@ async fn create_tariff(
     .scope_boxed()).await
 }
 
-async fn delete_tariff(settings: &Settings, name: String) -> Result<(), DatabaseError> {
+async fn delete_tariff(settings: &Settings, name: String) -> Result<(), CliExecutionError> {
     let db = Db::connect(&settings.database)?;
     let mut conn = db.get_conn().await?;
 
@@ -237,7 +255,7 @@ async fn edit_tariff(
     remove_disabled_features: BTreeSet<ModuleFeatureId>,
     add_quotas: BTreeMap<QuotaType, u64>,
     remove_quotas: Vec<QuotaType>,
-) -> Result<(), DatabaseError> {
+) -> Result<(), CliExecutionError> {
     let db = Db::connect(&settings.database)?;
     let mut conn = db.get_conn().await?;
 
@@ -301,7 +319,8 @@ async fn edit_tariff(
             .await?;
 
             println!("Updated tariff name={:?} ({})", tariff.name, tariff.id);
-            print_tariffs(conn, [tariff]).await
+            print_tariffs(conn, [tariff]).await?;
+            Ok(())
         }
         .scope_boxed()
     })
@@ -312,7 +331,7 @@ async fn edit_tariff(
 async fn print_tariffs(
     conn: &mut DbConnection,
     tariffs: impl IntoIterator<Item = Tariff>,
-) -> Result<(), opentalk_database::DatabaseError> {
+) -> Result<(), CliExecutionError> {
     #[derive(Tabled)]
     struct TariffTableRow {
         #[tabled(rename = "name (internal)")]

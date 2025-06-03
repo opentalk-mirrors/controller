@@ -5,10 +5,10 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::{Settings, UserSearchBackend, UserSearchBackendKeycloak};
-use opentalk_database::Db;
-use opentalk_db_storage::users::User;
+use opentalk_inventory::InventoryProvider;
 use opentalk_keycloak_admin::{AuthorizedClient, KeycloakAdminClient};
 use opentalk_log::{debug, info};
 use opentalk_signaling_core::ExchangeHandle;
@@ -56,7 +56,8 @@ impl Job for KeycloakAccountSync {
 
     async fn execute(
         logger: &dyn Log,
-        db: Arc<Db>,
+        inventory_provider: Arc<dyn InventoryProvider>,
+        _authz: Authz,
         _exchange_handle: ExchangeHandle,
         settings: &Settings,
         parameters: Self::Parameters,
@@ -90,9 +91,9 @@ impl Job for KeycloakAccountSync {
             return UserSearchBackendIsNotKeycloakSnafu.fail();
         };
 
-        let mut conn = db.get_conn().await?;
+        let mut inventory = inventory_provider.get_inventory().await?;
 
-        let users = User::get_all(&mut conn).await?;
+        let users = inventory.get_all_users().await?;
 
         let authorized_client = AuthorizedClient::new(
             settings.oidc.controller.authority.clone(),
@@ -134,7 +135,14 @@ impl Job for KeycloakAccountSync {
 
         let user_attribute_name = external_id_user_attribute_name.as_deref();
 
-        update_user_accounts(logger, &mut conn, users, kc_users, user_attribute_name).await?;
+        update_user_accounts(
+            logger,
+            inventory.as_mut(),
+            users,
+            kc_users,
+            user_attribute_name,
+        )
+        .await?;
 
         Ok(())
     }

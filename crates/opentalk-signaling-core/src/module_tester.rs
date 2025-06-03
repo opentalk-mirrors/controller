@@ -21,8 +21,8 @@ use actix_http::ws::CloseCode;
 use actix_rt::task::JoinHandle;
 use futures::{StreamExt, stream::SelectAll};
 use kustos::Authz;
-use opentalk_database::Db;
 use opentalk_db_storage::{rooms::Room, users::User};
+use opentalk_inventory::InventoryProvider;
 use opentalk_types_common::{
     rooms::BreakoutRoomId,
     tariffs::{TariffId, TariffModuleResource, TariffResource},
@@ -81,8 +81,8 @@ where
 {
     /// The volatile data storage
     pub volatile: VolatileStorage,
-    /// The database interface
-    pub db: Arc<Db>,
+    /// The inventory provider
+    pub inventory_provider: Arc<dyn InventoryProvider>,
     /// Authz
     pub authz: Arc<Authz>,
     /// The room that the users are inside
@@ -101,12 +101,17 @@ where
     M: SignalingModule,
 {
     /// Create a new ModuleTester instance
-    pub fn new(db: Arc<Db>, authz: Arc<Authz>, volatile: VolatileStorage, room: Room) -> Self {
+    pub fn new(
+        inventory_provider: Arc<dyn InventoryProvider>,
+        authz: Arc<Authz>,
+        volatile: VolatileStorage,
+        room: Room,
+    ) -> Self {
         let (exchange_sender, _) = broadcast::channel(10);
 
         Self {
             volatile,
-            db,
+            inventory_provider,
             authz,
             room,
             // todo: add breakout room support
@@ -132,7 +137,7 @@ where
             self.breakout_room,
             participant.clone(),
             role,
-            self.db.clone(),
+            self.inventory_provider.clone(),
             Arc::new(ObjectStorage::broken()),
             self.authz.clone(),
             self.volatile.clone(),
@@ -381,7 +386,7 @@ where
     M: SignalingModule,
 {
     volatile: VolatileStorage,
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
     room_id: SignalingRoomId,
     room_owner: UserId,
     participant_id: ParticipantId,
@@ -407,7 +412,7 @@ where
         breakout_room: Option<BreakoutRoomId>,
         mut participant: Participant<User>,
         role: Role,
-        db: Arc<Db>,
+        inventory_provider: Arc<dyn InventoryProvider>,
         storage: Arc<ObjectStorage>,
         authz: Arc<Authz>,
         mut volatile: VolatileStorage,
@@ -437,7 +442,7 @@ where
             participant: &mut participant,
             role,
             room_tariff: &room_tariff,
-            db: &db,
+            inventory_provider: &inventory_provider,
             storage: &storage,
             authz: &authz,
             exchange_bindings: &mut vec![],
@@ -459,7 +464,7 @@ where
 
         Ok(Self {
             volatile,
-            db,
+            inventory_provider,
             room_id: SignalingRoomId::new(room.id, breakout_room),
             room_owner: room.created_by,
             participant_id,
@@ -676,9 +681,12 @@ where
                     }
                 }
 
-                let mut conn = self.db.get_conn().await?;
-
-                let user = User::get(&mut conn, self.room_owner).await?;
+                let user = self
+                    .inventory_provider
+                    .get_inventory()
+                    .await?
+                    .get_user(self.room_owner)
+                    .await?;
 
                 let room_info = RoomInfo {
                     id: self.room_id.room_id(),

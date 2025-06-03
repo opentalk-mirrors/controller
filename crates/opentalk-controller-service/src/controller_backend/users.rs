@@ -8,13 +8,8 @@ use opentalk_controller_settings::{
     settings_file::UsersFindBehavior,
 };
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_database::{DatabaseError, DbConnection};
-use opentalk_db_storage::{
-    assets,
-    tariffs::Tariff,
-    tenants::Tenant,
-    users::{UpdateUser, User},
-};
+use opentalk_db_storage::users::UpdateUser;
+use opentalk_inventory::Inventory;
 use opentalk_types_api_v1::{
     assets::AssetSortingQuery,
     error::ApiError,
@@ -43,7 +38,7 @@ impl ControllerBackend {
         }
 
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
         // Prohibit display name editing, if configured
         if settings.endpoints.disallow_custom_display_name {
@@ -56,25 +51,30 @@ impl ControllerBackend {
             }
         }
 
-        let changeset = UpdateUser {
-            title: patch.title.as_ref(),
-            firstname: None,
-            lastname: None,
-            avatar_url: None,
-            timezone: None,
-            phone: None,
-            email: None,
-            display_name: patch.display_name.as_ref(),
-            language: patch.language.as_ref(),
-            dashboard_theme: patch.dashboard_theme.as_ref(),
-            conference_theme: patch.conference_theme.as_ref(),
-            tariff_id: None,
-            tariff_status: None,
-            disabled_since: None,
-        };
-
-        let user = changeset.apply(&mut conn, current_user.id).await?;
-        let used_storage = User::get_used_storage_u64(&mut conn, &current_user.id).await?;
+        let user = inventory
+            .update_user(
+                current_user.id,
+                UpdateUser {
+                    title: patch.title.as_ref(),
+                    firstname: None,
+                    lastname: None,
+                    avatar_url: None,
+                    timezone: None,
+                    phone: None,
+                    email: None,
+                    display_name: patch.display_name.as_ref(),
+                    language: patch.language.as_ref(),
+                    dashboard_theme: patch.dashboard_theme.as_ref(),
+                    conference_theme: patch.conference_theme.as_ref(),
+                    tariff_id: None,
+                    tariff_status: None,
+                    disabled_since: None,
+                },
+            )
+            .await?;
+        let used_storage = inventory
+            .get_user_storage_used_size_u64(current_user.id)
+            .await?;
 
         let user_profile = user.to_private_user_profile(&settings, used_storage);
 
@@ -86,9 +86,11 @@ impl ControllerBackend {
         current_user: RequestUser,
     ) -> Result<PrivateUserProfile, CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let used_storage = User::get_used_storage_u64(&mut conn, &current_user.id).await?;
+        let used_storage = inventory
+            .get_user_storage_used_size_u64(current_user.id)
+            .await?;
 
         let user_profile = current_user.to_private_user_profile(&settings, used_storage);
 
@@ -100,9 +102,9 @@ impl ControllerBackend {
         current_user: RequestUser,
     ) -> Result<TariffResource, CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let tariff = Tariff::get(&mut conn, current_user.tariff_id).await?;
+        let tariff = inventory.get_tariff(current_user.tariff_id).await?;
 
         let response = tariff.to_tariff_resource(
             settings.defaults.disabled_features.clone(),
@@ -118,10 +120,10 @@ impl ControllerBackend {
         sorting: AssetSortingQuery,
         pagination: &PagePaginationQuery,
     ) -> Result<(GetUserAssetsResponseBody, i64), CaptureApiError> {
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let (owned_assets, asset_count) = get_all_assets_for_room_owner_paginated_ordered(
-            &mut conn,
+            inventory.as_mut(),
             current_user.id,
             pagination.per_page,
             pagination.page,
@@ -138,9 +140,11 @@ impl ControllerBackend {
         user_id: UserId,
     ) -> Result<PublicUserProfile, CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let user = User::get_filtered_by_tenant(&mut conn, current_user.tenant_id, user_id).await?;
+        let user = inventory
+            .get_user_for_tenant(current_user.tenant_id, user_id)
+            .await?;
 
         let user_profile = user.to_public_user_profile(&settings);
 
@@ -167,9 +171,9 @@ impl ControllerBackend {
                 .into());
         }
 
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let current_tenant = Tenant::get(&mut conn, current_user.tenant_id).await?;
+        let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
 
         // Get all users from Keycloak matching the search criteria
         let found_users = if settings.users_find_behavior
@@ -230,9 +234,9 @@ impl ControllerBackend {
                 .collect();
 
             // For all Keycloak users found above, get the according users already registered from the database
-            let registered_users =
-                User::get_all_by_oidc_subs(&mut conn, current_tenant.id, &keycloak_user_ids)
-                    .await?;
+            let registered_users = inventory
+                .get_users_by_odic_subs(current_tenant.id, &keycloak_user_ids)
+                .await?;
 
             // From the list of Keycloak users found above, remove all users already registered
             found_kc_users.retain(|kc_user| {
@@ -264,13 +268,9 @@ impl ControllerBackend {
                 }))
                 .collect()
         } else {
-            let found_users = User::find(
-                &mut conn,
-                current_tenant.id,
-                &query.q,
-                MAX_USER_SEARCH_RESULTS,
-            )
-            .await?;
+            let found_users = inventory
+                .find_users(current_tenant.id, &query.q, MAX_USER_SEARCH_RESULTS)
+                .await?;
 
             found_users
                 .into_iter()
@@ -286,17 +286,17 @@ impl ControllerBackend {
 
 #[tracing::instrument(err, skip_all)]
 async fn get_all_assets_for_room_owner_paginated_ordered(
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     user_id: UserId,
     limit: i64,
     page: i64,
     sorting: AssetSortingQuery,
-) -> Result<(Vec<UserAssetResource>, i64), DatabaseError> {
+) -> Result<(Vec<UserAssetResource>, i64), opentalk_inventory::Error> {
     let AssetSortingQuery { sort, order } = sorting;
 
-    let (resources, total) =
-        assets::get_all_for_room_owner_paginated_ordered(conn, user_id, limit, page, sort, order)
-            .await?;
+    let (resources, total) = inventory
+        .get_all_assets_for_room_owner_paginated_ordered(user_id, limit, page, sort, order)
+        .await?;
 
     let resources = resources
         .into_iter()

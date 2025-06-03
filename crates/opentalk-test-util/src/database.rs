@@ -7,13 +7,12 @@ use std::sync::Arc;
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use opentalk_database::Db;
 use opentalk_db_storage::{
-    groups::{get_or_create_groups_by_name, insert_user_into_groups},
     migrations::migrate_from_url,
     rooms::{NewRoom, Room},
-    tariffs::Tariff,
-    tenants::{OidcTenantId, get_or_create_tenant_by_oidc_id},
     users::{NewUser, User},
 };
+use opentalk_inventory::InventoryProvider;
+use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_types_common::{
     rooms::RoomId,
     tariffs::TariffStatus,
@@ -29,6 +28,7 @@ pub struct DatabaseContext {
     pub db: Arc<Db>,
     /// DatabaseContext will DROP the database inside postgres when dropped
     pub drop_db_on_drop: bool,
+    pub inventory_provider: Arc<dyn InventoryProvider>,
 }
 
 impl DatabaseContext {
@@ -70,57 +70,62 @@ impl DatabaseContext {
 
         let db_conn = Arc::new(Db::connect_url(&db_url, 5).unwrap());
 
+        let inventory_provider = Arc::new(DatabaseConnectionPool::new(db_conn.clone()));
+
         Self {
             base_url: base_url.to_string(),
             db_name: db_name.to_string(),
             db: db_conn,
             drop_db_on_drop,
+            inventory_provider,
         }
     }
 
     pub async fn create_test_user(&self, n: u32, groups: Vec<String>) -> Result<User, Whatever> {
-        let mut conn = self
-            .db
-            .get_conn()
+        let mut connection = self
+            .inventory_provider
+            .get_inventory()
             .await
             .whatever_context("db connect failed")?;
 
-        let tenant = get_or_create_tenant_by_oidc_id(
-            &mut conn,
-            &OidcTenantId::from("OpenTalkDefaultTenant".to_owned()),
-        )
-        .await
-        .whatever_context("get/create tenant failed")?;
-        let tariff = Tariff::get_by_name(&mut conn, "OpenTalkDefaultTariff")
+        let tenant = connection
+            .get_or_create_tenant_by_oidc_id(&"OpenTalkDefaultTenant".into())
+            .await
+            .whatever_context("get/create tenant failed")?;
+        let tariff = connection
+            .get_tariff_by_name("OpenTalkDefaultTariff")
             .await
             .unwrap();
 
-        let user = NewUser {
-            oidc_sub: format!("oidc_sub{n}"),
-            email: format!("opentalk_test_user{n}@example.org"),
-            title: UserTitle::new(),
-            firstname: "test".into(),
-            lastname: "tester".into(),
-            avatar_url: Some("https://example.com/avatar/abcdef".into()),
-            display_name: "test tester".parse().expect("valid display name"),
-            language: "en".parse().expect("valid language"),
-            phone: None,
-            tenant_id: tenant.id,
-            tariff_id: tariff.id,
-            tariff_status: TariffStatus::Default,
-        }
-        .insert(&mut conn)
-        .await
-        .whatever_context("Insert user failed")?;
+        let user = connection
+            .create_user(NewUser {
+                oidc_sub: format!("oidc_sub{n}"),
+                email: format!("opentalk_test_user{n}@example.org"),
+                title: UserTitle::new(),
+                firstname: "test".into(),
+                lastname: "tester".into(),
+                avatar_url: Some("https://example.com/avatar/abcdef".into()),
+                display_name: "test tester".parse().expect("valid display name"),
+                language: "en".parse().expect("valid language"),
+                phone: None,
+                tenant_id: tenant.id,
+                tariff_id: tariff.id,
+                tariff_status: TariffStatus::Default,
+                timezone: None,
+            })
+            .await
+            .whatever_context("create user failed")?;
 
         let groups: Vec<(TenantId, GroupName)> = groups
             .into_iter()
             .map(|name| (tenant.id, GroupName::from(name)))
             .collect();
-        let groups = get_or_create_groups_by_name(&mut conn, &groups)
+        let groups = connection
+            .get_or_create_groups_by_name(&groups)
             .await
             .whatever_context("create group failed")?;
-        insert_user_into_groups(&mut conn, &user, &groups)
+        connection
+            .add_user_to_groups(&user, &groups)
             .await
             .whatever_context("add user to group failed")?;
 
@@ -133,16 +138,16 @@ impl DatabaseContext {
         created_by: UserId,
         waiting_room: bool,
     ) -> Result<Room, Whatever> {
-        let mut conn = self
-            .db
-            .get_conn()
+        let mut inventory = self
+            .inventory_provider
+            .get_inventory()
             .await
             .whatever_context("db connect failed")?;
 
-        let tenant =
-            get_or_create_tenant_by_oidc_id(&mut conn, &OidcTenantId::from("default".to_owned()))
-                .await
-                .whatever_context("get or create tenant failed")?;
+        let tenant = inventory
+            .get_or_create_tenant_by_oidc_id(&"default".into())
+            .await
+            .whatever_context("get or create tenant failed")?;
 
         let new_room = NewRoom {
             created_by,
@@ -152,10 +157,10 @@ impl DatabaseContext {
             tenant_id: tenant.id,
         };
 
-        let room = new_room
-            .insert(&mut conn)
+        let room = inventory
+            .create_room(new_room)
             .await
-            .whatever_context("insert room failed")?;
+            .whatever_context("creating room failed")?;
 
         Ok(room)
     }

@@ -6,9 +6,10 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{Days, Utc};
+use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::Settings;
-use opentalk_database::Db;
+use opentalk_inventory::InventoryProvider;
 use opentalk_log::{debug, error, info};
 use opentalk_signaling_core::ExchangeHandle;
 use serde::{Deserialize, Serialize};
@@ -49,7 +50,8 @@ impl Job for UserCleanup {
 
     async fn execute(
         logger: &dyn Log,
-        db: Arc<Db>,
+        inventory_provider: Arc<dyn InventoryProvider>,
+        authz: Authz,
         exchange_handle: ExchangeHandle,
         settings: &Settings,
         parameters: Self::Parameters,
@@ -69,11 +71,12 @@ impl Job for UserCleanup {
 
         perform_deletion(
             logger,
-            db.clone(),
+            inventory_provider,
+            authz,
             exchange_handle,
             settings,
             parameters.fail_on_shared_folder_deletion_error,
-            DeleteSelector::DisabledBefore(delete_before),
+            DeleteSelector::DisabledBefore(delete_before.into()),
         )
         .await
         .map_err(|err| {
@@ -94,13 +97,14 @@ mod tests {
     use std::path::Path;
 
     use chrono::{DateTime, Days, Utc};
+    use kustos::Authz;
     use log::logger;
     use opentalk_controller_settings::SettingsProvider;
-    use opentalk_database::DbConnection;
     use opentalk_db_storage::{
         events::{Event, UpdateEvent},
         users::{UpdateUser, User},
     };
+    use opentalk_inventory::Inventory;
     use opentalk_signaling_core::ExchangeHandle;
     use opentalk_test_util::database::DatabaseContext;
     use opentalk_types_common::{events::EventId, users::UserId};
@@ -123,52 +127,58 @@ mod tests {
     }
 
     async fn set_disabled_since(
-        conn: &mut DbConnection,
+        inventory: &mut dyn Inventory,
         user_id: UserId,
         since: DateTime<Utc>,
     ) -> User {
-        UpdateUser {
-            title: None,
-            email: None,
-            firstname: None,
-            lastname: None,
-            avatar_url: None,
-            timezone: None,
-            phone: None,
-            display_name: None,
-            language: None,
-            dashboard_theme: None,
-            conference_theme: None,
-            tariff_id: None,
-            tariff_status: None,
-            disabled_since: Some(Some(since)),
-        }
-        .apply(conn, user_id)
-        .await
-        .unwrap()
+        inventory
+            .update_user(
+                user_id,
+                UpdateUser {
+                    title: None,
+                    email: None,
+                    firstname: None,
+                    lastname: None,
+                    avatar_url: None,
+                    timezone: None,
+                    phone: None,
+                    display_name: None,
+                    language: None,
+                    dashboard_theme: None,
+                    conference_theme: None,
+                    tariff_id: None,
+                    tariff_status: None,
+                    disabled_since: Some(Some(since)),
+                },
+            )
+            .await
+            .unwrap()
     }
 
-    async fn update_event(conn: &mut DbConnection, user: UserId, event: EventId) -> Event {
-        UpdateEvent {
-            title: None,
-            description: None,
-            updated_by: user,
-            updated_at: Utc::now(),
-            is_time_independent: None,
-            is_all_day: None,
-            starts_at: None,
-            starts_at_tz: None,
-            ends_at: None,
-            ends_at_tz: None,
-            duration_secs: None,
-            is_recurring: None,
-            recurrence_pattern: None,
-            is_adhoc: None,
-            show_meeting_details: None,
-        }
-        .apply(conn, event)
-        .await
-        .unwrap()
+    async fn update_event(inventory: &mut dyn Inventory, user: UserId, event: EventId) -> Event {
+        inventory
+            .update_event(
+                event,
+                UpdateEvent {
+                    title: None,
+                    description: None,
+                    updated_by: user,
+                    updated_at: Utc::now(),
+                    is_time_independent: None,
+                    is_all_day: None,
+                    starts_at: None,
+                    starts_at_tz: None,
+                    ends_at: None,
+                    ends_at_tz: None,
+                    duration_secs: None,
+                    is_recurring: None,
+                    recurrence_pattern: None,
+                    is_adhoc: None,
+                    show_meeting_details: None,
+                },
+            )
+            .await
+            .unwrap()
     }
 
     #[ignore = "minio/s3 storage is required for this test"]
@@ -183,35 +193,40 @@ mod tests {
         let settings = settings_provider.get();
 
         let db_ctx = DatabaseContext::new(false).await;
-        let mut conn = db_ctx.db.get_conn().await.unwrap();
+        let mut inventory = db_ctx.inventory_provider.get_inventory().await.unwrap();
 
         let inviter = db_ctx.create_test_user(0, vec![]).await.unwrap();
         let updated_by = db_ctx.create_test_user(2, vec![]).await.unwrap();
 
-        let room = create_generic_test_room(&mut conn, &inviter).await;
-        let event = create_generic_test_event(&mut conn, &inviter).await;
-        update_event(&mut conn, updated_by.id, event.id).await;
+        let room = create_generic_test_room(inventory.as_mut(), &inviter).await;
+        let event = create_generic_test_event(inventory.as_mut(), &inviter).await;
+        update_event(inventory.as_mut(), updated_by.id, event.id).await;
 
-        create_generic_test_invite(&mut conn, &inviter, Some(&updated_by), &room).await;
+        create_generic_test_invite(inventory.as_mut(), &inviter, Some(&updated_by), &room).await;
 
         let disabled_since = Utc::now()
             .checked_sub_days(Days::new(default_days_since_user_has_been_disabled() + 1))
             .unwrap();
-        let updated_by = set_disabled_since(&mut conn, updated_by.id, disabled_since).await;
+        let updated_by =
+            set_disabled_since(inventory.as_mut(), updated_by.id, disabled_since).await;
 
         let exchange_handle = ExchangeHandle::dummy();
 
         // User::get filters disabled users
-        let user_exists = User::get_all(&mut conn)
+        let user_exists = inventory
+            .get_all_users()
             .await
             .unwrap()
             .iter()
             .any(|u| u.id == updated_by.id);
         assert!(user_exists);
 
+        let authz = Authz::new(db_ctx.db.clone()).await.unwrap();
+
         UserCleanup::execute(
             logger(),
-            db_ctx.db.clone(),
+            db_ctx.inventory_provider.clone(),
+            authz,
             exchange_handle,
             &settings,
             serde_json::from_str("{}").unwrap(),
@@ -219,7 +234,8 @@ mod tests {
         .await
         .unwrap();
 
-        let user_exists = User::get_all(&mut conn)
+        let user_exists = inventory
+            .get_all_users()
             .await
             .unwrap()
             .iter()
@@ -239,28 +255,32 @@ mod tests {
         let settings = settings_provider.get();
 
         let db_ctx = DatabaseContext::new(false).await;
-        let mut conn = db_ctx.db.get_conn().await.unwrap();
+        let mut inventory = db_ctx.inventory_provider.get_inventory().await.unwrap();
 
         let user = db_ctx.create_test_user(0, vec![]).await.unwrap();
 
         let disabled_since = Utc::now()
             .checked_sub_days(Days::new(default_days_since_user_has_been_disabled() + 1))
             .unwrap();
-        let inviter = set_disabled_since(&mut conn, user.id, disabled_since).await;
+        let inviter = set_disabled_since(inventory.as_mut(), user.id, disabled_since).await;
 
         let exchange_handle = ExchangeHandle::dummy();
 
         // User::get filters disabled users
-        let user_exists = User::get_all(&mut conn)
+        let user_exists = inventory
+            .get_all_users()
             .await
             .unwrap()
             .iter()
             .any(|u| u.id == inviter.id);
         assert!(user_exists);
 
+        let authz = Authz::new(db_ctx.db.clone()).await.unwrap();
+
         UserCleanup::execute(
             logger(),
-            db_ctx.db.clone(),
+            db_ctx.inventory_provider.clone(),
+            authz,
             exchange_handle,
             &settings,
             serde_json::from_str("{}").unwrap(),
@@ -268,7 +288,8 @@ mod tests {
         .await
         .unwrap();
 
-        let user_exists = User::get_all(&mut conn)
+        let user_exists = inventory
+            .get_all_users()
             .await
             .unwrap()
             .iter()

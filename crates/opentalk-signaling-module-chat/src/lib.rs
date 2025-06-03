@@ -14,8 +14,8 @@ use std::{
 };
 
 use either::Either;
-use opentalk_database::Db;
 use opentalk_db_storage::groups::Group;
+use opentalk_inventory::InventoryProvider;
 use opentalk_signaling_core::{
     CleanupScope, DestroyContext, Event, InitContext, LockError, ModuleContext, Participant,
     RoomLockingProvider as _, SignalingModule, SignalingModuleError, SignalingModuleInitData,
@@ -56,7 +56,7 @@ pub struct Chat {
     last_seen_timestamp_global: Option<Timestamp>,
     last_seen_timestamps_private: BTreeMap<ParticipantId, Timestamp>,
     last_seen_timestamps_group: BTreeMap<GroupName, Timestamp>,
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
     groups: Vec<Group>,
 }
 
@@ -289,9 +289,12 @@ impl SignalingModule for Chat {
         let room = ctx.room_id();
 
         let groups = if let Participant::User(user) = ctx.participant() {
-            let mut conn = ctx.db().get_conn().await?;
-
-            let groups = Group::get_all_for_user(&mut conn, user.id).await?;
+            let groups = ctx
+                .inventory_provider()
+                .get_inventory()
+                .await?
+                .get_groups_for_user(user.id)
+                .await?;
 
             for group in &groups {
                 log::debug!("Group: {}", group.id);
@@ -306,7 +309,7 @@ impl SignalingModule for Chat {
         Ok(Some(Self {
             id,
             room,
-            db: ctx.db().clone(),
+            inventory_provider: ctx.inventory_provider().clone(),
             groups,
             last_seen_timestamp_global: None,
             last_seen_timestamps_private: BTreeMap::new(),
@@ -359,17 +362,16 @@ impl SignalingModule for Chat {
                     })
                     .collect();
 
-                let db = self.db.clone();
                 let self_groups = self.groups.clone();
 
                 // Inquire the database about each user's groups
-                let mut conn = db.get_conn().await?;
+                let mut inventory = self.inventory_provider.get_inventory().await?;
 
                 let mut participant_to_common_groups_mappings = vec![];
 
                 for (user_id, participant_id) in participant_user_mappings {
                     // Get the users groups
-                    let groups = Group::get_all_for_user(&mut conn, user_id).await?;
+                    let groups = inventory.get_groups_for_user(user_id).await?;
 
                     // Intersect our groups and the groups of the user and collect their id/name
                     // as strings into a set
@@ -488,13 +490,15 @@ impl SignalingModule for Chat {
                     .await?;
 
                 if let Some(user_id) = user_id {
-                    let db = self.db.clone();
                     let self_groups = self.groups.clone();
 
                     // Get the user's groups
-                    let mut conn = db.get_conn().await?;
-
-                    let groups = Group::get_all_for_user(&mut conn, user_id).await?;
+                    let groups = self
+                        .inventory_provider
+                        .get_inventory()
+                        .await?
+                        .get_groups_for_user(user_id)
+                        .await?;
 
                     // Intersect our groups and the groups of the user and collect their id/name
                     // as strings into a set

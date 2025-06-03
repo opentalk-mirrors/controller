@@ -12,7 +12,7 @@ use actix_web::{
 use actix_web_actors::ws;
 use bytes::Bytes;
 use opentalk_controller_service_facade::OpenTalkControllerService;
-use opentalk_database::Db;
+use opentalk_inventory::InventoryProvider;
 use opentalk_signaling_core::{
     ChunkFormat, ObjectStorage, ObjectStorageError,
     assets::{NewAssetFileName, save_asset},
@@ -128,7 +128,7 @@ pub(crate) struct RecordingUploadWebSocketHeaders {
 )]
 #[get("/upload")]
 pub(crate) async fn get_recording_upload(
-    db: Data<Db>,
+    storage_connection_provider: Data<dyn InventoryProvider>,
     storage: Data<ObjectStorage>,
     request: HttpRequest,
     Query(GetRecordingUploadQuery {
@@ -157,7 +157,7 @@ pub(crate) async fn get_recording_upload(
 
             let result = save_asset(
                 &storage,
-                db.into_inner(),
+                storage_connection_provider.as_ref(),
                 room_id,
                 Some(opentalk_types_signaling_recording::MODULE_ID),
                 filename,

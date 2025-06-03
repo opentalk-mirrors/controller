@@ -4,19 +4,13 @@
 
 //! Functionality to delete rooms including all associated resources
 
-use diesel_async::{AsyncConnection, scoped_futures::ScopedFutureExt};
+use diesel_async::scoped_futures::ScopedFutureExt;
 use kustos::{Authz, Resource as _, ResourceId};
 use kustos_shared::access::AccessMethod;
 use log::Log;
 use opentalk_controller_settings::Settings;
-use opentalk_database::{DatabaseError, DbConnection};
-use opentalk_db_storage::{
-    assets::Asset,
-    events::{Event, shared_folders::EventSharedFolder},
-    module_resources::ModuleResource,
-    rooms::Room,
-    sip_configs::SipConfig,
-};
+use opentalk_db_storage::events::shared_folders::EventSharedFolder;
+use opentalk_inventory::{Inventory, transaction};
 use opentalk_log::{debug, warn};
 use opentalk_signaling_core::{ExchangeHandle, ObjectStorage, assets::asset_key, control};
 use opentalk_types_common::{
@@ -24,10 +18,13 @@ use opentalk_types_common::{
     users::UserId,
 };
 use opentalk_types_signaling::NamespacedEvent;
-use snafu::ResultExt;
+use snafu::{ResultExt, ensure};
 
-use super::{Deleter, Error, RACE_CONDITION_ERROR_MESSAGE};
-use crate::deletion::{error::ObjectDeletionSnafu, shared_folders::delete_shared_folders};
+use super::{Deleter, Error};
+use crate::deletion::{
+    error::{ObjectDeletionSnafu, RaceConditionSnafu},
+    shared_folders::delete_shared_folders,
+};
 
 /// Delete a room by id including the resources it references.
 #[derive(Debug)]
@@ -63,26 +60,24 @@ pub struct RoomDeleterPreparedCommit {
 impl RoomDeleterPreparedCommit {
     async fn detect_race_condition(
         &self,
-        conn: &mut DbConnection,
+        inventory: &mut dyn Inventory,
         room_id: RoomId,
-    ) -> Result<(), DatabaseError> {
-        let mut current_module_resources =
-            ModuleResource::get_all_ids_for_room(conn, room_id).await?;
+    ) -> Result<(), Error> {
+        let mut current_module_resources = inventory.get_all_module_ids_for_room(room_id).await?;
         current_module_resources.sort();
 
-        if current_module_resources != self.linked_module_resources {
-            return Err(DatabaseError::Custom {
-                message: RACE_CONDITION_ERROR_MESSAGE.to_owned(),
-            });
-        }
+        ensure!(
+            current_module_resources == self.linked_module_resources,
+            RaceConditionSnafu
+        );
 
-        let mut current_shared_folders = EventSharedFolder::get_all_for_room(conn, room_id).await?;
+        let mut current_shared_folders =
+            inventory.get_event_shared_folders_for_room(room_id).await?;
         current_shared_folders.sort_by(|a, b| a.event_id.cmp(&b.event_id));
-        if current_shared_folders != self.linked_shared_folders {
-            return Err(DatabaseError::Custom {
-                message: RACE_CONDITION_ERROR_MESSAGE.to_owned(),
-            });
-        }
+        ensure!(
+            current_module_resources == self.linked_module_resources,
+            RaceConditionSnafu
+        );
 
         Ok(())
     }
@@ -103,9 +98,13 @@ impl Deleter for RoomDeleter {
     async fn prepare_commit(
         &self,
         _logger: &dyn Log,
-        conn: &mut DbConnection,
+        inventory: &mut dyn Inventory,
     ) -> Result<Self::PreparedCommit, Error> {
-        if Event::get_id_for_room(conn, self.room_id).await?.is_some() {
+        if inventory
+            .get_event_id_for_room(self.room_id)
+            .await?
+            .is_some()
+        {
             return Err(Error::Conflict {
                 message: format!(
                     "Unable to delete room with id {} due to conflicting event",
@@ -115,9 +114,10 @@ impl Deleter for RoomDeleter {
         }
 
         let mut linked_module_resources =
-            ModuleResource::get_all_ids_for_room(conn, self.room_id).await?;
-        let mut linked_shared_folders =
-            EventSharedFolder::get_all_for_room(conn, self.room_id).await?;
+            inventory.get_all_module_ids_for_room(self.room_id).await?;
+        let mut linked_shared_folders = inventory
+            .get_event_shared_folders_for_room(self.room_id)
+            .await?;
 
         // Sort for improved equality comparison later on, inside the transaction.
         linked_module_resources.sort();
@@ -167,7 +167,7 @@ impl Deleter for RoomDeleter {
         &self,
         prepared_commit: &Self::PreparedCommit,
         logger: &dyn Log,
-        _conn: &mut DbConnection,
+        _inventory: &mut dyn Inventory,
         exchange_handle: ExchangeHandle,
         settings: &Settings,
     ) -> Result<(), Error> {
@@ -194,20 +194,24 @@ impl Deleter for RoomDeleter {
         Ok(())
     }
 
-    async fn commit_to_database(
+    async fn commit_to_inventory(
         &self,
         prepared_commit: Self::PreparedCommit,
         logger: &dyn Log,
-        conn: &mut DbConnection,
+        inventory: &mut dyn Inventory,
     ) -> Result<Self::CommitOutput, Error> {
         debug!(log: logger, "Deleting all database resources");
 
+        let inventory: &mut dyn Inventory = inventory;
+
         let room_id = self.room_id;
 
-        let transaction_result: Result<(Vec<AssetId>, Vec<ResourceId>), DatabaseError> = conn
-            .transaction(|conn| {
+        let transaction_result: Result<(Vec<AssetId>, Vec<ResourceId>), Error> =
+            transaction(inventory, |inventory| {
                 async move {
-                    prepared_commit.detect_race_condition(conn, room_id).await?;
+                    prepared_commit
+                        .detect_race_condition(inventory, room_id)
+                        .await?;
 
                     let shared_folder_event_ids = prepared_commit
                         .linked_shared_folders
@@ -215,12 +219,12 @@ impl Deleter for RoomDeleter {
                         .map(|e| e.event_id)
                         .collect::<Vec<EventId>>();
 
-                    let mut current_assets = Asset::get_all_ids_for_room(conn, room_id).await?;
+                    let mut current_assets = inventory.get_all_asset_ids_for_room(room_id).await?;
                     current_assets.sort();
 
                     delete_rows_associated_with_room(
                         logger,
-                        conn,
+                        inventory,
                         room_id,
                         &current_assets,
                         &shared_folder_event_ids,
@@ -270,28 +274,32 @@ impl Deleter for RoomDeleter {
 
 pub(crate) async fn delete_rows_associated_with_room(
     logger: &dyn Log,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     room_id: RoomId,
-    assets: &[AssetId],
+    asset_ids: &[AssetId],
     shared_folder_event_ids: &[EventId],
-) -> Result<(), DatabaseError> {
+) -> Result<(), opentalk_inventory::Error> {
     debug!(log: logger, "Deleting shared folders from database");
-    EventSharedFolder::delete_by_event_ids(conn, shared_folder_event_ids).await?;
+    inventory
+        .delete_shared_folders_by_event_ids(shared_folder_event_ids)
+        .await?;
 
     debug!(log: logger, "Deleting module resources from database");
-    ModuleResource::delete_by_room(conn, room_id).await?;
+    inventory
+        .delete_all_module_resources_for_room(room_id)
+        .await?;
 
     debug!(log: logger, "Deleting event from database");
-    Event::delete_for_room(conn, room_id).await?;
+    inventory.delete_event_for_room(room_id).await?;
 
     debug!(log: logger, "Deleting sip config from database");
-    SipConfig::delete_by_room(conn, room_id).await?;
+    inventory.delete_room_sip_config(room_id).await?;
 
     debug!(log: logger, "Deleting asset information from database");
-    Asset::delete_by_ids(conn, assets).await?;
+    inventory.delete_assets_by_ids(asset_ids).await?;
 
     debug!(log: logger, "Deleting room");
-    Room::delete_by_id(conn, room_id).await?;
+    inventory.delete_room(room_id).await?;
 
     Ok(())
 }

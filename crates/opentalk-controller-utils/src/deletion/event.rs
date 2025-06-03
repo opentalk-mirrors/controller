@@ -4,24 +4,24 @@
 
 //! Functionality to delete events including all associated resources
 
-use diesel_async::{AsyncConnection, scoped_futures::ScopedFutureExt};
+use diesel_async::scoped_futures::ScopedFutureExt;
 use kustos::{Authz, Resource as _, ResourceId};
 use kustos_shared::access::AccessMethod;
 use log::Log;
 use opentalk_controller_settings::Settings;
-use opentalk_database::{DatabaseError, DbConnection};
-use opentalk_db_storage::{
-    assets::Asset,
-    events::{Event, shared_folders::EventSharedFolder},
-};
+use opentalk_db_storage::events::shared_folders::EventSharedFolder;
+use opentalk_inventory::{Inventory, transaction};
 use opentalk_log::{debug, warn};
 use opentalk_signaling_core::{ExchangeHandle, ObjectStorage, assets::asset_key, control};
 use opentalk_types_common::{assets::AssetId, events::EventId, users::UserId};
 use opentalk_types_signaling::NamespacedEvent;
-use snafu::ResultExt;
+use snafu::{ResultExt, ensure};
 
-use super::{Deleter, Error, RACE_CONDITION_ERROR_MESSAGE, shared_folders::delete_shared_folders};
-use crate::deletion::{error::ObjectDeletionSnafu, room::delete_rows_associated_with_room};
+use super::{Deleter, Error, shared_folders::delete_shared_folders};
+use crate::deletion::{
+    error::{ObjectDeletionSnafu, RaceConditionSnafu},
+    room::delete_rows_associated_with_room,
+};
 
 /// Delete an event by id including the corresponding room and resources it
 /// references.
@@ -57,15 +57,14 @@ pub struct EventDeleterPreparedCommit {
 impl EventDeleterPreparedCommit {
     async fn detect_race_condition(
         &self,
-        conn: &mut DbConnection,
+        inventory: &mut dyn Inventory,
         event_id: EventId,
-    ) -> Result<(), DatabaseError> {
-        let current_shared_folder = EventSharedFolder::get_for_event(conn, event_id).await?;
-        if current_shared_folder != self.linked_shared_folder {
-            return Err(DatabaseError::Custom {
-                message: RACE_CONDITION_ERROR_MESSAGE.to_owned(),
-            });
-        }
+    ) -> Result<(), Error> {
+        let current_shared_folder = inventory.get_event_shared_folder(event_id).await?;
+        ensure!(
+            current_shared_folder == self.linked_shared_folder,
+            RaceConditionSnafu
+        );
 
         Ok(())
     }
@@ -86,9 +85,9 @@ impl Deleter for EventDeleter {
     async fn prepare_commit(
         &self,
         _logger: &dyn Log,
-        conn: &mut DbConnection,
+        inventory: &mut dyn Inventory,
     ) -> Result<Self::PreparedCommit, Error> {
-        let linked_shared_folder = EventSharedFolder::get_for_event(conn, self.event_id).await?;
+        let linked_shared_folder = inventory.get_event_shared_folder(self.event_id).await?;
 
         let resources = associated_resource_ids(self.event_id)
             .into_iter()
@@ -133,11 +132,11 @@ impl Deleter for EventDeleter {
         &self,
         prepared_commit: &Self::PreparedCommit,
         logger: &dyn Log,
-        conn: &mut DbConnection,
+        inventory: &mut dyn Inventory,
         exchange_handle: ExchangeHandle,
         settings: &Settings,
     ) -> Result<(), Error> {
-        let event = Event::get(conn, self.event_id).await?;
+        let event = inventory.get_event(self.event_id).await?;
         let room_id = event.room;
 
         let message = NamespacedEvent {
@@ -163,31 +162,31 @@ impl Deleter for EventDeleter {
         Ok(())
     }
 
-    async fn commit_to_database(
+    async fn commit_to_inventory(
         &self,
         prepared_commit: Self::PreparedCommit,
         logger: &dyn Log,
-        conn: &mut DbConnection,
+        inventory: &mut dyn Inventory,
     ) -> Result<Self::CommitOutput, Error> {
         debug!(log: logger, "Deleting all database resources");
 
         let event_id = self.event_id;
-        let event = Event::get(conn, event_id).await?;
+        let event = inventory.get_event(event_id).await?;
         let room_id = event.room;
 
-        let transaction_result: Result<(Vec<AssetId>, Vec<ResourceId>), DatabaseError> = conn
-            .transaction(|conn| {
+        let transaction_result: Result<(Vec<AssetId>, Vec<ResourceId>), Error> =
+            transaction(inventory, |inventory| {
                 async move {
                     prepared_commit
-                        .detect_race_condition(conn, event_id)
+                        .detect_race_condition(inventory, event_id)
                         .await?;
 
-                    let mut current_assets = Asset::get_all_ids_for_room(conn, room_id).await?;
+                    let mut current_assets = inventory.get_all_asset_ids_for_room(room_id).await?;
                     current_assets.sort();
 
                     delete_rows_associated_with_room(
                         &logger,
-                        conn,
+                        inventory,
                         room_id,
                         &current_assets,
                         &[event_id],

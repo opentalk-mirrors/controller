@@ -9,8 +9,7 @@ use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::deletion::room::associated_resource_ids_for_invite;
-use opentalk_database::Db;
-use opentalk_db_storage::invites::Invite;
+use opentalk_inventory::InventoryProvider;
 use opentalk_log::{debug, info};
 use opentalk_signaling_core::ExchangeHandle;
 use opentalk_types_common::time::Timestamp;
@@ -47,7 +46,8 @@ impl Job for InviteCleanup {
 
     async fn execute(
         logger: &dyn Log,
-        db: Arc<Db>,
+        inventory_provider: Arc<dyn InventoryProvider>,
+        authz: Authz,
         _exchange_handle: ExchangeHandle,
         _settings: &Settings,
         parameters: Self::Parameters,
@@ -56,9 +56,7 @@ impl Job for InviteCleanup {
         debug!(log: logger, "Job parameters: {parameters:?}");
         info!(log: logger, "");
 
-        let mut conn = db.get_conn().await?;
-
-        let authz = Authz::new(db.clone()).await?;
+        let mut inventory = inventory_provider.get_inventory().await?;
 
         let expired_before = parameters.expired_before.unwrap_or_else(|| {
             info!(log: logger, "Parameter field expired_before not set. Using current timestamp.");
@@ -67,8 +65,9 @@ impl Job for InviteCleanup {
 
         info!(log: logger, "Clearing permissions for invites that are inactive or expired before {expired_before:?}.");
 
-        let inactive_invites =
-            Invite::get_inactive_or_expired_before(&mut conn, expired_before.into()).await?;
+        let inactive_invites = inventory
+            .get_room_invites_with_room_inactive_or_expired_before(expired_before)
+            .await?;
         let mut count = 0;
 
         for (invite_code, room_id) in inactive_invites {

@@ -5,9 +5,10 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::Settings;
-use opentalk_database::Db;
+use opentalk_inventory::InventoryProvider;
 use opentalk_log::{debug, error, info, trace, warn};
 use opentalk_signaling_core::ExchangeHandle;
 
@@ -23,7 +24,8 @@ impl Job for SelfCheck {
 
     async fn execute(
         logger: &dyn Log,
-        _db: Arc<Db>,
+        _inventory_provider: Arc<dyn InventoryProvider>,
+        _authz: Authz,
         _exchange_handle: ExchangeHandle,
         _settings: &Settings,
         _parameters: Self::Parameters,

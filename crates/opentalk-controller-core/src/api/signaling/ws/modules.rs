@@ -427,7 +427,7 @@ where
             breakout_room: builder.breakout_room,
             participant: &builder.participant,
             role: builder.role,
-            db: &builder.db,
+            inventory_provider: &builder.inventory_provider,
             storage: &builder.storage,
             authz: &builder.authz,
             exchange_bindings: &mut builder.exchange_bindings,

@@ -31,10 +31,8 @@ use opentalk_controller_service::{
     },
 };
 use opentalk_controller_settings::SettingsProvider;
-use opentalk_database::{Db, DbConnection};
-use opentalk_db_storage::{
-    events::EventInvite, rooms::Room, tariffs::Tariff, users::User, utils::build_event_info,
-};
+use opentalk_db_storage::{rooms::Room, tariffs::Tariff, users::User};
+use opentalk_inventory::{Inventory, InventoryProvider, utils::build_event_info};
 use opentalk_signaling_core::{
     AnyStream, ExchangeHandle, LockError, ObjectStorage, Participant, RoomLockingProvider as _,
     RunnerId, SignalingMetrics, SignalingModule, SignalingModuleError, SignalingRoomId,
@@ -92,9 +90,9 @@ const GRACE_PERIOD_DURATION: u64 = 60;
 
 #[derive(Debug, Snafu)]
 pub enum RunnerError {
-    #[snafu(context(false), display("Couldn't get database connection."))]
-    DbConnection {
-        source: opentalk_database::DatabaseError,
+    #[snafu(context(false), display("Inventory error"))]
+    Inventory {
+        source: opentalk_inventory::Error,
     },
 
     #[snafu(context(false))]
@@ -161,7 +159,7 @@ pub struct Builder {
     pub(super) modules: Modules,
     pub(super) exchange_bindings: Vec<ExchangeBinding>,
     pub(super) events: SelectAll<AnyStream>,
-    pub(super) db: Arc<Db>,
+    pub(super) inventory_provider: Arc<dyn InventoryProvider>,
     pub(super) storage: Arc<ObjectStorage>,
     pub(super) authz: Arc<Authz>,
     pub(super) volatile: VolatileStorage,
@@ -263,7 +261,7 @@ impl Builder {
             modules: self.modules,
             events: self.events,
             metrics: self.metrics,
-            db: self.db,
+            inventory_provider: self.inventory_provider,
             volatile: self.volatile,
             exchange_handle: self.exchange_handle,
             subscriber_handle,
@@ -318,8 +316,8 @@ pub struct Runner {
     /// Signaling metrics for this runner
     metrics: Arc<SignalingMetrics>,
 
-    /// Database connection pool
-    db: Arc<Db>,
+    /// Inventory provider - this is where all the stock data is stored
+    inventory_provider: Arc<dyn InventoryProvider>,
 
     volatile: VolatileStorage,
 
@@ -365,7 +363,7 @@ enum RunnerState {
 }
 
 async fn get_participant_role(
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     participant: &Participant<User>,
     room: &Room,
 ) -> Result<Role> {
@@ -379,7 +377,8 @@ async fn get_participant_role(
         return Ok(Role::Moderator);
     }
 
-    match EventInvite::get_for_user_and_room(conn, user.id, room.id)
+    match inventory
+        .get_event_invite_for_user_and_room(user.id, room.id)
         .await
         .whatever_context::<_, RunnerError>("Failed to get invite events")?
     {
@@ -412,7 +411,7 @@ impl Runner {
         participant: Participant<User>,
         protocol: &'static str,
         metrics: Arc<SignalingMetrics>,
-        db: Arc<Db>,
+        inventory_provider: Arc<dyn InventoryProvider>,
         storage: Arc<ObjectStorage>,
         authz: Arc<Authz>,
         mut volatile: VolatileStorage,
@@ -421,7 +420,14 @@ impl Runner {
     ) -> Result<Builder> {
         let role = match get_adhoc_role(&mut volatile, room.id, id).await? {
             Some(adhoc_role) => adhoc_role,
-            None => get_participant_role(&mut db.get_conn().await?, &participant, &room).await?,
+            None => {
+                get_participant_role(
+                    inventory_provider.get_inventory().await?.as_mut(),
+                    &participant,
+                    &room,
+                )
+                .await?
+            }
         };
 
         Ok(Builder {
@@ -438,7 +444,7 @@ impl Runner {
             modules: Default::default(),
             exchange_bindings: vec![],
             events: SelectAll::new(),
-            db,
+            inventory_provider,
             storage,
             authz,
             volatile,
@@ -1499,10 +1505,13 @@ impl Runner {
         timestamp: Timestamp,
         control_data: ControlState,
     ) -> Result<()> {
-        let db = self.db.clone();
         let creator_id = self.room.created_by;
 
-        let tariff = Tariff::get_by_user_id(&mut db.get_conn().await?, &creator_id)
+        let tariff = self
+            .inventory_provider
+            .get_inventory()
+            .await?
+            .get_tariff_for_user(creator_id)
             .await
             .whatever_context::<_, RunnerError>("Failed to get user")?;
 
@@ -1595,7 +1604,11 @@ impl Runner {
         let (guard, tariff) = if !joining_from_waiting_room {
             let creator_id = self.room.created_by;
 
-            let mut tariff = Tariff::get_by_user_id(&mut self.db.get_conn().await?, &creator_id)
+            let mut tariff = self
+                .inventory_provider
+                .get_inventory()
+                .await?
+                .get_tariff_for_user(creator_id)
                 .await
                 .whatever_context::<_, RunnerError>("Failed to get user")?;
 
@@ -1646,12 +1659,13 @@ impl Runner {
 
         unlock_res?;
 
-        let event = opentalk_db_storage::events::Event::get_for_room(
-            &mut self.db.get_conn().await?,
-            self.room.id,
-        )
-        .await
-        .whatever_context::<_, RunnerError>("Failed to get first event for room")?;
+        let event = self
+            .inventory_provider
+            .get_inventory()
+            .await?
+            .get_event_for_room(self.room.id)
+            .await
+            .whatever_context::<_, RunnerError>("Failed to get first event for room")?;
         let event = self
             .volatile
             .control_storage()
@@ -1706,13 +1720,12 @@ impl Runner {
             .to_tariff_resource(settings.defaults.disabled_features.clone(), module_features)
             .into();
 
-        let mut conn = self.db.get_conn().await?;
         let event_info = match event.as_ref() {
             Some(event) => {
                 let call_in_tel = settings.call_in.as_ref().map(|call_in| call_in.tel.clone());
                 Some(
                     build_event_info(
-                        &mut conn,
+                        self.inventory_provider.get_inventory().await?.as_mut(),
                         call_in_tel,
                         self.room.id,
                         self.room.e2e_encryption,
@@ -1725,8 +1738,9 @@ impl Runner {
             _ => None,
         };
 
+        let mut inventory = self.inventory_provider.get_inventory().await?;
         let room_info = self
-            .build_room_info(&mut conn, &settings.avatar.libravatar_url)
+            .build_room_info(inventory.as_mut(), &settings.avatar.libravatar_url)
             .await?;
 
         self.ws_send_control(
@@ -2470,8 +2484,13 @@ impl Runner {
             Participant::Recorder => join_display_name,
             Participant::Sip => {
                 if let Some(call_in) = self.settings_provider.get().call_in.as_ref() {
-                    call_in::display_name(&self.db, call_in, self.room.tenant_id, join_display_name)
-                        .await
+                    call_in::display_name(
+                        self.inventory_provider.as_ref(),
+                        call_in,
+                        self.room.tenant_id,
+                        join_display_name,
+                    )
+                    .await
                 } else {
                     join_display_name
                 }
@@ -2481,7 +2500,7 @@ impl Runner {
 
     async fn build_room_info(
         &mut self,
-        conn: &mut DbConnection,
+        inventory: &mut dyn Inventory,
         libravatar_url: &str,
     ) -> Result<RoomInfo> {
         if let Some(creator_info) = self
@@ -2497,7 +2516,7 @@ impl Runner {
             });
         }
 
-        let creator = User::get(conn, self.room.created_by).await?;
+        let creator = inventory.get_user(self.room.created_by).await?;
 
         let creator_info = UserInfo {
             title: creator.title,

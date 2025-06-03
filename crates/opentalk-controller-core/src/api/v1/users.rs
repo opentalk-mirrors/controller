@@ -16,8 +16,7 @@ use openidconnect::AccessToken;
 use opentalk_controller_service::oidc::{OnlyExpiryClaim, decode_token};
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_database::Db;
-use opentalk_db_storage::{tenants::Tenant, users::User};
+use opentalk_inventory::InventoryProvider;
 use opentalk_types_api_v1::{
     assets::AssetSortingQuery,
     error::ApiError,
@@ -72,7 +71,7 @@ use crate::{
 #[patch("/users/me")]
 pub async fn patch_me(
     service: Data<OpenTalkControllerService>,
-    db: Data<Db>,
+    inventory_provider: Data<dyn InventoryProvider>,
     caches: Data<Caches>,
     access_token: ReqData<AccessToken>,
     current_user: ReqData<RequestUser>,
@@ -86,7 +85,7 @@ pub async fn patch_me(
 
     // Update the middleware's cached items as well to reflect the changes immediately.
     update_middleware_cache(
-        &db,
+        inventory_provider.as_ref(),
         &caches,
         current_user.id,
         current_user.tenant_id,
@@ -101,15 +100,16 @@ pub async fn patch_me(
 }
 
 async fn update_middleware_cache(
-    db: &Db,
+    inventory_provider: &dyn InventoryProvider,
     caches: &Caches,
     user_id: UserId,
     tenant_id: TenantId,
     access_token: AccessToken,
 ) -> Result<(), CaptureApiError> {
-    let mut conn = db.get_conn().await?;
-    let user = User::get(&mut conn, user_id).await?;
-    let tenant = Tenant::get(&mut conn, tenant_id).await?;
+    let mut inventory = inventory_provider.get_inventory().await?;
+
+    let user = inventory.get_user(user_id).await?;
+    let tenant = inventory.get_tenant(tenant_id).await?;
 
     let claim = decode_token::<OnlyExpiryClaim>(access_token.secret())
         .whatever_context::<&str, Whatever>(

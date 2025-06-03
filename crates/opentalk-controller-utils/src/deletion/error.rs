@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_database::DatabaseError;
 use opentalk_signaling_core::ObjectStorageError;
 use opentalk_types_api_v1::error::ApiError;
 use snafu::Snafu;
@@ -13,11 +12,11 @@ use crate::CaptureApiError;
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub(crate)))]
 pub enum Error {
-    /// Database error
-    #[snafu(display("Database error: {source}"), context(false))]
-    Database {
+    /// Inventory error
+    #[snafu(display("Inventory error: {source}"), context(false))]
+    Inventory {
         /// the cause of the error
-        source: DatabaseError,
+        source: opentalk_inventory::Error,
     },
 
     /// Kustos error
@@ -58,6 +57,10 @@ pub enum Error {
         source: opentalk_nextcloud_client::Error,
     },
 
+    /// Race condition during database commit preparation detected
+    #[snafu(display("Race condition detected during database commit preparation"))]
+    RaceCondition,
+
     /// Custom error
     #[snafu(display("{message}: "), whatever)]
     Custom {
@@ -72,7 +75,7 @@ pub enum Error {
 impl From<Error> for CaptureApiError {
     fn from(value: Error) -> Self {
         match value {
-            Error::Database { source } => source.into(),
+            Error::Inventory { source } => source.into(),
             Error::Kustos { source } => source.into(),
             Error::Forbidden => ApiError::forbidden().into(),
             Error::Conflict { message } => ApiError::conflict().with_message(message).into(),
@@ -86,6 +89,10 @@ impl From<Error> for CaptureApiError {
             Error::NextcloudClient { .. } => ApiError::internal()
                 .with_message("Error performing actions on the NextCloud")
                 .into(),
+            Error::RaceCondition => {
+                log::error!("Race condition detected during deletion");
+                ApiError::internal().into()
+            }
             Error::Custom { message, source: _ } => {
                 ApiError::internal().with_message(message).into()
             }

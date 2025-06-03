@@ -819,7 +819,7 @@ impl EventException {
     pub async fn get_all_for_event(
         conn: &mut DbConnection,
         event_id: EventId,
-        datetimes: &[DateTime<Utc>],
+        datetimes: &[&DateTime<Utc>],
     ) -> Result<Vec<EventException>> {
         let query = event_exceptions::table.filter(
             event_exceptions::event_id

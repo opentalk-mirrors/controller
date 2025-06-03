@@ -6,9 +6,10 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{Days, Utc};
+use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::Settings;
-use opentalk_database::Db;
+use opentalk_inventory::InventoryProvider;
 use opentalk_log::{debug, error, info};
 use opentalk_signaling_core::ExchangeHandle;
 use serde::{Deserialize, Serialize};
@@ -49,7 +50,8 @@ impl Job for EventCleanup {
 
     async fn execute(
         logger: &dyn Log,
-        db: Arc<Db>,
+        inventory_provider: Arc<dyn InventoryProvider>,
+        authz: Authz,
         exchange_handle: ExchangeHandle,
         settings: &Settings,
         parameters: Self::Parameters,
@@ -74,11 +76,12 @@ impl Job for EventCleanup {
 
         perform_deletion(
             logger,
-            db.clone(),
+            inventory_provider.clone(),
+            authz,
             exchange_handle,
             settings,
             parameters.fail_on_shared_folder_deletion_error,
-            DeleteSelector::ScheduledThatEndedBefore(delete_before),
+            DeleteSelector::ScheduledThatEndedBefore(delete_before.into()),
         )
         .await
         .map_err(|err| {

@@ -202,7 +202,7 @@ impl EventInventory for DatabaseConnection {
         event_id: EventId,
         timestamps: &[Timestamp],
     ) -> Result<Vec<EventException>> {
-        let timestamps: Vec<_> = timestamps.iter().map(|v| *v.as_ref()).collect();
+        let timestamps: Vec<&_> = timestamps.iter().map(|v| v.as_ref()).collect();
         EventException::get_all_for_event(&mut self.inner, event_id, &timestamps)
             .await
             .context(StorageBackendSnafu)
