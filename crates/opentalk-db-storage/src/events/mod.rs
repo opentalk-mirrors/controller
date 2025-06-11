@@ -467,7 +467,7 @@ impl Event {
         )>,
     > {
         // Filter applied to all events which validates that the event is either created by
-        // the given user or a invite to the event exists for the user
+        // the given user or an invite to the event exists for the user
         let event_related_to_user_id = events::created_by
             .eq(user.id)
             .or(event_invites::invitee.eq(user.id));

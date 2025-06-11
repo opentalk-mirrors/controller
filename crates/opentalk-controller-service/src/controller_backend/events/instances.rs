@@ -16,9 +16,10 @@ use opentalk_types_api_v1::{
     error::ApiError,
     events::{
         EventAndInstanceId, EventInstance, EventInstancePath, EventInstanceQuery, EventInvitee,
-        EventRoomInfo, EventStatus, EventType, GetEventInstanceResponseBody,
+        EventOrInstance, EventRoomInfo, EventStatus, EventType, GetEventInstanceResponseBody,
         GetEventInstancesCursorData, GetEventInstancesQuery, GetEventInstancesResponseBody,
-        InstanceId, PatchEventInstanceBody,
+        GetEventsAndInstancesQuery, GetEventsCursorData, GetEventsQuery, InstanceId,
+        PatchEventInstanceBody,
     },
 };
 use opentalk_types_common::{
@@ -44,6 +45,67 @@ use crate::{
 };
 
 impl ControllerBackend {
+    pub(crate) async fn get_events_and_instances(
+        &self,
+        current_user: RequestUser,
+        query: GetEventsAndInstancesQuery,
+    ) -> Result<(Vec<EventOrInstance>, Option<String>, Option<String>), CaptureApiError> {
+        let after = query.after.map(|after| {
+            Cursor(GetEventsCursorData {
+                event_id: after.event_id,
+                event_created_at: after.event_created_at,
+                event_starts_at: after.event_starts_at,
+            })
+        });
+
+        let events_query = GetEventsQuery {
+            time_min: query.time_min,
+            time_max: query.time_max,
+            created_before: query.created_before,
+            created_after: query.created_after,
+            invitees_max: query.invitees_max,
+            favorites: query.favorites,
+            invite_status: query.invite_status,
+            per_page: query.per_page,
+            after,
+            adhoc: query.adhoc,
+            time_independent: query.time_independent,
+        };
+
+        let (event_resources, before, after) = self
+            .get_events_internal(current_user.clone(), events_query, false)
+            .await?;
+
+        let mut event_or_instance_resources: Vec<EventOrInstance> = vec![];
+
+        // TODO: Incorporate instances into overall paging, all sorted by time? See #1088
+        for (event_resource, _event_exception_resources) in event_resources {
+            // Return either the event itself (if it's non-recurring or no instances were requested)
+            // or its instances (up to the specified limit).
+            if event_resource.recurrence_pattern.is_empty() || query.instances_max == 0 {
+                event_or_instance_resources.push(EventOrInstance::Event(event_resource));
+            } else {
+                let instances_query = GetEventInstancesQuery {
+                    invitees_max: query.invitees_max as i64,
+                    time_min: query.time_min,
+                    time_max: query.time_max,
+                    per_page: Some(query.instances_max),
+                    after: None,
+                };
+
+                // TODO: Optimize to get instances for a list of events (not just a single event) with less DB roundtrips? See #1088
+                let instances_response = self
+                    .get_event_instances(&current_user, event_resource.id, instances_query)
+                    .await?;
+                for instance_resource in instances_response.0.0 {
+                    event_or_instance_resources.push(EventOrInstance::Instance(instance_resource));
+                }
+            }
+        }
+
+        Ok((event_or_instance_resources, before, after))
+    }
+
     pub(crate) async fn get_event_instances(
         &self,
         current_user: &RequestUser,

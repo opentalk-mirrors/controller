@@ -800,6 +800,7 @@ impl ModulesRegistrar for Controller {
         api::v1::events::get_events,
         api::v1::events::instances::get_event_instance,
         api::v1::events::instances::get_event_instances,
+        api::v1::events::instances::get_events_and_instances,
         api::v1::events::instances::patch_event_instance,
         api::v1::events::invites::accept_event_invite,
         api::v1::events::invites::create_invite_to_event,
@@ -857,6 +858,7 @@ impl ModulesRegistrar for Controller {
             opentalk_types_api_v1::error::ValidationErrorEntry,
             opentalk_types_api_v1::Cursor::<opentalk_types_api_v1::events::GetEventInstancesCursorData>,
             opentalk_types_api_v1::Cursor::<opentalk_types_api_v1::events::GetEventsCursorData>,
+            opentalk_types_api_v1::Cursor::<opentalk_types_api_v1::events::GetEventsAndInstancesCursorData>,
             opentalk_types_api_v1::assets::AssetResource,
             opentalk_types_api_v1::assets::AssetSortingQuery,
             opentalk_types_api_v1::auth::GetLoginResponseBody,
@@ -1064,6 +1066,8 @@ fn v1_scope(
                 .service(api::v1::rooms::delete)
                 .service(api::v1::events::new_event)
                 .service(api::v1::events::get_events)
+                // "/events/instances" conflicts with "/events/{event_id}" and thus must be listed before
+                .service(api::v1::events::instances::get_events_and_instances)
                 .service(api::v1::events::get_event)
                 .service(api::v1::events::patch_event)
                 .service(api::v1::events::delete_event)
