@@ -15,11 +15,11 @@ use opentalk_types_common::{
     users::{GroupId, GroupName},
 };
 use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_chat::state::StoredMessage;
+use opentalk_types_signaling_chat::state::{ChatChunk, StoredMessage};
 use parking_lot::RwLock;
 
 use super::memory::MemoryChatState;
-use crate::{ParticipantPair, storage::chat_storage::ChatStorage};
+use crate::{ParticipantPair, storage::ChatStorage};
 
 static STATE: OnceLock<Arc<RwLock<MemoryChatState>>> = OnceLock::new();
 
@@ -30,11 +30,32 @@ fn state() -> &'static Arc<RwLock<MemoryChatState>> {
 #[async_trait(?Send)]
 impl ChatStorage for VolatileStaticMemoryStorage {
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn get_room_history(
+    async fn get_room_history_chunk(
         &mut self,
         room: SignalingRoomId,
-    ) -> Result<Vec<StoredMessage>, SignalingModuleError> {
-        Ok(state().read().get_room_history(room))
+        latest_index: u64,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        Ok(state().read().get_room_history_chunk(room, latest_index))
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn get_room_history_latest_chunk(
+        &mut self,
+        room: SignalingRoomId,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        Ok(state().read().get_room_history_latest_chunk(room))
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn search_room_history(
+        &mut self,
+        room: SignalingRoomId,
+        term: &str,
+        message_index: Option<u64>,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        Ok(state()
+            .read()
+            .search_room_history(room, term, message_index))
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -216,12 +237,39 @@ impl ChatStorage for VolatileStaticMemoryStorage {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn get_group_chat_history(
+    async fn get_group_chat_history_chunk(
         &mut self,
         room: SignalingRoomId,
         group: GroupId,
-    ) -> Result<Vec<StoredMessage>, SignalingModuleError> {
-        Ok(state().read().get_group_chat_history(room, group))
+        message_index: u64,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        Ok(state()
+            .read()
+            .get_group_chat_history_chunk(room, group, message_index))
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn get_group_chat_history_latest_chunk(
+        &mut self,
+        room: SignalingRoomId,
+        group: GroupId,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        Ok(state()
+            .read()
+            .get_group_chat_history_latest_chunk(room, group))
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn search_group_chat_history(
+        &mut self,
+        room: SignalingRoomId,
+        group: GroupId,
+        term: &str,
+        message_index: Option<u64>,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        Ok(state()
+            .read()
+            .search_group_chat_history(room, group, term, message_index))
     }
 
     #[tracing::instrument(level = "debug", skip(self, message))]
@@ -248,15 +296,51 @@ impl ChatStorage for VolatileStaticMemoryStorage {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn get_private_chat_history(
+    async fn get_private_chat_history_chunk(
         &mut self,
         room: SignalingRoomId,
         participant_one: ParticipantId,
         participant_two: ParticipantId,
-    ) -> Result<Vec<StoredMessage>, SignalingModuleError> {
-        Ok(state()
-            .read()
-            .get_private_chat_history(room, participant_one, participant_two))
+        message_index: u64,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        Ok(state().read().get_private_chat_history_chunk(
+            room,
+            participant_one,
+            participant_two,
+            message_index,
+        ))
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn get_private_chat_history_latest_chunk(
+        &mut self,
+        room: SignalingRoomId,
+        participant_one: ParticipantId,
+        participant_two: ParticipantId,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        Ok(state().read().get_private_chat_history_latest_chunk(
+            room,
+            participant_one,
+            participant_two,
+        ))
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn search_private_chat_history(
+        &mut self,
+        room: SignalingRoomId,
+        participant_one: ParticipantId,
+        participant_two: ParticipantId,
+        term: &str,
+        message_index: Option<u64>,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        Ok(state().read().search_private_chat_history(
+            room,
+            participant_one,
+            participant_two,
+            term,
+            message_index,
+        ))
     }
 
     #[tracing::instrument(level = "debug", skip(self, message))]
@@ -349,5 +433,41 @@ mod tests {
     #[serial]
     async fn last_seen_private_is_personal() {
         test_common::last_seen_private_is_personal(&mut storage().await).await;
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn room_chat_history() {
+        test_common::room_chat_history(&mut storage().await).await;
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn group_chat_history() {
+        test_common::group_chat_history(&mut storage().await).await;
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn private_chat_history() {
+        test_common::private_chat_history(&mut storage().await).await;
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn search_room_chat_history() {
+        test_common::search_room_chat_history(&mut storage().await).await;
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn search_group_chat_history() {
+        test_common::search_group_chat_history(&mut storage().await).await;
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn search_private_chat_history() {
+        test_common::search_private_chat_history(&mut storage().await).await;
     }
 }
