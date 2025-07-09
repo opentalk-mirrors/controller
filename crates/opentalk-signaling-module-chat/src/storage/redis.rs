@@ -23,7 +23,7 @@ use snafu::{OptionExt as _, Report, ResultExt as _};
 use uuid::Uuid;
 
 use super::ChatStorage;
-use crate::ParticipantPair;
+use crate::{ParticipantPair, storage::room_private_chat_history::RoomPrivateChatHistory};
 
 #[async_trait(?Send)]
 impl ChatStorage for RedisConnection {
@@ -445,6 +445,7 @@ impl ChatStorage for RedisConnection {
         message_index: u64,
     ) -> Result<ChatChunk, SignalingModuleError> {
         let start = u64::saturating_sub(message_index, CHAT_CHUNK_SIZE - 1);
+
         let (messages, length) = redis::pipe()
             .atomic()
             .lrange(
@@ -799,32 +800,6 @@ impl FromStr for RoomPrivateChatCorrespondents {
 struct RoomGroupChatHistory {
     room: SignalingRoomId,
     group: GroupId,
-}
-
-/// Private chat history for two participants inside a room
-#[derive(ToRedisArgs)]
-#[to_redis_args(
-    fmt = "opentalk-signaling:room={room}:participant={participant_one}:participant={participant_two}:chat:history"
-)]
-struct RoomPrivateChatHistory {
-    room: SignalingRoomId,
-    participant_one: ParticipantId,
-    participant_two: ParticipantId,
-}
-
-impl RoomPrivateChatHistory {
-    pub fn new(
-        room: SignalingRoomId,
-        participant_a: ParticipantId,
-        participant_b: ParticipantId,
-    ) -> Self {
-        let pair = ParticipantPair::new(participant_a, participant_b);
-        Self {
-            room,
-            participant_one: pair.participant_one(),
-            participant_two: pair.participant_two(),
-        }
-    }
 }
 
 /// A set of group members inside a room

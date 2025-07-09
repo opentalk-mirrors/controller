@@ -4,6 +4,7 @@
 
 mod chat_storage;
 mod redis;
+mod room_private_chat_history;
 mod volatile;
 
 pub(crate) use chat_storage::ChatStorage;
