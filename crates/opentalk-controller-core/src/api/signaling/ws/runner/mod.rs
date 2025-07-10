@@ -1033,6 +1033,11 @@ impl Runner {
                 res = self.ws.receive() => {
                     match res {
                         Some(RunnerMessage::Timeout) => self.leave_reason = LeaveReason::Timeout,
+                        Some(RunnerMessage::RateLimitReached) => {
+                            log::info!("Participant {} reached the websocket rate limit and will be kicked", self.id);
+                            self.ws_send_control(Timestamp::now(), ControlEvent::RateLimitExceeded).await;
+                            self.exit = true;
+                        }
                         Some(RunnerMessage::Message(Message::Close(_))) => {
                             self.leave_reason = LeaveReason::Quit;
                             // Received Close frame from ws actor, break to destroy the runner

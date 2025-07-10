@@ -17,5 +17,12 @@ use opentalk_types_signaling::NamespacedEvent;
 
 pub enum RunnerMessage {
     Message(actix_web_actors::ws::Message),
+    RateLimitReached,
     Timeout,
+}
+
+impl From<actix_web_actors::ws::Message> for RunnerMessage {
+    fn from(message: actix_web_actors::ws::Message) -> Self {
+        Self::Message(message)
+    }
 }

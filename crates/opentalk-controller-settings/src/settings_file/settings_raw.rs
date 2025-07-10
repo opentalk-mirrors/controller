@@ -8,7 +8,7 @@ use super::{
     Authz, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Etherpad, Extensions, Frontend,
     Http, Keycloak, LiveKitSettings, Logging, Metrics, MinIO, MonitoringSettings, Oidc,
     OperatorInformation, RabbitMqConfig, RedisConfig, Reports, RoomServer, SharedFolder, Spacedeck,
-    SubroomAudio, Tariffs, Tenants, UserSearch,
+    SubroomAudio, Tariffs, Tenants, UserSearch, WebSocketRateLimit,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -88,6 +88,9 @@ pub struct SettingsRaw {
     pub(crate) livekit: LiveKitSettings,
 
     #[serde(default)]
+    pub(crate) websocket_rate_limit: Option<WebSocketRateLimit>,
+
+    #[serde(default)]
     pub(crate) roomserver: Option<RoomServer>,
 
     #[serde(flatten)]
@@ -164,6 +167,7 @@ pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
             api_key: "devkey".to_string(),
             api_secret: "secret".to_string(),
         },
+        websocket_rate_limit: None,
         roomserver: None,
         extensions: Extensions::default(),
         operator_information: None,

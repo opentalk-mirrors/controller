@@ -12,10 +12,14 @@ use actix_http::ws::{CloseCode, CloseReason, Item, ProtocolError};
 use actix_web_actors::ws::{Message, WebsocketContext};
 use bytes::BytesMut;
 use bytestring::ByteString;
+use opentalk_controller_settings::WebSocketRateLimit;
 use snafu::Report;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::RunnerMessage;
+
+/// The rate at which the configured rate limit token amount is added to the token bucket
+const RATE_LIMIT_INTERVAL: Duration = Duration::from_secs(1);
 
 /// Define HTTP Websocket actor
 ///
@@ -27,6 +31,8 @@ pub struct WebSocketActor {
     /// Sender to signaling runner
     sender: UnboundedSender<RunnerMessage>,
 
+    rate_limit: Option<RateLimit>,
+
     /// Timestamp of last pong received
     last_pong: Instant,
 
@@ -36,26 +42,71 @@ pub struct WebSocketActor {
     close_sent: bool,
 }
 
+struct RateLimit {
+    config: WebSocketRateLimit,
+
+    bucket: u64,
+}
+
+impl RateLimit {
+    fn new(config: WebSocketRateLimit) -> Self {
+        let bucket = config.token_bucket_size;
+
+        Self { config, bucket }
+    }
+
+    /// Adds the configured amount of tokens to the bucket, but no more than the maximum that is specified in the config.
+    fn add_tokens(&mut self) {
+        self.bucket = std::cmp::min(
+            self.bucket + self.config.tokens_per_second,
+            self.config.token_bucket_size,
+        );
+    }
+
+    /// Consumes a token from the bucket
+    ///
+    /// Returns false if the bucket is empty
+    fn consume_token(&mut self) -> bool {
+        if self.bucket == 0 {
+            return false;
+        }
+
+        self.bucket -= 1;
+
+        true
+    }
+}
+
 struct Continuation {
     buffer: BytesMut,
     is_text: bool,
 }
 
 impl WebSocketActor {
-    pub fn new(sender: UnboundedSender<RunnerMessage>) -> Self {
+    pub fn new(
+        sender: UnboundedSender<RunnerMessage>,
+        rate_limit_config: Option<WebSocketRateLimit>,
+    ) -> Self {
+        let rate_limit = rate_limit_config.map(RateLimit::new);
+
         Self {
             sender,
+            rate_limit,
             last_pong: Instant::now(),
             continuation: None,
             close_sent: false,
         }
     }
 
-    /// Forward a websocket message to the runner
+    /// Send a [`RunnerMessage`] to the runner
     ///
     /// Closes the websocket if the channel to the runner is disconnected and the socket hasn't been closed yet
-    fn forward_to_runner(&mut self, ctx: &mut WebsocketContext<Self>, msg: Message) {
-        if self.sender.send(RunnerMessage::Message(msg)).is_err() && !self.close_sent {
+    fn forward_to_runner(
+        &mut self,
+        ctx: &mut WebsocketContext<Self>,
+        runner_message: RunnerMessage,
+    ) {
+        if self.sender.send(runner_message).is_err() && !self.close_sent {
             self.close_sent = true;
             ctx.close(Some(CloseReason {
                 code: CloseCode::Abnormal,
@@ -106,7 +157,7 @@ impl WebSocketActor {
                     if continuation.is_text {
                         match ByteString::try_from(continuation.buffer) {
                             Ok(string) => {
-                                self.forward_to_runner(ctx, Message::Text(string));
+                                self.forward_to_runner(ctx, Message::Text(string).into());
                             }
                             Err(_) => {
                                 log::warn!(
@@ -115,7 +166,10 @@ impl WebSocketActor {
                             }
                         }
                     } else {
-                        self.forward_to_runner(ctx, Message::Binary(continuation.buffer.freeze()));
+                        self.forward_to_runner(
+                            ctx,
+                            Message::Binary(continuation.buffer.freeze()).into(),
+                        );
                     }
                 } else {
                     log::warn!("Got continuation last message without a continuation set");
@@ -142,12 +196,27 @@ impl Actor for WebSocketActor {
                 ctx.ping(b"heartbeat");
             }
         });
+
+        if self.rate_limit.is_some() {
+            ctx.run_interval(RATE_LIMIT_INTERVAL, move |this, _ctx| {
+                if let Some(rate_limit) = &mut this.rate_limit {
+                    rate_limit.add_tokens();
+                }
+            });
+        }
     }
 }
 
 /// Handle incoming websocket messages
 impl StreamHandler<Result<Message, ProtocolError>> for WebSocketActor {
     fn handle(&mut self, msg: Result<Message, ProtocolError>, ctx: &mut Self::Context) {
+        if let Some(rate_limit) = &mut self.rate_limit
+            && !rate_limit.consume_token()
+        {
+            log::trace!("Rate limit reached");
+            self.forward_to_runner(ctx, RunnerMessage::RateLimitReached);
+        }
+
         match msg {
             Ok(Message::Ping(msg)) => ctx.pong(&msg),
             Ok(Message::Pong(msg)) => {
@@ -156,15 +225,15 @@ impl StreamHandler<Result<Message, ProtocolError>> for WebSocketActor {
                 }
             }
             Ok(msg @ Message::Text(_)) => {
-                self.forward_to_runner(ctx, msg);
+                self.forward_to_runner(ctx, msg.into());
             }
             Ok(msg @ Message::Binary(_)) => {
-                self.forward_to_runner(ctx, msg);
+                self.forward_to_runner(ctx, msg.into());
             }
             Ok(Message::Continuation(item)) => self.handle_continuation(ctx, item),
             Ok(msg @ Message::Close(_)) => {
                 // Pass the Close frame to the runner to handle
-                self.forward_to_runner(ctx, msg);
+                self.forward_to_runner(ctx, msg.into());
             }
             Ok(Message::Nop) => {}
             Err(e) => {

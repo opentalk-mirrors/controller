@@ -41,6 +41,7 @@ mod tenants;
 mod user_search;
 mod user_search_backend;
 mod users_find_behavior;
+mod ws_rate_limit;
 
 pub(crate) use authz::Authz;
 pub(crate) use avatar::Avatar;
@@ -83,3 +84,4 @@ pub(crate) use tenants::Tenants;
 pub(crate) use user_search::UserSearch;
 pub(crate) use user_search_backend::{UserSearchBackend, UserSearchBackendKeycloakWebapi};
 pub use users_find_behavior::UsersFindBehavior;
+pub(crate) use ws_rate_limit::WebSocketRateLimit;
