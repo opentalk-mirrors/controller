@@ -344,24 +344,25 @@ impl ControllerBackend {
             return Err(StartRoomError::LegacySignalingDisabled.into());
         }
 
-        self.authenticate_guest(&room_id, &request.invite_code, &request.password)
+        let room = self
+            .authenticate_guest(&room_id, &request.invite_code, &request.password)
             .await?;
 
         let mut volatile = self.volatile.clone();
 
-        let Some(breakout_room) = request.breakout_room else {
-            return Err(StartRoomError::NoBreakoutRooms.into());
-        };
+        if let Some(breakout_room) = request.breakout_room {
+            let config = volatile
+                .breakout_storage()
+                .get_breakout_config(room.id)
+                .await
+                .map_err(Into::<ApiError>::into)?;
 
-        let config = volatile
-            .breakout_storage()
-            .get_breakout_config(room_id)
-            .await
-            .map_err(Into::<ApiError>::into)?;
-
-        if let Some(config) = config {
-            if !config.is_valid_id(breakout_room) {
-                return Err(StartRoomError::InvalidBreakoutRoomId.into());
+            if let Some(config) = config {
+                if !config.is_valid_id(breakout_room) {
+                    return Err(StartRoomError::InvalidBreakoutRoomId.into());
+                }
+            } else {
+                return Err(StartRoomError::NoBreakoutRooms.into());
             }
         }
 
@@ -377,12 +378,15 @@ impl ControllerBackend {
         Ok(RoomsStartResponseBody { ticket, resumption })
     }
 
+    /// Check the provided invite code and room password
+    ///
+    /// Returns the associated room
     pub(crate) async fn authenticate_guest(
         &self,
         room_id: &RoomId,
         invite_code: &str,
         password: &Option<RoomPassword>,
-    ) -> Result<(), CaptureApiError> {
+    ) -> Result<Room, CaptureApiError> {
         let invite_code_as_uuid = uuid::Uuid::from_str(invite_code).map_err(|_| {
             ApiError::unprocessable_entities([ValidationErrorEntry::new(
                 "invite_code",
@@ -416,7 +420,7 @@ impl ControllerBackend {
             return Err(StartRoomError::WrongRoomPassword.into());
         }
 
-        Ok(())
+        Ok(room)
     }
 }
 
