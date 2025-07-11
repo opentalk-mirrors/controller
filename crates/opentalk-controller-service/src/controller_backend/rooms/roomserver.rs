@@ -111,10 +111,11 @@ impl ControllerBackend {
             return Err(StartRoomError::RoomserverSignalingDisabled.into());
         };
 
-        self.authenticate_guest(&room_id, &request.invite_code, &request.password)
+        let _ = self
+            .authenticate_guest(&room_id, &request.invite_code, &request.password)
             .await?;
 
-        let room = self.get_room(&room_id).await?;
+        let room_resource = self.get_room(&room_id).await?;
 
         let client_parameters = ClientParameters {
             device_secret: request.device_secret,
@@ -125,7 +126,7 @@ impl ControllerBackend {
         };
 
         let token = self
-            .request_roomserver_token(room, client_parameters)
+            .request_roomserver_token(room_resource, client_parameters)
             .await?;
 
         Ok(RoomserverStartResponseBody {
