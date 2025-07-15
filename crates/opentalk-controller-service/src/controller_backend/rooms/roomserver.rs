@@ -31,7 +31,6 @@ use opentalk_types_common::{
     streaming::StreamingLink,
     users::UserInfo,
 };
-use opentalk_types_signaling::ModuleData;
 
 use crate::{
     ControllerBackend, controller_backend::rooms::start_room_error::StartRoomError,
@@ -208,16 +207,21 @@ impl ControllerBackend {
 
         let tariff = self.get_tariff_for_room(room.id).await?;
 
-        let timezone = get_user_timezone(room.created_by.id, inventory.as_mut(), &settings).await;
+        let mut module_data = settings
+            .roomserver
+            .as_ref()
+            .map(|r| r.modules.clone())
+            .unwrap_or_default();
 
+        module_data.retain(|module_id, _| tariff.modules.contains_key(module_id));
+
+        let timezone = get_user_timezone(room.created_by.id, inventory.as_mut(), &settings).await;
         let created_by = PublicUserProfile {
             id: room.created_by.id,
             email: room.created_by.email,
             user_info: room.created_by.user_info,
             timezone,
         };
-        let module_data = ModuleData::default();
-
         let parameters = RoomParameters {
             created_by,
             password: room.password,

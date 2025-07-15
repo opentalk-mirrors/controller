@@ -15,7 +15,7 @@ use crate::{
 };
 
 /// The settings used for the OpenTalk controller at runtime
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Settings {
     /// The frontend information.
     pub frontend: Frontend,

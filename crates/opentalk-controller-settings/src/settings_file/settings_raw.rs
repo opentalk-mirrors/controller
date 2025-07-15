@@ -11,7 +11,7 @@ use super::{
     SubroomAudio, Tariffs, Tenants, UserSearch, WebSocketRateLimit,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct SettingsRaw {
     pub(crate) frontend: Frontend,
 
