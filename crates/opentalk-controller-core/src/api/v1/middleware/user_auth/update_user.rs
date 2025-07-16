@@ -141,8 +141,9 @@ fn create_changeset<'a>(
         }
     }
 
-    if email != &user_info.email {
-        changeset.email = Some(&user_info.email);
+    let user_info_email = user_info.email.to_lowercase();
+    if email.to_lowercase() != user_info_email {
+        changeset.email = Some(user_info_email);
     }
 
     let token_phone = if let Some((call_in, phone_number)) = settings
