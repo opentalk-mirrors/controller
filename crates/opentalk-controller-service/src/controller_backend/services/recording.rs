@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_db_storage::rooms::Room;
 use opentalk_signaling_core::{Participant, assets::verify_storage_usage};
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -18,7 +17,7 @@ impl ControllerBackend {
         body: PostRecordingStartRequestBody,
     ) -> Result<PostServiceStartResponseBody, CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
         let mut volatile = self.volatile.clone();
 
         if settings
@@ -30,9 +29,9 @@ impl ControllerBackend {
             return Err(ApiError::not_found().into());
         }
 
-        let room = Room::get(&mut conn, body.room_id).await?;
+        let room = inventory.get_room(body.room_id).await?;
 
-        verify_storage_usage(&mut conn, room.created_by).await?;
+        verify_storage_usage(inventory.as_mut(), room.created_by).await?;
 
         let (ticket, resumption) = start_or_continue_signaling_session(
             &mut volatile,

@@ -6,16 +6,15 @@
 
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_database::DbConnection;
 use opentalk_db_storage::{
     events::{Event, EventException},
     invites::Invite,
     rooms::Room,
     sip_configs::SipConfig,
-    streaming_targets::get_room_streaming_targets,
     tenants::Tenant,
     users::User,
 };
+use opentalk_inventory::Inventory;
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_common::{
     rooms::RoomId, shared_folders::SharedFolder, streaming::RoomStreamingTarget,
@@ -58,10 +57,10 @@ pub async fn notify_event_invitees_by_room_about_update(
     mail_service: &MailService,
     current_tenant: Tenant,
     current_user: User,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     room_id: RoomId,
 ) -> Result<(), CaptureApiError> {
-    let event = Event::get_for_room(conn, room_id).await?;
+    let event = inventory.get_event_for_room(room_id).await?;
 
     if let Some(event) = event {
         let (
@@ -73,12 +72,14 @@ pub async fn notify_event_invitees_by_room_about_update(
             shared_folder,
             _tariff,
             _training_participation_report,
-        ) = Event::get_with_related_items(conn, current_user.id, event.id).await?;
+        ) = inventory
+            .get_event_with_related_items(current_user.id, event.id)
+            .await?;
 
         let shared_folder_for_user =
             shared_folder_for_user(shared_folder, event.created_by, current_user.id);
 
-        let streaming_targets = get_room_streaming_targets(conn, room.id).await?;
+        let streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
 
         notify_event_invitees_about_update(
             user_search_client,
@@ -86,7 +87,7 @@ pub async fn notify_event_invitees_by_room_about_update(
             mail_service,
             current_tenant,
             current_user,
-            conn,
+            inventory,
             event,
             room,
             sip_config,
@@ -106,25 +107,26 @@ pub async fn notify_event_invitees_about_update(
     mail_service: &MailService,
     current_tenant: Tenant,
     current_user: User,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     event: Event,
     room: Room,
     sip_config: Option<SipConfig>,
     shared_folder_for_user: Option<SharedFolder>,
     streaming_targets: Vec<RoomStreamingTarget>,
 ) -> Result<(), CaptureApiError> {
-    let invited_users = get_invited_mail_recipients_for_event(conn, event.id).await?;
+    let invited_users = get_invited_mail_recipients_for_event(inventory, event.id).await?;
     let current_user_mail_recipient = MailRecipient::Registered(current_user.clone().into());
     let users_to_notify = invited_users
         .into_iter()
         .chain(std::iter::once(current_user_mail_recipient))
         .collect::<Vec<_>>();
-    let invite_for_room =
-        Invite::get_valid_or_create_for_room(conn, room.id, current_user.id).await?;
+    let invite_for_room = inventory
+        .get_or_create_valid_invite_for_room(room.id, current_user.id)
+        .await?;
     let created_by = if event.created_by == current_user.id {
         current_user
     } else {
-        User::get(conn, event.created_by).await?
+        inventory.get_user(event.created_by).await?
     };
 
     let notification_values = UpdateNotificationValues {

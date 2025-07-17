@@ -25,7 +25,7 @@ use futures_core::Stream;
 use kustos::Authz;
 use opentalk_controller_service_facade::{OpenTalkControllerServiceBackend, RequestUser};
 use opentalk_controller_settings::SettingsProvider;
-use opentalk_database::Db;
+use opentalk_inventory::InventoryProvider;
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_roomserver_client::Client as RoomServerClient;
 use opentalk_signaling_core::{
@@ -97,7 +97,7 @@ use crate::services::MailService;
 pub struct ControllerBackend {
     settings_provider: SettingsProvider,
     authz: Authz,
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
     frontend_oidc_provider: OidcProvider,
     storage: Arc<ObjectStorage>,
     volatile: VolatileStorage,
@@ -114,7 +114,7 @@ impl ControllerBackend {
     pub fn new(
         settings_provider: SettingsProvider,
         authz: Authz,
-        db: Arc<Db>,
+        inventory_provider: Arc<dyn InventoryProvider>,
         frontend_oidc_provider: OidcProvider,
         storage: Arc<ObjectStorage>,
         volatile: VolatileStorage,
@@ -127,7 +127,7 @@ impl ControllerBackend {
         Self {
             settings_provider,
             authz,
-            db,
+            inventory_provider,
             frontend_oidc_provider,
             storage,
             volatile,

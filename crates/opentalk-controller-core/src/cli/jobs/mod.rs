@@ -5,10 +5,13 @@
 use std::{sync::Arc, time::Duration};
 
 use clap::Subcommand;
+use kustos::Authz;
 use lapin_pool::RabbitMqPool;
 use log::Log;
 use opentalk_controller_settings::Settings;
 use opentalk_database::Db;
+use opentalk_inventory::InventoryProvider;
+use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_jobs::Job;
 use opentalk_signaling_core::{ExchangeHandle, ExchangeTask};
 use serde::{Deserialize, Serialize};
@@ -109,10 +112,16 @@ async fn execute_job(
             .await
             .whatever_context("Failed to spawn exchange task")?,
     };
+    let inventory_provider = Arc::new(DatabaseConnectionPool::new(db.clone()));
+
+    let authz = Authz::new(db.clone())
+        .await
+        .whatever_context("Falied to create authz instance")?;
 
     let data = JobExecutionData {
         logger: &logger,
-        db,
+        inventory_provider,
+        authz,
         exchange_handle,
         settings,
         parameters,
@@ -203,7 +212,8 @@ impl Log for Logger {
 
 struct JobExecutionData<'a> {
     logger: &'a dyn Log,
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
+    authz: Authz,
     exchange_handle: ExchangeHandle,
     settings: &'a Settings,
     parameters: serde_json::Value,
@@ -215,7 +225,8 @@ impl JobExecutionData<'_> {
     async fn execute<J: opentalk_jobs::Job>(self) -> Result<(), opentalk_jobs::Error> {
         opentalk_jobs::execute::<J>(
             self.logger,
-            self.db,
+            self.inventory_provider,
+            self.authz,
             self.exchange_handle,
             self.settings,
             self.parameters,

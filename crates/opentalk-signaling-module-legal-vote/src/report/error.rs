@@ -9,11 +9,6 @@ use snafu::Snafu;
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub(super)))]
 pub enum Error {
-    #[snafu(display("Database error"), context(false))]
-    Database {
-        source: opentalk_database::DatabaseError,
-    },
-
     #[snafu(display("Failed to generate the report"))]
     ReportGeneration { source: ReportGenerationError },
 

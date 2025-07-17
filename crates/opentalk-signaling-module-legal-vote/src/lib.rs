@@ -22,12 +22,8 @@ use either::Either;
 use error::LegalVoteError;
 use futures::{FutureExt, stream::once};
 use kustos::{Authz, Resource, prelude::AccessMethod};
-use opentalk_database::Db;
-use opentalk_db_storage::{
-    module_resources::{Filter, ModuleResource, NewModuleResource},
-    rooms::Room,
-    users::User,
-};
+use opentalk_db_storage::module_resources::{Filter, NewModuleResource};
+use opentalk_inventory::InventoryProvider;
 use opentalk_signaling_core::{
     ChunkFormat, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage, Participant,
     SerdeJsonSnafu, SignalingModule, SignalingModuleError, SignalingModuleInitData,
@@ -102,7 +98,7 @@ impl LegalVoteStorageProvider for VolatileStorage {
 /// Holds a database interface and information about the underlying user & room. Vote information is
 /// saved and managed in redis via the private `storage` module.
 pub struct LegalVote {
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
     storage: Arc<ObjectStorage>,
     authz: Arc<Authz>,
     participant_id: ParticipantId,
@@ -132,7 +128,7 @@ impl SignalingModule for LegalVote {
     ) -> Result<Option<Self>, SignalingModuleError> {
         if let Participant::User(user) = ctx.participant() {
             Ok(Some(Self {
-                db: ctx.db().clone(),
+                inventory_provider: ctx.inventory_provider().clone(),
                 storage: ctx.storage().clone(),
                 authz: ctx.authz().clone(),
                 participant_id: ctx.participant_id(),
@@ -664,11 +660,9 @@ impl LegalVote {
         ctx: &mut ModuleContext<'_, LegalVote>,
         legal_vote_id: LegalVoteId,
     ) -> Result<(), LegalVoteError> {
-        let mut db_conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let room_owner = Room::get(&mut db_conn, self.room_id.room_id())
-            .await?
-            .created_by;
+        let room_owner = inventory.get_room(self.room_id.room_id()).await?.created_by;
 
         self.grant_module_resource_access(ctx, self.user_id, legal_vote_id)
             .await?;
@@ -1294,21 +1288,22 @@ impl LegalVote {
     ///
     /// Adds a new vote with an empty protocol to the database. Returns the [`VoteId`] of the new vote.
     async fn new_vote_in_database(&self) -> Result<LegalVoteId, SignalingModuleError> {
-        let db = self.db.clone();
-
         let room_id = self.room_id.room_id();
         let tenant_id = self.tenant_id;
 
-        let module_resource = NewModuleResource {
-            tenant_id,
-            room_id,
-            created_by: self.user_id,
-            namespace: Self::NAMESPACE.to_string(),
-            tag: Some("protocol".into()),
-            data: serde_json::to_value(db_protocol::NewProtocol::new(vec![])).unwrap(),
-        }
-        .insert(&mut db.get_conn().await?)
-        .await?;
+        let module_resource = self
+            .inventory_provider
+            .get_inventory()
+            .await?
+            .create_module_resource(NewModuleResource {
+                tenant_id,
+                room_id,
+                created_by: self.user_id,
+                namespace: Self::NAMESPACE.to_string(),
+                tag: Some("protocol".into()),
+                data: serde_json::to_value(db_protocol::NewProtocol::new(vec![])).unwrap(),
+            })
+            .await?;
 
         Ok(LegalVoteId::from(module_resource.id))
     }
@@ -1323,10 +1318,6 @@ impl LegalVote {
 
         let protocol = db_protocol::NewProtocol::new(entries);
 
-        let db = self.db.clone();
-
-        let mut conn = db.get_conn().await?;
-
         let protocol = serde_json::to_value(protocol).context(SerdeJsonSnafu {
             message: "Failed to serialize",
         })?;
@@ -1336,15 +1327,17 @@ impl LegalVote {
             value: protocol,
         };
 
-        ModuleResource::patch(
-            &mut conn,
-            Filter::new()
-                .with_id(*legal_vote_id.inner())
-                .with_namespace("legal_vote".into()),
-            vec![add_protocol],
-        )
-        .await
-        .whatever_context::<_, LegalVoteError>("Failed to save protocol to database")?;
+        self.inventory_provider
+            .get_inventory()
+            .await?
+            .patch_module_resources(
+                Filter::new()
+                    .with_id(*legal_vote_id.inner())
+                    .with_namespace("legal_vote".into()),
+                vec![add_protocol],
+            )
+            .await
+            .whatever_context::<_, LegalVoteError>("Failed to save protocol to database")?;
 
         Ok(())
     }
@@ -1362,8 +1355,12 @@ impl LegalVote {
         let timezone = match timezone {
             Some(timezone) => Some(timezone),
             None => {
-                let mut db_conn = self.db.get_conn().await?;
-                let moderator = User::get(&mut db_conn, self.user_id).await?;
+                let moderator = self
+                    .inventory_provider
+                    .get_inventory()
+                    .await?
+                    .get_user(self.user_id)
+                    .await?;
                 moderator.timezone.map(Tz::from)
             }
         };
@@ -1403,19 +1400,20 @@ impl LegalVote {
         &self,
         protocol: &[db_protocol::v1::ProtocolEntry],
     ) -> Result<BTreeMap<UserId, DisplayName>, LegalVoteError> {
-        let mut conn = self.db.get_conn().await?;
-
         let user_ids = protocol
             .iter()
             .flat_map(db_protocol::v1::ProtocolEntry::get_referenced_user_ids)
             .collect::<BTreeSet<UserId>>();
 
-        let user_names =
-            opentalk_db_storage::users::User::get_all_by_ids(&mut conn, &Vec::from_iter(user_ids))
-                .await?
-                .into_iter()
-                .map(|u| (u.id, u.display_name))
-                .collect();
+        let user_names = self
+            .inventory_provider
+            .get_inventory()
+            .await?
+            .get_users_by_ids(&Vec::from_iter(user_ids))
+            .await?
+            .into_iter()
+            .map(|u| (u.id, u.display_name))
+            .collect();
 
         Ok(user_names)
     }
@@ -1449,7 +1447,7 @@ impl LegalVote {
 
         let (asset_id, filename) = save_asset(
             &self.storage,
-            self.db.clone(),
+            self.inventory_provider.as_ref(),
             self.room_id.room_id(),
             Some(Self::NAMESPACE),
             filename,

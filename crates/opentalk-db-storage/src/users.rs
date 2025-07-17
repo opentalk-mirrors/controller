@@ -397,6 +397,7 @@ pub struct NewUser {
     pub tariff_id: TariffId,
     pub tariff_status: TariffStatus,
     pub avatar_url: Option<String>,
+    pub timezone: Option<TimeZone>,
 }
 
 impl NewUser {

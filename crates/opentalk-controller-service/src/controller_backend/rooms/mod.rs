@@ -17,13 +17,10 @@ use opentalk_controller_utils::{
     deletion::{Deleter, RoomDeleter},
 };
 use opentalk_db_storage::{
-    events::Event,
-    invites::Invite,
     rooms::{NewRoom, Room, UpdateRoom},
     sip_configs::NewSipConfig,
-    tariffs::Tariff,
-    utils::build_event_info,
 };
+use opentalk_inventory::utils::build_event_info;
 use opentalk_signaling_core::Participant;
 use opentalk_types_api_v1::{
     error::{ApiError, ERROR_CODE_INVALID_VALUE, ValidationErrorEntry},
@@ -63,7 +60,7 @@ impl ControllerBackend {
         pagination: &PagePaginationQuery,
     ) -> Result<(GetRoomsResponseBody, i64), CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let accessible_rooms: kustos::AccessibleResources<RoomId> = self
             .authz
@@ -72,21 +69,18 @@ impl ControllerBackend {
 
         let (rooms, room_count) = match accessible_rooms {
             kustos::AccessibleResources::All => {
-                Room::get_all_with_creator_paginated(
-                    &mut conn,
-                    pagination.per_page,
-                    pagination.page,
-                )
-                .await?
+                inventory
+                    .get_all_rooms_paginated_with_creator(pagination.per_page, pagination.page)
+                    .await?
             }
             kustos::AccessibleResources::List(list) => {
-                Room::get_by_ids_with_creator_paginated(
-                    &mut conn,
-                    &list,
-                    pagination.per_page,
-                    pagination.page,
-                )
-                .await?
+                inventory
+                    .get_rooms_paginated_by_id_with_creator(
+                        &list,
+                        pagination.per_page,
+                        pagination.page,
+                    )
+                    .await?
             }
         };
 
@@ -113,11 +107,11 @@ impl ControllerBackend {
         e2e_encryption: bool,
     ) -> Result<RoomResource, CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
         if enable_sip {
             require_feature(
-                &mut conn,
+                inventory.as_mut(),
                 &settings,
                 current_user.id,
                 &features::CALL_IN_MODULE_FEATURE_ID,
@@ -125,21 +119,23 @@ impl ControllerBackend {
             .await?;
         }
 
-        let new_room = NewRoom {
-            created_by: current_user.id,
-            password,
-            waiting_room,
-            e2e_encryption,
-            tenant_id: current_user.tenant_id,
-        };
-
-        let room = new_room.insert(&mut conn).await?;
+        let room = inventory
+            .create_room(NewRoom {
+                created_by: current_user.id,
+                password,
+                waiting_room,
+                e2e_encryption,
+                tenant_id: current_user.tenant_id,
+            })
+            .await?;
 
         if enable_sip {
-            _ = NewSipConfig::new(room.id, false).insert(&mut conn).await?;
+            _ = inventory
+                .create_room_sip_config(NewSipConfig::new(room.id, false))
+                .await?;
         }
 
-        drop(conn);
+        drop(inventory);
 
         let room_resource = RoomResource {
             id: room.id,
@@ -169,15 +165,18 @@ impl ControllerBackend {
         e2e_encryption: Option<bool>,
     ) -> Result<RoomResource, CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let changeset = UpdateRoom {
-            password,
-            waiting_room,
-            e2e_encryption,
-        };
-
-        let room = changeset.apply(&mut conn, room_id).await?;
+        let room = inventory
+            .update_room(
+                room_id,
+                UpdateRoom {
+                    password,
+                    waiting_room,
+                    e2e_encryption,
+                },
+            )
+            .await?;
 
         let room_resource = RoomResource {
             id: room.id,
@@ -197,14 +196,14 @@ impl ControllerBackend {
         force_delete_reference_if_external_services_fail: bool,
     ) -> Result<(), CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let deleter = RoomDeleter::new(room_id, force_delete_reference_if_external_services_fail);
 
         deleter
             .perform(
                 log::logger(),
-                &mut conn,
+                inventory.as_mut(),
                 &self.authz,
                 Some(current_user.id),
                 self.exchange_handle.clone(),
@@ -218,9 +217,9 @@ impl ControllerBackend {
 
     pub(crate) async fn get_room(&self, room_id: &RoomId) -> Result<RoomResource, CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let (room, created_by) = Room::get_with_user(&mut conn, *room_id).await?;
+        let (room, created_by) = inventory.get_room_with_creator(*room_id).await?;
 
         let room_resource = RoomResource {
             id: room.id,
@@ -238,10 +237,10 @@ impl ControllerBackend {
         room_id: &RoomId,
     ) -> Result<TariffResource, CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let room = Room::get(&mut conn, *room_id).await?;
-        let tariff = room.get_tariff(&mut conn).await?;
+        let room = inventory.get_room(*room_id).await?;
+        let tariff = inventory.get_tariff_for_user(room.created_by).await?;
 
         let response = tariff.to_tariff_resource(
             settings.defaults.disabled_features.clone(),
@@ -256,19 +255,21 @@ impl ControllerBackend {
         room_id: &RoomId,
     ) -> Result<GetRoomEventResponseBody, CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let event = Event::get_for_room(&mut conn, *room_id).await?;
+        let event = inventory.get_event_for_room(*room_id).await?;
 
-        let room = Room::get(&mut conn, *room_id).await?;
+        let room = inventory.get_room(*room_id).await?;
 
-        let tariff = Tariff::get_by_user_id(&mut conn, &room.created_by).await?;
+        let tariff = inventory.get_tariff_for_user(room.created_by).await?;
 
         match event.as_ref() {
             Some(event) => {
                 let call_in_tel = settings.call_in.as_ref().map(|call_in| call_in.tel.clone());
+                let mut inventory = self.inventory_provider.get_inventory().await?;
+
                 let event_info = build_event_info(
-                    &mut conn,
+                    inventory.as_mut(),
                     call_in_tel,
                     *room_id,
                     room.e2e_encryption,
@@ -292,10 +293,10 @@ impl ControllerBackend {
             return Err(StartRoomError::LegacySignalingDisabled.into());
         }
 
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
         let mut volatile = self.volatile.clone();
 
-        let room = Room::get(&mut conn, room_id).await?;
+        let room = inventory.get_room(room_id).await?;
 
         // check if user is banned from room
         if volatile
@@ -395,9 +396,11 @@ impl ControllerBackend {
             )])
         })?;
 
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let invite = Invite::get(&mut conn, InviteCode::from(invite_code_as_uuid)).await?;
+        let invite = inventory
+            .get_room_invite(InviteCode::from(invite_code_as_uuid))
+            .await?;
 
         if !invite.active {
             return Err(ApiError::not_found().into());
@@ -409,9 +412,9 @@ impl ControllerBackend {
                 .into());
         }
 
-        let room = Room::get(&mut conn, invite.room).await?;
+        let room = inventory.get_room(invite.room).await?;
 
-        drop(conn);
+        drop(inventory);
 
         if let Some(room_password) = &room.password
             && let Some(password) = &password

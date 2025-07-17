@@ -5,10 +5,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use chrono::{DateTime, TimeZone, Utc};
-use opentalk_db_storage::{
-    module_resources::{Filter, ModuleResource},
-    users::User,
-};
+use opentalk_db_storage::{module_resources::Filter, users::User};
 use opentalk_signaling_core::{
     SignalingModule, SignalingModuleError,
     module_tester::{ModuleTester, WsMessageOutgoing},
@@ -75,7 +72,12 @@ async fn basic_vote_roll_call_memory() {
 async fn basic_vote_roll_call(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
     let (mut module_tester, user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
-    let mut db_conn = test_ctx.db_ctx.db.get_conn().await.unwrap();
+    let mut inventory = test_ctx
+        .db_ctx
+        .inventory_provider
+        .get_inventory()
+        .await
+        .unwrap();
 
     // Start legal vote as user 1
     let start_parameters = UserParameters {
@@ -138,11 +140,11 @@ async fn basic_vote_roll_call(storage: TestContextVolatileStorage) {
     };
 
     // Expect a empty legal_vote with `legal_vote_id` to exist in database
-    let module_resource =
-        ModuleResource::get(&mut db_conn, Filter::new().with_id(*legal_vote_id.inner()))
-            .await
-            .unwrap()
-            .remove(0);
+    let module_resource = inventory
+        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .await
+        .unwrap()
+        .remove(0);
 
     assert_eq!(module_resource.id, *legal_vote_id.inner());
     assert_eq!(module_resource.created_by, user1.id);
@@ -293,11 +295,11 @@ async fn basic_vote_roll_call(storage: TestContextVolatileStorage) {
     }
 
     // check the vote protocol
-    let module_resource =
-        ModuleResource::get(&mut db_conn, Filter::new().with_id(*legal_vote_id.inner()))
-            .await
-            .unwrap()
-            .remove(0);
+    let module_resource = inventory
+        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .await
+        .unwrap()
+        .remove(0);
 
     assert_eq!(module_resource.id, *legal_vote_id.inner());
     assert_eq!(module_resource.created_by, user1.id);
@@ -325,7 +327,12 @@ async fn basic_vote_live_roll_call_memory() {
 async fn basic_vote_live_roll_call(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
     let (mut module_tester, user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
-    let mut db_conn = test_ctx.db_ctx.db.get_conn().await.unwrap();
+    let mut inventory = test_ctx
+        .db_ctx
+        .inventory_provider
+        .get_inventory()
+        .await
+        .unwrap();
 
     // Start legal vote as user 1
     let start_parameters = UserParameters {
@@ -388,11 +395,11 @@ async fn basic_vote_live_roll_call(storage: TestContextVolatileStorage) {
     };
 
     // Expect a empty legal_vote with `legal_vote_id` to exist in database
-    let module_resource =
-        ModuleResource::get(&mut db_conn, Filter::new().with_id(*legal_vote_id.inner()))
-            .await
-            .unwrap()
-            .remove(0);
+    let module_resource = inventory
+        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .await
+        .unwrap()
+        .remove(0);
 
     assert_eq!(module_resource.id, *legal_vote_id.inner());
     assert_eq!(module_resource.created_by, user1.id);
@@ -543,11 +550,11 @@ async fn basic_vote_live_roll_call(storage: TestContextVolatileStorage) {
     }
 
     // check the vote protocol
-    let module_resource =
-        ModuleResource::get(&mut db_conn, Filter::new().with_id(*legal_vote_id.inner()))
-            .await
-            .unwrap()
-            .remove(0);
+    let module_resource = inventory
+        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .await
+        .unwrap()
+        .remove(0);
 
     assert_eq!(module_resource.id, *legal_vote_id.inner());
     assert_eq!(module_resource.created_by, user1.id);
@@ -575,7 +582,12 @@ async fn basic_vote_pseudonymous_memory() {
 async fn basic_vote_pseudonymous(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
     let (mut module_tester, user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
-    let mut db_conn = test_ctx.db_ctx.db.get_conn().await.unwrap();
+    let mut inventory = test_ctx
+        .db_ctx
+        .inventory_provider
+        .get_inventory()
+        .await
+        .unwrap();
 
     // Start legal vote as user 1
     let start_parameters = UserParameters {
@@ -638,11 +650,11 @@ async fn basic_vote_pseudonymous(storage: TestContextVolatileStorage) {
     };
 
     // Expect a empty legal_vote with `legal_vote_id` to exist in database
-    let module_resource =
-        ModuleResource::get(&mut db_conn, Filter::new().with_id(*legal_vote_id.inner()))
-            .await
-            .unwrap()
-            .remove(0);
+    let module_resource = inventory
+        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .await
+        .unwrap()
+        .remove(0);
 
     assert_eq!(module_resource.id, *legal_vote_id.inner());
     assert_eq!(module_resource.created_by, user1.id);
@@ -749,11 +761,11 @@ async fn basic_vote_pseudonymous(storage: TestContextVolatileStorage) {
     }
 
     // check the vote protocol
-    let module_resource =
-        ModuleResource::get(&mut db_conn, Filter::new().with_id(*legal_vote_id.inner()))
-            .await
-            .unwrap()
-            .remove(0);
+    let module_resource = inventory
+        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .await
+        .unwrap()
+        .remove(0);
 
     assert_eq!(module_resource.id, *legal_vote_id.inner());
     assert_eq!(module_resource.created_by, user1.id);
@@ -781,7 +793,12 @@ async fn hidden_legal_vote_memory() {
 async fn hidden_legal_vote(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
     let (mut module_tester, user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
-    let mut db_conn = test_ctx.db_ctx.db.get_conn().await.unwrap();
+    let mut inventory = test_ctx
+        .db_ctx
+        .inventory_provider
+        .get_inventory()
+        .await
+        .unwrap();
 
     // Start legal vote as user 1
     let start_parameters = UserParameters {
@@ -844,11 +861,11 @@ async fn hidden_legal_vote(storage: TestContextVolatileStorage) {
     };
 
     // Expect a empty legal_vote with `legal_vote_id` to exist in database
-    let module_resource =
-        ModuleResource::get(&mut db_conn, Filter::new().with_id(*legal_vote_id.inner()))
-            .await
-            .unwrap()
-            .remove(0);
+    let module_resource = inventory
+        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .await
+        .unwrap()
+        .remove(0);
 
     assert_eq!(module_resource.id, *legal_vote_id.inner());
     assert_eq!(module_resource.created_by, user1.id);
@@ -955,11 +972,11 @@ async fn hidden_legal_vote(storage: TestContextVolatileStorage) {
     }
 
     // check the vote protocol
-    let module_resource =
-        ModuleResource::get(&mut db_conn, Filter::new().with_id(*legal_vote_id.inner()))
-            .await
-            .unwrap()
-            .remove(0);
+    let module_resource = inventory
+        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .await
+        .unwrap()
+        .remove(0);
 
     assert_eq!(module_resource.id, *legal_vote_id.inner());
     assert_eq!(module_resource.created_by, user1.id);
@@ -988,7 +1005,12 @@ async fn basic_vote_abstain_memory() {
 async fn basic_vote_abstain(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
     let (mut module_tester, user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
-    let mut db_conn = test_ctx.db_ctx.db.get_conn().await.unwrap();
+    let mut inventory = test_ctx
+        .db_ctx
+        .inventory_provider
+        .get_inventory()
+        .await
+        .unwrap();
 
     // Start legal vote as user 1
     let start_parameters = UserParameters {
@@ -1051,11 +1073,11 @@ async fn basic_vote_abstain(storage: TestContextVolatileStorage) {
     };
 
     // Expect a empty legal_vote with `legal_vote_id` to exist in database
-    let module_resource =
-        ModuleResource::get(&mut db_conn, Filter::new().with_id(*legal_vote_id.inner()))
-            .await
-            .unwrap()
-            .remove(0);
+    let module_resource = inventory
+        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .await
+        .unwrap()
+        .remove(0);
 
     assert_eq!(module_resource.id, *legal_vote_id.inner());
     assert_eq!(module_resource.created_by, user1.id);
@@ -1206,11 +1228,11 @@ async fn basic_vote_abstain(storage: TestContextVolatileStorage) {
     }
 
     // check the vote protocol
-    let module_resource =
-        ModuleResource::get(&mut db_conn, Filter::new().with_id(*legal_vote_id.inner()))
-            .await
-            .unwrap()
-            .remove(0);
+    let module_resource = inventory
+        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .await
+        .unwrap()
+        .remove(0);
 
     assert_eq!(module_resource.id, *legal_vote_id.inner());
     assert_eq!(module_resource.created_by, user1.id);
@@ -1238,7 +1260,12 @@ async fn expired_vote_memory() {
 async fn expired_vote(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
     let (mut module_tester, user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
-    let mut db_conn = test_ctx.db_ctx.db.get_conn().await.unwrap();
+    let mut inventory = test_ctx
+        .db_ctx
+        .inventory_provider
+        .get_inventory()
+        .await
+        .unwrap();
 
     // Start legal vote as user 1
     let start_parameters = UserParameters {
@@ -1296,11 +1323,11 @@ async fn expired_vote(storage: TestContextVolatileStorage) {
     };
 
     // Expect a empty legal_vote with `legal_vote_id` to exist in database
-    let module_resource =
-        ModuleResource::get(&mut db_conn, Filter::new().with_id(*legal_vote_id.inner()))
-            .await
-            .unwrap()
-            .remove(0);
+    let module_resource = inventory
+        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .await
+        .unwrap()
+        .remove(0);
 
     assert_eq!(module_resource.id, *legal_vote_id.inner());
     assert_eq!(module_resource.created_by, user1.id);
@@ -1343,11 +1370,11 @@ async fn expired_vote(storage: TestContextVolatileStorage) {
     compare_stopped_message_except_for_timestamp(stop_message, expected_stop_message.clone());
 
     // check the vote protocol
-    let module_resource =
-        ModuleResource::get(&mut db_conn, Filter::new().with_id(*legal_vote_id.inner()))
-            .await
-            .unwrap()
-            .remove(0);
+    let module_resource = inventory
+        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .await
+        .unwrap()
+        .remove(0);
 
     assert_eq!(module_resource.id, *legal_vote_id.inner());
     assert_eq!(module_resource.created_by, user1.id);
@@ -1375,7 +1402,12 @@ async fn auto_stop_vote_memory() {
 async fn auto_stop_vote(storage: TestContextVolatileStorage) {
     let test_ctx = TestContext::new(storage).await;
     let (mut module_tester, user1, _user2) = common::setup_users::<LegalVote>(&test_ctx, ()).await;
-    let mut db_conn = test_ctx.db_ctx.db.get_conn().await.unwrap();
+    let mut inventory = test_ctx
+        .db_ctx
+        .inventory_provider
+        .get_inventory()
+        .await
+        .unwrap();
 
     // Start legal vote as user 1
     let start_parameters = UserParameters {
@@ -1438,11 +1470,11 @@ async fn auto_stop_vote(storage: TestContextVolatileStorage) {
     };
 
     // Expect a empty legal_vote with `legal_vote_id` to exist in database
-    let module_resource =
-        ModuleResource::get(&mut db_conn, Filter::new().with_id(*legal_vote_id.inner()))
-            .await
-            .unwrap()
-            .remove(0);
+    let module_resource = inventory
+        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .await
+        .unwrap()
+        .remove(0);
 
     assert_eq!(module_resource.id, *legal_vote_id.inner());
     assert_eq!(module_resource.created_by, user1.id);
@@ -1592,11 +1624,11 @@ async fn auto_stop_vote(storage: TestContextVolatileStorage) {
     }
 
     // check the vote protocol
-    let module_resource =
-        ModuleResource::get(&mut db_conn, Filter::new().with_id(*legal_vote_id.inner()))
-            .await
-            .unwrap()
-            .remove(0);
+    let module_resource = inventory
+        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .await
+        .unwrap()
+        .remove(0);
 
     assert_eq!(module_resource.id, *legal_vote_id.inner());
     assert_eq!(module_resource.created_by, user1.id);
@@ -2158,7 +2190,7 @@ async fn join_as_guest(storage: TestContextVolatileStorage) {
         .unwrap();
 
     let mut module_tester = ModuleTester::<LegalVote>::new(
-        test_ctx.db_ctx.db.clone(),
+        test_ctx.db_ctx.inventory_provider.clone(),
         test_ctx.authz.clone(),
         test_ctx.volatile.clone(),
         room,

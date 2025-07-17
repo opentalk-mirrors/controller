@@ -53,10 +53,8 @@ pub enum SignalingModuleError {
         source: crate::module_tester::NoInitError,
     },
 
-    #[snafu(context(false))]
-    DatabaseError {
-        source: opentalk_database::DatabaseError,
-    },
+    #[snafu(context(false), display("Inventory error"))]
+    InventoryError { source: opentalk_inventory::Error },
 
     #[snafu(context(false))]
     LapinError { source: lapin::Error },

@@ -4,10 +4,9 @@
 
 use std::{sync::Arc, time::Duration};
 
-use db::jobs::Job;
+use kustos::Authz;
 use opentalk_controller_settings::Settings;
-use opentalk_database::{Db, DbConnection};
-use opentalk_db_storage as db;
+use opentalk_inventory::{Inventory, InventoryProvider};
 use opentalk_signaling_core::ExchangeHandle;
 use snafu::{ResultExt, Snafu};
 use tokio::{
@@ -39,9 +38,9 @@ pub enum JobRunnerError {
 
     /// Database error
     #[snafu(display("{msg}: {source}"))]
-    Database {
+    Inventory {
         msg: String,
-        source: opentalk_database::DatabaseError,
+        source: opentalk_inventory::Error,
     },
 
     #[snafu(transparent)]
@@ -57,8 +56,8 @@ pub enum JobRunnerError {
 pub struct JobRunner {
     /// Urls of the etcd cluster
     etcd_urls: Vec<String>,
-    /// The database
-    db: Arc<Db>,
+    /// The inventory
+    inventory_provider: Arc<dyn InventoryProvider>,
     /// Shutdown channel from the controller
     shutdown: broadcast::Receiver<()>,
     /// Handle to manage election state
@@ -72,7 +71,8 @@ pub struct JobRunner {
 impl JobRunner {
     /// Start the JobRunner
     pub async fn start(
-        db: Arc<Db>,
+        inventory_provider: Arc<dyn InventoryProvider>,
+        authz: Authz,
         shutdown: broadcast::Receiver<()>,
         settings: Arc<Settings>,
         exchange_handle: ExchangeHandle,
@@ -104,7 +104,8 @@ impl JobRunner {
 
         let job_executor_handle = JobExecutorHandle::new(
             etcd_urls.clone(),
-            db.clone(),
+            inventory_provider.clone(),
+            authz.clone(),
             settings.clone(),
             exchange_handle.clone(),
         )
@@ -112,7 +113,7 @@ impl JobRunner {
 
         let mut job_runner = JobRunner {
             etcd_urls,
-            db,
+            inventory_provider,
             shutdown,
             election: election_handle,
             job_queue,
@@ -172,9 +173,13 @@ impl JobRunner {
     }
 
     async fn run_inner(&mut self) -> Result<(), JobRunnerError> {
-        let mut conn = self.db.get_conn().await.context(DatabaseSnafu {
-            msg: "Failed to get database connection",
-        })?;
+        let mut inventory =
+            self.inventory_provider
+                .get_inventory()
+                .await
+                .context(InventorySnafu {
+                    msg: "Failed to get database connection",
+                })?;
 
         let mut job_sync_interval = interval_at(
             Instant::now() + Duration::from_secs(10),
@@ -182,7 +187,7 @@ impl JobRunner {
         );
 
         // handle the initial state
-        self.handle_state_change(&mut conn).await?;
+        self.handle_state_change(inventory.as_mut()).await?;
 
         loop {
             tokio::select! {
@@ -193,12 +198,12 @@ impl JobRunner {
                 }
 
                 _ = self.election.state_changed() => {
-                    self.handle_state_change(&mut conn).await?;
+                    self.handle_state_change(inventory.as_mut()).await?;
                 }
 
                 _ = job_sync_interval.tick()  => {
                     if self.is_leader() {
-                        self.sync_job_schedules(&mut conn).await?
+                        self.sync_job_schedules(inventory.as_mut()).await?
                     }
                 }
 
@@ -217,7 +222,10 @@ impl JobRunner {
         *self.election.state_borrow() == ElectionState::Leader
     }
 
-    async fn handle_state_change(&mut self, conn: &mut DbConnection) -> Result<(), JobRunnerError> {
+    async fn handle_state_change(
+        &mut self,
+        inventory: &mut dyn Inventory,
+    ) -> Result<(), JobRunnerError> {
         // because the return type is !Send, this needs a new scope to make the borrow checker happy
         let election_state = { *self.election.state_borrow_and_update() };
 
@@ -225,17 +233,20 @@ impl JobRunner {
 
         match election_state {
             ElectionState::Follower | ElectionState::Hold => self.lost_leadership().await?,
-            ElectionState::Leader => self.gained_leadership(conn).await?,
+            ElectionState::Leader => self.gained_leadership(inventory).await?,
         }
 
         Ok(())
     }
 
-    async fn gained_leadership(&mut self, conn: &mut DbConnection) -> Result<(), JobRunnerError> {
+    async fn gained_leadership(
+        &mut self,
+        inventory: &mut dyn Inventory,
+    ) -> Result<(), JobRunnerError> {
         self.executor.start().await.context(ExecutorSnafu)?;
         self.job_queue.start().await.context(QueueSnafu)?;
 
-        self.sync_job_schedules(conn).await?;
+        self.sync_job_schedules(inventory).await?;
 
         Ok(())
     }
@@ -248,9 +259,13 @@ impl JobRunner {
     }
 
     /// Updates the local jobs and their job schedule
-    async fn sync_job_schedules(&mut self, conn: &mut DbConnection) -> Result<(), JobRunnerError> {
+    async fn sync_job_schedules(
+        &mut self,
+        inventory: &mut dyn Inventory,
+    ) -> Result<(), JobRunnerError> {
         log::debug!("syncing jobs");
-        let job_schedules = Job::get_all(conn).await.context(DatabaseSnafu {
+
+        let job_schedules = inventory.get_all_jobs().await.context(InventorySnafu {
             msg: "Failed to get all jobs from database",
         })?;
 

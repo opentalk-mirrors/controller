@@ -164,7 +164,7 @@ service_url = "https://localhost:7880"
 api_key = "your-livekit-api-key"
 api_secret = "your-livekit-api-secret"
 
-[rabbit_mq]
+#[rabbit_mq]
 # The URL to use to connect to the rabbit mq broker
 #url = "amqp://guest:guest@localhost:5672"
 

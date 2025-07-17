@@ -2,18 +2,12 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use diesel_async::{AsyncConnection, scoped_futures::ScopedFutureExt};
+use diesel_async::scoped_futures::ScopedFutureExt;
 use opentalk_controller_service::{oidc::OpenIdConnectUserInfo, phone_numbers::parse_phone_number};
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_database::DbConnection;
-use opentalk_db_storage::{
-    events::email_invites::EventEmailInvite,
-    groups::{Group, insert_user_into_groups},
-    tariffs::Tariff,
-    tenants::Tenant,
-    users::NewUser,
-};
+use opentalk_db_storage::{groups::Group, tariffs::Tariff, tenants::Tenant, users::NewUser};
+use opentalk_inventory::{Inventory, transaction};
 use opentalk_types_common::{
     tariffs::TariffStatus,
     users::{Language, UserTitle},
@@ -31,7 +25,7 @@ use super::{LoginResult, build_info_display_name};
 #[allow(clippy::too_many_arguments)]
 pub(super) async fn create_user(
     settings: &Settings,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     info: OpenIdConnectUserInfo,
     tenant: &Tenant,
     groups: Vec<Group>,
@@ -52,30 +46,33 @@ pub(super) async fn create_user(
 
     let language = info.locale.unwrap_or(fallback_locale);
 
-    conn.transaction(|conn| {
+    let login_result = transaction(inventory, |inventory| {
         async move {
-            let user = NewUser {
-                oidc_sub: info.sub,
-                email: info.email,
-                title: UserTitle::new(),
-                display_name: info_display_name,
-                firstname: info.firstname,
-                lastname: info.lastname,
-                avatar_url: info.avatar_url,
-                language,
-                phone: phone_number,
-                tenant_id: tenant.id,
-                tariff_id: tariff.id,
-                tariff_status,
-            }
-            .insert(conn)
-            .await?;
+            let user = inventory
+                .create_user(NewUser {
+                    oidc_sub: info.sub,
+                    email: info.email,
+                    title: UserTitle::new(),
+                    display_name: info_display_name,
+                    firstname: info.firstname,
+                    lastname: info.lastname,
+                    avatar_url: info.avatar_url,
+                    language,
+                    phone: phone_number,
+                    tenant_id: tenant.id,
+                    tariff_id: tariff.id,
+                    tariff_status,
+                    timezone: info.timezone,
+                })
+                .await?;
 
-            insert_user_into_groups(conn, &user, &groups).await?;
+            inventory.add_user_to_groups(&user, &groups).await?;
 
-            let event_and_room_ids = EventEmailInvite::migrate_to_user_invites(conn, &user).await?;
+            let event_and_room_ids = inventory
+                .migrate_event_email_invites_to_user_invites(&user)
+                .await?;
 
-            Ok(LoginResult::UserCreated {
+            Ok::<_, opentalk_inventory::Error>(LoginResult::UserCreated {
                 user,
                 groups,
                 event_and_room_ids,
@@ -83,5 +80,6 @@ pub(super) async fn create_user(
         }
         .scope_boxed()
     })
-    .await
+    .await?;
+    Ok(login_result)
 }

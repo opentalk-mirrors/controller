@@ -8,11 +8,7 @@ use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_utils::{
     CaptureApiError, deletion::room::associated_resource_ids_for_invite,
 };
-use opentalk_db_storage::{
-    invites::{Invite, NewInvite, UpdateInvite},
-    rooms::Room,
-    users::User,
-};
+use opentalk_db_storage::invites::{Invite, NewInvite, UpdateInvite};
 use opentalk_types_api_v1::{
     error::ApiError,
     pagination::PagePaginationQuery,
@@ -34,17 +30,17 @@ impl ControllerBackend {
         new_invite: PostInviteRequestBody,
     ) -> Result<InviteResource, CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let invite = NewInvite {
-            active: true,
-            created_by: current_user.id,
-            updated_by: current_user.id,
-            room: room_id,
-            expiration: new_invite.expiration,
-        }
-        .insert(&mut conn)
-        .await?;
+        let invite = inventory
+            .create_room_invite(NewInvite {
+                active: true,
+                created_by: current_user.id,
+                updated_by: current_user.id,
+                room: room_id,
+                expiration: new_invite.expiration,
+            })
+            .await?;
 
         let policies = PoliciesBuilder::new()
             // Grant invitee access
@@ -68,17 +64,17 @@ impl ControllerBackend {
         pagination: &PagePaginationQuery,
     ) -> Result<(GetRoomsInvitesResponseBody, i64), CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let room = Room::get(&mut conn, room_id).await?;
+        let room = inventory.get_room(room_id).await?;
 
-        let (invites_with_users, total_invites) = Invite::get_all_for_room_with_users_paginated(
-            &mut conn,
-            room.id,
-            pagination.per_page,
-            pagination.page,
-        )
-        .await?;
+        let (invites_with_users, total_invites) = inventory
+            .get_room_invites_paginated_with_creator_and_updater(
+                room.id,
+                pagination.per_page,
+                pagination.page,
+            )
+            .await?;
 
         let invites = invites_with_users
             .into_iter()
@@ -99,10 +95,11 @@ impl ControllerBackend {
         invite_code: InviteCode,
     ) -> Result<InviteResource, CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let (invite, created_by, updated_by) =
-            Invite::get_with_users(&mut conn, invite_code).await?;
+        let (invite, created_by, updated_by) = inventory
+            .get_room_invite_with_creator_and_updater(invite_code)
+            .await?;
 
         if invite.room != room_id {
             return Err(ApiError::not_found().into());
@@ -122,26 +119,30 @@ impl ControllerBackend {
         body: PutInviteRequestBody,
     ) -> Result<InviteResource, CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let invite = Invite::get(&mut conn, invite_code).await?;
+        let (invite, created_by, _updated_by) = inventory
+            .get_room_invite_with_creator_and_updater(invite_code)
+            .await?;
 
         if invite.room != room_id {
             return Err(ApiError::not_found().into());
         }
 
-        let created_by = User::get(&mut conn, invite.created_by).await?;
-
         let now = Utc::now();
-        let changeset = UpdateInvite {
-            updated_by: Some(current_user.id),
-            updated_at: Some(now),
-            expiration: Some(body.expiration),
-            active: None,
-            room: None,
-        };
-
-        let invite = changeset.apply(&mut conn, room_id, invite_code).await?;
+        let invite = inventory
+            .update_room_invite(
+                room_id,
+                invite_code,
+                UpdateInvite {
+                    updated_by: Some(current_user.id),
+                    updated_at: Some(now),
+                    expiration: Some(body.expiration),
+                    active: None,
+                    room: None,
+                },
+            )
+            .await?;
 
         let created_by = created_by.to_public_user_profile(&settings);
         let updated_by = current_user.to_public_user_profile(&settings);
@@ -155,17 +156,21 @@ impl ControllerBackend {
         room_id: RoomId,
         invite_code: InviteCode,
     ) -> Result<(), CaptureApiError> {
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let changeset = UpdateInvite {
-            updated_by: Some(current_user.id),
-            updated_at: Some(Utc::now()),
-            expiration: None,
-            active: Some(false),
-            room: None,
-        };
-
-        _ = changeset.apply(&mut conn, room_id, invite_code).await?;
+        _ = inventory
+            .update_room_invite(
+                room_id,
+                invite_code,
+                UpdateInvite {
+                    updated_by: Some(current_user.id),
+                    updated_at: Some(Utc::now()),
+                    expiration: None,
+                    active: Some(false),
+                    room: None,
+                },
+            )
+            .await?;
 
         let associated_resources = Vec::from_iter(associated_resource_ids_for_invite(room_id));
         let _ = self
@@ -180,10 +185,10 @@ impl ControllerBackend {
         &self,
         data: PostInviteVerifyRequestBody,
     ) -> Result<PostInviteVerifyResponseBody, CaptureApiError> {
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let invite = Invite::get(&mut conn, data.invite_code).await?;
-        let room = Room::get(&mut conn, invite.room).await?;
+        let invite = inventory.get_room_invite(data.invite_code).await?;
+        let room = inventory.get_room(invite.room).await?;
 
         if invite.active {
             if let Some(expiration) = invite.expiration {

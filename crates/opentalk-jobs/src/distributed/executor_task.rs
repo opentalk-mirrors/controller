@@ -5,14 +5,15 @@
 use std::{borrow::BorrowMut, sync::Arc, time::Duration};
 
 use chrono::Utc;
-use db::jobs::{Job, JobStatus, NewJobExecution, UpdateJobExecution};
+use db::jobs::{JobStatus, NewJobExecution, UpdateJobExecution};
 use etcd_client::{
     Client, Compare, CompareOp, EventType, GetOptions, KeyValue, PutOptions, TxnOp, WatchOptions,
 };
+use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::Settings;
-use opentalk_database::Db;
 use opentalk_db_storage as db;
+use opentalk_inventory::InventoryProvider;
 use opentalk_signaling_core::ExchangeHandle;
 use snafu::{ResultExt, Snafu};
 use tokio::{sync::oneshot, task::JoinHandle, time::interval};
@@ -39,9 +40,9 @@ pub enum ExecutorError {
     ExecutionLoggerError { source: ExecutionLoggerError },
 
     #[snafu(display("{msg}: {source}"))]
-    Database {
+    Inventory {
         msg: String,
-        source: opentalk_database::DatabaseError,
+        source: opentalk_inventory::Error,
     },
 
     #[snafu(transparent)]
@@ -88,7 +89,8 @@ pub enum ExecutorError {
 pub struct JobExecutorHandle {
     etcd_urls: Vec<String>,
     settings: Arc<Settings>,
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
+    authz: Authz,
     exchange_handle: ExchangeHandle,
     /// Handle to the inner JobExecutor task
     inner_handle: Option<InnerHandle>,
@@ -104,14 +106,16 @@ struct InnerHandle {
 impl JobExecutorHandle {
     pub async fn new(
         etcd_urls: Vec<String>,
-        db: Arc<Db>,
+        inventory_provider: Arc<dyn InventoryProvider>,
+        authz: Authz,
         settings: Arc<Settings>,
         exchange_handle: ExchangeHandle,
     ) -> Self {
         Self {
             etcd_urls,
             settings,
-            db,
+            inventory_provider,
+            authz,
             exchange_handle,
             inner_handle: None,
         }
@@ -128,7 +132,8 @@ impl JobExecutorHandle {
 
         let handle = JobExecutor::start(
             self.etcd_urls.clone(),
-            self.db.clone(),
+            self.inventory_provider.clone(),
+            self.authz.clone(),
             self.settings.clone(),
             self.exchange_handle.clone(),
         )
@@ -172,7 +177,8 @@ impl JobExecutorHandle {
 /// Jobs are run in sequence to avoid potential collisions between multiple jobs.
 pub(crate) struct JobExecutor {
     settings: Arc<Settings>,
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
+    authz: Authz,
     exchange_handle: ExchangeHandle,
     client: Client,
     lease_id: i64,
@@ -183,7 +189,8 @@ pub(crate) struct JobExecutor {
 impl JobExecutor {
     async fn start(
         etcd_urls: Vec<String>,
-        db: Arc<Db>,
+        inventory_provider: Arc<dyn InventoryProvider>,
+        authz: Authz,
         settings: Arc<Settings>,
         exchange_handle: ExchangeHandle,
     ) -> Result<InnerHandle, ExecutorError> {
@@ -197,7 +204,8 @@ impl JobExecutor {
 
         let this = Self {
             settings,
-            db,
+            inventory_provider,
+            authz,
             exchange_handle,
             client,
             lease_id,
@@ -326,35 +334,40 @@ impl JobExecutor {
     async fn run_job_inner(&mut self, job_id: i64) -> Result<(), ExecutorError> {
         self.mark_job_as_running(job_id).await?;
 
-        let mut conn = self.db.get_conn().await.context(DatabaseSnafu {
-            msg: "Failed to get database connection",
-        })?;
+        let mut inventory =
+            self.inventory_provider
+                .get_inventory()
+                .await
+                .context(InventorySnafu {
+                    msg: "Failed to get database connection",
+                })?;
 
-        let job = Job::get(&mut conn, job_id.into())
+        let job = inventory
+            .get_job(job_id.into())
             .await
-            .context(DatabaseSnafu {
+            .context(InventorySnafu {
                 msg: "Failed to get Job from database",
             })?;
 
-        let new_job_execution = NewJobExecution {
-            job_id: job.id,
-            started_at: Utc::now(),
-            ended_at: None,
-            job_status: JobStatus::Started,
-        };
-
-        let job_execution = new_job_execution
-            .insert(&mut conn)
+        let job_execution = inventory
+            .create_job_execution(NewJobExecution {
+                job_id: job.id,
+                started_at: Utc::now(),
+                ended_at: None,
+                job_status: JobStatus::Started,
+            })
             .await
-            .context(DatabaseSnafu {
+            .context(InventorySnafu {
                 msg: "Failed to insert new JobExecution",
             })?;
 
-        let logger = ExecutionLogger::create(job_execution.id, self.db.clone()).await;
+        let logger =
+            ExecutionLogger::create(job_execution.id, self.inventory_provider.clone()).await;
 
         let execution_data = JobExecutionData {
             logger: &logger,
-            db: self.db.clone(),
+            inventory_provider: self.inventory_provider.clone(),
+            authz: self.authz.clone(),
             exchange_handle: self.exchange_handle.clone(),
             settings: self.settings.clone(),
             parameters: job.parameters,
@@ -389,10 +402,10 @@ impl JobExecutor {
             },
         };
 
-        job_execution_update
-            .apply(&mut conn, job_execution.id)
+        inventory
+            .update_job_execution(job_execution.id, job_execution_update)
             .await
-            .context(DatabaseSnafu {
+            .context(InventorySnafu {
                 msg: "Failed to apply JobExecution update after job ended",
             })?;
 
@@ -568,7 +581,8 @@ fn parse_job_id(kv: &KeyValue) -> Result<i64, ExecutorError> {
 #[derive(Clone)]
 struct JobExecutionData<'a> {
     logger: &'a ExecutionLogger,
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
+    authz: Authz,
     exchange_handle: ExchangeHandle,
     settings: Arc<Settings>,
     parameters: serde_json::Value,
@@ -580,7 +594,8 @@ impl JobExecutionData<'_> {
     async fn execute<J: JobImpl>(self) -> Result<(), crate::Error> {
         crate::execute::<J>(
             self.logger,
-            self.db,
+            self.inventory_provider,
+            self.authz,
             self.exchange_handle,
             &self.settings,
             self.parameters,

@@ -6,7 +6,6 @@
 
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_db_storage::events::{Event, EventFavorite, NewEventFavorite};
 use opentalk_types_api_v1::error::ApiError;
 use opentalk_types_common::events::EventId;
 
@@ -18,21 +17,14 @@ impl ControllerBackend {
         current_user: RequestUser,
         event_id: EventId,
     ) -> Result<bool, CaptureApiError> {
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let _event = Event::get(&mut conn, event_id).await?;
+        let _event = inventory.get_event(event_id).await?;
 
-        let result = NewEventFavorite {
-            user_id: current_user.id,
-            event_id,
-        }
-        .try_insert(&mut conn)
-        .await?;
-
-        match result {
-            Some(_) => Ok(true), // created
-            None => Ok(false),   // no change
-        }
+        let created = inventory
+            .create_event_favorite_for_user(event_id, current_user.id)
+            .await?;
+        Ok(created)
     }
 
     pub(crate) async fn remove_event_from_favorites(
@@ -40,9 +32,11 @@ impl ControllerBackend {
         current_user: RequestUser,
         event_id: EventId,
     ) -> Result<(), CaptureApiError> {
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let existed = EventFavorite::delete_by_id(&mut conn, current_user.id, event_id).await?;
+        let existed = inventory
+            .delete_event_favorite_for_user(event_id, current_user.id)
+            .await?;
 
         if existed {
             Ok(())

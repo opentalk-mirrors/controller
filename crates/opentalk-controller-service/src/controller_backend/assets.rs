@@ -5,7 +5,6 @@
 use bytes::Bytes;
 use futures_core::Stream;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_db_storage::assets::Asset;
 use opentalk_signaling_core::{
     ChunkFormat, ObjectStorageError,
     assets::{ByStreamExt, NewAssetFileName, delete_asset, get_asset, save_asset},
@@ -24,15 +23,11 @@ impl ControllerBackend {
         room_id: RoomId,
         pagination: &PagePaginationQuery,
     ) -> Result<(RoomsByRoomIdAssetsGetResponseBody, i64), CaptureApiError> {
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let (assets, asset_count) = Asset::get_all_for_room_paginated(
-            &mut conn,
-            room_id,
-            pagination.per_page,
-            pagination.page,
-        )
-        .await?;
+        let (assets, asset_count) = inventory
+            .get_all_assets_for_room_paginated(room_id, pagination.per_page, pagination.page)
+            .await?;
 
         let assets = assets.into_iter().map(asset_to_asset_resource).collect();
         let assets = RoomsByRoomIdAssetsGetResponseBody(assets);
@@ -45,9 +40,9 @@ impl ControllerBackend {
         room_id: RoomId,
         asset_id: AssetId,
     ) -> Result<ByStreamExt, CaptureApiError> {
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let asset = Asset::get(&mut conn, asset_id, room_id).await?;
+        let asset = inventory.get_asset_for_room(room_id, asset_id).await?;
 
         let stream = get_asset(&self.storage, &asset.id).await?;
 
@@ -63,7 +58,7 @@ impl ControllerBackend {
     ) -> Result<AssetResource, CaptureApiError> {
         let (asset_id, _filename) = save_asset(
             &self.storage.clone(),
-            self.db.clone(),
+            self.inventory_provider.as_ref(),
             room_id,
             namespace,
             filename,
@@ -72,7 +67,12 @@ impl ControllerBackend {
         )
         .await?;
 
-        let asset = Asset::get(&mut self.db.get_conn().await?, asset_id, room_id).await?;
+        let asset = self
+            .inventory_provider
+            .get_inventory()
+            .await?
+            .get_asset_for_room(room_id, asset_id)
+            .await?;
 
         Ok(asset_to_asset_resource(asset))
     }
@@ -82,7 +82,13 @@ impl ControllerBackend {
         room_id: RoomId,
         asset_id: AssetId,
     ) -> Result<(), CaptureApiError> {
-        delete_asset(&self.storage, &self.db, room_id, asset_id).await?;
+        delete_asset(
+            &self.storage,
+            self.inventory_provider.as_ref(),
+            room_id,
+            asset_id,
+        )
+        .await?;
 
         Ok(())
     }

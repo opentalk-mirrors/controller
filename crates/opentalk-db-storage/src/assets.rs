@@ -36,7 +36,7 @@ pub struct Asset {
 
 impl Asset {
     #[tracing::instrument(err, skip_all)]
-    pub async fn get(conn: &mut DbConnection, id: AssetId, room_id: RoomId) -> Result<Self> {
+    pub async fn get(conn: &mut DbConnection, room_id: RoomId, asset_id: AssetId) -> Result<Self> {
         //FIXME: The inner_join below (as well as the room_id parameter) can be removed when assets have their own
         // permission check and don't rely on room permissions
 
@@ -46,7 +46,7 @@ impl Asset {
                     .eq(assets::id)
                     .and(room_assets::room_id.eq(room_id))),
             )
-            .filter(assets::id.eq(id))
+            .filter(assets::id.eq(asset_id))
             .select(assets::all_columns);
 
         let resource: Asset = query.get_result(conn).await?;
@@ -123,8 +123,8 @@ impl Asset {
     #[tracing::instrument(err, skip_all)]
     pub async fn delete_by_id(
         conn: &mut DbConnection,
-        asset_id: AssetId,
         room_id: RoomId,
+        asset_id: AssetId,
     ) -> Result<()> {
         conn.transaction(|conn| {
             async move {
@@ -253,7 +253,6 @@ pub async fn get_all_for_room_owner_paginated_ordered(
     };
 
     let query = query.paginate_by(limit, page);
-
     Ok(query.load_and_count(conn).await?)
 }
 

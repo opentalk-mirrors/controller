@@ -8,8 +8,7 @@ use async_trait::async_trait;
 use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::Settings;
-use opentalk_database::{Db, DbConnection};
-use opentalk_db_storage::rooms::Room;
+use opentalk_inventory::{Inventory, InventoryProvider};
 use opentalk_log::{debug, info};
 use opentalk_signaling_core::{ExchangeHandle, ObjectStorage};
 use opentalk_types_common::rooms::RoomId;
@@ -47,7 +46,8 @@ impl Job for RoomCleanup {
 
     async fn execute(
         logger: &dyn Log,
-        db: Arc<Db>,
+        inventory_provider: Arc<dyn InventoryProvider>,
+        authz: Authz,
         exchange_handle: ExchangeHandle,
         settings: &Settings,
         parameters: Self::Parameters,
@@ -55,13 +55,11 @@ impl Job for RoomCleanup {
         info!(log: logger, "Starting orphaned rooms cleanup job");
         debug!(log: logger, "Job parameters: {parameters:?}");
 
-        let mut conn = db.get_conn().await?;
-
-        let authz = Authz::new(db.clone()).await?;
+        let mut inventory = inventory_provider.get_inventory().await?;
 
         let object_storage = ObjectStorage::new(&settings.minio).await?;
 
-        let orphaned_rooms = find_orphaned_rooms(&mut conn).await?;
+        let orphaned_rooms = find_orphaned_rooms(inventory.as_mut()).await?;
 
         if orphaned_rooms.is_empty() {
             info!(log: logger, "No orphaned rooms found. Job finished!");
@@ -70,7 +68,7 @@ impl Job for RoomCleanup {
 
         delete_orphaned_rooms(
             logger,
-            &mut conn,
+            inventory.as_mut(),
             &authz,
             exchange_handle,
             settings,
@@ -84,8 +82,8 @@ impl Job for RoomCleanup {
     }
 }
 
-async fn find_orphaned_rooms(conn: &mut DbConnection) -> Result<HashSet<RoomId>, Error> {
-    let rooms = Room::get_all_orphaned_ids(conn).await?;
+async fn find_orphaned_rooms(inventory: &mut dyn Inventory) -> Result<HashSet<RoomId>, Error> {
+    let rooms = inventory.get_all_orphaned_room_ids().await?;
 
     Ok(HashSet::from_iter(rooms.into_iter()))
 }

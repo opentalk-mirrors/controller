@@ -6,8 +6,8 @@ use std::{marker::PhantomData, sync::Arc};
 
 use futures::{Stream, stream::SelectAll};
 use kustos::Authz;
-use opentalk_database::Db;
 use opentalk_db_storage::{rooms::Room, users::User};
+use opentalk_inventory::InventoryProvider;
 use opentalk_types_common::{rooms::BreakoutRoomId, tariffs::TariffResource};
 use opentalk_types_signaling::{ParticipantId, Role};
 
@@ -31,7 +31,7 @@ where
     pub breakout_room: Option<BreakoutRoomId>,
     pub participant: &'ctx Participant<User>,
     pub role: Role,
-    pub db: &'ctx Arc<Db>,
+    pub inventory_provider: &'ctx Arc<dyn InventoryProvider>,
     pub storage: &'ctx Arc<ObjectStorage>,
     pub authz: &'ctx Arc<Authz>,
     pub exchange_bindings: &'ctx mut Vec<ExchangeBinding>,
@@ -78,9 +78,9 @@ where
         self.role
     }
 
-    /// Returns a reference to the controllers database interface
-    pub fn db(&self) -> &Arc<Db> {
-        self.db
+    /// Returns a reference to the inventory provider used by the controller.
+    pub fn inventory_provider(&self) -> &Arc<dyn InventoryProvider> {
+        self.inventory_provider
     }
 
     /// Returns a reference to the controllers S3 storage interface

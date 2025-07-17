@@ -4,12 +4,11 @@
 
 //! Utility to map a phone number to a users display name or convert it to a more readable format
 
-use std::{convert::TryFrom, sync::Arc};
+use std::convert::TryFrom;
 
 use opentalk_controller_service::phone_numbers::parse_phone_number;
 use opentalk_controller_settings as settings;
-use opentalk_database::Db;
-use opentalk_db_storage::users::User;
+use opentalk_inventory::InventoryProvider;
 use opentalk_types_common::{tenants::TenantId, users::DisplayName};
 use phonenumber::PhoneNumber;
 
@@ -19,7 +18,7 @@ use phonenumber::PhoneNumber;
 ///
 /// Returns the display name for a given SIP display name, e.g. a phone number
 pub async fn display_name(
-    db: &Arc<Db>,
+    inventory_provider: &dyn InventoryProvider,
     settings: &settings::CallIn,
     tenant_id: TenantId,
     phone_number_display_name: DisplayName,
@@ -36,7 +35,7 @@ pub async fn display_name(
 
     if settings.enable_phone_mapping {
         if let Some(display_name) =
-            try_map_to_user_display_name(db, tenant_id, &parsed_number).await
+            try_map_to_user_display_name(inventory_provider, tenant_id, &parsed_number).await
         {
             return display_name;
         }
@@ -57,17 +56,20 @@ pub async fn display_name(
 ///
 /// Returns [`None`] the phone number is invalid or cannot be parsed
 async fn try_map_to_user_display_name(
-    db: &Arc<Db>,
+    inventory_provider: &dyn InventoryProvider,
     tenant_id: TenantId,
     phone_number: &PhoneNumber,
 ) -> Option<DisplayName> {
-    let phone_e164 = phone_number
+    let phone_number_e164 = phone_number
         .format()
         .mode(phonenumber::Mode::E164)
         .to_string();
 
-    let mut conn = db.get_conn().await.ok()?;
-    let result = User::get_by_phone(&mut conn, tenant_id, &phone_e164).await;
+    let mut inventory = inventory_provider.get_inventory().await.ok()?;
+
+    let result = inventory
+        .get_users_by_phone_number(tenant_id, &phone_number_e164)
+        .await;
 
     let users = match result {
         Ok(users) => users,

@@ -40,6 +40,7 @@ pub async fn make_user(
         tenant_id: tenant.id,
         tariff_id: tariff.id,
         tariff_status: TariffStatus::Default,
+        timezone: None,
     }
     .insert(conn)
     .await

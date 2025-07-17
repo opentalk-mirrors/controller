@@ -4,12 +4,11 @@
 
 //! Functionality to delete users including all associated resources
 
-use diesel_async::{AsyncConnection, scoped_futures::ScopedFutureExt};
+use diesel_async::scoped_futures::ScopedFutureExt;
 use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::Settings;
-use opentalk_database::{DatabaseError, DbConnection};
-use opentalk_db_storage::{groups::remove_user_from_all_groups, users::User};
+use opentalk_inventory::{Inventory, transaction};
 use opentalk_log::debug;
 use opentalk_signaling_core::{ExchangeHandle, ObjectStorage};
 use opentalk_types_common::users::UserId;
@@ -37,7 +36,7 @@ impl Deleter for UserDeleter {
     async fn prepare_commit(
         &self,
         _logger: &dyn Log,
-        _conn: &mut DbConnection,
+        _inventory: &mut dyn Inventory,
     ) -> Result<Self::PreparedCommit, Error> {
         Ok(())
     }
@@ -56,27 +55,27 @@ impl Deleter for UserDeleter {
         &self,
         _prepared_commit: &Self::PreparedCommit,
         _logger: &dyn Log,
-        _conn: &mut DbConnection,
+        _inventory: &mut dyn Inventory,
         _exchange_handle: ExchangeHandle,
         _settings: &Settings,
     ) -> Result<(), Error> {
         Ok(())
     }
 
-    async fn commit_to_database(
+    async fn commit_to_inventory(
         &self,
         _prepared_commit: Self::PreparedCommit,
         logger: &dyn Log,
-        conn: &mut DbConnection,
+        inventory: &mut dyn Inventory,
     ) -> Result<Self::CommitOutput, Error> {
         let user_id = self.user_id;
 
         debug!(log: logger, "Deleting all database resources of user {user_id}");
-        let _transaction_result: Result<(), DatabaseError> = conn
-            .transaction(|conn| {
+        let _transaction_result: Result<(), opentalk_inventory::Error> =
+            transaction(inventory, |inventory| {
                 async move {
-                    remove_user_from_all_groups(conn, user_id).await?;
-                    User::delete_by_id(conn, user_id).await?;
+                    inventory.remove_user_from_all_groups(user_id).await?;
+                    inventory.delete_user(user_id).await?;
 
                     Ok(())
                 }

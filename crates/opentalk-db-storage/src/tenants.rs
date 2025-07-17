@@ -43,6 +43,12 @@ use crate::schema::{tenants, users};
 #[from_redis_value(FromStr)]
 pub struct OidcTenantId(String);
 
+impl From<&str> for OidcTenantId {
+    fn from(value: &str) -> Self {
+        Self::from(value.to_string())
+    }
+}
+
 #[derive(Debug, Clone, Queryable, Identifiable, Serialize, Deserialize, Encode, Decode)]
 pub struct Tenant {
     pub id: TenantId,

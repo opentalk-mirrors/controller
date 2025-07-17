@@ -7,7 +7,7 @@ use std::sync::Arc;
 use client::SpacedeckClient;
 use either::Either;
 use futures::stream::once;
-use opentalk_database::Db;
+use opentalk_inventory::InventoryProvider;
 use opentalk_signaling_core::{
     ChunkFormat, CleanupScope, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage,
     SignalingModule, SignalingModuleError, SignalingModuleInitData, SignalingRoomId,
@@ -38,7 +38,7 @@ mod storage;
 pub struct Whiteboard {
     room_id: SignalingRoomId,
     client: SpacedeckClient,
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
     storage: Arc<ObjectStorage>,
 }
 
@@ -97,7 +97,7 @@ impl SignalingModule for Whiteboard {
         Ok(Some(Self {
             room_id: ctx.room_id(),
             client,
-            db: ctx.db().clone(),
+            inventory_provider: ctx.inventory_provider().clone(),
             storage: ctx.storage().clone(),
         }))
     }
@@ -203,7 +203,7 @@ impl SignalingModule for Whiteboard {
 
                 let (asset_id, filename) = match save_asset(
                     &self.storage,
-                    self.db.clone(),
+                    self.inventory_provider.as_ref(),
                     self.room_id.room_id(),
                     Some(Self::NAMESPACE),
                     filename,

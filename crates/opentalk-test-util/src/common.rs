@@ -134,7 +134,7 @@ pub async fn setup_users<M: SignalingModule>(
         .unwrap();
 
     let mut module_tester = ModuleTester::new(
-        test_ctx.db_ctx.db.clone(),
+        test_ctx.db_ctx.inventory_provider.clone(),
         test_ctx.authz.clone(),
         test_ctx.volatile.clone(),
         room,

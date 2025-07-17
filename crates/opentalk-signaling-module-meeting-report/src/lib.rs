@@ -9,8 +9,8 @@ use chrono::{DateTime, Local, Utc};
 use chrono_tz::Tz;
 use either::Either;
 use futures::{StreamExt as _, TryStreamExt, stream};
-use opentalk_database::Db;
-use opentalk_db_storage::{events::Event as DbEvent, users::User};
+use opentalk_db_storage::events::Event as DbEvent;
+use opentalk_inventory::InventoryProvider;
 use opentalk_report_generation::ToReportDateTime;
 use opentalk_signaling_core::{
     ChunkFormat, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage,
@@ -62,7 +62,7 @@ impl MeetingReportStorageProvider for VolatileStorage {
 
 pub struct MeetingReport {
     room_id: SignalingRoomId,
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
     storage: Arc<ObjectStorage>,
 }
 
@@ -91,7 +91,7 @@ impl SignalingModule for MeetingReport {
     ) -> Result<Option<Self>, SignalingModuleError> {
         Ok(Some(Self {
             room_id: ctx.room_id(),
-            db: ctx.db.clone(),
+            inventory_provider: ctx.inventory_provider().clone(),
             storage: ctx.storage.clone(),
         }))
     }
@@ -178,16 +178,17 @@ impl MeetingReport {
     ) -> Result<(Vec<ReportParticipant>, DbEvent, TimeZone), SignalingModuleError> {
         const CONCURRENT_PARTICIPANT_QUERIES: usize = 10;
 
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
         let storage = ctx.volatile.storage();
 
-        let event = DbEvent::get_for_room(&mut conn, self.room_id.room_id())
+        let event = inventory
+            .get_event_for_room(self.room_id.room_id())
             .await?
             .ok_or(SignalingModuleError::NotFoundError {
                 message: "Room not found".to_string(),
             })?;
 
-        let event_creator = User::get(&mut conn, event.created_by).await?;
+        let event_creator = inventory.get_user(event.created_by).await?;
         let timezone = event_creator.timezone.unwrap_or(TimeZone::from(Tz::UTC));
         let tz = Tz::from(timezone);
 
@@ -269,7 +270,7 @@ impl MeetingReport {
         let report = Box::pin(report);
         let result = save_asset(
             &self.storage,
-            self.db.clone(),
+            self.inventory_provider.as_ref(),
             self.room_id.room_id(),
             Some(Self::NAMESPACE),
             file_name,
@@ -338,8 +339,12 @@ impl MeetingReport {
 
         let email = match (include_email_addresses, user_id) {
             (true, Some(user_id)) => {
-                let mut conn = self.db.get_conn().await?;
-                let user = User::get(&mut conn, user_id).await?;
+                let user = self
+                    .inventory_provider
+                    .get_inventory()
+                    .await?
+                    .get_user(user_id)
+                    .await?;
 
                 Some(user.email)
             }

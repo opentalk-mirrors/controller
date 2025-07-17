@@ -59,6 +59,8 @@ use opentalk_controller_settings::{
     HttpTls, Monitoring, Settings, SettingsProvider, UserSearchBackend, UserSearchBackendKeycloak,
 };
 use opentalk_database::Db;
+use opentalk_inventory::InventoryProvider;
+use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_jobs::job_runner::JobRunner;
 use opentalk_keycloak_admin::{AuthorizedClient, KeycloakAdminClient};
 use opentalk_roomserver_client::Client as RoomServerClient;
@@ -195,6 +197,8 @@ pub struct Controller {
     args: cli::Args,
 
     db: Arc<Db>,
+
+    inventory_provider: Arc<dyn InventoryProvider>,
 
     storage: Arc<ObjectStorage>,
 
@@ -435,6 +439,7 @@ impl Controller {
             None
         };
 
+        let inventory_provider = Arc::new(DatabaseConnectionPool::new(db.clone()));
         let backend = {
             let oidc_provider = OidcProvider {
                 name: oidc_frontend.client_id.to_string(),
@@ -444,7 +449,7 @@ impl Controller {
             ControllerBackend::new(
                 settings_provider.clone(),
                 authz.clone(),
-                db.clone(),
+                inventory_provider.clone(),
                 oidc_provider,
                 storage.clone(),
                 volatile.clone(),
@@ -463,6 +468,7 @@ impl Controller {
             settings_provider,
             args,
             db,
+            inventory_provider,
             storage,
             oidc,
             user_search_client,
@@ -491,7 +497,8 @@ impl Controller {
 
         // Start JobExecutor
         JobRunner::start(
-            self.db.clone(),
+            self.inventory_provider.clone(),
+            self.authz.clone(),
             self.shutdown.subscribe(),
             self.startup_settings.clone(),
             self.exchange_handle.clone(),
@@ -530,7 +537,10 @@ impl Controller {
                 let cors = setup_cors();
 
                 // Unwraps cannot panic. Server gets stopped before dropping the Arc.
-                let db = Data::from(db.upgrade().unwrap());
+                let db = db.upgrade().unwrap();
+                let inventory_provider: Arc<dyn InventoryProvider> =
+                    Arc::new(DatabaseConnectionPool::new(db.clone()));
+                let inventory_provider = Data::from(inventory_provider);
                 let storage = Data::from(storage.upgrade().unwrap());
 
                 let oidc_ctx = Data::from(oidc_ctx.upgrade().unwrap());
@@ -551,7 +561,7 @@ impl Controller {
                     .app_data(caches.clone())
                     .app_data(web::JsonConfig::default().error_handler(json_error_handler))
                     .app_data(Data::new(settings_provider.clone()))
-                    .app_data(db.clone())
+                    .app_data(inventory_provider.clone())
                     .app_data(storage)
                     .app_data(oidc_ctx.clone())
                     .app_data(user_search_client.clone())
@@ -570,7 +580,7 @@ impl Controller {
                     .service(v1_scope(
                         settings_provider.clone(),
                         authz,
-                        db.clone(),
+                        inventory_provider.clone(),
                         oidc_ctx.clone(),
                         acl,
                     ))
@@ -1002,7 +1012,7 @@ impl utoipa::Modify for SecurityAddon {
 fn v1_scope(
     settings_provider: SettingsProvider,
     authz: Data<kustos::Authz>,
-    db: Data<Db>,
+    inventory_provider: Data<dyn InventoryProvider>,
     oidc_ctx: Data<OidcContext>,
     acl: kustos::actix_web::KustosService,
 ) -> Scope {
@@ -1031,8 +1041,8 @@ fn v1_scope(
                 .wrap(acl)
                 .wrap(api::v1::middleware::user_auth::OidcAuth {
                     settings_provider,
+                    inventory_provider,
                     authz,
-                    db,
                     oidc_ctx,
                 })
                 .service(api::v1::users::find)

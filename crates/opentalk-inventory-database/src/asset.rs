@@ -28,14 +28,14 @@ impl AssetInventory for DatabaseConnection {
 
     #[tracing::instrument(err, skip_all)]
     async fn delete_asset_from_room(&mut self, room_id: RoomId, asset_id: AssetId) -> Result<()> {
-        Asset::delete_by_id(&mut self.inner, asset_id, room_id)
+        Asset::delete_by_id(&mut self.inner, room_id, asset_id)
             .await
             .context(StorageBackendSnafu)
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_asset_for_room(&mut self, room_id: RoomId, asset_id: AssetId) -> Result<Asset> {
-        Asset::get(&mut self.inner, asset_id, room_id)
+        Asset::get(&mut self.inner, room_id, asset_id)
             .await
             .context(StorageBackendSnafu)
     }

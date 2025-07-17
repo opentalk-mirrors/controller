@@ -50,7 +50,7 @@ async fn last_seen_timestamps() {
         .unwrap();
 
     let mut module_tester = ModuleTester::<Chat>::new(
-        test_ctx.db_ctx.db.clone(),
+        test_ctx.db_ctx.inventory_provider.clone(),
         test_ctx.authz,
         test_ctx.volatile,
         room,
@@ -256,7 +256,7 @@ async fn common_groups_on_join() {
         .unwrap();
 
     let mut module_tester = ModuleTester::<Chat>::new(
-        test_ctx.db_ctx.db.clone(),
+        test_ctx.db_ctx.inventory_provider.clone(),
         test_ctx.authz,
         test_ctx.volatile,
         room,
@@ -394,7 +394,7 @@ async fn private_chat_history_on_join() {
         .unwrap();
 
     let mut module_tester = ModuleTester::<Chat>::new(
-        test_ctx.db_ctx.db.clone(),
+        test_ctx.db_ctx.inventory_provider.clone(),
         test_ctx.authz,
         test_ctx.volatile,
         room,

@@ -2,16 +2,16 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use diesel_async::{AsyncConnection, scoped_futures::ScopedFutureExt};
+use diesel_async::scoped_futures::ScopedFutureExt;
 use opentalk_controller_service::{oidc::OpenIdConnectUserInfo, phone_numbers::parse_phone_number};
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_database::DbConnection;
 use opentalk_db_storage::{
-    groups::{Group, insert_user_into_groups, remove_user_from_groups},
+    groups::Group,
     tariffs::Tariff,
     users::{UpdateUser, User},
 };
+use opentalk_inventory::{Inventory, transaction};
 use opentalk_types_common::{tariffs::TariffStatus, users::DisplayName};
 
 use super::{LoginResult, build_info_display_name};
@@ -26,7 +26,7 @@ use super::{LoginResult, build_info_display_name};
 /// Returns the user and all groups the user was removed from and added to.
 pub(super) async fn update_user(
     settings: &Settings,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     user: User,
     info: OpenIdConnectUserInfo,
     groups: Vec<Group>,
@@ -52,26 +52,30 @@ pub(super) async fn update_user(
     let user = if changeset.is_empty() {
         user
     } else {
-        changeset.apply(conn, user.id).await?
+        inventory.update_user(user.id, changeset).await?
     };
 
-    conn.transaction(|conn| {
+    let login_result = transaction(inventory, |inventory| {
         async move {
-            let curr_groups = Group::get_all_for_user(conn, user.id).await?;
+            let curr_groups = inventory.get_groups_for_user(user.id).await?;
 
             // Add user to added groups
             let groups_added_to = difference_by(&groups, &curr_groups, |group| &group.id);
             if !groups_added_to.is_empty() {
-                insert_user_into_groups(conn, &user, &groups_added_to).await?;
+                inventory
+                    .add_user_to_groups(&user, &groups_added_to)
+                    .await?;
             }
 
             // Remove user from removed groups
             let groups_removed_from = difference_by(&curr_groups, &groups, |group| &group.id);
             if !groups_removed_from.is_empty() {
-                remove_user_from_groups(conn, &user, &groups_removed_from).await?;
+                inventory
+                    .remove_user_from_groups(&user, &groups_removed_from)
+                    .await?;
             }
 
-            Ok(LoginResult::UserUpdated {
+            Ok::<_, opentalk_inventory::Error>(LoginResult::UserUpdated {
                 user,
                 groups_added_to,
                 groups_removed_from,
@@ -79,7 +83,8 @@ pub(super) async fn update_user(
         }
         .scope_boxed()
     })
-    .await
+    .await?;
+    Ok(login_result)
 }
 
 /// Create an [`UpdateUser`] changeset based on a comparison between `user` and `token_info`

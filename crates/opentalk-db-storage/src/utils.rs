@@ -4,7 +4,6 @@
 
 use std::{fmt::Debug, io::Write};
 
-use chrono::Utc;
 use diesel::{
     backend::Backend,
     deserialize::{FromSql, FromSqlRow},
@@ -13,24 +12,8 @@ use diesel::{
     serialize::{IsNull, ToSql},
     sql_types,
 };
-use opentalk_database::{DatabaseError, DbConnection};
-use opentalk_types_common::{
-    call_in::CallInInfo,
-    events::{EventInfo, MeetingDetails},
-    features,
-    rooms::RoomId,
-    streaming::get_public_urls_from_room_streaming_targets,
-    users::UserId,
-};
+use opentalk_types_common::users::UserId;
 use serde::{Deserialize, Serialize};
-
-use crate::{
-    events::{Event, EventAndEncryption},
-    invites::Invite,
-    sip_configs::SipConfig,
-    streaming_targets::get_room_streaming_targets,
-    tariffs::Tariff,
-};
 
 /// Trait for models that have user-ids attached to them like created_by/updated_by fields
 ///
@@ -82,54 +65,4 @@ impl<T: Serialize + Debug> ToSql<sql_types::Jsonb, Pg> for Jsonb<T> {
             .map(|_| IsNull::No)
             .map_err(Into::into)
     }
-}
-
-pub async fn build_event_info(
-    conn: &mut DbConnection,
-    call_in_tel: Option<String>,
-    room_id: RoomId,
-    e2e_encryption: bool,
-    event: &Event,
-    tariff: &Tariff,
-) -> Result<EventInfo, DatabaseError> {
-    let event_info = if event.show_meeting_details {
-        let invite = Invite::get_valid_for_room(conn, room_id, Utc::now()).await?;
-
-        let call_in = if let Some(call_in_tel) = call_in_tel {
-            if e2e_encryption || tariff.is_feature_disabled(&features::CALL_IN_MODULE_FEATURE_ID) {
-                None
-            } else {
-                match SipConfig::get_by_room(conn, room_id).await {
-                    Ok(sip_config) => Some(CallInInfo {
-                        tel: call_in_tel,
-                        id: sip_config.sip_id,
-                        password: sip_config.password,
-                    }),
-                    Err(DatabaseError::NotFound) => None,
-                    Err(e) => return Err(e),
-                }
-            }
-        } else {
-            None
-        };
-
-        let streaming_links = if !e2e_encryption {
-            let streaming_targets = get_room_streaming_targets(conn, room_id).await?;
-            get_public_urls_from_room_streaming_targets(streaming_targets).await
-        } else {
-            vec![]
-        };
-
-        EventInfo::from(EventAndEncryption(event, e2e_encryption)).with_meeting_details(
-            MeetingDetails {
-                invite_code_id: invite.map(|invite| invite.id),
-                call_in,
-                streaming_links,
-            },
-        )
-    } else {
-        EventInfo::from(EventAndEncryption(event, e2e_encryption))
-    };
-
-    Ok(event_info)
 }

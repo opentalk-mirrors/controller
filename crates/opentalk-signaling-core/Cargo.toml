@@ -36,9 +36,9 @@ lapin.workspace = true
 lapin-pool.workspace = true
 log.workspace = true
 opentalk-controller-settings.workspace = true
-opentalk-database.workspace = true
 opentalk-db-storage.workspace = true
 opentalk-etherpad-client.workspace = true
+opentalk-inventory.workspace = true
 opentalk-r3dlock.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["backend"] }
 opentalk-types-common = { workspace = true, features = ["backend"] }

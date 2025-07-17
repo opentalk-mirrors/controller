@@ -11,16 +11,8 @@ use log::warn;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_database::DbConnection;
-use opentalk_db_storage::{
-    events::{
-        Event,
-        shared_folders::{EventSharedFolder, NewEventSharedFolder},
-    },
-    streaming_targets::get_room_streaming_targets,
-    tenants::Tenant,
-    users::User,
-};
+use opentalk_db_storage::events::shared_folders::{EventSharedFolder, NewEventSharedFolder};
+use opentalk_inventory::Inventory;
 use opentalk_nextcloud_client::{Client, ShareId, SharePermission, ShareType};
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -43,12 +35,13 @@ impl ControllerBackend {
         current_user: RequestUser,
         event_id: EventId,
     ) -> Result<SharedFolder, CaptureApiError> {
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let event = Event::get(&mut conn, event_id).await?;
+        let event = inventory.get_event(event_id).await?;
 
         let shared_folder = SharedFolder::from(
-            EventSharedFolder::get_for_event(&mut conn, event_id)
+            inventory
+                .get_event_shared_folder(event_id)
                 .await?
                 .ok_or_else(ApiError::not_found)?,
         );
@@ -69,13 +62,14 @@ impl ControllerBackend {
         query: PutSharedFolderQuery,
     ) -> Result<(SharedFolder, bool), CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let mail_service = (!query.suppress_email_notification)
             .then(|| self.mail_service.as_ref().clone())
             .flatten();
 
-        let (shared_folder, created) = put_shared_folder(&settings, event_id, &mut conn).await?;
+        let (shared_folder, created) =
+            put_shared_folder(&settings, event_id, inventory.as_mut()).await?;
 
         let (
             event,
@@ -86,7 +80,9 @@ impl ControllerBackend {
             _shared_folder,
             _tariff,
             _training_participation_report,
-        ) = Event::get_with_related_items(&mut conn, current_user.id, event_id).await?;
+        ) = inventory
+            .get_event_with_related_items(current_user.id, event_id)
+            .await?;
 
         if let Some(mail_service) = &mail_service {
             let shared_folder_for_user = shared_folder_for_user(
@@ -95,9 +91,9 @@ impl ControllerBackend {
                 current_user.id,
             );
 
-            let current_tenant = Tenant::get(&mut conn, current_user.tenant_id).await?;
-            let current_user = User::get(&mut conn, current_user.id).await?;
-            let streaming_targets = get_room_streaming_targets(&mut conn, room.id).await?;
+            let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
+            let current_user = inventory.get_user(current_user.id).await?;
+            let streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
 
             notify_event_invitees_about_update(
                 &self.user_search_client,
@@ -105,7 +101,7 @@ impl ControllerBackend {
                 mail_service,
                 current_tenant,
                 current_user,
-                &mut conn,
+                inventory.as_mut(),
                 event,
                 room,
                 sip_config,
@@ -125,7 +121,7 @@ impl ControllerBackend {
         query: DeleteSharedFolderQuery,
     ) -> Result<(), CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut conn = self.db.get_conn().await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let mail_service = (!query.suppress_email_notification)
             .then(|| self.mail_service.as_ref().clone())
@@ -140,21 +136,23 @@ impl ControllerBackend {
             shared_folder,
             _tariff,
             _training_participation_report,
-        ) = Event::get_with_related_items(&mut conn, current_user.id, event_id).await?;
+        ) = inventory
+            .get_event_with_related_items(current_user.id, event_id)
+            .await?;
 
         if let Some(shared_folder) = shared_folder {
             let shared_folders = std::slice::from_ref(&shared_folder);
             let deletion = delete_shared_folders(&settings, shared_folders).await;
 
-            let streaming_targets = get_room_streaming_targets(&mut conn, room.id).await?;
+            let streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
 
             match deletion {
                 Ok(()) => {
-                    shared_folder.delete(&mut conn).await?;
+                    inventory.delete_shared_folder_by_event_id(event_id).await?;
 
                     if let Some(mail_service) = &mail_service {
-                        let current_tenant = Tenant::get(&mut conn, current_user.tenant_id).await?;
-                        let current_user = User::get(&mut conn, current_user.id).await?;
+                        let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
+                        let current_user = inventory.get_user(current_user.id).await?;
 
                         notify_event_invitees_about_update(
                             &self.user_search_client,
@@ -162,7 +160,7 @@ impl ControllerBackend {
                             mail_service,
                             current_tenant,
                             current_user,
-                            &mut conn,
+                            inventory.as_mut(),
                             event,
                             room,
                             sip_config,
@@ -180,12 +178,12 @@ impl ControllerBackend {
                             "Deleting local shared folder reference anyway, because \
                         `force_delete_reference_if_shared_folder_deletion_fails` is set to true"
                         );
-                        shared_folder.delete(&mut conn).await?;
+                        inventory.delete_shared_folder_by_event_id(event_id).await?;
 
                         if let Some(mail_service) = &mail_service {
                             let current_tenant =
-                                Tenant::get(&mut conn, current_user.tenant_id).await?;
-                            let current_user = User::get(&mut conn, current_user.id).await?;
+                                inventory.get_tenant(current_user.tenant_id).await?;
+                            let current_user = inventory.get_user(current_user.id).await?;
 
                             notify_event_invitees_about_update(
                                 &self.user_search_client,
@@ -193,7 +191,7 @@ impl ControllerBackend {
                                 mail_service,
                                 current_tenant,
                                 current_user,
-                                &mut conn,
+                                inventory.as_mut(),
                                 event,
                                 room,
                                 sip_config,
@@ -219,9 +217,9 @@ impl ControllerBackend {
 pub async fn put_shared_folder(
     settings: &Settings,
     event_id: EventId,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
 ) -> Result<(EventSharedFolder, bool), CaptureApiError> {
-    let shared_folder = EventSharedFolder::get_for_event(conn, event_id).await?;
+    let shared_folder = inventory.get_event_shared_folder(event_id).await?;
 
     if let Some(shared_folder) = shared_folder {
         return Ok((shared_folder, false));
@@ -357,19 +355,17 @@ pub async fn put_shared_folder(
             )
             .await?;
 
-            let new_shared_folder = NewEventSharedFolder {
-                event_id,
-                path,
-                write_share_id: write_share_id.to_string(),
-                write_url,
-                write_password,
-                read_share_id: read_share_id.to_string(),
-                read_url,
-                read_password,
-            };
-
-            let shared_folder = new_shared_folder
-                .try_insert(conn)
+            let shared_folder = inventory
+                .try_create_event_shared_folder(NewEventSharedFolder {
+                    event_id,
+                    path,
+                    write_share_id: write_share_id.to_string(),
+                    write_url,
+                    write_password,
+                    read_share_id: read_share_id.to_string(),
+                    read_url,
+                    read_password,
+                })
                 .await?
                 .ok_or_else(ApiError::internal)?;
 

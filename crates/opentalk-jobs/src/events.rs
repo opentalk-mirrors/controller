@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
 };
 
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::Settings;
@@ -15,40 +15,37 @@ use opentalk_controller_utils::{
     deletion::{Deleter, EventDeleter, RoomDeleter},
     event::EventExt as _,
 };
-use opentalk_database::{Db, DbConnection};
-use opentalk_db_storage::{
-    events::Event,
-    users::{UpdateUser, User},
-};
+use opentalk_db_storage::users::{UpdateUser, User};
+use opentalk_inventory::{Inventory, InventoryProvider};
 use opentalk_log::{debug, info, warn};
 use opentalk_signaling_core::{ExchangeHandle, ObjectStorage};
-use opentalk_types_common::{events::EventId, rooms::RoomId, users::UserId};
+use opentalk_types_common::{events::EventId, rooms::RoomId, time::Timestamp, users::UserId};
 use snafu::Report;
 
 use crate::Error;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) enum DeleteSelector {
-    AdHocCreatedBefore(DateTime<Utc>),
-    ScheduledThatEndedBefore(DateTime<Utc>),
+    AdHocCreatedBefore(Timestamp),
+    ScheduledThatEndedBefore(Timestamp),
     BelongingToUser(UserId),
 }
 
 pub(crate) async fn perform_deletion(
     logger: &dyn Log,
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
+    authz: Authz,
     exchange_handle: ExchangeHandle,
     settings: &Settings,
     fail_on_shared_folder_deletion_error: bool,
     delete_selector: DeleteSelector,
 ) -> Result<(), Error> {
-    let authz = Authz::new(db.clone()).await?;
-    let mut conn = db.get_conn().await?;
+    let mut inventory = inventory_provider.get_inventory().await?;
     let object_storage = ObjectStorage::new(&settings.minio).await?;
 
     let orphaned_rooms = delete_events(
         logger,
-        &mut conn,
+        inventory.as_mut(),
         &authz,
         exchange_handle.clone(),
         settings,
@@ -60,7 +57,7 @@ pub(crate) async fn perform_deletion(
 
     delete_orphaned_rooms(
         logger,
-        &mut conn,
+        inventory.as_mut(),
         &authz,
         exchange_handle,
         settings,
@@ -80,7 +77,7 @@ pub(crate) async fn perform_deletion(
 #[allow(clippy::too_many_arguments)]
 async fn delete_events(
     logger: &dyn Log,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     authz: &Authz,
     exchange_handle: ExchangeHandle,
     settings: &Settings,
@@ -91,11 +88,11 @@ async fn delete_events(
     info!(log: logger, "");
     debug!(log: logger, "Retrieving list of events that should be deleted");
 
-    let candidates = retrieve_deletion_candidate_events(logger, conn, delete_selector).await?;
+    let candidates = retrieve_deletion_candidate_events(logger, inventory, delete_selector).await?;
 
     let orphaned_rooms = delete_event_candidates(
         logger,
-        conn,
+        inventory,
         authz,
         exchange_handle,
         settings,
@@ -111,7 +108,7 @@ async fn delete_events(
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn delete_event_candidates(
     logger: &dyn Log,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     authz: &Authz,
     exchange_handle: ExchangeHandle,
     settings: &Settings,
@@ -133,7 +130,7 @@ pub(crate) async fn delete_event_candidates(
         if let Err(e) = deleter
             .perform(
                 logger,
-                conn,
+                inventory,
                 authz,
                 None,
                 exchange_handle.clone(),
@@ -147,7 +144,7 @@ pub(crate) async fn delete_event_candidates(
             continue;
         }
 
-        match Event::get_for_room(conn, room_id).await {
+        match inventory.get_event_for_room(room_id).await {
             Ok(Some(_)) => {}
             Ok(None) => {
                 let _ = orphaned_rooms.insert(room_id);
@@ -168,7 +165,7 @@ pub(crate) async fn delete_event_candidates(
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn delete_orphaned_rooms(
     logger: &dyn Log,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     authz: &Authz,
     exchange_handle: ExchangeHandle,
     settings: &Settings,
@@ -190,7 +187,7 @@ pub(crate) async fn delete_orphaned_rooms(
         if let Err(e) = deleter
             .perform(
                 logger,
-                conn,
+                inventory,
                 authz,
                 None,
                 exchange_handle.clone(),
@@ -212,18 +209,22 @@ pub(crate) async fn delete_orphaned_rooms(
 
 pub(crate) async fn retrieve_deletion_candidate_events(
     logger: &dyn Log,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     delete_selector: DeleteSelector,
 ) -> Result<Vec<(EventId, RoomId)>, Error> {
     let events = match delete_selector {
         DeleteSelector::AdHocCreatedBefore(delete_before) => {
-            Event::get_all_adhoc_created_before_including_rooms(conn, delete_before).await?
+            inventory
+                .get_all_adhoc_event_ids_with_room_ids_created_before(delete_before)
+                .await?
         }
         DeleteSelector::ScheduledThatEndedBefore(delete_before) => {
-            get_scheduled_events_that_ended_before(logger, conn, delete_before).await?
+            get_scheduled_events_that_ended_before(logger, inventory, delete_before).await?
         }
         DeleteSelector::BelongingToUser(user_id) => {
-            Event::get_all_for_creator_including_rooms(conn, user_id).await?
+            inventory
+                .get_all_event_ids_with_room_ids_created_by_user(user_id)
+                .await?
         }
     };
 
@@ -232,25 +233,29 @@ pub(crate) async fn retrieve_deletion_candidate_events(
 
 async fn get_scheduled_events_that_ended_before(
     logger: &dyn Log,
-    conn: &mut DbConnection,
-    date: DateTime<Utc>,
+    inventory: &mut dyn Inventory,
+    date: Timestamp,
 ) -> Result<Vec<(EventId, RoomId)>, Error> {
     // Using BTreeSet to guarantee uniqeness
-    let mut to_be_deleted =
-        BTreeSet::from_iter(Event::get_all_that_ended_before_including_rooms(conn, date).await?);
-    to_be_deleted.append(&mut get_recurring_events_that_ended_before(logger, conn, date).await?);
+    let mut to_be_deleted = BTreeSet::from_iter(
+        inventory
+            .get_all_scheduled_event_ids_with_room_ids_ended_before(date)
+            .await?,
+    );
+    to_be_deleted
+        .append(&mut get_recurring_events_that_ended_before(logger, inventory, date).await?);
     Ok(Vec::from_iter(to_be_deleted))
 }
 
 async fn get_recurring_events_that_ended_before(
     logger: &dyn Log,
-    conn: &mut DbConnection,
-    date: DateTime<Utc>,
+    inventory: &mut dyn Inventory,
+    date: Timestamp,
 ) -> Result<BTreeSet<(EventId, RoomId)>, Error> {
-    Ok(Event::get_all_finite_recurring(conn).await?
+    Ok(inventory.get_all_finite_recurring_events().await?
         .into_iter()
         .filter_map(
-            |event| match event.has_last_occurrence_before(date) {
+            |event| match event.has_last_occurrence_before(date.into()) {
                 Ok(true) => Some((event.id, event.room)),
                 Ok(false) => None,
                 Err(e) => {
@@ -264,7 +269,7 @@ async fn get_recurring_events_that_ended_before(
 
 pub(crate) async fn update_user_accounts(
     logger: &dyn Log,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     users: Vec<User>,
     kc_users: Vec<opentalk_keycloak_admin::users::User>,
     user_attribute_name: Option<&str>,
@@ -290,22 +295,30 @@ pub(crate) async fn update_user_accounts(
             (true, true) => {
                 // Enable users if they are disabled in our system but also exist in keycloak
                 info!(log: logger, "Enable user: {:?}", user.id);
-                let changeset = UpdateUser {
-                    disabled_since: Some(None),
-                    ..Default::default()
-                };
-                changeset.apply(conn, user.id).await?;
+                inventory
+                    .update_user(
+                        user.id,
+                        UpdateUser {
+                            disabled_since: Some(None),
+                            ..Default::default()
+                        },
+                    )
+                    .await?;
                 updated_users += 1;
             }
             (false, false) => {
                 // Disable user if they exist in our system but not in Keycloak
                 // Or if they exist in our system but are not enabled in Keycloak
                 info!(log: logger, "Disable user: {:?}", user.id);
-                let changeset = UpdateUser {
-                    disabled_since: Some(Some(Utc::now())),
-                    ..Default::default()
-                };
-                changeset.apply(conn, user.id).await?;
+                inventory
+                    .update_user(
+                        user.id,
+                        UpdateUser {
+                            disabled_since: Some(Some(Utc::now())),
+                            ..Default::default()
+                        },
+                    )
+                    .await?;
                 updated_users += 1;
             }
             _ => {}

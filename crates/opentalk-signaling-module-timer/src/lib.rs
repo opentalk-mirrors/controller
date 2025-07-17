@@ -443,7 +443,7 @@ mod tests {
     use std::time::SystemTime;
 
     use chrono::{DateTime, Duration};
-    use opentalk_test_util::assert_eq_json;
+    use opentalk_test_util::serde_json::json;
 
     use super::*;
     use crate::Kind;
@@ -468,15 +468,17 @@ mod tests {
             ready_status: None,
         };
 
-        assert_eq_json!(timer_status,
-        {
-            "timer_id": "00000000-0000-0000-0000-000000000000",
-            "started_at": "1970-01-01T00:00:00Z",
-            "kind": "countdown",
-            "style": "coffee_break",
-            "ready_check_enabled": false,
-            "ends_at": "1970-01-01T00:00:05Z",
-        });
+        assert_eq!(
+            json!(timer_status),
+            json!({
+                "timer_id": "00000000-0000-0000-0000-000000000000",
+                "started_at": "1970-01-01T00:00:00Z",
+                "kind": "countdown",
+                "style": "coffee_break",
+                "ready_check_enabled": false,
+                "ends_at": "1970-01-01T00:00:05Z",
+            })
+        );
     }
 
     #[test]
@@ -499,16 +501,18 @@ mod tests {
             ready_status: Some(true),
         };
 
-        assert_eq_json!(timer_status,
-        {
-            "timer_id": "00000000-0000-0000-0000-000000000000",
-            "started_at": "1970-01-01T00:00:00Z",
-            "kind": "countdown",
-            "style": "coffee_break",
-            "ready_check_enabled": true,
-            "ready_status": true,
-            "ends_at": "1970-01-01T00:00:05Z",
-        });
+        assert_eq!(
+            json!(timer_status),
+            json!({
+                "timer_id": "00000000-0000-0000-0000-000000000000",
+                "started_at": "1970-01-01T00:00:00Z",
+                "kind": "countdown",
+                "style": "coffee_break",
+                "ready_check_enabled": true,
+                "ready_status": true,
+                "ends_at": "1970-01-01T00:00:05Z",
+            })
+        );
     }
 
     #[test]
@@ -531,15 +535,17 @@ mod tests {
             ready_status: Some(false),
         };
 
-        assert_eq_json!(timer_status,
-        {
-            "timer_id": "00000000-0000-0000-0000-000000000000",
-            "started_at": "1970-01-01T00:00:00Z",
-            "kind": "countdown",
-            "style": "coffee_break",
-            "ready_check_enabled": true,
-            "ready_status": false,
-            "ends_at": "1970-01-01T00:00:05Z",
-        });
+        assert_eq!(
+            json!(timer_status),
+            json!({
+                "timer_id": "00000000-0000-0000-0000-000000000000",
+                "started_at": "1970-01-01T00:00:00Z",
+                "kind": "countdown",
+                "style": "coffee_break",
+                "ready_check_enabled": true,
+                "ready_status": false,
+                "ends_at": "1970-01-01T00:00:05Z",
+            })
+        );
     }
 }

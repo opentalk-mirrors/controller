@@ -21,26 +21,6 @@ Execute with:
 opentalk-controller jobs execute self-check
 ```
 
-Example output:
-
-<!-- begin:fromfile:cli-usage/opentalk-controller-jobs-execute-self-check.md -->
-
-```text
-[INFO ] Starting job execution
-[INFO ] Loading parameters
-[INFO ] Executing self-check job
-[INFO ]
-[TRACE] Test output in TRACE level
-[DEBUG] Test output in DEBUG level
-[INFO ] Test output in INFO level
-[WARN ] Test output in WARN level
-[ERROR] Test output in ERROR level
-[INFO ]
-[INFO ] Job finished successfully
-```
-
-<!-- end:fromfile:cli-usage/opentalk-controller-jobs-execute-self-check.md -->
-
 #### Parameters
 
 The job takes an empty JSON object as its parameter.

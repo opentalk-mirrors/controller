@@ -6,8 +6,8 @@ use std::{sync::Arc, time::Duration};
 
 use chrono::Utc;
 use log::{Log, Metadata, Record};
-use opentalk_database::Db;
 use opentalk_db_storage::jobs::{LogLevel, NewJobExecutionLog, SerialId};
+use opentalk_inventory::InventoryProvider;
 use snafu::{ResultExt, Snafu};
 use tokio::{
     sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -17,14 +17,10 @@ use tokio::{
 #[derive(Debug, Snafu)]
 pub enum ExecutionLoggerError {
     #[snafu(display("Failed to write log buffer to database: {source}"))]
-    BatchInsertFailed {
-        source: opentalk_database::DatabaseError,
-    },
+    BatchInsertFailed { source: opentalk_inventory::Error },
 
-    #[snafu(display("Failed to get database connection: {source}"))]
-    FailedToGetConnection {
-        source: opentalk_database::DatabaseError,
-    },
+    #[snafu(display("Failed to get inventory: {source}"))]
+    FailedToGetInventory { source: opentalk_inventory::Error },
 }
 
 /// A logger that writes log messages to the database
@@ -44,12 +40,21 @@ pub struct ExecutionLogger {
 }
 
 impl ExecutionLogger {
-    pub async fn create(execution_id: SerialId, db: Arc<Db>) -> Self {
+    pub async fn create(
+        execution_id: SerialId,
+        inventory_provider: Arc<dyn InventoryProvider>,
+    ) -> Self {
         let (log_sender, log_receiver) = mpsc::unbounded_channel();
         let (flush_sender, flush_receiver) = mpsc::unbounded_channel();
 
         // start the task that does the actual database writing
-        LoggerTask::start(execution_id, log_receiver, flush_receiver, db).await;
+        LoggerTask::start(
+            execution_id,
+            log_receiver,
+            flush_receiver,
+            inventory_provider,
+        )
+        .await;
 
         Self {
             execution_id,
@@ -106,7 +111,7 @@ struct LoggerTask {
     /// Receiver for the flush command
     flush_receiver: UnboundedReceiver<()>,
 
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn InventoryProvider>,
 }
 
 impl LoggerTask {
@@ -115,13 +120,13 @@ impl LoggerTask {
         execution_id: SerialId,
         log_receiver: UnboundedReceiver<NewJobExecutionLog>,
         flush_receiver: UnboundedReceiver<()>,
-        db: Arc<Db>,
+        inventory_provider: Arc<dyn InventoryProvider>,
     ) {
         let this = Self {
             execution_id,
             log_receiver,
             flush_receiver,
-            db,
+            inventory_provider,
         };
 
         this.spawn_write_task();
@@ -212,13 +217,14 @@ impl LoggerTask {
         &self,
         buffer: &mut Vec<NewJobExecutionLog>,
     ) -> Result<(), ExecutionLoggerError> {
-        let mut conn = self
-            .db
-            .get_conn()
+        let mut inventory = self
+            .inventory_provider
+            .get_inventory()
             .await
-            .context(FailedToGetConnectionSnafu)?;
+            .context(FailedToGetInventorySnafu)?;
 
-        NewJobExecutionLog::insert_batch(&mut conn, buffer)
+        inventory
+            .create_job_execution_logs(buffer)
             .await
             .context(BatchInsertFailedSnafu)?;
 

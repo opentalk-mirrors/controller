@@ -91,11 +91,11 @@ pub enum Error {
         source: tokio::time::error::Elapsed,
     },
 
-    /// Database error
+    /// Inventory error
     #[snafu(context(false))]
-    Database {
+    Inventory {
         /// The error source
-        source: opentalk_database::DatabaseError,
+        source: opentalk_inventory::Error,
     },
 
     /// Job execution failed

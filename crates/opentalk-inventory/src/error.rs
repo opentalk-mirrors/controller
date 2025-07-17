@@ -25,6 +25,7 @@ pub enum Error {
         // TODO: so this is a task for later.
         source: DatabaseError,
     },
+
     /// An error happened when applying JSON operations to a module resource.
     JsonOperation {
         /// The cause of the error
