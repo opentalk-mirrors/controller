@@ -720,7 +720,7 @@ struct ChatEnabled {
 /// A hash of last-seen timestamps
 #[derive(ToRedisArgs)]
 #[to_redis_args(
-    fmt = "opentalk-signaling:room={room}:participant={participant}:chat:last_seen:global"
+    fmt = "opentalk-signaling:room={room}:participant={participant}:chat:last_seen:private"
 )]
 struct RoomParticipantLastSeenTimestampPrivate {
     room: SignalingRoomId,
@@ -740,7 +740,7 @@ struct RoomParticipantLastSeenTimestampsGroup {
 /// A hash of last-seen timestamps
 #[derive(ToRedisArgs)]
 #[to_redis_args(
-    fmt = "opentalk-signaling:room={room}:participant={participant}:chat:last_seen:private"
+    fmt = "opentalk-signaling:room={room}:participant={participant}:chat:last_seen:global"
 )]
 struct RoomParticipantLastSeenTimestampGlobal {
     room: SignalingRoomId,
