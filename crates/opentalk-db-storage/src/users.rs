@@ -415,7 +415,7 @@ impl NewUser {
 #[diesel(table_name = users)]
 pub struct UpdateUser<'a> {
     pub title: Option<&'a UserTitle>,
-    pub email: Option<&'a str>,
+    pub email: Option<String>,
     pub firstname: Option<&'a str>,
     pub lastname: Option<&'a str>,
     pub phone: Option<Option<String>>,
