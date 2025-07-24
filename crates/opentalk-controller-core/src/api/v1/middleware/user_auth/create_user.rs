@@ -2,12 +2,11 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use diesel_async::scoped_futures::ScopedFutureExt;
 use opentalk_controller_service::{oidc::OpenIdConnectUserInfo, phone_numbers::parse_phone_number};
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_db_storage::{groups::Group, tariffs::Tariff, tenants::Tenant, users::NewUser};
-use opentalk_inventory::{Inventory, transaction};
+use opentalk_inventory::Inventory;
 use opentalk_types_common::{
     tariffs::TariffStatus,
     users::{Language, UserTitle},
@@ -46,40 +45,33 @@ pub(super) async fn create_user(
 
     let language = info.locale.unwrap_or(fallback_locale);
 
-    let login_result = transaction(inventory, |inventory| {
-        async move {
-            let user = inventory
-                .create_user(NewUser {
-                    oidc_sub: info.sub,
-                    email: info.email,
-                    title: UserTitle::new(),
-                    display_name: info_display_name,
-                    firstname: info.firstname,
-                    lastname: info.lastname,
-                    avatar_url: info.avatar_url,
-                    language,
-                    phone: phone_number,
-                    tenant_id: tenant.id,
-                    tariff_id: tariff.id,
-                    tariff_status,
-                    timezone: info.timezone,
-                })
-                .await?;
+    let user = inventory
+        .create_user(NewUser {
+            oidc_sub: info.sub,
+            email: info.email,
+            title: UserTitle::new(),
+            display_name: info_display_name,
+            firstname: info.firstname,
+            lastname: info.lastname,
+            avatar_url: info.avatar_url,
+            language,
+            phone: phone_number,
+            tenant_id: tenant.id,
+            tariff_id: tariff.id,
+            tariff_status,
+            timezone: info.timezone,
+        })
+        .await?;
 
-            inventory.add_user_to_groups(&user, &groups).await?;
+    inventory.add_user_to_groups(&user, &groups).await?;
 
-            let event_and_room_ids = inventory
-                .migrate_event_email_invites_to_user_invites(&user)
-                .await?;
+    let event_and_room_ids = inventory
+        .migrate_event_email_invites_to_user_invites(&user)
+        .await?;
 
-            Ok::<_, opentalk_inventory::Error>(LoginResult::UserCreated {
-                user,
-                groups,
-                event_and_room_ids,
-            })
-        }
-        .scope_boxed()
+    Ok(LoginResult::UserCreated {
+        user,
+        groups,
+        event_and_room_ids,
     })
-    .await?;
-    Ok(login_result)
 }
