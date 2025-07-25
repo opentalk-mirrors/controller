@@ -20,6 +20,7 @@ use actix_web::{
 };
 use actix_web_httpauth::headers::authorization::Authorization;
 use chrono::{DateTime, Utc};
+use diesel_async::scoped_futures::ScopedFutureExt as _;
 use kustos::prelude::PoliciesBuilder;
 use openidconnect::AccessToken;
 use opentalk_cache::Cache;
@@ -34,11 +35,11 @@ use opentalk_controller_settings::{
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_db_storage::{
     groups::Group,
-    tariffs::ExternalTariffId,
+    tariffs::{ExternalTariffId, Tariff},
     tenants::{OidcTenantId, Tenant},
     users::User,
 };
-use opentalk_inventory::InventoryProvider;
+use opentalk_inventory::{Inventory, InventoryProvider, transaction};
 use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use opentalk_types_common::{
     events::EventId,
@@ -435,6 +436,43 @@ async fn check_access_token_inner(
         .collect();
     let groups = inventory.get_or_create_groups_by_name(&groups).await?;
 
+    let login_result = {
+        let tenant = tenant.clone();
+        transaction(inventory.as_mut(), |inventory| {
+            async move {
+                create_or_update_user(
+                    inventory,
+                    tenant,
+                    info,
+                    settings,
+                    groups,
+                    tariff,
+                    tariff_status,
+                    fallback_locale,
+                )
+                .await
+            }
+            .scope_boxed()
+        })
+        .await?
+    };
+
+    let user = update_core_user_permissions(authz, login_result).await?;
+
+    Ok((tenant, user))
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn create_or_update_user(
+    inventory: &mut dyn Inventory,
+    tenant: Tenant,
+    info: OpenIdConnectUserInfo,
+    settings: &Settings,
+    groups: Vec<Group>,
+    tariff: Tariff,
+    tariff_status: TariffStatus,
+    fallback_locale: Language,
+) -> Result<LoginResult, CaptureApiError> {
     let user = inventory.get_user_by_odic_sub(tenant.id, &info.sub).await?;
 
     let login_result = match user {
@@ -442,7 +480,7 @@ async fn check_access_token_inner(
             // Found a matching user, update its attributes, tenancy and groups
             update_user::update_user(
                 settings,
-                inventory.as_mut(),
+                inventory,
                 user,
                 info,
                 groups,
@@ -455,7 +493,7 @@ async fn check_access_token_inner(
             // No matching user, create a new one with inside the given tenants and groups
             create_user::create_user(
                 settings,
-                inventory.as_mut(),
+                inventory,
                 info,
                 &tenant,
                 groups,
@@ -466,10 +504,7 @@ async fn check_access_token_inner(
             .await?
         }
     };
-
-    let user = update_core_user_permissions(authz, login_result).await?;
-
-    Ok((tenant, user))
+    Ok(login_result)
 }
 
 fn map_tariff_status_name(mapping: &TariffStatusMapping, name: &String) -> TariffStatus {

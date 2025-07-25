@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use diesel_async::scoped_futures::ScopedFutureExt;
 use opentalk_controller_service::{oidc::OpenIdConnectUserInfo, phone_numbers::parse_phone_number};
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
@@ -11,7 +10,7 @@ use opentalk_db_storage::{
     tariffs::Tariff,
     users::{UpdateUser, User},
 };
-use opentalk_inventory::{Inventory, transaction};
+use opentalk_inventory::Inventory;
 use opentalk_types_common::{tariffs::TariffStatus, users::DisplayName};
 
 use super::{LoginResult, build_info_display_name};
@@ -55,36 +54,29 @@ pub(super) async fn update_user(
         inventory.update_user(user.id, changeset).await?
     };
 
-    let login_result = transaction(inventory, |inventory| {
-        async move {
-            let curr_groups = inventory.get_groups_for_user(user.id).await?;
+    let curr_groups = inventory.get_groups_for_user(user.id).await?;
 
-            // Add user to added groups
-            let groups_added_to = difference_by(&groups, &curr_groups, |group| &group.id);
-            if !groups_added_to.is_empty() {
-                inventory
-                    .add_user_to_groups(&user, &groups_added_to)
-                    .await?;
-            }
+    // Add user to added groups
+    let groups_added_to = difference_by(&groups, &curr_groups, |group| &group.id);
+    if !groups_added_to.is_empty() {
+        inventory
+            .add_user_to_groups(&user, &groups_added_to)
+            .await?;
+    }
 
-            // Remove user from removed groups
-            let groups_removed_from = difference_by(&curr_groups, &groups, |group| &group.id);
-            if !groups_removed_from.is_empty() {
-                inventory
-                    .remove_user_from_groups(&user, &groups_removed_from)
-                    .await?;
-            }
+    // Remove user from removed groups
+    let groups_removed_from = difference_by(&curr_groups, &groups, |group| &group.id);
+    if !groups_removed_from.is_empty() {
+        inventory
+            .remove_user_from_groups(&user, &groups_removed_from)
+            .await?;
+    }
 
-            Ok::<_, opentalk_inventory::Error>(LoginResult::UserUpdated {
-                user,
-                groups_added_to,
-                groups_removed_from,
-            })
-        }
-        .scope_boxed()
+    Ok(LoginResult::UserUpdated {
+        user,
+        groups_added_to,
+        groups_removed_from,
     })
-    .await?;
-    Ok(login_result)
 }
 
 /// Create an [`UpdateUser`] changeset based on a comparison between `user` and `token_info`
