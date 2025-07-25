@@ -7,7 +7,8 @@ use std::collections::{HashMap, HashSet};
 use chrono::{DateTime, Utc};
 use derive_more::{AsRef, Display, From, FromStr, Into};
 use diesel::{
-    BoolExpressionMethods, ExpressionMethods, Identifiable, JoinOnDsl, QueryDsl, Queryable,
+    BoolExpressionMethods, ExpressionMethods, Identifiable, JoinOnDsl, OptionalExtension as _,
+    QueryDsl, Queryable,
 };
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DbConnection, Paginate, Result};
@@ -138,18 +139,13 @@ impl Invite {
                 invites::room.eq(room_id).and(invites::active.eq(true)).and(
                     invites::expiration
                         .is_null()
-                        .or(invites::expiration.lt(now)),
+                        .or(invites::expiration.gt(now)),
                 ),
             )
             .order(invites::updated_at.desc());
 
-        let invite: Result<Invite, diesel::result::Error> = query.first::<Invite>(conn).await;
-        let res = match invite {
-            Ok(invite) => Ok(Some(invite)),
-            Err(diesel::result::Error::NotFound) => Ok(None),
-            Err(e) => Err(e),
-        }?;
-        Ok(res)
+        let invite = query.first::<Invite>(conn).await.optional()?;
+        Ok(invite)
     }
 
     /// Returns a paginated view on invites for the given room
