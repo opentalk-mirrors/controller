@@ -253,38 +253,30 @@ pub async fn check_access_token(
     access_token: &AccessToken,
     fallback_locale: Language,
 ) -> Result<(Tenant, User), CaptureApiError> {
-    // Search for cached results
-    if let Ok(Some(result)) = cache.get(access_token.secret()).await {
-        // Hit! Return the cached result
-        match result {
-            Ok(tenant_and_user) => Ok(tenant_and_user),
-            Err(err) => Err(CaptureApiError::try_from(err).map_err(|e| {
-                log::warn!("Error while creating error: {}", Report::from_error(e));
-                CaptureApiError::from(ApiError::internal())
-            })?),
-        }
-    } else {
-        // Miss, do the check and cache the result
+    if let Some(cached_result) = get_cached_result(cache, access_token).await? {
+        return cached_result;
+    }
 
-        let expires_at = verify_access_token(oidc_ctx, access_token).await?;
+    // Miss, verify access token
+    let maybe_expires_at = verify_access_token(oidc_ctx, access_token).await?;
 
-        // Calculate the remaining ttl of the token
+    let check_result = check_access_token_inner(
+        settings,
+        authz,
+        inventory_provider,
+        oidc_ctx,
+        access_token,
+        fallback_locale,
+    )
+    .await;
+
+    // if we have a expiry date that is more then 10 seconds in the future, cache the response.
+    if let Some(expires_at) = maybe_expires_at {
         let token_ttl = expires_at - Utc::now();
 
-        let check_result = check_access_token_inner(
-            settings,
-            authz,
-            inventory_provider,
-            oidc_ctx,
-            access_token,
-            fallback_locale,
-        )
-        .await;
-
-        match check_result {
-            Ok((tenant, user)) => {
-                // Avoid caching results for tokens that are about to expire
-                if token_ttl > chrono::Duration::seconds(10) {
+        if token_ttl > chrono::Duration::seconds(10) {
+            match &check_result {
+                Ok((tenant, user)) => {
                     cache
                         .insert_with_ttl(
                             access_token.secret().clone(),
@@ -293,24 +285,43 @@ pub async fn check_access_token(
                         )
                         .await?;
                 }
-
-                Ok((tenant, user))
-            }
-            Err(e) => {
-                // Do not cache internal errors or tokens that are about to expire
-                if !e.status_code().is_server_error() && token_ttl > chrono::Duration::seconds(10) {
+                Err(e) if e.status_code().is_server_error() => {
                     cache
                         .insert_with_ttl(
                             access_token.secret().clone(),
-                            Err(CacheableApiError::from(&e)),
+                            Err(CacheableApiError::from(e)),
                             token_ttl.to_std().expect("duration was previously checked"),
                         )
                         .await?;
                 }
-
-                Err(e)
+                _ => {}
             }
         }
+    }
+
+    check_result
+}
+
+/// Attempt to retrieve cached result
+async fn get_cached_result(
+    cache: &UserAccessTokenCache,
+    access_token: &AccessToken,
+) -> Result<Option<Result<(Tenant, User), CaptureApiError>>, CaptureApiError> {
+    match cache.get(access_token.secret()).await {
+        Ok(Some(cached_result)) => {
+            let result = cached_result.map_err(|cache_err| {
+                CaptureApiError::try_from(cache_err).unwrap_or_else(|conversion_err| {
+                    log::warn!(
+                        "Error converting cached error: {}",
+                        Report::from_error(conversion_err)
+                    );
+                    CaptureApiError::from(ApiError::internal())
+                })
+            });
+            Ok(Some(result))
+        }
+        Ok(None) => Ok(None),                        // Cache miss
+        Err(cache_error) => Err(cache_error.into()), // Cache access error
     }
 }
 
@@ -321,19 +332,18 @@ pub async fn check_access_token(
 async fn verify_access_token(
     oidc_ctx: &OidcContext,
     access_token: &AccessToken,
-) -> Result<DateTime<Utc>, CaptureApiError> {
+) -> Result<Option<DateTime<Utc>>, CaptureApiError> {
     if oidc_ctx.supports_introspect() {
-        let introspect_info = match oidc_ctx.introspect(access_token.clone()).await {
-            Ok(introspect_info) => introspect_info,
-            Err(e) => {
+        let introspect_info = oidc_ctx
+            .introspect(access_token.clone())
+            .await
+            .map_err(|e| {
                 log::error!(
-                    "Failed to check if AccessToken is active, {}",
+                    "Failed to introspect access token: {}",
                     Report::from_error(e)
                 );
-
-                return Err(ApiError::internal().into());
-            }
-        };
+                ApiError::internal()
+            })?;
 
         if !introspect_info.active {
             return Err(ApiError::unauthorized()
@@ -344,11 +354,11 @@ async fn verify_access_token(
         return Ok(introspect_info.exp);
     }
 
-    // If there's no introspect endpoint, the token must be a JWT with an exp field
+    // If there's no introspect endpoint, the token must be a JWT with an exp field.
     match oidc_ctx.verify_jwt_token::<OnlyExpiryClaim>(access_token) {
-        Ok(jwt_claims) => Ok(jwt_claims.exp),
+        Ok(jwt_claims) => Ok(Some(jwt_claims.exp)),
         Err(e) => {
-            log::debug!("Invalid access token, {}", Report::from_error(e));
+            log::debug!("Invalid access token (JWT): {}", Report::from_error(e));
             Err(ApiError::unauthorized()
                 .with_www_authenticate(AuthenticationError::InvalidAccessToken)
                 .into())

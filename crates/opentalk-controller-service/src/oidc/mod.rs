@@ -17,7 +17,7 @@ use opentalk_controller_utils::CaptureApiError;
 use opentalk_types_api_v1::error::ApiError;
 use opentalk_types_common::{time::TimeZone, users::Language};
 use provider::ProviderClient;
-use snafu::{OptionExt, ResultExt, Whatever};
+use snafu::{ResultExt, Whatever};
 use url::Url;
 
 use crate::Result;
@@ -107,9 +107,7 @@ impl OidcContext {
 
         Ok(IntrospectInfo {
             active: claims.active(),
-            exp: claims
-                .exp()
-                .whatever_context("Introspection response does not contain 'exp' field")?,
+            exp: claims.exp(),
         })
     }
 
@@ -230,7 +228,7 @@ pub struct IntrospectInfo {
     /// Access token is still active
     pub active: bool,
     /// Expire timestamp of the token
-    pub exp: DateTime<Utc>,
+    pub exp: Option<DateTime<Utc>>,
 }
 
 /// Relevant info returned from `userinfo` endpoint.
