@@ -26,7 +26,7 @@ use opentalk_inventory::InventoryProvider;
 use opentalk_types_common::{
     rooms::BreakoutRoomId,
     tariffs::{TariffId, TariffModuleResource, TariffResource},
-    time::Timestamp,
+    time::{TimeZone, Timestamp},
     users::{DisplayName, UserId, UserInfo},
 };
 use opentalk_types_signaling::{
@@ -492,6 +492,7 @@ where
 
             let ctx = ModuleContext {
                 role: self.role,
+                timezone: TimeZone::default(),
                 timestamp: Timestamp::now(),
                 ws_messages: &mut ws_messages,
                 exchange_publish: &mut exchange_publish,
@@ -1003,6 +1004,7 @@ where
 
         let ctx = ModuleContext {
             role: self.role,
+            timezone: TimeZone::default(),
             timestamp: Timestamp::now(),
             ws_messages: &mut ws_messages,
             exchange_publish: &mut exchange_publish,

@@ -12,7 +12,11 @@ use std::{
 use actix_http::ws::{CloseCode, Message};
 use futures::stream::SelectAll;
 use opentalk_signaling_core::{AnyStream, Event, InitContext, SignalingMetrics, VolatileStorage};
-use opentalk_types_common::{features::FeatureId, modules::ModuleId, time::Timestamp};
+use opentalk_types_common::{
+    features::FeatureId,
+    modules::ModuleId,
+    time::{TimeZone, Timestamp},
+};
 use opentalk_types_signaling::{LeaveReason, ModuleData, Participant, ParticipantId, Role};
 use opentalk_types_signaling_control::state::ControlState;
 use serde_json::Value;
@@ -80,6 +84,7 @@ impl Modules {
             let ctx = DynEventCtx {
                 id: ctx.id,
                 role: ctx.role,
+                timezone: ctx.timezone,
                 ws_messages: ctx.ws_messages,
                 exchange_publish: ctx.exchange_publish,
                 volatile: ctx.volatile,
@@ -139,6 +144,7 @@ pub enum DynBroadcastEvent<'evt> {
 pub(super) struct DynEventCtx<'ctx> {
     pub id: ParticipantId,
     pub role: Role,
+    pub timezone: TimeZone,
     pub timestamp: Timestamp,
     pub ws_messages: &'ctx mut Vec<Message>,
     pub exchange_publish: &'ctx mut Vec<ExchangePublish>,
@@ -321,6 +327,7 @@ where
 
         let ctx = ModuleContext {
             role: dyn_ctx.role,
+            timezone: dyn_ctx.timezone,
             timestamp: dyn_ctx.timestamp,
             ws_messages: &mut ws_messages,
             exchange_publish: dyn_ctx.exchange_publish,
@@ -360,6 +367,7 @@ where
 
         let ctx = ModuleContext {
             role: dyn_ctx.role,
+            timezone: dyn_ctx.timezone,
             timestamp: dyn_ctx.timestamp,
             ws_messages: &mut ws_messages,
             exchange_publish: dyn_ctx.exchange_publish,

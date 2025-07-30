@@ -4,13 +4,16 @@
 
 use std::collections::BTreeSet;
 
-use opentalk_types_common::{features::ModuleFeatureId, users::Language};
+use opentalk_types_common::{features::ModuleFeatureId, time::TimeZone, users::Language};
 use serde::Deserialize;
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, Deserialize)]
 pub(crate) struct Defaults {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user_language: Option<Language>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timezone: Option<TimeZone>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub screen_share_requires_permission: Option<bool>,

@@ -354,6 +354,9 @@ urls = ["localhost:2379"]
 #[defaults]
 # Default language of a new user
 #user_language = "en-US"
+# The timezone used by the system and as the users' default, in IANA format (e.g. "Europe/Berlin").
+# If not set here, the TZ environment variable and the OS are consulted in this order, finally falling back to "Etc/UTC")
+#timezone = "Etc/UTC"
 # Default presenter role for all users (defaults to false if not set)
 #screen_share_requires_permission = false
 # A list of disabled features in the controller. By default all features are enabled.

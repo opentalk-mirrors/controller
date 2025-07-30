@@ -955,9 +955,6 @@ impl TrainingParticipationReport {
             },
         )?;
 
-        let event_creator = inventory.get_user(event.created_by).await?;
-        let timezone = event_creator.timezone.unwrap_or(TimeZone::from(Tz::UTC));
-
         let required_participants = Vec::from_iter(room_state.known_participants.clone());
 
         let display_names: Vec<Option<DisplayName>> = ctx
@@ -973,7 +970,7 @@ impl TrainingParticipationReport {
         let report = Self::generate_pdf_report(
             DEFAULT_TEMPLATE.to_string(),
             room_state,
-            timezone,
+            ctx.timezone,
             participants,
             event.title,
             event.description,

@@ -191,6 +191,7 @@ pub(crate) fn minimal_example() -> Settings {
     use std::collections::BTreeSet;
 
     use openidconnect::{ClientId, ClientSecret};
+    use opentalk_types_common::time::TimeZone;
     use url::Url;
 
     use super::OidcController;
@@ -280,6 +281,7 @@ pub(crate) fn minimal_example() -> Settings {
         },
         defaults: Defaults {
             user_language: default_user_language(),
+            timezone: TimeZone::default(),
             screen_share_requires_permission: false,
             disabled_features: BTreeSet::new(),
         },

@@ -104,6 +104,8 @@ mod tests {
     }
 
     fn settings_env_ars_overwrite_config_inner() -> Result<()> {
+        // TODO(w.rabl) Do we really have to remove these env vars first? See this discussion:
+        // https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1671#note_237420
         unsafe {
             env::remove_var("OPENTALK_CTRL_DATABASE__URL");
             env::remove_var("OPENTALK_CTRL_HTTP__PORT");
@@ -118,18 +120,21 @@ mod tests {
             "postgres://postgres:password123@localhost:5432/opentalk"
         );
         assert!(settings.http.is_none());
+        if let Some(defaults) = settings.defaults {
+            assert!(defaults.screen_share_requires_permission.is_none())
+        }
 
         // Set environment variables to overwrite default config file
         let env_db_url = "postgres://envtest:password@localhost:5432/opentalk".to_string();
         let env_http_port: u16 = 8000;
-        let screen_share_requires_permission = true;
+        let env_screen_share_requires_permission = true;
 
         unsafe {
             env::set_var("OPENTALK_CTRL_DATABASE__URL", &env_db_url);
             env::set_var("OPENTALK_CTRL_HTTP__PORT", env_http_port.to_string());
             env::set_var(
                 "OPENTALK_CTRL_DEFAULTS__SCREEN_SHARE_REQUIRES_PERMISSION",
-                screen_share_requires_permission.to_string(),
+                env_screen_share_requires_permission.to_string(),
             );
         }
 
@@ -144,7 +149,7 @@ mod tests {
                 .unwrap()
                 .screen_share_requires_permission
                 .unwrap(),
-            screen_share_requires_permission
+            env_screen_share_requires_permission
         );
 
         Ok(())
