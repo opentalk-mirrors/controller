@@ -2,14 +2,67 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::collections::BTreeSet;
+
 use bigdecimal::BigDecimal;
 use opentalk_db_storage::{
     groups::Group,
     users::{NewUser, UpdateUser, User},
 };
-use opentalk_types_common::{tenants::TenantId, time::Timestamp, users::UserId};
+use opentalk_types_common::{
+    tariffs::{TariffId, TariffStatus},
+    tenants::TenantId,
+    time::{TimeZone, Timestamp},
+    users::{DisplayName, GroupId, Language, UserId, UserTitle},
+};
 
-use crate::Result;
+use crate::{Result, UpsertOutcome};
+
+/// Information about a user identified by the OIDC `sub` field.
+///
+/// The user with that OIDC `sub` should either be created, or updated if that
+/// OIDC `sub` already exists in the inventory.
+#[derive(Debug, PartialEq, Eq)]
+pub struct UserCreateOrUpdateByOidcSub {
+    /// The OIDC `sub` field value
+    pub oidc_sub: String,
+
+    /// The E-Mail address of the user
+    pub email: String,
+
+    /// The title of the user
+    pub title: UserTitle,
+
+    /// The first name of the user
+    pub firstname: String,
+
+    /// The last name of the user
+    pub lastname: String,
+
+    /// The display name of the user
+    pub display_name: DisplayName,
+
+    /// An optional phone number of the user
+    pub phone: Option<String>,
+
+    /// The id of the tenant to which the user belongs
+    pub tenant_id: TenantId,
+
+    /// The id of the tariff assigned to the user
+    pub tariff_id: TariffId,
+
+    /// The status of the tariff assignment
+    pub tariff_status: TariffStatus,
+
+    /// An optional url to the avatar of the user
+    pub avatar_url: Option<String>,
+
+    /// An optional timezone for the user
+    pub timezone: Option<TimeZone>,
+
+    /// The language of the user
+    pub language: Language,
+}
 
 /// A trait for retrieving and storing user entities.
 #[async_trait::async_trait]
@@ -49,12 +102,12 @@ pub trait UserInventory {
         phone_number_e164: &str,
     ) -> Result<Vec<User>>;
 
-    /// Get a user by the value in their OIDC `sub` field.
-    async fn get_user_by_odic_sub(
+    /// Create or update a user.
+    async fn create_or_update_user_by_oidc_sub(
         &mut self,
-        tenant_id: TenantId,
-        sub: &str,
-    ) -> Result<Option<User>>;
+        user: UserCreateOrUpdateByOidcSub,
+        enforce_display_name_on_update: bool,
+    ) -> Result<UpsertOutcome<User>>;
 
     /// Get users by the values in their OIDC `sub` fields.
     async fn get_users_by_odic_subs(
@@ -69,10 +122,18 @@ pub trait UserInventory {
     async fn get_user_for_tenant(&mut self, tenant_id: TenantId, user_id: UserId) -> Result<User>;
 
     /// Add a user to one or multiple groups.
-    async fn add_user_to_groups(&mut self, user: &User, groups: &[Group]) -> Result<()>;
+    async fn add_user_to_groups(
+        &mut self,
+        user: &User,
+        groups: &[Group],
+    ) -> Result<BTreeSet<GroupId>>;
 
-    /// Remove a user from one or multiple groups.
-    async fn remove_user_from_groups(&mut self, user: &User, groups: &[Group]) -> Result<()>;
+    /// Remove a user from all groups not in the given `groups_to_keep` parameter.
+    async fn remove_user_from_all_groups_except(
+        &mut self,
+        user: &User,
+        groups_to_keep: &[Group],
+    ) -> Result<BTreeSet<GroupId>>;
 
     /// Remove a user from all groups.
     async fn remove_user_from_all_groups(&mut self, user_id: UserId) -> Result<()>;

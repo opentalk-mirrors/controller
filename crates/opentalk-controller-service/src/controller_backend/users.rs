@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use chrono::Utc;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::{
     TenantAssignment, UserSearchBackend, UserSearchBackendKeycloak,
@@ -69,6 +70,7 @@ impl ControllerBackend {
                     tariff_id: None,
                     tariff_status: None,
                     disabled_since: None,
+                    updated_at: Utc::now(),
                 },
             )
             .await?;

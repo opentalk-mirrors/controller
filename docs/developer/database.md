@@ -221,6 +221,7 @@ users {
     uuid tenant_id FK
     character_varying avatar_url
     character_varying conference_theme
+    timestamp_with_time_zone created_at
     character_varying dashboard_theme
     timestamp_with_time_zone disabled_since
     character_varying display_name
@@ -234,6 +235,7 @@ users {
     tariff_status tariff_status
     character_varying timezone
     character_varying title
+    timestamp_with_time_zone updated_at
 }
 
 

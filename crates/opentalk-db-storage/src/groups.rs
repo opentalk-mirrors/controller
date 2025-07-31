@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::collections::BTreeSet;
+
 use derive_more::{AsRef, Display, From, FromStr, Into};
 use diesel::{
     BoolExpressionMethods, ExpressionMethods, Identifiable, Insertable, OptionalExtension,
@@ -127,6 +129,17 @@ pub async fn get_or_create_groups_by_name(
     conn: &mut DbConnection,
     groups: &[(TenantId, GroupName)],
 ) -> Result<Vec<Group>> {
+    let new_groups: Vec<NewGroup> = groups
+        .iter()
+        .map(|&(tenant_id, ref name)| NewGroup { name, tenant_id })
+        .collect();
+    diesel::insert_into(groups::table)
+        .values(&new_groups)
+        .on_conflict((groups::tenant_id, groups::name))
+        .do_nothing()
+        .execute(conn)
+        .await?;
+
     let mut query = groups::table.select(groups::all_columns).into_boxed();
 
     for (tenant_id, group_name) in groups {
@@ -137,40 +150,22 @@ pub async fn get_or_create_groups_by_name(
         );
     }
 
-    let mut present_groups: Vec<Group> = query.load(conn).await?;
+    let groups: Vec<Group> = query.load(conn).await?;
 
-    // Create a `NewGroup` for every group that the previous query didn't return
-    let new_groups: Vec<NewGroup> = groups
-        .iter()
-        .filter(|(wanted_tenant_id, wanted_group_name)| {
-            !present_groups.iter().any(|present_group| {
-                present_group.tenant_id == *wanted_tenant_id
-                    && present_group.name == *wanted_group_name
-            })
-        })
-        .map(|&(tenant_id, ref name)| NewGroup { name, tenant_id })
-        .collect();
-
-    if !new_groups.is_empty() {
-        // Insert new groups and return them
-        let new_groups: Vec<Group> = diesel::insert_into(groups::table)
-            .values(&new_groups)
-            .returning(groups::all_columns)
-            .load(conn)
-            .await?;
-
-        present_groups.extend(new_groups);
-    }
-
-    Ok(present_groups)
+    Ok(groups)
 }
 
+/// Add a user to a set of groups
+///
+/// The result will contain the set of ids for the groups to which the user was
+/// effectively added. Any groups passed into the `groups` parameters where the
+/// user was already a member anyway will be missing from the returned set.
 #[tracing::instrument(err, skip_all)]
 pub async fn insert_user_into_groups(
     conn: &mut DbConnection,
     user: &User,
     groups: &[Group],
-) -> Result<()> {
+) -> Result<BTreeSet<GroupId>> {
     let new_user_groups = groups
         .iter()
         .map(|group| NewUserGroupRelation {
@@ -179,33 +174,40 @@ pub async fn insert_user_into_groups(
         })
         .collect::<Vec<_>>();
 
-    diesel::insert_into(user_groups::table)
+    let inserted_groups = diesel::insert_into(user_groups::table)
         .values(new_user_groups)
         .on_conflict_do_nothing()
-        .execute(conn)
+        .returning(user_groups::group_id)
+        .load(conn)
         .await?;
 
-    Ok(())
+    Ok(BTreeSet::from_iter(inserted_groups))
 }
 
+/// Remove a user from all groups except those given in the `groups_to_keep` parameter.
+///
+/// The result will contain the set of ids for the groups from which the user
+/// was effectively removed. Any groups in which the user remained will not be
+/// contained in the returned value.
 #[tracing::instrument(err, skip_all)]
-pub async fn remove_user_from_groups(
+pub async fn remove_user_from_all_groups_except(
     conn: &mut DbConnection,
     user: &User,
-    groups: &[Group],
-) -> Result<()> {
-    let group_ids: Vec<GroupId> = groups.iter().map(|group| group.id).collect();
+    groups_to_keep: &[Group],
+) -> Result<BTreeSet<GroupId>> {
+    let group_ids_to_keep: Vec<GroupId> = groups_to_keep.iter().map(|group| group.id).collect();
 
-    diesel::delete(user_groups::table)
+    let removed_groups = diesel::delete(user_groups::table)
         .filter(
             user_groups::user_id
                 .eq(user.id)
-                .and(user_groups::group_id.eq_any(group_ids)),
+                .and(user_groups::group_id.ne_all(group_ids_to_keep)),
         )
-        .execute(conn)
+        .returning(user_groups::group_id)
+        .load(conn)
         .await?;
 
-    Ok(())
+    Ok(BTreeSet::from_iter(removed_groups))
 }
 
 #[tracing::instrument(err, skip_all)]

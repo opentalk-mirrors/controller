@@ -2,15 +2,24 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::collections::BTreeSet;
+
 use bigdecimal::BigDecimal;
 use opentalk_db_storage::{
     groups::{
-        Group, insert_user_into_groups, remove_user_from_all_groups, remove_user_from_groups,
+        Group, insert_user_into_groups, remove_user_from_all_groups,
+        remove_user_from_all_groups_except,
     },
     users::{NewUser, UpdateUser, User},
 };
-use opentalk_inventory::{UserInventory, error::StorageBackendSnafu};
-use opentalk_types_common::{tenants::TenantId, time::Timestamp, users::UserId};
+use opentalk_inventory::{
+    UpsertOutcome, UserCreateOrUpdateByOidcSub, UserInventory, error::StorageBackendSnafu,
+};
+use opentalk_types_common::{
+    tenants::TenantId,
+    time::Timestamp,
+    users::{GroupId, UserId},
+};
 use snafu::ResultExt as _;
 
 use crate::{DatabaseConnection, Result};
@@ -90,14 +99,48 @@ impl UserInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err, skip_all)]
-    async fn get_user_by_odic_sub(
+    async fn create_or_update_user_by_oidc_sub(
         &mut self,
-        tenant_id: TenantId,
-        sub: &str,
-    ) -> Result<Option<User>> {
-        User::get_by_oidc_sub(&mut self.inner, tenant_id, sub)
-            .await
-            .context(StorageBackendSnafu)
+        UserCreateOrUpdateByOidcSub {
+            oidc_sub,
+            email,
+            title,
+            firstname,
+            lastname,
+            display_name,
+            phone,
+            tenant_id,
+            tariff_id,
+            tariff_status,
+            avatar_url,
+            timezone,
+            language,
+        }: UserCreateOrUpdateByOidcSub,
+        enforce_display_name_on_update: bool,
+    ) -> Result<UpsertOutcome<User>> {
+        let user = NewUser {
+            oidc_sub,
+            email: email.to_lowercase().to_string(),
+            title,
+            firstname,
+            lastname,
+            display_name,
+            phone,
+            tenant_id,
+            tariff_id,
+            tariff_status,
+            avatar_url,
+            timezone,
+            language,
+        }
+        .insert_or_update_by_oidc_sub(&mut self.inner, enforce_display_name_on_update)
+        .await
+        .context(StorageBackendSnafu)?;
+        if user.created_at == user.updated_at {
+            Ok(UpsertOutcome::Inserted(user))
+        } else {
+            Ok(UpsertOutcome::Updated(user))
+        }
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -119,15 +162,23 @@ impl UserInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err, skip_all)]
-    async fn add_user_to_groups(&mut self, user: &User, groups: &[Group]) -> Result<()> {
+    async fn add_user_to_groups(
+        &mut self,
+        user: &User,
+        groups: &[Group],
+    ) -> Result<BTreeSet<GroupId>> {
         insert_user_into_groups(&mut self.inner, user, groups)
             .await
             .context(StorageBackendSnafu)
     }
 
     #[tracing::instrument(err, skip_all)]
-    async fn remove_user_from_groups(&mut self, user: &User, groups: &[Group]) -> Result<()> {
-        remove_user_from_groups(&mut self.inner, user, groups)
+    async fn remove_user_from_all_groups_except(
+        &mut self,
+        user: &User,
+        groups_to_keep: &[Group],
+    ) -> Result<BTreeSet<GroupId>> {
+        remove_user_from_all_groups_except(&mut self.inner, user, groups_to_keep)
             .await
             .context(StorageBackendSnafu)
     }
