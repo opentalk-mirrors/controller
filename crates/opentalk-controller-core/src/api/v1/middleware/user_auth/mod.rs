@@ -5,6 +5,7 @@
 //! Handles user Authentication in API requests
 use core::future::ready;
 use std::{
+    collections::BTreeSet,
     future::{Future, Ready},
     pin::Pin,
     rc::Rc,
@@ -27,6 +28,7 @@ use opentalk_cache::Cache;
 use opentalk_controller_service::{
     controller_backend::RoomsPoliciesBuilderExt,
     oidc::{OidcContext, OnlyExpiryClaim, OpenIdConnectUserInfo},
+    phone_numbers::parse_phone_number,
 };
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::{
@@ -39,14 +41,16 @@ use opentalk_db_storage::{
     tenants::{OidcTenantId, Tenant},
     users::User,
 };
-use opentalk_inventory::{Inventory, InventoryProvider, transaction};
+use opentalk_inventory::{
+    Inventory, InventoryProvider, UpsertOutcome, UserCreateOrUpdateByOidcSub, transaction,
+};
 use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use opentalk_types_common::{
     events::EventId,
     rooms::{RoomId, invite_codes::InviteCode},
     tariffs::TariffStatus,
     tenants::TenantId,
-    users::{DisplayName, GroupName, Language},
+    users::{DisplayName, GroupId, GroupName, Language, UserTitle},
 };
 use snafu::Report;
 use tracing_futures::Instrument;
@@ -64,8 +68,6 @@ use crate::{
 };
 
 mod bearer_or_invite_code;
-mod create_user;
-mod update_user;
 
 pub type UserAccessTokenCache = Cache<String, Result<(Tenant, User), CacheableApiError>>;
 
@@ -473,38 +475,68 @@ async fn create_or_update_user(
     tariff_status: TariffStatus,
     fallback_locale: Language,
 ) -> Result<LoginResult, CaptureApiError> {
-    let user = inventory.get_user_by_odic_sub(tenant.id, &info.sub).await?;
+    let display_name = build_info_display_name(&info);
+    let enforce_display_name = settings.endpoints.disallow_custom_display_name;
 
-    let login_result = match user {
-        Some(user) => {
-            // Found a matching user, update its attributes, tenancy and groups
-            update_user::update_user(
-                settings,
-                inventory,
-                user,
-                info,
-                groups,
-                tariff,
-                tariff_status,
-            )
-            .await?
-        }
-        None => {
-            // No matching user, create a new one with inside the given tenants and groups
-            create_user::create_user(
-                settings,
-                inventory,
-                info,
-                &tenant,
-                groups,
-                tariff,
-                tariff_status,
-                fallback_locale,
-            )
-            .await?
-        }
+    let phone_number = if let Some((call_in, phone_number)) =
+        settings.call_in.as_ref().zip(info.phone_number.as_deref())
+    {
+        parse_phone_number(phone_number, call_in.default_country_code)
+            .map(|p| p.format().mode(phonenumber::Mode::E164).to_string())
+    } else {
+        None
     };
-    Ok(login_result)
+
+    let language = info.locale.unwrap_or(fallback_locale);
+
+    let outcome = inventory
+        .create_or_update_user_by_oidc_sub(
+            UserCreateOrUpdateByOidcSub {
+                oidc_sub: info.sub,
+                email: info.email,
+                title: UserTitle::new(),
+                display_name,
+                firstname: info.firstname,
+                lastname: info.lastname,
+                avatar_url: info.avatar_url,
+                language,
+                phone: phone_number,
+                tenant_id: tenant.id,
+                tariff_id: tariff.id,
+                tariff_status,
+                timezone: info.timezone,
+            },
+            enforce_display_name,
+        )
+        .await?;
+
+    match outcome {
+        UpsertOutcome::Inserted(user) => {
+            let groups_added_to = inventory.add_user_to_groups(&user, &groups).await?;
+
+            let event_and_room_ids = inventory
+                .migrate_event_email_invites_to_user_invites(&user)
+                .await?;
+
+            Ok(LoginResult::UserCreated {
+                user,
+                groups: groups_added_to,
+                event_and_room_ids,
+            })
+        }
+        UpsertOutcome::Updated(user) => {
+            let groups_added_to = inventory.add_user_to_groups(&user, &groups).await?;
+            let groups_removed_from = inventory
+                .remove_user_from_all_groups_except(&user, &groups)
+                .await?;
+
+            Ok(LoginResult::UserUpdated {
+                user,
+                groups_added_to,
+                groups_removed_from,
+            })
+        }
+    }
 }
 
 fn map_tariff_status_name(mapping: &TariffStatusMapping, name: &String) -> TariffStatus {
@@ -523,13 +555,13 @@ fn map_tariff_status_name(mapping: &TariffStatusMapping, name: &String) -> Tarif
 enum LoginResult {
     UserCreated {
         user: User,
-        groups: Vec<Group>,
+        groups: BTreeSet<GroupId>,
         event_and_room_ids: Vec<(EventId, RoomId)>,
     },
     UserUpdated {
         user: User,
-        groups_added_to: Vec<Group>,
-        groups_removed_from: Vec<Group>,
+        groups_added_to: BTreeSet<GroupId>,
+        groups_removed_from: BTreeSet<GroupId>,
     },
 }
 
@@ -543,14 +575,12 @@ async fn update_core_user_permissions(
             groups_added_to,
             groups_removed_from,
         } => {
-            // TODO(r.floren) this could be optimized I guess, with a user_to_groups?
-            // But this is currently not a hot path.
-            for group in groups_added_to {
-                authz.add_user_to_group(user.id, group.id).await?;
+            for group_id in groups_added_to {
+                authz.add_user_to_group(user.id, group_id).await?;
             }
 
-            for group in groups_removed_from {
-                authz.remove_user_from_group(user.id, group.id).await?;
+            for group_id in groups_removed_from {
+                authz.remove_user_from_group(user.id, group_id).await?;
             }
 
             Ok(user)
@@ -562,8 +592,8 @@ async fn update_core_user_permissions(
         } => {
             authz.add_user_to_role(user.id, "user").await?;
 
-            for group in groups {
-                authz.add_user_to_group(user.id, group.id).await?;
+            for group_id in groups {
+                authz.add_user_to_group(user.id, group_id).await?;
             }
 
             // Migrate email invites to user invites

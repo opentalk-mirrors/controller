@@ -149,6 +149,7 @@ mod tests {
                     tariff_id: None,
                     tariff_status: None,
                     disabled_since: Some(Some(since)),
+                    updated_at: Utc::now(),
                 },
             )
             .await

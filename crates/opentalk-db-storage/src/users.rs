@@ -81,6 +81,10 @@ pub struct User {
     pub disabled_since: Option<DateTime<Utc>>,
     pub avatar_url: Option<String>,
     pub timezone: Option<TimeZone>,
+    #[bincode(with_serde)]
+    pub created_at: DateTime<Utc>,
+    #[bincode(with_serde)]
+    pub updated_at: DateTime<Utc>,
 }
 
 impl fmt::Debug for User {
@@ -239,25 +243,6 @@ impl User {
         Ok(users)
     }
 
-    /// Get user with the given `sub` inside a tenant
-    ///
-    /// Returns None no user matched `sub`
-    #[tracing::instrument(err, skip_all)]
-    pub async fn get_by_oidc_sub(
-        conn: &mut DbConnection,
-        tenant_id: TenantId,
-        sub: &str,
-    ) -> Result<Option<Self>> {
-        let user = Self::active_users_query()
-            .filter(users::oidc_sub.eq(sub))
-            .filter(users::tenant_id.eq(tenant_id))
-            .get_result(conn)
-            .await
-            .optional()?;
-
-        Ok(user)
-    }
-
     /// Get all users filtered by the given subs
     #[tracing::instrument(err, skip_all)]
     pub async fn get_all_by_oidc_subs(
@@ -382,7 +367,7 @@ impl User {
 /// Diesel insertable user struct
 ///
 /// Represents fields that have to be provided on user insertion.
-#[derive(Insertable)]
+#[derive(Insertable, Debug, Clone)]
 #[diesel(table_name = users)]
 pub struct NewUser {
     pub oidc_sub: String,
@@ -403,6 +388,52 @@ pub struct NewUser {
 impl NewUser {
     pub async fn insert(self, conn: &mut DbConnection) -> Result<User> {
         let query = self.insert_into(users::table);
+        let user = query.get_result(conn).await?;
+        Ok(user)
+    }
+
+    pub async fn insert_or_update_by_oidc_sub(
+        self,
+        conn: &mut DbConnection,
+        enforce_display_name_on_update: bool,
+    ) -> Result<User> {
+        let NewUser {
+            oidc_sub: _,
+            email,
+            title,
+            firstname,
+            lastname,
+            language,
+            display_name,
+            phone,
+            tenant_id: _,
+            tariff_id,
+            tariff_status,
+            avatar_url,
+            timezone,
+        } = self.clone();
+        let update_user = UpdateUser {
+            title: Some(&title),
+            email: Some(email),
+            firstname: Some(&firstname),
+            lastname: Some(&lastname),
+            phone: Some(phone),
+            display_name: enforce_display_name_on_update.then_some(&display_name),
+            language: Some(&language),
+            dashboard_theme: None,
+            conference_theme: None,
+            tariff_id: Some(tariff_id),
+            tariff_status: Some(tariff_status),
+            disabled_since: None,
+            avatar_url: Some(avatar_url.as_deref()),
+            timezone: Some(timezone),
+            updated_at: Utc::now(),
+        };
+        let query = self
+            .insert_into(users::table)
+            .on_conflict((users::oidc_sub, users::tenant_id))
+            .do_update()
+            .set(update_user);
         let user = query.get_result(conn).await?;
         Ok(user)
     }
@@ -430,6 +461,7 @@ pub struct UpdateUser<'a> {
     pub disabled_since: Option<Option<DateTime<Utc>>>,
     pub avatar_url: Option<Option<&'a str>>,
     pub timezone: Option<Option<TimeZone>>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl UpdateUser<'_> {
@@ -457,6 +489,7 @@ impl UpdateUser<'_> {
                 disabled_since: None,
                 avatar_url: None,
                 timezone: None,
+                updated_at: _
             }
         )
     }

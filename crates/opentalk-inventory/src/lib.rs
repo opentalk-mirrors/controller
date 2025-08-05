@@ -43,6 +43,7 @@ mod tariff;
 mod tenant;
 mod transaction;
 mod transaction_manager;
+mod upsert;
 mod user;
 
 pub mod utils;
@@ -66,7 +67,8 @@ pub use tariff::TariffInventory;
 pub use tenant::TenantInventory;
 pub use transaction::transaction;
 pub use transaction_manager::TransactionManager;
-pub use user::UserInventory;
+pub use upsert::UpsertOutcome;
+pub use user::{UserCreateOrUpdateByOidcSub, UserInventory};
 
 /// The result type typically used for functions in this crate.
 pub type Result<T, E = Error> = std::result::Result<T, E>;

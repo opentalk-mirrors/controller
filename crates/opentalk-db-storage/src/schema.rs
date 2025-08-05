@@ -385,6 +385,8 @@ diesel::table! {
         avatar_url -> Nullable<Varchar>,
         #[max_length = 255]
         timezone -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
