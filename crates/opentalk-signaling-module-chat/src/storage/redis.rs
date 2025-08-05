@@ -16,27 +16,87 @@ use opentalk_types_common::{
     users::{GroupId, GroupName},
 };
 use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_chat::state::StoredMessage;
+use opentalk_types_signaling_chat::state::{CHAT_CHUNK_SIZE, ChatChunk, StoredMessage};
 use redis::AsyncCommands as _;
 use redis_args::{FromRedisValue, ToRedisArgs};
 use snafu::{OptionExt as _, Report, ResultExt as _};
 use uuid::Uuid;
 
 use super::ChatStorage;
-use crate::ParticipantPair;
+use crate::{ParticipantPair, storage::room_private_chat_history::RoomPrivateChatHistory};
 
 #[async_trait(?Send)]
 impl ChatStorage for RedisConnection {
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn get_room_history(
+    async fn get_room_history_chunk(
         &mut self,
         room: SignalingRoomId,
-    ) -> Result<Vec<StoredMessage>, SignalingModuleError> {
-        self.lrange(RoomChatHistory { room }, 0, -1)
+        message_index: u64,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        let start = u64::saturating_sub(message_index, CHAT_CHUNK_SIZE - 1);
+        let (messages, length) = redis::pipe()
+            .atomic()
+            .lrange(
+                RoomChatHistory { room },
+                start as isize,
+                message_index as isize,
+            )
+            .llen(RoomChatHistory { room })
+            .query_async(self)
             .await
             .with_context(|_| RedisSnafu {
-                message: format!("Failed to get chat history: room={room}"),
-            })
+                message: format!(
+                    "Failed to get chat history chunk({start}, {message_index}): room={room}"
+                ),
+            })?;
+
+        if message_index >= length {
+            return Ok(ChatChunk::default());
+        }
+
+        Ok(ChatChunk {
+            messages,
+            next_index: start.checked_sub(1),
+        })
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn get_room_history_latest_chunk(
+        &mut self,
+        room: SignalingRoomId,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        let (messages, length): (Vec<StoredMessage>, u64) = redis::pipe()
+            .atomic()
+            .lrange(RoomChatHistory { room }, -(CHAT_CHUNK_SIZE as isize), -1)
+            .llen(RoomChatHistory { room })
+            .query_async(self)
+            .await
+            .with_context(|_| RedisSnafu {
+                message: format!(
+                    "Failed to get chat history chunk(-{CHAT_CHUNK_SIZE}, -1): room={room}"
+                ),
+            })?;
+
+        Ok(ChatChunk {
+            messages,
+            next_index: length.checked_sub(CHAT_CHUNK_SIZE + 1),
+        })
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn search_room_history(
+        &mut self,
+        room: SignalingRoomId,
+        term: &str,
+        message_index: Option<u64>,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        let messages: Vec<StoredMessage> = self
+            .lrange(RoomChatHistory { room }, 0, -1)
+            .await
+            .with_context(|_| RedisSnafu {
+                message: format!("Failed to get room chat history: room={room}"),
+            })?;
+        Ok(search_history_chunked(messages, term, message_index))
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -45,7 +105,7 @@ impl ChatStorage for RedisConnection {
         room: SignalingRoomId,
         message: &StoredMessage,
     ) -> Result<(), SignalingModuleError> {
-        self.lpush(RoomChatHistory { room }, message)
+        self.rpush(RoomChatHistory { room }, message)
             .await
             .with_context(|_| RedisSnafu {
                 message: format!("Failed to add message to room chat history, room={room}"),
@@ -268,16 +328,82 @@ impl ChatStorage for RedisConnection {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn get_group_chat_history(
+    async fn get_group_chat_history_chunk(
         &mut self,
         room: SignalingRoomId,
         group: GroupId,
-    ) -> Result<Vec<StoredMessage>, SignalingModuleError> {
-        self.lrange(RoomGroupChatHistory { room, group }, 0, -1)
+        message_index: u64,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        let start = u64::saturating_sub(message_index, CHAT_CHUNK_SIZE - 1);
+        let (messages, length) = redis::pipe()
+            .atomic()
+            .lrange(
+                RoomGroupChatHistory { room, group },
+                start as isize,
+                message_index as isize,
+            )
+            .llen(RoomGroupChatHistory { room, group })
+            .query_async(self)
             .await
             .with_context(|_| RedisSnafu {
-                message: format!("Failed to get chat history, {room}, group={group}"),
-            })
+                message: format!(
+                    "Failed to get group chat history chunk({start}, {message_index}): room={room}, group={group}"
+                ),
+            })?;
+
+        if message_index >= length {
+            return Ok(ChatChunk::default());
+        }
+
+        Ok(ChatChunk {
+            messages,
+            next_index: start.checked_sub(1),
+        })
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn get_group_chat_history_latest_chunk(
+        &mut self,
+        room: SignalingRoomId,
+        group: GroupId,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        let (messages, length): (Vec<StoredMessage>, u64) = redis::pipe()
+            .atomic()
+            .lrange(
+                RoomGroupChatHistory { room, group },
+                -(CHAT_CHUNK_SIZE as isize),
+                -1,
+            )
+            .llen(RoomGroupChatHistory { room, group })
+            .query_async(self)
+            .await
+            .with_context(|_| RedisSnafu {
+                message: format!(
+                    "Failed to get group chat history chunk(-{CHAT_CHUNK_SIZE}, -1): room={room}, group={group}"
+                ),
+            })?;
+
+        Ok(ChatChunk {
+            messages,
+            next_index: length.checked_sub(CHAT_CHUNK_SIZE + 1),
+        })
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn search_group_chat_history(
+        &mut self,
+        room: SignalingRoomId,
+        group: GroupId,
+        term: &str,
+        message_index: Option<u64>,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        let messages: Vec<StoredMessage> = self
+            .lrange(RoomGroupChatHistory { room, group }, 0, -1)
+            .await
+            .with_context(|_| RedisSnafu {
+                message: format!("Failed to get group chat history: room={room}, group={group}"),
+            })?;
+        Ok(search_history_chunked(messages, term, message_index))
     }
 
     #[tracing::instrument(level = "debug", skip(self, message))]
@@ -287,7 +413,7 @@ impl ChatStorage for RedisConnection {
         group: GroupId,
         message: &StoredMessage,
     ) -> Result<(), SignalingModuleError> {
-        self.lpush(RoomGroupChatHistory { room, group }, message)
+        self.rpush(RoomGroupChatHistory { room, group }, message)
             .await
             .with_context(|_| RedisSnafu {
                 message: format!(
@@ -311,24 +437,107 @@ impl ChatStorage for RedisConnection {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn get_private_chat_history(
+    async fn get_private_chat_history_chunk(
         &mut self,
         room: SignalingRoomId,
         participant_one: ParticipantId,
         participant_two: ParticipantId,
-    ) -> Result<Vec<StoredMessage>, SignalingModuleError> {
-        self.lrange(
-            RoomPrivateChatHistory::new(room, participant_one, participant_two),
-            0,
-            -1,
-        )
-        .await
-        .with_context(|_| RedisSnafu {
-            message: format!(
-                "Failed to get room private chat history, {room}, \
-                participants {participant_one} and {participant_two}"
-            ),
+        message_index: u64,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        let start = u64::saturating_sub(message_index, CHAT_CHUNK_SIZE - 1);
+
+        let (messages, length) = redis::pipe()
+            .atomic()
+            .lrange(
+                RoomPrivateChatHistory::new(room, participant_one, participant_two),
+                start as isize,
+                message_index as isize,
+            )
+            .llen(RoomPrivateChatHistory::new(
+                room,
+                participant_one,
+                participant_two,
+            ))
+            .query_async(self)
+            .await
+            .with_context(|_| RedisSnafu {
+                message: format!(
+                    "Failed to get chat history chunk({start}, {message_index}): room={room}"
+                ),
+            })?;
+
+        if message_index >= length {
+            return Ok(ChatChunk::default());
+        }
+
+        Ok(ChatChunk {
+            messages,
+            next_index: start.checked_sub(1),
         })
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn get_private_chat_history_latest_chunk(
+        &mut self,
+        room: SignalingRoomId,
+        participant_one: ParticipantId,
+        participant_two: ParticipantId,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        let (messages, length): (Vec<StoredMessage>, u64) = redis::pipe()
+            .atomic()
+            .lrange(
+                RoomPrivateChatHistory::new(
+                    room,
+                    participant_one,
+                    participant_two,
+                ),
+                -(CHAT_CHUNK_SIZE as isize),
+                -1,
+            )
+            .llen(RoomPrivateChatHistory::new(
+                room,
+                participant_one,
+                participant_two,
+            ))
+            .query_async(self)
+            .await
+            .with_context(|_| RedisSnafu {
+                message: format!(
+                    "Failed to get private chat history chunk(-{CHAT_CHUNK_SIZE}, -1): room={room}, participants={participant_one}, {participant_two}"
+                ),
+            })?;
+
+        Ok(ChatChunk {
+            messages,
+            next_index: length.checked_sub(CHAT_CHUNK_SIZE + 1),
+        })
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn search_private_chat_history(
+        &mut self,
+        room: SignalingRoomId,
+        participant_one: ParticipantId,
+        participant_two: ParticipantId,
+        term: &str,
+        message_index: Option<u64>,
+    ) -> Result<ChatChunk, SignalingModuleError> {
+        let messages: Vec<StoredMessage> = self
+            .lrange(
+                RoomPrivateChatHistory::new(room, participant_one, participant_two),
+                0,
+                -1,
+            )
+            .await
+            .with_context(|_| RedisSnafu {
+                message: format!(
+                    "Failed to get private chat history: \
+                    room={room} \
+                    participant_one={participant_one} \
+                    participant_one={participant_two}"
+                ),
+            })?;
+        Ok(search_history_chunked(messages, term, message_index))
     }
 
     #[tracing::instrument(level = "debug", skip(self, message))]
@@ -339,7 +548,7 @@ impl ChatStorage for RedisConnection {
         participant_two: ParticipantId,
         message: &StoredMessage,
     ) -> Result<(), SignalingModuleError> {
-        self.lpush(
+        self.rpush(
             RoomPrivateChatHistory::new(room, participant_one, participant_two),
             message,
         )
@@ -450,6 +659,50 @@ impl ChatStorage for RedisConnection {
     }
 }
 
+fn search_history_chunked(
+    messages: Vec<StoredMessage>,
+    term: &str,
+    message_index: Option<u64>,
+) -> ChatChunk {
+    if term.is_empty() {
+        return ChatChunk::default();
+    }
+
+    // Filter the messages by search term
+    let filtered: Vec<StoredMessage> = messages
+        .into_iter()
+        .filter(|m| m.content.contains(term))
+        .collect();
+
+    // When the message_index is None, the latest chunk should be returned, set it
+    // to the last index.
+    let message_index = message_index
+        .map(|i| i as usize)
+        .unwrap_or(filtered.len().saturating_sub(1));
+    let start = message_index.saturating_sub(CHAT_CHUNK_SIZE as usize - 1);
+    // A chunk might be smaller than the chunk size, when it is less than a
+    // chunk size away from the end of the list.
+    let messages: Vec<StoredMessage> = filtered
+        .get(start..=message_index)
+        .unwrap_or_default()
+        .iter()
+        .map(|message| (*message).clone())
+        .collect();
+
+    // When no messages could be found the message_index was OOB or no messages
+    // exist. The next_index should be None in this case.
+    let next_index = if messages.is_empty() {
+        None
+    } else {
+        (start as u64).checked_sub(1)
+    };
+
+    ChatChunk {
+        messages,
+        next_index,
+    }
+}
+
 /// Key to the chat history inside a room
 #[derive(ToRedisArgs)]
 #[to_redis_args(fmt = "opentalk-signaling:room={room}:chat:history")]
@@ -467,7 +720,7 @@ struct ChatEnabled {
 /// A hash of last-seen timestamps
 #[derive(ToRedisArgs)]
 #[to_redis_args(
-    fmt = "opentalk-signaling:room={room}:participant={participant}:chat:last_seen:global"
+    fmt = "opentalk-signaling:room={room}:participant={participant}:chat:last_seen:private"
 )]
 struct RoomParticipantLastSeenTimestampPrivate {
     room: SignalingRoomId,
@@ -487,7 +740,7 @@ struct RoomParticipantLastSeenTimestampsGroup {
 /// A hash of last-seen timestamps
 #[derive(ToRedisArgs)]
 #[to_redis_args(
-    fmt = "opentalk-signaling:room={room}:participant={participant}:chat:last_seen:private"
+    fmt = "opentalk-signaling:room={room}:participant={participant}:chat:last_seen:global"
 )]
 struct RoomParticipantLastSeenTimestampGlobal {
     room: SignalingRoomId,
@@ -547,32 +800,6 @@ impl FromStr for RoomPrivateChatCorrespondents {
 struct RoomGroupChatHistory {
     room: SignalingRoomId,
     group: GroupId,
-}
-
-/// Private chat history for two participants inside a room
-#[derive(ToRedisArgs)]
-#[to_redis_args(
-    fmt = "opentalk-signaling:room={room}:participant={participant_one}:participant={participant_two}:chat:history"
-)]
-struct RoomPrivateChatHistory {
-    room: SignalingRoomId,
-    participant_one: ParticipantId,
-    participant_two: ParticipantId,
-}
-
-impl RoomPrivateChatHistory {
-    pub fn new(
-        room: SignalingRoomId,
-        participant_a: ParticipantId,
-        participant_b: ParticipantId,
-    ) -> Self {
-        let pair = ParticipantPair::new(participant_a, participant_b);
-        Self {
-            room,
-            participant_one: pair.participant_one(),
-            participant_two: pair.participant_two(),
-        }
-    }
 }
 
 /// A set of group members inside a room
@@ -657,5 +884,41 @@ mod tests {
                     .to_redis_args()
             )
         }
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn room_chat_history() {
+        test_common::room_chat_history(&mut storage().await).await;
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn group_chat_history() {
+        test_common::group_chat_history(&mut storage().await).await;
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn private_chat_history() {
+        test_common::private_chat_history(&mut storage().await).await;
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn search_room_chat_history() {
+        test_common::search_room_chat_history(&mut storage().await).await;
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn search_group_chat_history() {
+        test_common::search_group_chat_history(&mut storage().await).await;
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn search_private_chat_history() {
+        test_common::search_private_chat_history(&mut storage().await).await;
     }
 }

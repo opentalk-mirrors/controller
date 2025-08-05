@@ -33,8 +33,10 @@ use opentalk_types_common::{
 use opentalk_types_signaling::{ParticipantId, Role};
 use opentalk_types_signaling_chat::{
     MODULE_ID, MessageId, Scope,
-    command::{ChatCommand, SendMessage, SetLastSeenTimestamp},
-    event::{ChatDisabled, ChatEnabled, ChatEvent, Error, HistoryCleared, MessageSent},
+    command::{ChatCommand, GetHistoryChunk, SearchHistory, SendMessage, SetLastSeenTimestamp},
+    event::{
+        ChatDisabled, ChatEnabled, ChatEvent, Error, HistoryCleared, MessageSent, SearchResults,
+    },
     peer_state::ChatPeerState,
     state::{ChatState, GroupHistory, PrivateHistory, StoredMessage},
 };
@@ -45,6 +47,8 @@ mod storage;
 
 use participant_pair::ParticipantPair;
 use storage::ChatStorage;
+
+const MIN_SEARCH_TERM_LENGTH: usize = 2;
 
 fn current_room_by_group_id(room_id: SignalingRoomId, group_id: GroupId) -> String {
     format!("room={room_id}:group={group_id}")
@@ -201,16 +205,19 @@ impl ChatStateExt for ChatState {
     ) -> Result<Self, SignalingModuleError> {
         let enabled = storage.is_chat_enabled(room.room_id()).await?;
 
-        let room_history = storage.get_room_history(room).await?;
+        let room_history = storage.get_room_history_latest_chunk(room).await?;
         let mut groups_history = Vec::new();
         for group in groups {
             storage
                 .add_participant_to_group(room, group.id, participant)
                 .await?;
 
-            let history = storage.get_group_chat_history(room, group.id).await?;
+            let history = storage
+                .get_group_chat_history_latest_chunk(room, group.id)
+                .await?;
 
             groups_history.push(GroupHistory {
+                id: group.id,
                 name: group.name.clone(),
                 history,
             });
@@ -222,7 +229,7 @@ impl ChatStateExt for ChatState {
             .await?;
         for correspondent in correspondents {
             let history = storage
-                .get_private_chat_history(room, participant, correspondent)
+                .get_private_chat_history_latest_chunk(room, participant, correspondent)
                 .await?;
             private_history.push(PrivateHistory {
                 correspondent,
@@ -717,6 +724,103 @@ impl SignalingModule for Chat {
                         self.last_seen_timestamp_global = Some(timestamp);
                     }
                 };
+            }
+            Event::WsMessage(ChatCommand::GetHistoryChunk(GetHistoryChunk {
+                message_index,
+                scope,
+            })) => {
+                let event = match scope {
+                    Scope::Global => {
+                        let history = ctx
+                            .volatile
+                            .storage()
+                            .get_room_history_chunk(self.room, message_index)
+                            .await?;
+
+                        ChatEvent::RoomChatHistoryChunk { history }
+                    }
+                    Scope::Group(group_name) => {
+                        let Some(group) = self.groups.iter().find(|g| g.name == group_name) else {
+                            ctx.ws_send(ChatEvent::Error(Error::InsufficientPermissions));
+                            return Ok(());
+                        };
+
+                        let history = ctx
+                            .volatile
+                            .storage()
+                            .get_group_chat_history_chunk(self.room, group.id, message_index)
+                            .await?;
+
+                        ChatEvent::GroupChatHistoryChunk(GroupHistory {
+                            id: group.id,
+                            name: group.name.clone(),
+                            history,
+                        })
+                    }
+                    Scope::Private(participant_id) => {
+                        let history = ctx
+                            .volatile
+                            .storage()
+                            .get_private_chat_history_chunk(
+                                self.room,
+                                self.id,
+                                participant_id,
+                                message_index,
+                            )
+                            .await?;
+
+                        ChatEvent::PrivateChatHistoryChunk(PrivateHistory {
+                            history,
+                            correspondent: participant_id,
+                        })
+                    }
+                };
+                ctx.ws_send(event);
+            }
+            Event::WsMessage(ChatCommand::SearchHistory(SearchHistory {
+                scope,
+                term,
+                message_index,
+            })) => {
+                if term.len() < MIN_SEARCH_TERM_LENGTH {
+                    ctx.ws_send(ChatEvent::Error(Error::InvalidSearchTermLength {
+                        min: MIN_SEARCH_TERM_LENGTH,
+                    }));
+                    return Ok(());
+                }
+
+                let matches = match &scope {
+                    Scope::Global => {
+                        ctx.volatile
+                            .storage()
+                            .search_room_history(self.room, &term, message_index)
+                            .await?
+                    }
+                    Scope::Group(group_name) => {
+                        let Some(group) = self.groups.iter().find(|g| g.name == *group_name) else {
+                            ctx.ws_send(ChatEvent::Error(Error::InsufficientPermissions));
+                            return Ok(());
+                        };
+
+                        ctx.volatile
+                            .storage()
+                            .search_group_chat_history(self.room, group.id, &term, message_index)
+                            .await?
+                    }
+                    Scope::Private(participant_id) => {
+                        ctx.volatile
+                            .storage()
+                            .search_private_chat_history(
+                                self.room,
+                                self.id,
+                                *participant_id,
+                                &term,
+                                message_index,
+                            )
+                            .await?
+                    }
+                };
+                ctx.ws_send(ChatEvent::SearchResults(SearchResults { matches, scope }));
             }
             Event::Exchange(msg) => {
                 ctx.ws_send(msg);

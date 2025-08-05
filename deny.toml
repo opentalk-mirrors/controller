@@ -344,6 +344,7 @@ skip = [
   { name = "jiff", version = "0.1" },
   { name = "linux-raw-sys", version = "0.4" },
   { name = "matchit", version = "0.7" },
+  { name = "opentalk-types-signaling", version = "0.36" },
   { name = "p256", version = "0.11" },
   { name = "petgraph", version = "0.6" },
   { name = "pkcs8", version = "0.9" },

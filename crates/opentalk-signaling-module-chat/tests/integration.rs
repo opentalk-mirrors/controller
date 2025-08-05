@@ -6,12 +6,15 @@ use chrono::{DateTime, Utc};
 use opentalk_signaling_core::module_tester::{ModuleTester, WsMessageOutgoing};
 use opentalk_signaling_module_chat::Chat;
 use opentalk_test_util::{ROOM_ID, TestContext, USER_1, USER_2};
-use opentalk_types_common::{time::Timestamp, users::GroupName};
+use opentalk_types_common::{
+    time::Timestamp,
+    users::{GroupId, GroupName},
+};
 use opentalk_types_signaling::{AssociatedParticipant, LeaveReason, Participant, Role};
 use opentalk_types_signaling_chat::{
     Scope,
-    command::{ChatCommand, SendMessage, SetLastSeenTimestamp},
-    event::{ChatEvent, MessageSent},
+    command::{ChatCommand, SearchHistory, SendMessage, SetLastSeenTimestamp},
+    event::{ChatEvent, Error, MessageSent},
     peer_state::ChatPeerState,
     state::ChatState,
 };
@@ -75,26 +78,46 @@ async fn last_seen_timestamps() {
         match join_success {
             WsMessageOutgoing::Control(ControlEvent::JoinSuccess(join_success)) => {
                 // check that last seen timestamps are not set
-                let chat_data = join_success.module_data.get::<ChatState>().unwrap();
+                let mut chat_data = join_success
+                    .module_data
+                    .get::<ChatState>()
+                    .unwrap()
+                    .expect("ChatState must not be None");
+
+                for group_history in chat_data.groups_history.iter_mut() {
+                    group_history.id = GroupId::nil();
+                }
+
                 let json = serde_json::to_value(chat_data).unwrap();
                 assert_eq!(
                     json,
                     json!({
                         "groups_history": [
                             {
-                                "history": [],
+                                "id": "00000000-0000-0000-0000-000000000000",
                                 "name": "group1",
+                                "history": {
+                                    "messages": [],
+                                    "next_index": null,
+                                },
                             },
                             {
-                                "history": [],
+                                "id": "00000000-0000-0000-0000-000000000000",
                                 "name": "group2",
+                                "history": {
+                                    "messages": [],
+                                    "next_index": null,
+                                },
                             },
                         ],
                         "enabled": true,
                         "last_seen_timestamp_global": null,
                         "last_seen_timestamps_private": {},
                         "last_seen_timestamps_group": {},
-                        "room_history": [],
+                        "room_history": {
+                            "messages": [],
+                            "next_index": null,
+                        },
                         "private_history": [],
                     })
                 );
@@ -191,21 +214,41 @@ async fn last_seen_timestamps() {
     match rejoin_success {
         WsMessageOutgoing::Control(ControlEvent::JoinSuccess(join_success)) => {
             // check own groups
-            let chat_data = join_success.module_data.get::<ChatState>().unwrap();
+            let mut chat_data = join_success
+                .module_data
+                .get::<ChatState>()
+                .unwrap()
+                .expect("ChatState must not be None");
+
+            for group_history in chat_data.groups_history.iter_mut() {
+                group_history.id = GroupId::nil();
+            }
+
             let json = serde_json::to_value(chat_data).unwrap();
             assert_eq!(
                 json,
                 json!({
                     "enabled": true,
-                    "room_history": [],
+                    "room_history": {
+                        "messages": [],
+                        "next_index": null,
+                    },
                     "groups_history": [
                         {
-                            "history": [],
                             "name": "group1",
+                            "id": "00000000-0000-0000-0000-000000000000",
+                            "history": {
+                                "messages": [],
+                                "next_index": null,
+                            },
                         },
                         {
-                            "history": [],
                             "name": "group2",
+                            "id": "00000000-0000-0000-0000-000000000000",
+                            "history": {
+                                "messages": [],
+                                "next_index": null,
+                            },
                         },
                     ],
                     "private_history": [],
@@ -283,7 +326,14 @@ async fn common_groups_on_join() {
             assert!(join_success.participants.is_empty());
 
             // check own groups
-            let chat_data = join_success.module_data.get::<ChatState>().unwrap();
+            let mut chat_data = join_success
+                .module_data
+                .get::<ChatState>()
+                .unwrap()
+                .expect("ChatState must not be None");
+            for group_history in chat_data.groups_history.iter_mut() {
+                group_history.id = GroupId::nil();
+            }
             let json = serde_json::to_value(chat_data).unwrap();
             assert_eq!(
                 json,
@@ -291,16 +341,27 @@ async fn common_groups_on_join() {
                     "enabled": true,
                     "groups_history": [
                         {
-                            "history":[],
-                            "name":"group1"
+                            "id": "00000000-0000-0000-0000-000000000000",
+                            "name":"group1",
+                            "history": {
+                                "messages": [],
+                                "next_index": null,
+                            },
                         },
                         {
-                            "history":[],
-                            "name":"group2"
+                            "id": "00000000-0000-0000-0000-000000000000",
+                            "name": "group2",
+                            "history": {
+                                "messages": [],
+                                "next_index": null,
+                            },
                         }
                     ],
                     "private_history": [],
-                    "room_history": [],
+                    "room_history": {
+                        "messages": [],
+                        "next_index": null,
+                    },
                     "last_seen_timestamp_global": null,
                     "last_seen_timestamps_group": {},
                     "last_seen_timestamps_private": {},
@@ -339,21 +400,41 @@ async fn common_groups_on_join() {
             assert_eq!(json, json!({"groups":["group1"]}));
 
             // check own groups
-            let chat_data = join_success.module_data.get::<ChatState>().unwrap();
+            let mut chat_data = join_success
+                .module_data
+                .get::<ChatState>()
+                .unwrap()
+                .expect("ChatState must not be None");
+
+            for group_history in chat_data.groups_history.iter_mut() {
+                group_history.id = GroupId::nil();
+            }
+
             let json = serde_json::to_value(chat_data).unwrap();
             assert_eq!(
                 json,
                 json!({
                     "enabled": true,
-                    "room_history": [],
+                    "room_history": {
+                        "messages": [],
+                        "next_index": null,
+                    },
                     "groups_history": [
                         {
-                            "history": [],
-                            "name":"group1"
+                            "name":"group1",
+                            "id": "00000000-0000-0000-0000-000000000000",
+                            "history": {
+                                "messages": [],
+                                "next_index": null,
+                            },
                         },
                         {
-                            "history": [],
-                            "name": "group3"
+                            "name": "group3",
+                            "id": "00000000-0000-0000-0000-000000000000",
+                            "history": {
+                                "messages": [],
+                                "next_index": null,
+                            },
                         }
                     ],
                     "private_history": [],
@@ -429,7 +510,10 @@ async fn private_chat_history_on_join() {
                     "enabled": true,
                     "groups_history": [],
                     "private_history": [],
-                    "room_history": [],
+                    "room_history": {
+                        "messages": [],
+                        "next_index": null
+                    },
                     "last_seen_timestamp_global": null,
                     "last_seen_timestamps_group": {},
                     "last_seen_timestamps_private": {},
@@ -474,7 +558,10 @@ async fn private_chat_history_on_join() {
                 json,
                 json!({
                     "enabled": true,
-                    "room_history": [],
+                    "room_history": {
+                        "messages": [],
+                        "next_index": null,
+                    },
                     "groups_history": [],
                     "private_history": [],
                     "last_seen_timestamp_global": null,
@@ -574,12 +661,75 @@ async fn private_chat_history_on_join() {
             assert!(private_history.len() == 1);
             let mut correspondence = private_history.pop().unwrap();
             assert_eq!(correspondence.correspondent, USER_2.participant_id);
-            assert_eq!(correspondence.history.len(), 1);
-            let message = correspondence.history.pop().unwrap();
+            assert_eq!(correspondence.history.messages.len(), 1);
+            let message = correspondence.history.messages.pop().unwrap();
             assert_eq!(message.content, "Low".to_string());
         }
         _ => panic!(),
     }
 
     module_tester.shutdown().await.unwrap();
+}
+
+#[actix_rt::test]
+#[serial]
+async fn invalid_search_term_length() {
+    let test_ctx = TestContext::default().await;
+
+    let user1 = test_ctx
+        .db_ctx
+        .create_test_user(USER_1.n, vec![])
+        .await
+        .unwrap();
+
+    let waiting_room = false;
+    let room = test_ctx
+        .db_ctx
+        .create_test_room(ROOM_ID, user1.id, waiting_room)
+        .await
+        .unwrap();
+
+    let mut module_tester = ModuleTester::<Chat>::new(
+        test_ctx.db_ctx.inventory_provider.clone(),
+        test_ctx.authz,
+        test_ctx.volatile,
+        room,
+    );
+
+    module_tester
+        .join_user(
+            USER_1.participant_id,
+            user1.clone(),
+            Role::User,
+            &USER_1.display_name(),
+            (),
+        )
+        .await
+        .unwrap();
+
+    module_tester
+        .receive_ws_message(&USER_1.participant_id)
+        .await
+        .unwrap();
+
+    module_tester
+        .send_ws_message(
+            &USER_1.participant_id,
+            ChatCommand::SearchHistory(SearchHistory {
+                scope: Scope::Global,
+                term: "".into(),
+                message_index: None,
+            }),
+        )
+        .unwrap();
+
+    let event = module_tester
+        .receive_ws_message(&USER_1.participant_id)
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        event,
+        WsMessageOutgoing::Module(ChatEvent::Error(Error::InvalidSearchTermLength { .. }))
+    ));
 }

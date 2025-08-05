@@ -15,7 +15,7 @@ use opentalk_types_common::{
     users::{GroupId, GroupName},
 };
 use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_chat::state::StoredMessage;
+use opentalk_types_signaling_chat::state::{ChatChunk, StoredMessage};
 
 use crate::ParticipantPair;
 
@@ -23,10 +23,23 @@ use crate::ParticipantPair;
 pub(crate) trait ChatStorage:
     ControlStorageParticipantAttributesRaw + ControlStorageParticipantSet
 {
-    async fn get_room_history(
+    async fn get_room_history_chunk(
         &mut self,
         room: SignalingRoomId,
-    ) -> Result<Vec<StoredMessage>, SignalingModuleError>;
+        message_index: u64,
+    ) -> Result<ChatChunk, SignalingModuleError>;
+
+    async fn get_room_history_latest_chunk(
+        &mut self,
+        room: SignalingRoomId,
+    ) -> Result<ChatChunk, SignalingModuleError>;
+
+    async fn search_room_history(
+        &mut self,
+        room: SignalingRoomId,
+        term: &str,
+        message_index: Option<u64>,
+    ) -> Result<ChatChunk, SignalingModuleError>;
 
     async fn add_message_to_room_history(
         &mut self,
@@ -145,11 +158,26 @@ pub(crate) trait ChatStorage:
             .collect())
     }
 
-    async fn get_group_chat_history(
+    async fn get_group_chat_history_chunk(
         &mut self,
         room: SignalingRoomId,
         group: GroupId,
-    ) -> Result<Vec<StoredMessage>, SignalingModuleError>;
+        message_index: u64,
+    ) -> Result<ChatChunk, SignalingModuleError>;
+
+    async fn get_group_chat_history_latest_chunk(
+        &mut self,
+        room: SignalingRoomId,
+        group: GroupId,
+    ) -> Result<ChatChunk, SignalingModuleError>;
+
+    async fn search_group_chat_history(
+        &mut self,
+        room: SignalingRoomId,
+        group: GroupId,
+        term: &str,
+        message_index: Option<u64>,
+    ) -> Result<ChatChunk, SignalingModuleError>;
 
     async fn add_message_to_group_chat_history(
         &mut self,
@@ -164,12 +192,29 @@ pub(crate) trait ChatStorage:
         group: GroupId,
     ) -> Result<(), SignalingModuleError>;
 
-    async fn get_private_chat_history(
+    async fn get_private_chat_history_chunk(
         &mut self,
         room: SignalingRoomId,
         participant_one: ParticipantId,
         participant_two: ParticipantId,
-    ) -> Result<Vec<StoredMessage>, SignalingModuleError>;
+        message_index: u64,
+    ) -> Result<ChatChunk, SignalingModuleError>;
+
+    async fn get_private_chat_history_latest_chunk(
+        &mut self,
+        room: SignalingRoomId,
+        participant_one: ParticipantId,
+        participant_two: ParticipantId,
+    ) -> Result<ChatChunk, SignalingModuleError>;
+
+    async fn search_private_chat_history(
+        &mut self,
+        room: SignalingRoomId,
+        participant_one: ParticipantId,
+        participant_two: ParticipantId,
+        term: &str,
+        message_index: Option<u64>,
+    ) -> Result<ChatChunk, SignalingModuleError>;
 
     async fn add_message_to_private_chat_history(
         &mut self,

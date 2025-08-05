@@ -11,7 +11,7 @@ use opentalk_types_common::{
     users::{GroupId, GroupName},
 };
 use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_chat::state::StoredMessage;
+use opentalk_types_signaling_chat::state::{CHAT_CHUNK_SIZE, ChatChunk, StoredMessage};
 
 use crate::ParticipantPair;
 
@@ -36,8 +36,31 @@ impl MemoryChatState {
         *self = Self::default();
     }
 
-    pub(super) fn get_room_history(&self, room: SignalingRoomId) -> Vec<StoredMessage> {
-        self.room_history.get(&room).cloned().unwrap_or_default()
+    pub(super) fn get_room_history_chunk(
+        &self,
+        room: SignalingRoomId,
+        latest_index: u64,
+    ) -> ChatChunk {
+        let messages = self.room_history.get(&room);
+        Self::get_chunk(messages, latest_index)
+    }
+
+    pub(super) fn get_room_history_latest_chunk(&self, room: SignalingRoomId) -> ChatChunk {
+        let Some(room_history) = self.room_history.get(&room) else {
+            return ChatChunk::default();
+        };
+        let latest_index = room_history.len().saturating_sub(1) as u64;
+        self.get_room_history_chunk(room, latest_index)
+    }
+
+    pub(super) fn search_room_history(
+        &self,
+        room: SignalingRoomId,
+        term: &str,
+        message_index: Option<u64>,
+    ) -> ChatChunk {
+        let messages = self.room_history.get(&room);
+        Self::search_history_chunked(messages, term, message_index)
     }
 
     pub(super) fn add_message_to_room_history(
@@ -205,15 +228,37 @@ impl MemoryChatState {
             .unwrap_or_default()
     }
 
-    pub(super) fn get_group_chat_history(
+    pub(super) fn get_group_chat_history_chunk(
         &self,
         room: SignalingRoomId,
         group: GroupId,
-    ) -> Vec<StoredMessage> {
-        self.group_history
-            .get(&(room, group))
-            .cloned()
-            .unwrap_or_default()
+        latest_index: u64,
+    ) -> ChatChunk {
+        let messages = self.group_history.get(&(room, group));
+        Self::get_chunk(messages, latest_index)
+    }
+
+    pub(super) fn get_group_chat_history_latest_chunk(
+        &self,
+        room: SignalingRoomId,
+        group: GroupId,
+    ) -> ChatChunk {
+        let Some(group_history) = self.group_history.get(&(room, group)) else {
+            return ChatChunk::default();
+        };
+        let latest_index = group_history.len().saturating_sub(1) as u64;
+        self.get_group_chat_history_chunk(room, group, latest_index)
+    }
+
+    pub(super) fn search_group_chat_history(
+        &self,
+        room: SignalingRoomId,
+        group: GroupId,
+        term: &str,
+        message_index: Option<u64>,
+    ) -> ChatChunk {
+        let messages = self.group_history.get(&(room, group));
+        Self::search_history_chunked(messages, term, message_index)
     }
 
     pub(super) fn add_message_to_group_chat_history(
@@ -232,16 +277,45 @@ impl MemoryChatState {
         self.group_history.remove(&(room, group));
     }
 
-    pub(super) fn get_private_chat_history(
+    pub(super) fn get_private_chat_history_chunk(
         &self,
         room: SignalingRoomId,
         participant_one: ParticipantId,
         participant_two: ParticipantId,
-    ) -> Vec<StoredMessage> {
-        self.private_history
-            .get(&(room, ParticipantPair::new(participant_one, participant_two)))
-            .cloned()
-            .unwrap_or_default()
+        message_index: u64,
+    ) -> ChatChunk {
+        let messages = self
+            .private_history
+            .get(&(room, ParticipantPair::new(participant_one, participant_two)));
+        Self::get_chunk(messages, message_index)
+    }
+
+    pub(super) fn get_private_chat_history_latest_chunk(
+        &self,
+        room: SignalingRoomId,
+        participant_one: ParticipantId,
+        participant_two: ParticipantId,
+    ) -> ChatChunk {
+        let pair = ParticipantPair::new(participant_one, participant_two);
+        let Some(private_history) = self.private_history.get(&(room, pair)) else {
+            return ChatChunk::default();
+        };
+        let message_index = private_history.len().saturating_sub(1) as u64;
+        self.get_private_chat_history_chunk(room, participant_one, participant_two, message_index)
+    }
+
+    pub(super) fn search_private_chat_history(
+        &self,
+        room: SignalingRoomId,
+        participant_one: ParticipantId,
+        participant_two: ParticipantId,
+        term: &str,
+        message_index: Option<u64>,
+    ) -> ChatChunk {
+        let messages = self
+            .private_history
+            .get(&(room, ParticipantPair::new(participant_one, participant_two)));
+        Self::search_history_chunked(messages, term, message_index)
     }
 
     pub(super) fn add_message_to_private_chat_history(
@@ -296,6 +370,69 @@ impl MemoryChatState {
 
         if group_is_empty {
             self.group_participants.remove(&(room, group));
+        }
+    }
+
+    fn get_chunk(messages: Option<&Vec<StoredMessage>>, message_index: u64) -> ChatChunk {
+        let Some(messages) = messages else {
+            return ChatChunk::default();
+        };
+
+        let start = message_index.saturating_sub(CHAT_CHUNK_SIZE - 1);
+        let Some(messages) = messages.get(start as usize..=message_index as usize) else {
+            return ChatChunk::default();
+        };
+
+        ChatChunk {
+            messages: messages.to_vec(),
+            next_index: start.checked_sub(1),
+        }
+    }
+
+    fn search_history_chunked(
+        messages: Option<&Vec<StoredMessage>>,
+        term: &str,
+        message_index: Option<u64>,
+    ) -> ChatChunk {
+        if term.is_empty() {
+            return ChatChunk::default();
+        }
+
+        let Some(messages) = messages else {
+            return ChatChunk::default();
+        };
+
+        let filtered: Vec<&StoredMessage> = messages
+            .iter()
+            .filter(|m| m.content.contains(term))
+            .collect();
+
+        // When the message_index is None, the latest chunk should be returned, set it
+        // to the last index.
+        let message_index = message_index
+            .map(|i| i as usize)
+            .unwrap_or(filtered.len().saturating_sub(1));
+        let start = message_index.saturating_sub(CHAT_CHUNK_SIZE as usize - 1);
+        // A chunk might be smaller than the chunk size, when it is less than a
+        // chunk size away from the end of the list.
+        let messages: Vec<StoredMessage> = filtered
+            .get(start..=message_index)
+            .unwrap_or_default()
+            .iter()
+            .map(|message| (*message).clone())
+            .collect();
+
+        // When no messages could be found the message_index was OOB or no messages
+        // exist. The next_index should be None in this case.
+        let next_index = if messages.is_empty() {
+            None
+        } else {
+            (start as u64).checked_sub(1)
+        };
+
+        ChatChunk {
+            messages,
+            next_index,
         }
     }
 }
