@@ -143,7 +143,7 @@ pub fn decode_token<C: VerifyClaims>(token: &str) -> Result<C, VerifyError> {
     // Verify expiration
     if now > token.claims.exp() {
         let msg = format!("The provided token expired at {}", token.claims.exp());
-        log::warn!("{}", msg);
+        log::warn!("{msg}");
         return ExpiredSnafu { message: msg }.fail();
     }
 

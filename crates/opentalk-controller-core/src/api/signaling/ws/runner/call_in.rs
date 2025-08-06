@@ -74,10 +74,7 @@ async fn try_map_to_user_display_name(
     let users = match result {
         Ok(users) => users,
         Err(err) => {
-            log::warn!(
-                "Failed to get users by phone number from database {:?}",
-                err
-            );
+            log::warn!("Failed to get users by phone number from database {err:?}");
             return None;
         }
     };

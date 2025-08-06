@@ -288,26 +288,24 @@ impl SignalingModule for LegalVote {
                                     .save_protocol_in_database(storage, current_vote_id)
                                     .await
                                 {
-                                    log::error!("failed to save protocol to db {:?}", e)
+                                    log::error!("failed to save protocol to db {e:?}")
                                 }
                             }
                             Err(e) => log::error!(
-                                "Failed to cancel active vote while destroying vote module {:?}",
-                                e
+                                "Failed to cancel active vote while destroying vote module {e:?}"
                             ),
                         }
                     }
                 }
                 Err(e) => {
                     log::error!(
-                        "Failed to get current vote id while destroying vote module, {:?}",
-                        e
+                        "Failed to get current vote id while destroying vote module, {e:?}"
                     );
                 }
             }
 
             if let Err(e) = self.cleanup_room(storage).await {
-                log::error!("Failed to cleanup room on destroy, {:?}", e)
+                log::error!("Failed to cleanup room on destroy, {e:?}")
             }
         }
     }
@@ -596,7 +594,7 @@ impl LegalVote {
                 }
             }
             Err(start_error) => {
-                log::warn!("Failed to start vote, {:?}", start_error);
+                log::warn!("Failed to start vote, {start_error:?}");
 
                 // return the cleanup error in case of failure as its more severe
                 ctx.volatile
@@ -693,7 +691,7 @@ impl LegalVote {
             )
             .await
         {
-            log::error!("Failed to add RBAC policy for legal vote: {}", e);
+            log::error!("Failed to add RBAC policy for legal vote: {e}");
             ctx.volatile
                 .storage()
                 .cleanup_vote(self.room_id, legal_vote_id)
@@ -1209,8 +1207,7 @@ impl LegalVote {
             Err(err) => {
                 return {
                     log::warn!(
-                        "Something went wrong while generating `VotingRecord` out of `RawProtocol`. Error: {:?}",
-                        err
+                        "Something went wrong while generating `VotingRecord` out of `RawProtocol`. Error: {err:?}"
                     );
                     Ok(FinalResults::Invalid(Invalid::ProtocolInconsistent))
                 };

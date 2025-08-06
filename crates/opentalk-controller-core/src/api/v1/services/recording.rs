@@ -167,7 +167,7 @@ pub(crate) async fn get_recording_upload(
             .await;
 
             if let Err(e) = result {
-                log::error!("Error saving asset, {}", e);
+                log::error!("Error saving asset, {e}");
             }
         }
     });

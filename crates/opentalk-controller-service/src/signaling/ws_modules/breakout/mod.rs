@@ -300,10 +300,7 @@ impl BreakoutRooms {
                     })
                 }
                 Err(e) => log::error!(
-                    "Failed to fetch participant data from {} in {}, {:?}",
-                    participant,
-                    room,
-                    e
+                    "Failed to fetch participant data from {participant} in {room}, {e:?}"
                 ),
             }
         }

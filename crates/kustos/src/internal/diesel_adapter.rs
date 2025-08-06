@@ -420,7 +420,7 @@ mod tests {
 
         if AsyncPgConnection::establish(&url).await.is_err() {
             let (database, postgres_url) = change_database_of_url(&url, "postgres");
-            log::info!("Creating database: {}", database);
+            log::info!("Creating database: {database}");
             let mut conn = AsyncPgConnection::establish(&postgres_url)
                 .await
                 .with_whatever_context(|e| format!("failed to connect to database: {e}"))?;

@@ -990,7 +990,7 @@ where
         if let Some(exit) = exit {
             self.exit = true;
 
-            log::debug!("Module requested exit with CloseCode: {:?}", exit);
+            log::debug!("Module requested exit with CloseCode: {exit:?}");
         }
     }
 

@@ -1080,7 +1080,7 @@ impl TrainingParticipationReport {
             filename: file_name,
             asset_id,
         };
-        log::debug!("Generated meeting attendance report: {:?}", pdf_asset);
+        log::debug!("Generated meeting attendance report: {pdf_asset:?}");
         ctx.exchange_publish(
             control::exchange::global_room_by_user_id(self.room, self.owner),
             exchange::Event::PdfAsset(pdf_asset.clone()),
@@ -1114,9 +1114,7 @@ impl TrainingParticipationReport {
     ) {
         if let Err(e) = storage.delete_parameter_set_initialized(room).await {
             log::error!(
-                "Failed to clean up training participation report parameter set initialized flag for room {}: {}",
-                room,
-                e
+                "Failed to clean up training participation report parameter set initialized flag for room {room}: {e}"
             );
         }
     }
@@ -1127,9 +1125,7 @@ impl TrainingParticipationReport {
     ) {
         if let Err(e) = storage.delete_parameter_set(room).await {
             log::error!(
-                "Failed to clean up training participation report parameter set {}: {}",
-                room,
-                e
+                "Failed to clean up training participation report parameter set {room}: {e}"
             );
         }
     }

@@ -216,7 +216,7 @@ impl Authz {
     }
 
     async fn checked_add_policies(&self, policies: Vec<Vec<String>>) -> Result<()> {
-        log::trace!("add policies {:?}", policies);
+        log::trace!("add policies {policies:?}");
         if !self
             .inner
             .write()
@@ -227,7 +227,7 @@ impl Authz {
             log::warn!("Add policies one-by-one since batching failed");
             for policy in policies {
                 if !self.inner.write().await.add_policy(policy.clone()).await? {
-                    log::warn!("Failed to add policy as it did already exist: {:?}", policy);
+                    log::warn!("Failed to add policy as it did already exist: {policy:?}");
                 }
             }
         }

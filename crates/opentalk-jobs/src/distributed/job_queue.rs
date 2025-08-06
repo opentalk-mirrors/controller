@@ -144,7 +144,7 @@ impl JobQueue {
                 Box::pin(async move {
                     log::debug!("adding job to queue {job_id}");
                     if let Err(e) = add_job_to_queue(job_id.into(), client).await {
-                        log::error!("Failed to add job `{}` to job queue, discarding job:", e);
+                        log::error!("Failed to add job `{e}` to job queue, discarding job:");
                     }
                 })
             })
