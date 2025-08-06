@@ -17,7 +17,6 @@ use std::{
 
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
-use chrono_tz::Tz;
 use either::Either;
 use error::LegalVoteError;
 use futures::{FutureExt, stream::once};
@@ -38,7 +37,7 @@ use opentalk_types_common::{
     assets::FileExtension,
     modules::ModuleId,
     tenants::TenantId,
-    time::Timestamp,
+    time::{TimeZone, Timestamp},
     users::{DisplayName, UserId},
 };
 use opentalk_types_signaling::{ParticipantId, Role};
@@ -1347,7 +1346,7 @@ impl LegalVote {
         ctx: &mut ModuleContext<'_, Self>,
         legal_vote_id: LegalVoteId,
         msg_target: UserId,
-        timezone: Option<chrono_tz::Tz>,
+        timezone: Option<TimeZone>,
     ) -> Result<(), LegalVoteError> {
         let timezone = match timezone {
             Some(timezone) => Some(timezone),
@@ -1358,7 +1357,7 @@ impl LegalVote {
                     .await?
                     .get_user(self.user_id)
                     .await?;
-                moderator.timezone.map(Tz::from)
+                moderator.timezone
             }
         };
 
@@ -1419,10 +1418,10 @@ impl LegalVote {
         &self,
         legal_vote_id: LegalVoteId,
         timestamp: Timestamp,
-        timezone: Option<chrono_tz::Tz>,
+        timezone: Option<TimeZone>,
         protocol: Vec<db_protocol::v1::ProtocolEntry>,
     ) -> Result<PdfAsset, LegalVoteError> {
-        let timezone = timezone.unwrap_or(chrono_tz::UTC);
+        let timezone = timezone.unwrap_or_default();
         let user_names = self.get_referenced_user_names(&protocol).await?;
 
         let pdf_data = report::generate(

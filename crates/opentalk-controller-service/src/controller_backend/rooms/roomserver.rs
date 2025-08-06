@@ -10,6 +10,7 @@ use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::Inventory;
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
+    public_user_profile::PublicUserProfile,
     room_parameters::{EventContext, RoomParameters},
 };
 use opentalk_types_api_v1::{
@@ -21,7 +22,6 @@ use opentalk_types_api_v1::{
             RoomserverStartResponseBody,
         },
     },
-    users::PublicUserProfile,
 };
 use opentalk_types_common::{
     call_in::CallInInfo,
@@ -29,8 +29,10 @@ use opentalk_types_common::{
     roomserver::Token as RoomserverToken,
     shared_folders::{SharedFolder, SharedFolderAccess},
     streaming::StreamingLink,
+    time::TimeZone,
     users::UserInfo,
 };
+use opentalk_types_signaling::ModuleData;
 
 use crate::{ControllerBackend, controller_backend::rooms::start_room_error::StartRoomError};
 
@@ -59,6 +61,8 @@ impl ControllerBackend {
             Role::User
         };
 
+        let timezone = TimeZone::default();
+
         let client_parameters = ClientParameters {
             device_secret: request.device_secret,
             kind: ClientKind::Registered {
@@ -74,6 +78,7 @@ impl ControllerBackend {
                             .avatar_url
                             .unwrap_or(settings.avatar.libravatar_url.clone()),
                     },
+                    timezone,
                 },
             },
             role,
@@ -200,8 +205,17 @@ impl ControllerBackend {
 
         let tariff = self.get_room_tariff(&room.id).await?;
 
+        let timezone = TimeZone::default();
+        let created_by = PublicUserProfile {
+            id: room.created_by.id,
+            email: room.created_by.email,
+            user_info: room.created_by.user_info,
+            timezone,
+        };
+        let module_data = ModuleData::default();
+
         let parameters = RoomParameters {
-            created_by: room.created_by,
+            created_by,
             password: room.password,
             waiting_room: room.waiting_room,
             call_in,
@@ -210,6 +224,7 @@ impl ControllerBackend {
             tariff,
             streaming_links,
             e2e_encryption: false,
+            module_data,
         };
 
         Ok(parameters)
@@ -242,6 +257,8 @@ impl ControllerBackend {
             title: event.title,
             description: event.description,
             is_adhoc: event.is_adhoc,
+            starts_at: event.starts_at,
+            ends_at: event.ends_at,
             shared_folder,
         };
 

@@ -84,7 +84,7 @@ pub(crate) mod test_common {
 
     use chrono::DateTime;
     use opentalk_signaling_core::SignalingRoomId;
-    use opentalk_types_common::users::UserId;
+    use opentalk_types_common::{time::TimeZone, users::UserId};
     use opentalk_types_signaling::ParticipantId;
     use opentalk_types_signaling_legal_vote::{
         parameters::Parameters,
@@ -135,7 +135,7 @@ pub(crate) mod test_common {
                 auto_close: false,
                 duration: Some(Duration::try_from(5u64).unwrap()),
                 create_pdf: true,
-                timezone: Some(chrono_tz::CET),
+                timezone: Some(TimeZone::default()),
             },
         }
     }
