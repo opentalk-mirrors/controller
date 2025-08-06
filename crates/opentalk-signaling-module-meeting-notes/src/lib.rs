@@ -611,18 +611,12 @@ impl MeetingNotes {
             .cleanup_etherpad(ctx.volatile.storage(), signaling_room_id)
             .await
         {
-            log::error!(
-                "Failed to cleanup etherpad for room {}: {}",
-                signaling_room_id,
-                e
-            )
+            log::error!("Failed to cleanup etherpad for room {signaling_room_id}: {e}")
         }
 
         if let Err(e) = ctx.volatile.storage().cleanup(signaling_room_id).await {
             log::error!(
-                "Failed to cleanup meeting-notes keys for room {} in volatile storage: {}",
-                signaling_room_id,
-                e
+                "Failed to cleanup meeting-notes keys for room {signaling_room_id} in volatile storage: {e}"
             );
         }
     }

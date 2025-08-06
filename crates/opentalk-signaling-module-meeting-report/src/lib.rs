@@ -301,7 +301,7 @@ impl MeetingReport {
             filename: file_name,
             asset_id,
         };
-        log::debug!("Generated meeting attendance report: {:?}", pdf_asset);
+        log::debug!("Generated meeting attendance report: {pdf_asset:?}");
         ctx.exchange_publish(
             control::exchange::current_room_all_participants(self.room_id),
             exchange::Event::PdfAsset(pdf_asset.clone()),

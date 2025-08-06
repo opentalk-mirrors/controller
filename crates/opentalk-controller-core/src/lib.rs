@@ -264,7 +264,7 @@ impl Controller {
 
         trace::init(&settings.logging).whatever_context("Failed to initialize tracing")?;
 
-        log::info!("Starting {}", program_name);
+        log::info!("Starting {program_name}");
 
         let controller = Self::init::<ControllerModules<M>>(settings_provider, args)
             .await
@@ -651,7 +651,7 @@ impl Controller {
             let receiver_count = self.shutdown.receiver_count();
 
             if receiver_count > 0 {
-                log::debug!("Waiting for {} tasks to be stopped", receiver_count);
+                log::debug!("Waiting for {receiver_count} tasks to be stopped");
                 sleep(Duration::from_secs(1)).await;
             }
         }

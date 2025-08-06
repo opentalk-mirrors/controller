@@ -98,7 +98,7 @@ impl Modules {
 
     pub async fn destroy(&mut self, ctx: DestroyContext<'_>) {
         while let Some((namespace, module)) = self.modules.pop_first() {
-            log::debug!("Destroying module {}", namespace);
+            log::debug!("Destroying module {namespace}");
 
             module
                 .destroy(DestroyContext {

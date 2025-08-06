@@ -516,10 +516,7 @@ impl Runner {
                     .waiting_room_remove_participant(self.room_id.room_id(), self.id)
                     .await
                 {
-                    log::error!(
-                        "failed to remove participant from waiting_room list, {:?}",
-                        e
-                    );
+                    log::error!("failed to remove participant from waiting_room list, {e:?}");
                     encountered_error = true;
                 }
                 if let Err(e) = self
@@ -529,8 +526,7 @@ impl Runner {
                     .await
                 {
                     log::error!(
-                        "failed to remove participant from waiting_room_accepted list, {:?}",
-                        e
+                        "failed to remove participant from waiting_room_accepted list, {e:?}"
                     );
                     encountered_error = true;
                 }
@@ -2000,7 +1996,7 @@ impl Runner {
         timestamp: Timestamp,
         msg: exchange::Message,
     ) -> Result<()> {
-        log::debug!("Received control message from exchange {:?}", msg);
+        log::debug!("Received control message from exchange {msg:?}");
 
         match msg {
             exchange::Message::Joined(id) => {
@@ -2684,7 +2680,7 @@ impl Ws {
     /// Send message via websocket
     async fn send(&mut self, message: Message) {
         if let State::Open = self.state {
-            log::trace!("Send message to websocket: {:?}", message);
+            log::trace!("Send message to websocket: {message:?}");
 
             if let Err(e) = self.to_actor.send(WsCommand::Ws(message)).await {
                 log::error!(
@@ -2709,7 +2705,7 @@ impl Ws {
             description: None,
         };
 
-        log::debug!("closing websocket with code {:?}", code);
+        log::debug!("closing websocket with code {code:?}");
 
         self.state = State::Closed;
         if let Err(e) = self.to_actor.send(WsCommand::Close(reason)).await {

@@ -208,7 +208,7 @@ impl JobRunner {
                 }
 
                 Err(e) = self.executor.join() => {
-                    log::error!("JobExecutor exited with error {}", e);
+                    log::error!("JobExecutor exited with error {e}");
 
                     // The job executor task has encountered an error and exited, this runner will step down as a
                     // leader and become follower

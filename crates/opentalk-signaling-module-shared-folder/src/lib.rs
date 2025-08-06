@@ -40,10 +40,7 @@ impl SharedFolder {
             .delete_shared_folder_initialized(signaling_room_id)
             .await
         {
-            log::error!(
-                "Failed to remove shared folder initialized flag on room destroy, {}",
-                e
-            );
+            log::error!("Failed to remove shared folder initialized flag on room destroy, {e}");
         }
         if let Err(e) = storage.delete_shared_folder(signaling_room_id).await {
             log::error!(

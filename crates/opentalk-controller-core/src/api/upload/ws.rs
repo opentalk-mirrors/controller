@@ -136,7 +136,7 @@ impl StreamHandler<Result<Message, ProtocolError>> for UploadWebSocketActor {
             }
             Ok(Message::Nop) => {}
             Err(e) => {
-                log::warn!("Protocol error in websocket - exiting, {}", e);
+                log::warn!("Protocol error in websocket - exiting, {e}");
 
                 ctx.stop();
             }

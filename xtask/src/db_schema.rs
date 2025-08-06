@@ -113,7 +113,7 @@ async fn connect_and_migrate(
 
     if AsyncPgConnection::establish(&postgres_url).await.is_err() {
         let (database, postgres_url) = change_database_of_url(&postgres_url, "postgres");
-        log::info!("Creating database: {}", database);
+        log::info!("Creating database: {database}");
         let mut conn = AsyncPgConnection::establish(&postgres_url).await?;
         query_helper::create_database(&database)
             .execute(&mut conn)

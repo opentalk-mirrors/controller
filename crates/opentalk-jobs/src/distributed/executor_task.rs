@@ -245,7 +245,7 @@ impl JobExecutor {
                 key: JOB_QUEUE_PREFIX,
             })?;
 
-        log::debug!("current_jobs: {:?}", current_job_queue);
+        log::debug!("current_jobs: {current_job_queue:?}");
 
         // start watching the job queue
         watcher
@@ -313,17 +313,13 @@ impl JobExecutor {
     }
 
     async fn run_job(&mut self, job_id: i64) -> Result<(), ExecutorError> {
-        log::debug!("running job {}", job_id);
+        log::debug!("running job {job_id}");
         let result = self.run_job_inner(job_id).await;
 
         if let Err(e) = self.clear_job_keys(job_id).await {
             // The job related keys could not be deleted. The keys are bound to this executors lease and will be removed
             // anyway when the lease expires.
-            log::error!(
-                "failed to remove job with id `{}` from job queue: {:?}",
-                job_id,
-                e
-            );
+            log::error!("failed to remove job with id `{job_id}` from job queue: {e:?}");
 
             return Err(e);
         }

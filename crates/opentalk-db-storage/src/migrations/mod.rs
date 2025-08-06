@@ -58,7 +58,7 @@ async fn migrate(config: Config) -> Result<Report> {
             .collect::<Vec<_>>()
             .join(", ");
 
-        log::info!("Applied migration(s): {}", applied_migration_names);
+        log::info!("Applied migration(s): {applied_migration_names}");
     }
 
     drop(client);

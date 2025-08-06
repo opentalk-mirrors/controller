@@ -616,7 +616,7 @@ impl ChatStorage for RedisConnection {
         let guard = match mutex.lock(self).await {
             Ok(guard) => guard,
             Err(e) => {
-                log::error!("Failed to acquire lock to cleanup group {:?}, {}", group, e);
+                log::error!("Failed to acquire lock to cleanup group {group:?}, {e}");
                 return;
             }
         };
@@ -625,7 +625,7 @@ impl ChatStorage for RedisConnection {
             .srem::<_, _, ()>(RoomGroupParticipants { room, group }, participant)
             .await
         {
-            log::error!("Failed to remove participant from group {:?}, {}", group, e);
+            log::error!("Failed to remove participant from group {group:?}, {e}");
         };
 
         let remove_history = match self

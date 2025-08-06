@@ -615,6 +615,7 @@ impl SubroomAudio {
             room_admin: false,
             room_join: true,
             room: whisper_id.to_string(),
+            destination_room: String::new(),
             can_publish: true,
             can_subscribe: true,
             can_publish_data: false,
@@ -675,11 +676,7 @@ impl SubroomAudio {
         {
             Ok(whisper_ids) => whisper_ids,
             Err(e) => {
-                log::error!(
-                    "Failed to get all whisper groups for room {}: {}",
-                    room_id,
-                    e
-                );
+                log::error!("Failed to get all whisper groups for room {room_id}: {e}");
                 return;
             }
         };
@@ -691,12 +688,7 @@ impl SubroomAudio {
                 .delete_whisper_group(room_id, whisper_id)
                 .await
             {
-                log::error!(
-                    "Failed to delete whisper group {} in room {}: {}",
-                    whisper_id,
-                    room_id,
-                    e
-                );
+                log::error!("Failed to delete whisper group {whisper_id} in room {room_id}: {e}");
             }
             self.destroy_whisper_room(whisper_id).await;
         }

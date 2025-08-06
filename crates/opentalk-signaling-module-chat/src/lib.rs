@@ -140,10 +140,7 @@ impl Chat {
                 .delete_last_seen_timestamp_global(signaling_room_id, participant)
                 .await
             {
-                log::error!(
-                    "Failed to clean up last seen timestamp for global chat, {}",
-                    e
-                );
+                log::error!("Failed to clean up last seen timestamp for global chat, {e}");
             }
             if let Err(e) = ctx
                 .volatile
@@ -151,10 +148,7 @@ impl Chat {
                 .delete_last_seen_timestamps_group(signaling_room_id, participant)
                 .await
             {
-                log::error!(
-                    "Failed to clean up last seen timestamps for group chats, {}",
-                    e
-                );
+                log::error!("Failed to clean up last seen timestamps for group chats, {e}");
             }
             if let Err(e) = ctx
                 .volatile
@@ -162,10 +156,7 @@ impl Chat {
                 .delete_last_seen_timestamps_private(signaling_room_id, participant)
                 .await
             {
-                log::error!(
-                    "Failed to clean up last seen timestamps for private chats, {}",
-                    e
-                );
+                log::error!("Failed to clean up last seen timestamps for private chats, {e}");
             }
         }
     }
