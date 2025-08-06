@@ -23,5 +23,6 @@
       "groupName": "opentalk-types",
       "groupSlug": "opentalk-types"
     }
-  ]
+  ],
+  "ignoreDeps": ["actix-web-actors"]
 }
