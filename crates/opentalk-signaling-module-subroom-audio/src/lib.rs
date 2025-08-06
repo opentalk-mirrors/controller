@@ -615,6 +615,7 @@ impl SubroomAudio {
             room_admin: false,
             room_join: true,
             room: whisper_id.to_string(),
+            destination_room: String::new(),
             can_publish: true,
             can_subscribe: true,
             can_publish_data: false,

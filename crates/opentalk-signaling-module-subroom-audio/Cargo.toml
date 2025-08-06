@@ -17,9 +17,9 @@ ignored = ["livekit-runtime"]
 [dependencies]
 async-trait.workspace = true
 either.workspace = true
-livekit-api = "0.4"
-livekit-protocol = "0.3"
-livekit-runtime = { version = "0.4", default-features = false, features = [
+livekit-api.workspace = true
+livekit-protocol.workspace = true
+livekit-runtime = { workspace = true, default-features = false, features = [
   "tokio",
 ] }
 log.workspace = true
