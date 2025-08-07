@@ -130,7 +130,7 @@ impl ObjectStorage {
         }
 
         impl ResolveEndpoint for Resolver {
-            fn resolve_endpoint(&self, params: &Params) -> EndpointFuture {
+            fn resolve_endpoint(&self, params: &Params) -> EndpointFuture<'_> {
                 let url = params.bucket().map(|bucket| self.minio_url.join(bucket));
                 let url = match url {
                     Some(Ok(url)) => url.to_string(),

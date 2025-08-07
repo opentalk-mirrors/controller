@@ -1015,15 +1015,15 @@ impl EventRoomInfoExt for EventRoomInfo {
 
         let mut call_in = None;
 
-        if call_in_feature_is_enabled {
-            if let (Some(call_in_config), Some(sip_config)) = (&settings.call_in, sip_config) {
-                call_in = Some(CallInInfo {
-                    tel: call_in_config.tel.clone(),
-                    uri: None,
-                    id: sip_config.sip_id.to_string(),
-                    password: sip_config.password.to_string(),
-                });
-            }
+        if call_in_feature_is_enabled
+            && let (Some(call_in_config), Some(sip_config)) = (&settings.call_in, sip_config)
+        {
+            call_in = Some(CallInInfo {
+                tel: call_in_config.tel.clone(),
+                uri: None,
+                id: sip_config.sip_id.to_string(),
+                password: sip_config.password.to_string(),
+            });
         }
 
         Self {
@@ -1699,18 +1699,17 @@ fn parse_event_dt_params(
         // Figure out ends_at timestamp
         // Check if all RRULEs are reasonably bounded in how far they go
         let is_bounded = rrule_set.get_rrule().iter().all(|rrule| {
-            if let Some(count) = rrule.get_count() {
-                if count < 1000 {
-                    return true;
-                }
+            if let Some(count) = rrule.get_count()
+                && count < 1000
+            {
+                return true;
             }
 
-            if let Some(until) = rrule.get_until() {
-                if (until.naive_utc() - starts_at.datetime.naive_utc()).num_days()
+            if let Some(until) = rrule.get_until()
+                && (until.naive_utc() - starts_at.datetime.naive_utc()).num_days()
                     <= ONE_HUNDRED_YEARS_IN_DAYS as i64
-                {
-                    return true;
-                }
+            {
+                return true;
             }
 
             false

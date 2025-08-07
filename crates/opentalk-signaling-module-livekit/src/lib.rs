@@ -579,15 +579,13 @@ impl Livekit {
             .screen_share_requires_permission;
 
         let mut available_sources = LIVEKIT_MEDIA_SOURCES.to_vec();
-        if !self.role.is_moderator() {
-            if let MicrophoneRestrictionState::Enabled {
+        if !self.role.is_moderator()
+            && let MicrophoneRestrictionState::Enabled {
                 unrestricted_participants,
             } = &microphone_restriction_state
-            {
-                if !unrestricted_participants.contains(&self.participant_id) {
-                    available_sources.retain(|s| s != &TrackSource::Microphone);
-                }
-            }
+            && !unrestricted_participants.contains(&self.participant_id)
+        {
+            available_sources.retain(|s| s != &TrackSource::Microphone);
         }
 
         if !allow_screenshare {

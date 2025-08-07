@@ -42,14 +42,13 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         // Prohibit display name editing, if configured
-        if settings.endpoints.disallow_custom_display_name {
-            if let Some(display_name) = &patch.display_name {
-                if &current_user.display_name != display_name {
-                    return Err(ApiError::bad_request()
-                        .with_message("changing the display name is prohibited")
-                        .into());
-                }
-            }
+        if settings.endpoints.disallow_custom_display_name
+            && let Some(display_name) = &patch.display_name
+            && &current_user.display_name != display_name
+        {
+            return Err(ApiError::bad_request()
+                .with_message("changing the display name is prohibited")
+                .into());
         }
 
         let user = inventory

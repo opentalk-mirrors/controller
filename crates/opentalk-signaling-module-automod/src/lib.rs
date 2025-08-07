@@ -178,19 +178,19 @@ impl SignalingModule for Automod {
             Event::WsMessage(msg) => self.on_ws_message(ctx, msg).await,
             Event::Exchange(msg) => self.on_exchange_msg(ctx, msg).await,
             Event::Ext(TimerEvent::AnimationEnd(animation_id, selection)) => {
-                if let Some(current_animation_id) = self.current_animation_id {
-                    if current_animation_id == animation_id {
-                        self.on_animation_end(ctx, selection).await?;
-                    }
+                if let Some(current_animation_id) = self.current_animation_id
+                    && current_animation_id == animation_id
+                {
+                    self.on_animation_end(ctx, selection).await?;
                 }
 
                 Ok(())
             }
             Event::Ext(TimerEvent::Expiry(expiry_id)) => {
-                if let Some(current_expiry_id) = self.current_expiry_id {
-                    if current_expiry_id == expiry_id {
-                        self.on_expired_event(ctx).await?;
-                    }
+                if let Some(current_expiry_id) = self.current_expiry_id
+                    && current_expiry_id == expiry_id
+                {
+                    self.on_expired_event(ctx).await?;
                 }
 
                 Ok(())

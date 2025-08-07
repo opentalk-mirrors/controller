@@ -644,13 +644,11 @@ impl ChatStorage for RedisConnection {
             }
         };
 
-        if remove_history {
-            if let Err(e) = self.delete_group_chat_history(room, group).await {
-                log::error!(
-                    "Failed to remove room group chat history, {}",
-                    Report::from_error(e)
-                );
-            }
+        if remove_history && let Err(e) = self.delete_group_chat_history(room, group).await {
+            log::error!(
+                "Failed to remove room group chat history, {}",
+                Report::from_error(e)
+            );
         };
 
         if let Err(e) = guard.unlock(self).await {

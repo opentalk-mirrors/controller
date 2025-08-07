@@ -33,12 +33,11 @@ pub async fn display_name(
         return phone_number_display_name;
     };
 
-    if settings.enable_phone_mapping {
-        if let Some(display_name) =
+    if settings.enable_phone_mapping
+        && let Some(display_name) =
             try_map_to_user_display_name(inventory_provider, tenant_id, &parsed_number).await
-        {
-            return display_name;
-        }
+    {
+        return display_name;
     }
 
     DisplayName::from_str_lossy(

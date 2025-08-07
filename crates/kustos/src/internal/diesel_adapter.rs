@@ -52,14 +52,12 @@ impl Adapter for CasbinAdapter {
         for casbin_rule in &rules {
             let rule = load_policy_line(casbin_rule);
 
-            if let Some(ref sec) = casbin_rule.ptype.chars().next().map(|x| x.to_string()) {
-                if let Some(ast_map) = m.get_mut_model().get_mut(sec) {
-                    if let Some(ast) = ast_map.get_mut(&casbin_rule.ptype) {
-                        if let Some(rule) = rule {
-                            ast.policy.insert(rule);
-                        }
-                    }
-                }
+            if let Some(ref sec) = casbin_rule.ptype.chars().next().map(|x| x.to_string())
+                && let Some(ast_map) = m.get_mut_model().get_mut(sec)
+                && let Some(ast) = ast_map.get_mut(&casbin_rule.ptype)
+                && let Some(rule) = rule
+            {
+                ast.policy.insert(rule);
             }
         }
 
@@ -89,12 +87,11 @@ impl Adapter for CasbinAdapter {
 
             if let Some((is_filtered, rule)) = rule {
                 if !is_filtered {
-                    if let Some(ref sec) = casbin_rule.ptype.chars().next().map(|x| x.to_string()) {
-                        if let Some(ast_map) = m.get_mut_model().get_mut(sec) {
-                            if let Some(ast) = ast_map.get_mut(&casbin_rule.ptype) {
-                                ast.get_mut_policy().insert(rule);
-                            }
-                        }
+                    if let Some(ref sec) = casbin_rule.ptype.chars().next().map(|x| x.to_string())
+                        && let Some(ast_map) = m.get_mut_model().get_mut(sec)
+                        && let Some(ast) = ast_map.get_mut(&casbin_rule.ptype)
+                    {
+                        ast.get_mut_policy().insert(rule);
                     }
                 } else {
                     self.is_filtered = true;
@@ -304,26 +301,26 @@ fn load_policy_line(casbin_rule: &CasbinRule) -> Option<Vec<String>> {
 }
 
 fn load_filtered_policy_row(casbin_rule: &CasbinRule, f: &Filter) -> Option<(bool, Vec<String>)> {
-    if let Some(sec) = casbin_rule.ptype.chars().next() {
-        if let Some(policy) = normalize_policy(casbin_rule) {
-            let mut is_filtered = false;
-            if sec == 'p' {
-                for (i, rule) in f.p.iter().enumerate() {
-                    if !rule.is_empty() && rule != &policy[i] {
-                        is_filtered = true
-                    }
+    if let Some(sec) = casbin_rule.ptype.chars().next()
+        && let Some(policy) = normalize_policy(casbin_rule)
+    {
+        let mut is_filtered = false;
+        if sec == 'p' {
+            for (i, rule) in f.p.iter().enumerate() {
+                if !rule.is_empty() && rule != &policy[i] {
+                    is_filtered = true
                 }
-            } else if sec == 'g' {
-                for (i, rule) in f.g.iter().enumerate() {
-                    if !rule.is_empty() && rule != &policy[i] {
-                        is_filtered = true
-                    }
-                }
-            } else {
-                return None;
             }
-            return Some((is_filtered, policy));
+        } else if sec == 'g' {
+            for (i, rule) in f.g.iter().enumerate() {
+                if !rule.is_empty() && rule != &policy[i] {
+                    is_filtered = true
+                }
+            }
+        } else {
+            return None;
         }
+        return Some((is_filtered, policy));
     }
 
     None

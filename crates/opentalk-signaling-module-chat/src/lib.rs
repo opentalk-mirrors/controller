@@ -411,18 +411,17 @@ impl SignalingModule for Chat {
                     }
                 };
 
-                if let Some(timestamp) = self.last_seen_timestamp_global {
-                    if let Err(e) = ctx
+                if let Some(timestamp) = self.last_seen_timestamp_global
+                    && let Err(e) = ctx
                         .volatile
                         .storage()
                         .set_last_seen_timestamp_global(self.room, self.id, timestamp)
                         .await
-                    {
-                        log::error!(
-                            "Failed to set last seen timestamp for global chat, {}",
-                            Report::from_error(e)
-                        );
-                    }
+                {
+                    log::error!(
+                        "Failed to set last seen timestamp for global chat, {}",
+                        Report::from_error(e)
+                    );
                 }
 
                 if !self.last_seen_timestamps_group.is_empty() {

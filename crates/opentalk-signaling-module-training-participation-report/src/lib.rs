@@ -259,45 +259,44 @@ impl TrainingParticipationReport {
                 initial_checkpoint_delay,
                 checkpoint_interval,
             }) = parameter_set.clone()
+                && room_owner_data.other_room_owners.is_empty()
             {
-                if room_owner_data.other_room_owners.is_empty() {
-                    // this is the first trainer in the room
+                // this is the first trainer in the room
 
-                    if room_owner_data.trainees.is_empty() {
-                        ctx.volatile
-                            .storage()
-                            .initialize_room(
-                                self.room,
-                                ctx.timestamp,
-                                TrainingReportState::WaitingForParticipant,
-                                initial_checkpoint_delay.clone(),
-                                checkpoint_interval.clone(),
-                                room_owner_data.trainees.clone(),
-                            )
-                            .await?;
-                    } else {
-                        ctx.volatile
-                            .storage()
-                            .initialize_room(
-                                self.room,
-                                ctx.timestamp,
-                                TrainingReportState::WaitingForInitialTimeout,
-                                initial_checkpoint_delay.clone(),
-                                checkpoint_interval.clone(),
-                                room_owner_data.trainees.clone(),
-                            )
-                            .await?;
-
-                        self.start_presence_logging(
-                            ctx,
+                if room_owner_data.trainees.is_empty() {
+                    ctx.volatile
+                        .storage()
+                        .initialize_room(
+                            self.room,
+                            ctx.timestamp,
+                            TrainingReportState::WaitingForParticipant,
                             initial_checkpoint_delay.clone(),
-                            PresenceLoggingStartedReason::Autostart,
+                            checkpoint_interval.clone(),
+                            room_owner_data.trainees.clone(),
                         )
                         .await?;
-                    };
+                } else {
+                    ctx.volatile
+                        .storage()
+                        .initialize_room(
+                            self.room,
+                            ctx.timestamp,
+                            TrainingReportState::WaitingForInitialTimeout,
+                            initial_checkpoint_delay.clone(),
+                            checkpoint_interval.clone(),
+                            room_owner_data.trainees.clone(),
+                        )
+                        .await?;
 
-                    state = ParticipationLoggingState::Enabled;
-                }
+                    self.start_presence_logging(
+                        ctx,
+                        initial_checkpoint_delay.clone(),
+                        PresenceLoggingStartedReason::Autostart,
+                    )
+                    .await?;
+                };
+
+                state = ParticipationLoggingState::Enabled;
             }
 
             *frontend_data = Some(TrainingParticipationReportState {
