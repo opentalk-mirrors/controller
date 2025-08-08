@@ -151,11 +151,11 @@ impl SignalingModule for Timer {
                 self.handle_rmq_message(&mut ctx, event).await?;
             }
             Event::Ext(expired) => {
-                if let Some(timer) = ctx.volatile.storage().timer_get(self.room_id).await? {
-                    if timer.id == expired.timer_id {
-                        self.stop_current_timer(&mut ctx, StopKind::Expired, None)
-                            .await?;
-                    }
+                if let Some(timer) = ctx.volatile.storage().timer_get(self.room_id).await?
+                    && timer.id == expired.timer_id
+                {
+                    self.stop_current_timer(&mut ctx, StopKind::Expired, None)
+                        .await?;
                 }
             }
             Event::ParticipantJoined(id, data) => {
@@ -327,25 +327,26 @@ impl Timer {
                 .await?;
             }
             TimerCommand::UpdateReadyStatus(update_ready_status) => {
-                if let Some(timer) = ctx.volatile.storage().timer_get(self.room_id).await? {
-                    if timer.ready_check_enabled && timer.id == update_ready_status.timer_id {
-                        ctx.volatile
-                            .storage()
-                            .ready_status_set(
-                                self.room_id,
-                                self.participant_id,
-                                update_ready_status.status,
-                            )
-                            .await?;
+                if let Some(timer) = ctx.volatile.storage().timer_get(self.room_id).await?
+                    && timer.ready_check_enabled
+                    && timer.id == update_ready_status.timer_id
+                {
+                    ctx.volatile
+                        .storage()
+                        .ready_status_set(
+                            self.room_id,
+                            self.participant_id,
+                            update_ready_status.status,
+                        )
+                        .await?;
 
-                        ctx.exchange_publish(
-                            control::exchange::current_room_all_participants(self.room_id),
-                            exchange::Event::UpdateReadyStatus(exchange::UpdateReadyStatus {
-                                timer_id: timer.id,
-                                participant_id: self.participant_id,
-                            }),
-                        );
-                    }
+                    ctx.exchange_publish(
+                        control::exchange::current_room_all_participants(self.room_id),
+                        exchange::Event::UpdateReadyStatus(exchange::UpdateReadyStatus {
+                            timer_id: timer.id,
+                            participant_id: self.participant_id,
+                        }),
+                    );
                 }
             }
         }

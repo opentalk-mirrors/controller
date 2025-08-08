@@ -77,10 +77,10 @@ impl RoomLocks {
     }
 
     fn remove_if_unused(&mut self, room: SignalingRoomId) {
-        if let Some(lock) = self.locks.get(&room) {
-            if lock.strong_count() == 0 {
-                self.locks.remove(&room);
-            }
+        if let Some(lock) = self.locks.get(&room)
+            && lock.strong_count() == 0
+        {
+            self.locks.remove(&room);
         }
     }
 }

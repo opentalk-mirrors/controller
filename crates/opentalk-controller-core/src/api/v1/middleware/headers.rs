@@ -55,13 +55,13 @@ where
 
         async move {
             let mut res = fut.await?;
-            if let Some(request_id) = request_id {
-                if !res.headers().contains_key("x-request-id") {
-                    res.headers_mut().insert(
-                        HeaderName::from_static("x-request-id"),
-                        HeaderValue::from_str(&request_id.to_string())?,
-                    );
-                }
+            if let Some(request_id) = request_id
+                && !res.headers().contains_key("x-request-id")
+            {
+                res.headers_mut().insert(
+                    HeaderName::from_static("x-request-id"),
+                    HeaderValue::from_str(&request_id.to_string())?,
+                );
             }
             Ok(res)
         }

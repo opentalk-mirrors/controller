@@ -206,14 +206,14 @@ fn get_unprefixed_path(input_path: &str) -> Result<String> {
     if let Some(segment) = segments.next() {
         let mut chars = segment.chars();
 
-        if let Some('v') = chars.next() {
-            if chars.all(char::is_numeric) {
-                // TODO(kbalt): use Split::as_str() when stabilized
-                // see https://github.com/rust-lang/rust/issues/77998
-                // return Ok(format!("/{}", segments.as_str()));
+        if let Some('v') = chars.next()
+            && chars.all(char::is_numeric)
+        {
+            // TODO(kbalt): use Split::as_str() when stabilized
+            // see https://github.com/rust-lang/rust/issues/77998
+            // return Ok(format!("/{}", segments.as_str()));
 
-                return Ok(format!("/{}", segments.join("/")));
-            }
+            return Ok(format!("/{}", segments.join("/")));
         }
     }
 

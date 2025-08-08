@@ -1382,13 +1382,13 @@ impl Runner {
             .get_local_attribute(target, self.room_id, USER_ID)
             .await?;
 
-        if let Some(user_id) = user_id {
-            if user_id == self.room.created_by {
-                self.ws_send_control_error(timestamp, control_event::Error::TargetIsRoomOwner)
-                    .await;
+        if let Some(user_id) = user_id
+            && user_id == self.room.created_by
+        {
+            self.ws_send_control_error(timestamp, control_event::Error::TargetIsRoomOwner)
+                .await;
 
-                return Ok(());
-            }
+            return Ok(());
         }
 
         self.exchange_publish_control(
@@ -1473,19 +1473,17 @@ impl Runner {
             return Ok(ControlFlow::Continue(tariff));
         }
 
-        if let Some(participant_limit) = tariff.quota(&QuotaType::RoomParticipantLimit) {
-            if let Some(count) = self
+        if let Some(participant_limit) = tariff.quota(&QuotaType::RoomParticipantLimit)
+            && let Some(count) = self
                 .volatile
                 .control_storage()
                 .get_participant_count(self.room.id)
                 .await?
-            {
-                if count >= participant_limit as isize {
-                    return Ok(ControlFlow::Break(
-                        JoinBlockedReason::ParticipantLimitReached,
-                    ));
-                }
-            }
+            && count >= participant_limit as isize
+        {
+            return Ok(ControlFlow::Break(
+                JoinBlockedReason::ParticipantLimitReached,
+            ));
         }
 
         self.volatile
@@ -2072,28 +2070,27 @@ impl Runner {
                     accepted,
                     control_data: _,
                 } = &mut self.state
+                    && !*accepted
                 {
-                    if !*accepted {
-                        *accepted = true;
+                    *accepted = true;
 
-                        // Allow the participant to skip the waiting room on next rejoin
-                        self.volatile
-                            .moderation_storage()
-                            .set_skip_waiting_room_with_expiry(self.id, true)
-                            .await?;
+                    // Allow the participant to skip the waiting room on next rejoin
+                    self.volatile
+                        .moderation_storage()
+                        .set_skip_waiting_room_with_expiry(self.id, true)
+                        .await?;
 
-                        self.ws
-                            .send(Message::Text(
-                                serde_json::to_string(&NamespacedEvent {
-                                    module: opentalk_types_signaling_moderation::MODULE_ID,
-                                    timestamp,
-                                    payload: ModerationEvent::Accepted,
-                                })
-                                .whatever_context::<_, RunnerError>("Failed to send ws message")?
-                                .into(),
-                            ))
-                            .await;
-                    }
+                    self.ws
+                        .send(Message::Text(
+                            serde_json::to_string(&NamespacedEvent {
+                                module: opentalk_types_signaling_moderation::MODULE_ID,
+                                timestamp,
+                                payload: ModerationEvent::Accepted,
+                            })
+                            .whatever_context::<_, RunnerError>("Failed to send ws message")?
+                            .into(),
+                        ))
+                        .await;
                 }
             }
             exchange::Message::SetModeratorStatus(grant_moderator) => {
@@ -2578,15 +2575,14 @@ impl Runner {
             {
                 return Some(JoinEvent::WaitingRoom);
             }
-        } else if namespaced.module == opentalk_types_signaling_breakout::MODULE_ID {
-            if let Ok(breakout::exchange::Message::Joined(participant_joined_other_room)) =
+        } else if namespaced.module == opentalk_types_signaling_breakout::MODULE_ID
+            && let Ok(breakout::exchange::Message::Joined(participant_joined_other_room)) =
                 serde_json::from_value::<breakout::exchange::Message>(namespaced.payload)
-            {
-                return Some(JoinEvent::Room(SignalingRoomId::new(
-                    self.room_id.room_id(),
-                    participant_joined_other_room.breakout_room,
-                )));
-            }
+        {
+            return Some(JoinEvent::Room(SignalingRoomId::new(
+                self.room_id.room_id(),
+                participant_joined_other_room.breakout_room,
+            )));
         }
 
         None

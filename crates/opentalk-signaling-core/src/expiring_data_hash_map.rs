@@ -68,11 +68,11 @@ where
     }
 
     pub fn update_expiry(&mut self, key: &K, expires_after: Duration) -> bool {
-        if let Some(data) = self.data.get_mut(key) {
-            if !data.is_expired() {
-                data.set_expiry(expires_after);
-                return true;
-            }
+        if let Some(data) = self.data.get_mut(key)
+            && !data.is_expired()
+        {
+            data.set_expiry(expires_after);
+            return true;
         }
         false
     }

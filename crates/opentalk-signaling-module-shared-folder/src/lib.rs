@@ -112,19 +112,17 @@ impl SignalingModule for SharedFolder {
                         .storage()
                         .get_event(self.room.room_id())
                         .await?
-                    {
-                        if let Some(shared_folder) = self
+                        && let Some(shared_folder) = self
                             .inventory_provider
                             .get_inventory()
                             .await?
                             .get_event_shared_folder(event.id)
                             .await?
-                        {
-                            ctx.volatile
-                                .storage()
-                                .set_shared_folder(self.room, shared_folder.into())
-                                .await?;
-                        }
+                    {
+                        ctx.volatile
+                            .storage()
+                            .set_shared_folder(self.room, shared_folder.into())
+                            .await?;
                     };
                     ctx.volatile
                         .storage()

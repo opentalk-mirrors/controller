@@ -191,11 +191,11 @@ impl ControllerBackend {
         let room = inventory.get_room(invite.room).await?;
 
         if invite.active {
-            if let Some(expiration) = invite.expiration {
-                if expiration <= Utc::now() {
-                    // Do not leak the existence of the invite when it is expired
-                    return Err(ApiError::not_found().into());
-                }
+            if let Some(expiration) = invite.expiration
+                && expiration <= Utc::now()
+            {
+                // Do not leak the existence of the invite when it is expired
+                return Err(ApiError::not_found().into());
             }
             Ok(PostInviteVerifyResponseBody {
                 room_id: invite.room,

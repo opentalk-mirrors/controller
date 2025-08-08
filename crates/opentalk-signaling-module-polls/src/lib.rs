@@ -83,18 +83,17 @@ impl SignalingModule for Polls {
                 participants: _,
             } => {
                 if let Some(polls_state) = ctx.volatile.storage().get_polls_state(self.room).await?
+                    && let Some(duration) = polls_state.remaining()
                 {
-                    if let Some(duration) = polls_state.remaining() {
-                        let id = polls_state.id;
+                    let id = polls_state.id;
 
-                        self.config = Some(Config {
-                            state: polls_state.clone(),
-                            voted_choice_ids: BTreeSet::new(),
-                        });
-                        *frontend_data = Some(polls_state);
+                    self.config = Some(Config {
+                        state: polls_state.clone(),
+                        voted_choice_ids: BTreeSet::new(),
+                    });
+                    *frontend_data = Some(polls_state);
 
-                        ctx.add_event_stream(once(sleep(duration).map(move |_| ExpiredEvent(id))));
-                    }
+                    ctx.add_event_stream(once(sleep(duration).map(move |_| ExpiredEvent(id))));
                 }
 
                 Ok(())

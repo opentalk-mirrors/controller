@@ -314,10 +314,10 @@ pub async fn verify_storage_usage(inventory: &mut dyn Inventory, user_id: UserId
         .await
         .context(InventoryQuerySnafu)?;
 
-    if let Some(max_storage) = user_tariff.quota(&QuotaType::MaxStorage) {
-        if used_storage > BigDecimal::from(max_storage) {
-            return AssetStorageExceededSnafu.fail();
-        }
+    if let Some(max_storage) = user_tariff.quota(&QuotaType::MaxStorage)
+        && used_storage > BigDecimal::from(max_storage)
+    {
+        return AssetStorageExceededSnafu.fail();
     }
 
     Ok(())

@@ -348,13 +348,13 @@ impl Whiteboard {
             )
         }
 
-        if let InitState::Initialized(space_info) = state {
-            if let Err(e) = self.client.delete_space(&space_info.id).await {
-                log::error!(
-                    "Failed to delete space from spacedeck {}",
-                    Report::from_error(e)
-                )
-            }
+        if let InitState::Initialized(space_info) = state
+            && let Err(e) = self.client.delete_space(&space_info.id).await
+        {
+            log::error!(
+                "Failed to delete space from spacedeck {}",
+                Report::from_error(e)
+            )
         }
     }
 }
