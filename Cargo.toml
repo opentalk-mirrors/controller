@@ -83,10 +83,10 @@ humansize = "2.1.3"
 insta = "1"
 itertools = "0.14"
 jsonwebtoken = "9.3"
-kustos-shared = "0.31"
+kustos-shared = "0.32"
 language-tags = "0.3.2"
-lapin = { version = "2", default-features = false }
-lapin-pool = "0.1"
+lapin = { version = "3", default-features = false }
+lapin-pool = "0.2"
 livekit-api = "0.4"
 livekit-protocol = "0.4"
 livekit-runtime = { version = "0.4", default-features = false }
@@ -97,36 +97,36 @@ opentalk-diesel-newtype = "0.13"
 opentalk-etherpad-client = { version = "0.2.0", default-features = false, features = [
   "rustls-tls-native-roots",
 ] }
-opentalk-keycloak-admin = { version = "0.3.1", default-features = false, features = [
+opentalk-keycloak-admin = { version = "0.5.0", default-features = false, features = [
   "rustls-tls-native-roots",
 ] }
-opentalk-mail-worker-protocol = "0.36.0"
+opentalk-mail-worker-protocol = "0.37.0"
 opentalk-nextcloud-client = { version = "0.2.0", default-features = false, features = [
   "rustls-tls-native-roots",
 ] }
-opentalk-roomserver-client = "0.0.2"
-opentalk-roomserver-types = "0.0.2"
-opentalk-types-api-v1 = "0.39.1"
-opentalk-types-common = "0.35.2"
-opentalk-types-signaling = "0.37.0"
-opentalk-types-signaling-automod = "0.6.1"
-opentalk-types-signaling-breakout = "0.36.1"
-opentalk-types-signaling-chat = "0.37.2"
-opentalk-types-signaling-control = "0.36.1"
-opentalk-types-signaling-e2ee = "0.5.1"
-opentalk-types-signaling-legal-vote = "0.7.2"
-opentalk-types-signaling-livekit = "0.38.1"
-opentalk-types-signaling-meeting-notes = "0.36.1"
-opentalk-types-signaling-meeting-report = "0.36.1"
-opentalk-types-signaling-moderation = "0.36.1"
-opentalk-types-signaling-polls = "0.36.1"
-opentalk-types-signaling-recording = "0.36.1"
-opentalk-types-signaling-recording-service = "0.36.1"
-opentalk-types-signaling-shared-folder = "0.36.1"
-opentalk-types-signaling-subroom-audio = "0.36.1"
-opentalk-types-signaling-timer = "0.36.2"
-opentalk-types-signaling-training-participation-report = "0.7.1"
-opentalk-types-signaling-whiteboard = "0.36.1"
+opentalk-roomserver-client = "0.0.5"
+opentalk-roomserver-types = "0.0.5"
+opentalk-types-api-v1 = "0.40.0"
+opentalk-types-common = "0.36.0"
+opentalk-types-signaling = "0.38.0"
+opentalk-types-signaling-automod = "0.7.0"
+opentalk-types-signaling-breakout = "0.37.0"
+opentalk-types-signaling-chat = "0.38.0"
+opentalk-types-signaling-control = "0.38.0"
+opentalk-types-signaling-e2ee = "0.6.0"
+opentalk-types-signaling-legal-vote = "0.9.0"
+opentalk-types-signaling-livekit = "0.39.0"
+opentalk-types-signaling-meeting-notes = "0.37.0"
+opentalk-types-signaling-meeting-report = "0.37.0"
+opentalk-types-signaling-moderation = "0.37.0"
+opentalk-types-signaling-polls = "0.37.0"
+opentalk-types-signaling-recording = "0.37.0"
+opentalk-types-signaling-recording-service = "0.37.0"
+opentalk-types-signaling-shared-folder = "0.37.0"
+opentalk-types-signaling-subroom-audio = "0.37.0"
+opentalk-types-signaling-timer = "0.37.0"
+opentalk-types-signaling-training-participation-report = "0.8.0"
+opentalk-types-signaling-whiteboard = "0.37.0"
 opentalk-version = "0.2.0"
 opentelemetry = { version = "0.29.1", default-features = false, features = [
   "metrics",
@@ -148,8 +148,8 @@ pretty_assertions = "1"
 prometheus = "0.14.0"
 rand = "0.9"
 rand_chacha = "0.9"
-redis = "0.31.0"
-redis-args = "0.20.0"
+redis = "0.32.0"
+redis-args = "0.21.0"
 reqwest = { version = "0.12", default-features = false }
 reqwest11 = { package = "reqwest", version = "0.11", default-features = false }
 ring = "0.17"

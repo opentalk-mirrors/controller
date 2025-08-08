@@ -53,11 +53,11 @@ Options:
       --format <FORMAT>
           The export format
 
-          [default: yaml]
-
           Possible values:
           - yaml: YAML output format
           - json: JSON output format
+
+          [default: yaml]
 
   -h, --help
           Print help (see a summary with '-h')
