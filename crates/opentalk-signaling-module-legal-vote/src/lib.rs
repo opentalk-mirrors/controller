@@ -37,7 +37,7 @@ use opentalk_types_common::{
     assets::FileExtension,
     modules::ModuleId,
     tenants::TenantId,
-    time::{TimeZone, Timestamp},
+    time::TimeZone,
     users::{DisplayName, UserId},
 };
 use opentalk_types_signaling::{ParticipantId, Role};
@@ -1162,7 +1162,7 @@ impl LegalVote {
                     let protocol = storage.protocol_get(self.room_id, legal_vote_id).await?;
 
                     let pdf_asset = self
-                        .create_pdf_asset(legal_vote_id, ctx.timestamp(), timezone, protocol)
+                        .create_pdf_asset(ctx, legal_vote_id, timezone, protocol)
                         .await?;
 
                     ctx.exchange_publish(
@@ -1348,19 +1348,6 @@ impl LegalVote {
         msg_target: UserId,
         timezone: Option<TimeZone>,
     ) -> Result<(), LegalVoteError> {
-        let timezone = match timezone {
-            Some(timezone) => Some(timezone),
-            None => {
-                let moderator = self
-                    .inventory_provider
-                    .get_inventory()
-                    .await?
-                    .get_user(self.user_id)
-                    .await?;
-                moderator.timezone
-            }
-        };
-
         let protocol = ctx
             .volatile
             .storage()
@@ -1368,7 +1355,7 @@ impl LegalVote {
             .await?;
 
         let pdf_asset = match self
-            .create_pdf_asset(legal_vote_id, ctx.timestamp(), timezone, protocol)
+            .create_pdf_asset(ctx, legal_vote_id, timezone, protocol)
             .await
         {
             Ok(pdf_asset) => pdf_asset,
@@ -1416,12 +1403,14 @@ impl LegalVote {
 
     async fn create_pdf_asset(
         &self,
+        ctx: &mut ModuleContext<'_, Self>,
         legal_vote_id: LegalVoteId,
-        timestamp: Timestamp,
-        timezone: Option<TimeZone>,
+        explicit_timezone: Option<TimeZone>,
         protocol: Vec<db_protocol::v1::ProtocolEntry>,
     ) -> Result<PdfAsset, LegalVoteError> {
-        let timezone = timezone.unwrap_or_default();
+        let timestamp = ctx.timestamp();
+        let timezone = explicit_timezone.unwrap_or(ctx.timezone);
+
         let user_names = self.get_referenced_user_names(&protocol).await?;
 
         let pdf_data = report::generate(

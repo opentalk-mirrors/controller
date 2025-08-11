@@ -29,12 +29,14 @@ use opentalk_types_common::{
     roomserver::Token as RoomserverToken,
     shared_folders::{SharedFolder, SharedFolderAccess},
     streaming::StreamingLink,
-    time::TimeZone,
     users::UserInfo,
 };
 use opentalk_types_signaling::ModuleData;
 
-use crate::{ControllerBackend, controller_backend::rooms::start_room_error::StartRoomError};
+use crate::{
+    ControllerBackend, controller_backend::rooms::start_room_error::StartRoomError,
+    helpers::get_user_timezone,
+};
 
 impl ControllerBackend {
     pub(crate) async fn roomserver_start_room(
@@ -43,6 +45,7 @@ impl ControllerBackend {
         room_id: RoomId,
         request: PostRoomsRoomserverStartRequestBody,
     ) -> Result<RoomserverStartResponseBody, CaptureApiError> {
+        let mut inventory = self.inventory_provider.get_inventory().await?;
         let settings = self.settings_provider.get();
 
         let Some(roomserver_address) = settings
@@ -61,7 +64,7 @@ impl ControllerBackend {
             Role::User
         };
 
-        let timezone = TimeZone::default();
+        let timezone = get_user_timezone(room.created_by.id, inventory.as_mut(), &settings).await;
 
         let client_parameters = ClientParameters {
             device_secret: request.device_secret,
@@ -205,7 +208,8 @@ impl ControllerBackend {
 
         let tariff = self.get_room_tariff(&room.id).await?;
 
-        let timezone = TimeZone::default();
+        let timezone = get_user_timezone(room.created_by.id, inventory.as_mut(), &settings).await;
+
         let created_by = PublicUserProfile {
             id: room.created_by.id,
             email: room.created_by.email,

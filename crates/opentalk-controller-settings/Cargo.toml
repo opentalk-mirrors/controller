@@ -24,6 +24,7 @@ arc-swap.workspace = true
 cidr = { version = "0.3", features = ["serde"] }
 config.workspace = true
 dirs.workspace = true
+iana-time-zone.workspace = true
 itertools.workspace = true
 log = { workspace = true, features = ["serde"] }
 openidconnect.workspace = true

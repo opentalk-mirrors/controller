@@ -188,16 +188,12 @@ impl MeetingReport {
                 message: "Room not found".to_string(),
             })?;
 
-        let event_creator = inventory.get_user(event.created_by).await?;
-        let timezone = event_creator.timezone.unwrap_or(TimeZone::from(Tz::UTC));
-        let tz = Tz::from(timezone);
-
         // Query all participant IDs and create and concurrently fetch all participant information.
         let participants = storage.get_all_participants(self.room_id).await?;
         let participants = participants.iter().map(|p| async {
             let mut volatile = ctx.volatile.clone();
             let storage = volatile.storage();
-            self.query_participant_report(storage, *p, include_email_addresses, &tz)
+            self.query_participant_report(storage, *p, include_email_addresses, &ctx.timezone)
                 .await
         });
 
@@ -210,7 +206,7 @@ impl MeetingReport {
                 source: Some(Box::new(e).into()),
             })?;
 
-        Ok((participants, event, timezone))
+        Ok((participants, event, ctx.timezone))
     }
 
     async fn generate_pdf_report(

@@ -20,6 +20,7 @@ use kustos::Authz;
 use log::log_enabled;
 use opentalk_controller_service::{
     email_to_libravatar_url,
+    helpers::get_user_timezone,
     signaling::{
         resumption::ResumptionTokenKeepAlive,
         storage::{SignalingStorageError, SignalingStorageProvider},
@@ -51,7 +52,7 @@ use opentalk_types_common::{
     modules::ModuleId,
     rooms::{BreakoutRoomId, RoomId},
     tariffs::{QuotaType, TariffResource},
-    time::Timestamp,
+    time::{TimeZone, Timestamp},
     users::{DisplayName, UserId, UserInfo},
 };
 use opentalk_types_signaling::{
@@ -244,6 +245,11 @@ impl Builder {
                 });
         }
 
+        let mut inventory = self.inventory_provider.get_inventory().await?;
+        let settings = settings_provider.get();
+
+        let timezone = get_user_timezone(self.room.created_by, inventory.as_mut(), &settings).await;
+
         Ok(Runner {
             runner_id: self.runner_id,
             id: self.id,
@@ -271,6 +277,7 @@ impl Builder {
             leave_reason: LeaveReason::Quit,
             settings_provider,
             time_limit_future: Box::pin(future::pending()),
+            timezone,
         })
     }
 }
@@ -343,6 +350,9 @@ pub struct Runner {
     settings_provider: SettingsProvider,
 
     time_limit_future: Pin<Box<dyn Future<Output = ()>>>,
+
+    /// The effective timezone for this runner
+    pub timezone: TimeZone,
 }
 
 /// Current state of the runner
@@ -2331,6 +2341,7 @@ impl Runner {
         let ctx = DynEventCtx {
             id: self.id,
             role: self.role,
+            timezone: self.timezone,
             timestamp,
             ws_messages: &mut ws_messages,
             exchange_publish: &mut exchange_publish,
@@ -2367,6 +2378,7 @@ impl Runner {
         let ctx = DynEventCtx {
             id: self.id,
             role: self.role,
+            timezone: self.timezone,
             timestamp,
             ws_messages: &mut ws_messages,
             exchange_publish: &mut exchange_publish,

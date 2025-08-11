@@ -26,7 +26,7 @@ impl SettingsProvider {
     /// Load the settings from a TOML file.
     ///
     /// This will succeed in case the file could be loaded successfully.
-    /// Environment variables in the `OPENTALK_CTRL_*` pattern are considiered
+    /// Environment variables in the `OPENTALK_CTRL_*` pattern are considered
     /// and will override the settings found in the file.
     fn load_from_path(file_path: &Path) -> Result<Self> {
         let settings_raw = Self::load_raw(file_path)?;
@@ -58,7 +58,7 @@ impl SettingsProvider {
     /// while the controller is running.
     ///
     /// This will succeed in case the file could be loaded successfully.
-    /// Environment variables in the `OPENTALK_CTRL_*` pattern are considiered
+    /// Environment variables in the `OPENTALK_CTRL_*` pattern are considered
     /// and will override the settings found in the file.
     ///
     /// If loading the settings fails, an error is returned from this function
@@ -254,11 +254,13 @@ mod tests {
     }
 
     fn reload_inner() {
+        // TODO(w.rabl) Why exactly do we have to remove these env vars first? See according discussion:
+        // https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1671#note_237430
         unsafe {
             env::remove_var("OPENTALK_CTRL_DATABASE__URL");
             env::remove_var("OPENTALK_CTRL_HTTP__PORT");
-            env::remove_var("OPENTALK_CTRL_HTTP__DEFAULTS__USER_LANGUAGE");
-            env::remove_var("OPENTALK_CTRL_HTTP__DEFAULTS__SCREEN_SHARE_REQUIRES_PERMISSION");
+            env::remove_var("OPENTALK_CTRL_DEFAULTS__USER_LANGUAGE");
+            env::remove_var("OPENTALK_CTRL_DEFAULTS__SCREEN_SHARE_REQUIRES_PERMISSION");
         }
 
         let tempdir = tempdir().unwrap();

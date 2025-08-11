@@ -6,7 +6,10 @@ use std::{marker::PhantomData, sync::Arc};
 
 use actix_http::ws::CloseCode;
 use futures::{Stream, stream::SelectAll};
-use opentalk_types_common::{modules::ModuleId, time::Timestamp};
+use opentalk_types_common::{
+    modules::ModuleId,
+    time::{TimeZone, Timestamp},
+};
 use opentalk_types_signaling::{LeaveReason, NamespacedEvent, Role};
 use serde::Serialize;
 
@@ -27,6 +30,7 @@ where
 {
     pub role: Role,
     pub ws_messages: &'ctx mut Vec<NamespacedEvent<M::Outgoing>>,
+    pub timezone: TimeZone,
     pub timestamp: Timestamp,
     pub exchange_publish: &'ctx mut Vec<ExchangePublish>,
     pub volatile: &'ctx mut VolatileStorage,

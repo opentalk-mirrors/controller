@@ -266,6 +266,8 @@ impl Controller {
 
         log::info!("Starting {program_name}");
 
+        log::info!("Global timezone is {}", settings.defaults.timezone);
+
         let controller = Self::init::<ControllerModules<M>>(settings_provider, args)
             .await
             .whatever_context("Failed to init controller")?;

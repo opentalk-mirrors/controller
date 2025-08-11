@@ -16,6 +16,7 @@ use opentalk_types_api_v1::{
 };
 use opentalk_types_common::{
     features::ModuleFeatureId,
+    time::TimeZone,
     users::{UserId, UserInfo},
 };
 
@@ -166,4 +167,19 @@ pub fn asset_to_asset_resource(asset: Asset) -> AssetResource {
         kind,
         size,
     }
+}
+
+/// Returns a user's effective timezone
+pub async fn get_user_timezone(
+    user_id: UserId,
+    inventory: &mut dyn Inventory,
+    settings: &Settings,
+) -> TimeZone {
+    let user_timezone = inventory
+        .get_user(user_id)
+        .await
+        .ok()
+        .and_then(|user| user.timezone);
+
+    user_timezone.unwrap_or(settings.defaults.timezone)
 }
