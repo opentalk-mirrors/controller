@@ -165,10 +165,6 @@ pub async fn new(
             response = Unauthorized,
         ),
         (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
             status = StatusCode::INTERNAL_SERVER_ERROR,
             response = InternalServerError,
         ),
@@ -225,10 +221,6 @@ pub async fn patch(
             response = Forbidden,
         ),
         (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
             status = StatusCode::INTERNAL_SERVER_ERROR,
             response = InternalServerError,
         ),
@@ -279,10 +271,6 @@ pub async fn delete(
             response = Forbidden,
         ),
         (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
             status = StatusCode::INTERNAL_SERVER_ERROR,
             response = InternalServerError,
         ),
@@ -320,10 +308,6 @@ pub async fn get(
         (
             status = StatusCode::FORBIDDEN,
             response = Forbidden,
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
         ),
         (
             status = StatusCode::INTERNAL_SERVER_ERROR,
@@ -370,10 +354,6 @@ pub async fn get_room_tariff(
         (
             status = StatusCode::FORBIDDEN,
             response = Forbidden,
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
         ),
         (
             status = StatusCode::INTERNAL_SERVER_ERROR,
