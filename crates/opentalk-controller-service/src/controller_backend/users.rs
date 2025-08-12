@@ -102,17 +102,7 @@ impl ControllerBackend {
         &self,
         current_user: RequestUser,
     ) -> Result<TariffResource, CaptureApiError> {
-        let settings = self.settings_provider.get();
-        let mut inventory = self.inventory_provider.get_inventory().await?;
-
-        let tariff = inventory.get_tariff(current_user.tariff_id).await?;
-
-        let response = tariff.to_tariff_resource(
-            settings.defaults.disabled_features.clone(),
-            self.module_features.clone(),
-        );
-
-        Ok(response)
+        self.get_tariff(current_user.tariff_id).await
     }
 
     pub(crate) async fn get_my_assets(

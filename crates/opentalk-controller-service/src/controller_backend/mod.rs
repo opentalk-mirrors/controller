@@ -9,6 +9,7 @@ mod events;
 mod invites;
 pub mod rooms;
 mod sip_configs;
+mod tariff;
 
 mod services;
 mod streaming_targets;
@@ -218,7 +219,7 @@ impl OpenTalkControllerServiceBackend for ControllerBackend {
     }
 
     async fn get_room_tariff(&self, room_id: &RoomId) -> Result<TariffResource, ApiError> {
-        Ok(self.get_room_tariff(room_id).await?)
+        Ok(self.get_room_tariff(*room_id).await?)
     }
 
     async fn get_room_event(&self, room_id: &RoomId) -> Result<GetRoomEventResponseBody, ApiError> {

@@ -9,8 +9,10 @@ use std::{
 };
 
 use async_trait::async_trait;
-use opentalk_db_storage::{events::Event, tariffs::Tariff};
-use opentalk_types_common::{rooms::RoomId, time::Timestamp, users::UserInfo};
+use opentalk_db_storage::events::Event;
+use opentalk_types_common::{
+    rooms::RoomId, tariffs::TariffResource, time::Timestamp, users::UserInfo,
+};
 use opentalk_types_signaling::{ParticipantId, Role};
 use redis::{AsyncCommands, ErrorKind, FromRedisValue, RedisError, ToRedisArgs};
 use redis_args::ToRedisArgs;
@@ -87,9 +89,9 @@ impl ControlStorage for RedisConnection {
     async fn try_init_tariff(
         &mut self,
         room_id: RoomId,
-        tariff: Tariff,
-    ) -> Result<Tariff, SignalingModuleError> {
-        let (_, tariff): (bool, Tariff) = redis::pipe()
+        tariff: TariffResource,
+    ) -> Result<TariffResource, SignalingModuleError> {
+        let (_, tariff): (bool, TariffResource) = redis::pipe()
             .atomic()
             .set_nx(RoomTariff { room_id }, tariff)
             .get(RoomTariff { room_id })
@@ -103,10 +105,14 @@ impl ControlStorage for RedisConnection {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn get_tariff(&mut self, room_id: RoomId) -> Result<Tariff, SignalingModuleError> {
-        self.get(RoomTariff { room_id }).await.context(RedisSnafu {
+    async fn get_tariff(
+        &mut self,
+        room_id: RoomId,
+    ) -> Result<TariffResource, SignalingModuleError> {
+        let tariff = self.get(RoomTariff { room_id }).await.context(RedisSnafu {
             message: "Failed to get room tariff",
-        })
+        })?;
+        Ok(tariff)
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -440,7 +446,7 @@ pub struct RoomParticipantCount {
     room_id: RoomId,
 }
 
-/// The configured [`Tariff`] for the room
+/// The configured [`TariffResource`] for the room
 ///
 /// Notice that this key only contains the [`RoomId`] as it applies to all breakout rooms as well
 #[derive(ToRedisArgs)]

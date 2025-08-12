@@ -75,6 +75,7 @@ impl ControllerBackend {
         if let Some(mail_service) = &mail_service {
             let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
             let current_user = inventory.get_user(current_user.id).await?;
+            let room_tariff = self.get_tariff_for_room(room_id).await?;
 
             notify_event_invitees_by_room_about_update(
                 &self.user_search_client,
@@ -84,6 +85,7 @@ impl ControllerBackend {
                 current_user,
                 inventory.as_mut(),
                 room_id,
+                &room_tariff,
             )
             .await?;
         }
@@ -222,6 +224,7 @@ impl ControllerBackend {
         if let Some(mail_service) = &mail_service {
             let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
             let current_user = inventory.get_user(current_user.id).await?;
+            let room_tariff = self.get_tariff_for_room(room_id).await?;
 
             notify_event_invitees_by_room_about_update(
                 &self.user_search_client,
@@ -231,6 +234,7 @@ impl ControllerBackend {
                 current_user,
                 inventory.as_mut(),
                 room_id,
+                &room_tariff,
             )
             .await?;
         }
@@ -261,6 +265,7 @@ impl ControllerBackend {
         if let Some(mail_service) = &mail_service {
             let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
             let current_user = inventory.get_user(current_user.id).await?;
+            let room_tariff = self.get_tariff_for_room(room_id).await?;
 
             notify_event_invitees_by_room_about_update(
                 &self.user_search_client,
@@ -270,6 +275,7 @@ impl ControllerBackend {
                 current_user,
                 inventory.as_mut(),
                 room_id,
+                &room_tariff,
             )
             .await?;
         }

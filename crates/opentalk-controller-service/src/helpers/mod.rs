@@ -6,16 +6,13 @@
 
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
-use opentalk_controller_utils::CaptureApiError;
 use opentalk_db_storage::{assets::Asset, users::User};
 use opentalk_inventory::Inventory;
 use opentalk_types_api_v1::{
     assets::AssetResource,
-    error::ApiError,
     users::{PrivateUserProfile, PublicUserProfile},
 };
 use opentalk_types_common::{
-    features::ModuleFeatureId,
     time::TimeZone,
     users::{UserId, UserInfo},
 };
@@ -115,36 +112,6 @@ impl ToUserProfile for RequestUser {
 /// Helper function to turn an email address into libravatar URL.
 pub fn email_to_libravatar_url(libravatar_url: &str, email: &str) -> String {
     format!("{}{:x}", libravatar_url, md5::compute(email))
-}
-
-/// Checks if the given feature sting is disabled by the tariff of the given user or in the settings of the controller.
-///
-/// Return an [`ApiError`] if the given feature is disabled, differentiating between a config disable or tariff restriction.
-pub async fn require_feature(
-    inventory: &mut dyn Inventory,
-    settings: &Settings,
-    user_id: UserId,
-    feature: &ModuleFeatureId,
-) -> opentalk_database::Result<(), CaptureApiError> {
-    if settings.defaults.disabled_features.contains(feature) {
-        return Err(ApiError::forbidden()
-            .with_code("feature_disabled")
-            .with_message(format!("The feature \"{feature}\" is disabled"))
-            .into());
-    }
-
-    let tariff = inventory.get_tariff_for_user(user_id).await?;
-
-    if tariff.is_feature_disabled(feature) {
-        return Err(ApiError::forbidden()
-            .with_code("feature_disabled_by_tariff")
-            .with_message(format!(
-                "The user's tariff does not include the {feature} feature"
-            ))
-            .into());
-    }
-
-    Ok(())
 }
 
 /// Converts an Asset from the database to an asset resource

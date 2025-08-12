@@ -21,8 +21,12 @@
 )]
 
 mod capture_api_error;
+mod module_features;
 
 pub mod deletion;
 pub mod event;
 
 pub use capture_api_error::CaptureApiError;
+pub use module_features::{
+    FeatureRequiredError, TariffResourceExt, get_tariff_for_room, get_tariff_for_user,
+};

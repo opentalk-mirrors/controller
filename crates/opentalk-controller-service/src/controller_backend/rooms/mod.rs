@@ -13,7 +13,7 @@ use kustos::{
 };
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_utils::{
-    CaptureApiError,
+    CaptureApiError, TariffResourceExt as _,
     deletion::{Deleter, RoomDeleter},
 };
 use opentalk_db_storage::{
@@ -43,7 +43,6 @@ use opentalk_types_common::{
 use crate::{
     ControllerBackend, ToUserProfile,
     controller_backend::rooms::start_room_error::StartRoomError,
-    require_feature,
     signaling::{
         ticket::start_or_continue_signaling_session,
         ws_modules::{breakout::BreakoutStorageProvider, moderation::ModerationStorageProvider},
@@ -109,14 +108,10 @@ impl ControllerBackend {
         let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
+        let tariff = self.get_tariff_for_user(current_user.id).await?;
+
         if enable_sip {
-            require_feature(
-                inventory.as_mut(),
-                &settings,
-                current_user.id,
-                &features::CALL_IN_MODULE_FEATURE_ID,
-            )
-            .await?;
+            tariff.require_feature(&features::CALL_IN_MODULE_FEATURE_ID)?;
         }
 
         let room = inventory
@@ -234,20 +229,9 @@ impl ControllerBackend {
 
     pub(crate) async fn get_room_tariff(
         &self,
-        room_id: &RoomId,
+        room_id: RoomId,
     ) -> Result<TariffResource, CaptureApiError> {
-        let settings = self.settings_provider.get();
-        let mut inventory = self.inventory_provider.get_inventory().await?;
-
-        let room = inventory.get_room(*room_id).await?;
-        let tariff = inventory.get_tariff_for_user(room.created_by).await?;
-
-        let response = tariff.to_tariff_resource(
-            settings.defaults.disabled_features.clone(),
-            self.module_features.clone(),
-        );
-
-        Ok(response)
+        self.get_tariff_for_room(room_id).await
     }
 
     pub(crate) async fn get_room_event(
@@ -261,7 +245,7 @@ impl ControllerBackend {
 
         let room = inventory.get_room(*room_id).await?;
 
-        let tariff = inventory.get_tariff_for_user(room.created_by).await?;
+        let tariff = self.get_tariff_for_user(room.created_by).await?;
 
         match event.as_ref() {
             Some(event) => {

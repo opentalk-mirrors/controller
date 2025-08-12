@@ -27,7 +27,6 @@ use opentalk_db_storage::{
     },
     rooms::{NewRoom, Room, UpdateRoom},
     sip_configs::{NewSipConfig, SipConfig},
-    tariffs::Tariff,
     tenants::Tenant,
     users::User,
 };
@@ -47,10 +46,12 @@ use opentalk_types_api_v1::{
 };
 use opentalk_types_common::{
     events::{EventDescription, EventId, EventTitle, invites::EventInviteStatus},
-    features,
+    features::CALL_IN_FEATURE_ID,
+    modules::DEFAULT_MODULE_ID,
     rooms::RoomPassword,
     shared_folders::SharedFolder,
     streaming::{RoomStreamingTarget, StreamingTarget},
+    tariffs::TariffResource,
     time::{DateTimeTz, RecurrencePattern, TimeZone, Timestamp},
     training_participation_report::TrainingParticipationReportParameterSet,
 };
@@ -92,9 +93,11 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let current_user = inventory.get_user(current_user.id).await?;
+        let tariff = self.get_tariff_for_user(current_user.id).await?;
 
         let transaction_settings = settings.clone();
         let (event_resource, mail_resource) = transaction(inventory.as_mut(), |inventory| {
+            let tariff = tariff.clone();
             async move {
                     // simplify logic by splitting the event creation
                     // into two paths: time independent and time dependent
@@ -120,6 +123,7 @@ impl ControllerBackend {
                                 &transaction_settings,
                                 inventory,
                                 current_user,
+                                &tariff,
                                 title,
                                 description,
                                 password,
@@ -154,6 +158,7 @@ impl ControllerBackend {
                                 &transaction_settings,
                                 inventory,
                                 current_user,
+                                &tariff,
                                 title,
                                 description,
                                 password,
@@ -214,6 +219,7 @@ impl ControllerBackend {
                     mail_resource.current_user.clone(),
                     mail_resource.event,
                     mail_resource.room,
+                    &tariff,
                     mail_resource.sip_config,
                     mail_resource.current_user,
                     event_resource.shared_folder.clone(),
@@ -369,6 +375,8 @@ impl ControllerBackend {
             let shared_folder =
                 shared_folder_for_user(shared_folder, event.created_by, current_user.id);
 
+            let tariff = self.build_tariff_resource(&tariff)?;
+
             event_resources.push(EventOrException::Event(EventResource {
                 id: event.id,
                 created_by,
@@ -485,6 +493,8 @@ impl ControllerBackend {
 
         let shared_folder =
             shared_folder_for_user(shared_folder, event.created_by, current_user.id);
+
+        let tariff = self.build_tariff_resource(&tariff)?;
 
         let event_resource = EventResource {
             id: event.id,
@@ -720,6 +730,8 @@ impl ControllerBackend {
         let shared_folder =
             shared_folder_for_user(shared_folder, event.created_by, current_user.id);
 
+        let tariff = self.build_tariff_resource(&tariff)?;
+
         let event_resource = EventResource {
             id: event.id,
             created_by: created_by.to_public_user_profile(&settings),
@@ -759,6 +771,7 @@ impl ControllerBackend {
         if let Some(mail_service) = &mail_service {
             notify_invitees_about_update(
                 &settings,
+                &tariff,
                 notification_values,
                 mail_service,
                 &self.user_search_client,
@@ -806,11 +819,12 @@ impl ControllerBackend {
             sip_config,
             _is_favorite,
             shared_folder,
-            _tariff,
+            tariff,
             _training_participation_report,
         ) = inventory
             .get_event_with_related_items(current_user.id, event_id)
             .await?;
+        let room_tariff = self.build_tariff_resource(&tariff)?;
 
         let streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
 
@@ -861,6 +875,7 @@ impl ControllerBackend {
 
             notify_invitees_about_delete(
                 &settings,
+                &room_tariff,
                 notification_values,
                 mail_service,
                 &self.user_search_client,
@@ -989,7 +1004,7 @@ trait EventRoomInfoExt {
         settings: &Settings,
         room: Room,
         sip_config: Option<SipConfig>,
-        tariff: &Tariff,
+        tariff: &TariffResource,
     ) -> Self;
 }
 
@@ -1004,13 +1019,10 @@ impl EventRoomInfoExt for EventRoomInfo {
         settings: &Settings,
         room: Room,
         sip_config: Option<SipConfig>,
-        tariff: &Tariff,
+        tariff: &TariffResource,
     ) -> Self {
-        let call_in_feature_is_enabled = !settings
-            .defaults
-            .disabled_features
-            .contains(&features::CALL_IN_MODULE_FEATURE_ID)
-            && !tariff.is_feature_disabled(&features::CALL_IN_MODULE_FEATURE_ID)
+        let call_in_feature_is_enabled = tariff
+            .has_feature_enabled(&DEFAULT_MODULE_ID, &CALL_IN_FEATURE_ID)
             && !room.e2e_encryption;
 
         let mut call_in = None;
@@ -1098,6 +1110,7 @@ async fn create_time_independent_event(
     settings: &Settings,
     inventory: &mut dyn Inventory,
     current_user: User,
+    user_tariff: &TariffResource,
     title: EventTitle,
     description: EventDescription,
     password: Option<RoomPassword>,
@@ -1154,8 +1167,6 @@ async fn create_time_independent_event(
         None
     };
 
-    let tariff = inventory.get_tariff_for_user(current_user.id).await?;
-
     let suppress_email_notification = is_adhoc || query.suppress_email_notification;
 
     let mail_resource = (!suppress_email_notification).then(|| MailResource {
@@ -1170,7 +1181,7 @@ async fn create_time_independent_event(
             id: event.id,
             title: event.title,
             description: event.description,
-            room: EventRoomInfo::from_room(settings, room, Some(sip_config), &tariff),
+            room: EventRoomInfo::from_room(settings, room, Some(sip_config), user_tariff),
             invitees_truncated: false,
             invitees: vec![],
             created_by: current_user.to_public_user_profile(settings),
@@ -1202,6 +1213,7 @@ async fn create_time_dependent_event(
     settings: &Settings,
     inventory: &mut dyn Inventory,
     current_user: User,
+    user_tariff: &TariffResource,
     title: EventTitle,
     description: EventDescription,
     password: Option<RoomPassword>,
@@ -1267,8 +1279,6 @@ async fn create_time_dependent_event(
         None
     };
 
-    let tariff = inventory.get_tariff_for_user(current_user.id).await?;
-
     let suppress_email_notification = is_adhoc || query.suppress_email_notification;
 
     let mail_resource = (!suppress_email_notification).then(|| MailResource {
@@ -1283,7 +1293,7 @@ async fn create_time_dependent_event(
             id: event.id,
             title: event.title,
             description: event.description,
-            room: EventRoomInfo::from_room(settings, room, Some(sip_config), &tariff),
+            room: EventRoomInfo::from_room(settings, room, Some(sip_config), user_tariff),
             invitees_truncated: false,
             invitees: vec![],
             created_by: current_user.to_public_user_profile(settings),
@@ -1522,6 +1532,7 @@ pub(crate) struct CancellationNotificationValues {
 /// Notify invited users about the event deletion
 pub(crate) async fn notify_invitees_about_delete(
     settings: &Settings,
+    room_tariff: &TariffResource,
     notification_values: CancellationNotificationValues,
     mail_service: &MailService,
     user_search_client: &Option<KeycloakAdminClient>,
@@ -1548,6 +1559,7 @@ pub(crate) async fn notify_invitees_about_delete(
                 notification_values.created_by.clone(),
                 notification_values.event.clone(),
                 notification_values.room.clone(),
+                room_tariff,
                 notification_values.sip_config.clone(),
                 invited_user,
                 notification_values.shared_folder.clone(),

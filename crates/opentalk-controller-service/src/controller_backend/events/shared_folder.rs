@@ -78,11 +78,12 @@ impl ControllerBackend {
             sip_config,
             _is_favorite,
             _shared_folder,
-            _tariff,
+            tariff,
             _training_participation_report,
         ) = inventory
             .get_event_with_related_items(current_user.id, event_id)
             .await?;
+        let tariff = self.build_tariff_resource(&tariff)?;
 
         if let Some(mail_service) = &mail_service {
             let shared_folder_for_user = shared_folder_for_user(
@@ -104,6 +105,7 @@ impl ControllerBackend {
                 inventory.as_mut(),
                 event,
                 room,
+                &tariff,
                 sip_config,
                 shared_folder_for_user,
                 streaming_targets,
@@ -134,11 +136,12 @@ impl ControllerBackend {
             sip_config,
             _is_favorite,
             shared_folder,
-            _tariff,
+            tariff,
             _training_participation_report,
         ) = inventory
             .get_event_with_related_items(current_user.id, event_id)
             .await?;
+        let tariff = self.build_tariff_resource(&tariff)?;
 
         if let Some(shared_folder) = shared_folder {
             let shared_folders = std::slice::from_ref(&shared_folder);
@@ -163,6 +166,7 @@ impl ControllerBackend {
                             inventory.as_mut(),
                             event,
                             room,
+                            &tariff,
                             sip_config,
                             None,
                             streaming_targets,
@@ -194,6 +198,7 @@ impl ControllerBackend {
                                 inventory.as_mut(),
                                 event,
                                 room,
+                                &tariff,
                                 sip_config,
                                 None,
                                 streaming_targets,

@@ -5,8 +5,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use async_trait::async_trait;
-use opentalk_db_storage::{events::Event, tariffs::Tariff};
-use opentalk_types_common::{rooms::RoomId, time::Timestamp, users::UserInfo};
+use opentalk_db_storage::events::Event;
+use opentalk_types_common::{
+    rooms::RoomId, tariffs::TariffResource, time::Timestamp, users::UserInfo,
+};
 use opentalk_types_signaling::{ParticipantId, Role};
 use redis::ToRedisArgs;
 use redis_args::ToRedisArgs;
@@ -249,10 +251,11 @@ pub trait ControlStorage:
     async fn try_init_tariff(
         &mut self,
         room_id: RoomId,
-        tariff: Tariff,
-    ) -> Result<Tariff, SignalingModuleError>;
+        tariff: TariffResource,
+    ) -> Result<TariffResource, SignalingModuleError>;
 
-    async fn get_tariff(&mut self, room_id: RoomId) -> Result<Tariff, SignalingModuleError>;
+    async fn get_tariff(&mut self, room_id: RoomId)
+    -> Result<TariffResource, SignalingModuleError>;
 
     async fn delete_tariff(&mut self, room_id: RoomId) -> Result<(), SignalingModuleError>;
 

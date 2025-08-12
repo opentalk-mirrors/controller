@@ -40,14 +40,11 @@ mod test_common {
 
     use chrono::{TimeZone, Utc};
     use control_storage::{GlobalRoomAttributeId, LocalRoomAttributeId, RoomAttributeId};
-    use opentalk_db_storage::{
-        events::{Event, EventSerialId},
-        tariffs::Tariff,
-    };
+    use opentalk_db_storage::events::{Event, EventSerialId};
     use opentalk_types_common::{
         events::EventId,
         rooms::RoomId,
-        tariffs::TariffId,
+        tariffs::{TariffId, TariffResource},
         tenants::TenantId,
         time::Timestamp,
         users::{UserId, UserInfo, UserTitle},
@@ -372,24 +369,17 @@ mod test_common {
 
         assert!(storage.get_tariff(room_id).await.is_err());
 
-        let tariff_1 = Tariff {
+        let tariff_1 = TariffResource {
             id: TariffId::generate(),
             name: "Tariff 1".to_string(),
-            created_at: Utc.with_ymd_and_hms(2024, 5, 16, 1, 2, 3).unwrap(),
-            updated_at: Utc.with_ymd_and_hms(2024, 5, 16, 1, 2, 3).unwrap(),
             quotas: Default::default(),
-            disabled_modules: Default::default(),
-            disabled_features: Default::default(),
+            modules: Default::default(),
         };
-
-        let tariff_2 = Tariff {
+        let tariff_2 = TariffResource {
             id: TariffId::generate(),
             name: "Tariff 2".to_string(),
-            created_at: Utc.with_ymd_and_hms(2023, 3, 21, 14, 20, 31).unwrap(),
-            updated_at: Utc.with_ymd_and_hms(2023, 12, 11, 23, 42, 45).unwrap(),
             quotas: Default::default(),
-            disabled_modules: Default::default(),
-            disabled_features: Default::default(),
+            modules: Default::default(),
         };
 
         assert_eq!(

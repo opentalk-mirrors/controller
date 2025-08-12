@@ -8,8 +8,10 @@ use std::{
     time::Duration,
 };
 
-use opentalk_db_storage::{events::Event, tariffs::Tariff};
-use opentalk_types_common::{rooms::RoomId, time::Timestamp, users::UserInfo};
+use opentalk_db_storage::events::Event;
+use opentalk_types_common::{
+    rooms::RoomId, tariffs::TariffResource, time::Timestamp, users::UserInfo,
+};
 use opentalk_types_signaling::ParticipantId;
 use snafu::OptionExt as _;
 
@@ -32,7 +34,7 @@ pub(super) struct MemoryControlState {
     room_participants: HashMap<SignalingRoomId, BTreeSet<ParticipantId>>,
     local_participant_attributes: HashMap<SignalingRoomId, LocalAttributeMap>,
     global_participant_attributes: HashMap<RoomId, GlobalAttributeMap>,
-    room_tariffs: HashMap<RoomId, Tariff>,
+    room_tariffs: HashMap<RoomId, TariffResource>,
     room_events: HashMap<RoomId, Option<Event>>,
     room_creators: HashMap<RoomId, UserInfo>,
     participant_count: HashMap<RoomId, isize>,
@@ -204,11 +206,18 @@ impl MemoryControlState {
         Ok(response.unwrap_or_default())
     }
 
-    pub(super) fn try_init_tariff(&mut self, room_id: RoomId, tariff: Tariff) -> Tariff {
+    pub(super) fn try_init_tariff(
+        &mut self,
+        room_id: RoomId,
+        tariff: TariffResource,
+    ) -> TariffResource {
         self.room_tariffs.entry(room_id).or_insert(tariff).clone()
     }
 
-    pub(super) fn get_tariff(&self, room_id: RoomId) -> Result<Tariff, SignalingModuleError> {
+    pub(super) fn get_tariff(
+        &self,
+        room_id: RoomId,
+    ) -> Result<TariffResource, SignalingModuleError> {
         self.room_tariffs
             .get(&room_id)
             .with_context(|| NotFoundSnafu {

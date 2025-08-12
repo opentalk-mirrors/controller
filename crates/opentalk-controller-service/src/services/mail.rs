@@ -20,9 +20,11 @@ use opentalk_db_storage::{
 };
 use opentalk_mail_worker_protocol::*;
 use opentalk_types_common::{
-    features,
+    features::CALL_IN_FEATURE_ID,
+    modules::CORE_MODULE_ID,
     shared_folders::SharedFolder,
     streaming::RoomStreamingTarget,
+    tariffs::TariffResource,
     users::{Language, UserId, UserTitle},
 };
 use snafu::ResultExt;
@@ -94,6 +96,7 @@ fn to_event(
     settings: &Settings,
     event: Event,
     room: Room,
+    room_tariff: &TariffResource,
     sip_config: Option<SipConfig>,
     shared_folder: Option<SharedFolder>,
     streaming_targets: Vec<RoomStreamingTarget>,
@@ -109,14 +112,9 @@ fn to_event(
 
     let end_time: Option<v1::Time> = event.ends_at_of_first_occurrence().map(Into::into);
 
-    let call_in_feature_is_enabled = !settings
-        .defaults
-        .disabled_features
-        .contains(&features::CALL_IN_MODULE_FEATURE_ID);
-
     let mut call_in = None;
 
-    if call_in_feature_is_enabled
+    if room_tariff.has_feature_enabled(&CORE_MODULE_ID, &CALL_IN_FEATURE_ID)
         && !room.e2e_encryption
         && let (Some(call_in_settings), Some(sip_config)) = (&settings.call_in, sip_config)
     {
@@ -257,6 +255,7 @@ impl MailService {
         inviter: User,
         event: Event,
         room: Room,
+        room_tariff: &TariffResource,
         sip_config: Option<SipConfig>,
         invitee: User,
         shared_folder: Option<SharedFolder>,
@@ -277,6 +276,7 @@ impl MailService {
                 settings,
                 event,
                 room,
+                room_tariff,
                 sip_config,
                 shared_folder,
                 streaming_targets,
@@ -296,6 +296,7 @@ impl MailService {
         inviter: User,
         event: Event,
         room: Room,
+        room_tariff: &TariffResource,
         sip_config: Option<SipConfig>,
         invitee: opentalk_keycloak_admin::users::User,
         shared_folder: Option<SharedFolder>,
@@ -314,6 +315,7 @@ impl MailService {
                 settings,
                 event,
                 room,
+                room_tariff,
                 sip_config,
                 shared_folder.map(SharedFolder::without_write_access),
                 streaming_targets,
@@ -333,6 +335,7 @@ impl MailService {
         inviter: User,
         event: Event,
         room: Room,
+        room_tariff: &TariffResource,
         sip_config: Option<SipConfig>,
         invitee: &str,
         invite_code: String,
@@ -346,6 +349,7 @@ impl MailService {
                 settings,
                 event,
                 room,
+                room_tariff,
                 sip_config,
                 shared_folder.map(SharedFolder::without_write_access),
                 streaming_targets,
@@ -367,6 +371,7 @@ impl MailService {
         event: Event,
         event_exception: Option<EventException>,
         room: Room,
+        room_tariff: &TariffResource,
         sip_config: Option<SipConfig>,
         invitee: MailRecipient,
         invite_code: String,
@@ -388,6 +393,7 @@ impl MailService {
                         settings,
                         event,
                         room,
+                        room_tariff,
                         sip_config,
                         shared_folder,
                         streaming_targets,
@@ -408,6 +414,7 @@ impl MailService {
                     settings,
                     event,
                     room,
+                    room_tariff,
                     sip_config,
                     shared_folder.map(SharedFolder::without_write_access),
                     streaming_targets,
@@ -425,6 +432,7 @@ impl MailService {
                     settings,
                     event,
                     room,
+                    room_tariff,
                     sip_config,
                     shared_folder.map(SharedFolder::without_write_access),
                     streaming_targets,
@@ -450,6 +458,7 @@ impl MailService {
         inviter: User,
         mut event: Event,
         room: Room,
+        room_tariff: &TariffResource,
         sip_config: Option<SipConfig>,
         invitee: MailRecipient,
         shared_folder: Option<SharedFolder>,
@@ -473,6 +482,7 @@ impl MailService {
                         settings,
                         event,
                         room,
+                        room_tariff,
                         sip_config,
                         shared_folder,
                         streaming_targets,
@@ -492,6 +502,7 @@ impl MailService {
                     settings,
                     event,
                     room,
+                    room_tariff,
                     sip_config,
                     shared_folder.map(SharedFolder::without_write_access),
                     streaming_targets,
@@ -508,6 +519,7 @@ impl MailService {
                     settings,
                     event,
                     room,
+                    room_tariff,
                     sip_config,
                     shared_folder.map(SharedFolder::without_write_access),
                     streaming_targets,
@@ -531,6 +543,7 @@ impl MailService {
         inviter: User,
         mut event: Event,
         room: Room,
+        room_tariff: &TariffResource,
         sip_config: Option<SipConfig>,
         invitee: MailRecipient,
         shared_folder: Option<SharedFolder>,
@@ -554,6 +567,7 @@ impl MailService {
                         settings,
                         event,
                         room,
+                        room_tariff,
                         sip_config,
                         shared_folder,
                         streaming_targets,
@@ -573,6 +587,7 @@ impl MailService {
                     settings,
                     event,
                     room,
+                    room_tariff,
                     sip_config,
                     shared_folder.map(SharedFolder::without_write_access),
                     streaming_targets,
@@ -589,6 +604,7 @@ impl MailService {
                     settings,
                     event,
                     room,
+                    room_tariff,
                     sip_config,
                     shared_folder.map(SharedFolder::without_write_access),
                     streaming_targets,

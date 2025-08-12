@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_controller_utils::CaptureApiError;
+use opentalk_controller_utils::{CaptureApiError, TariffResourceExt as _};
 use opentalk_db_storage::sip_configs::{NewSipConfig, UpdateSipConfig};
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -10,14 +10,13 @@ use opentalk_types_api_v1::{
 };
 use opentalk_types_common::{features, rooms::RoomId};
 
-use crate::{ControllerBackend, require_feature};
+use crate::ControllerBackend;
 
 impl ControllerBackend {
     pub(crate) async fn get_sip_config(
         &self,
         room_id: RoomId,
     ) -> Result<SipConfigResource, CaptureApiError> {
-        let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let room = inventory.get_room(room_id).await?;
@@ -29,13 +28,8 @@ impl ControllerBackend {
                 .into());
         }
 
-        require_feature(
-            inventory.as_mut(),
-            &settings,
-            room.created_by,
-            &features::CALL_IN_MODULE_FEATURE_ID,
-        )
-        .await?;
+        let tariff = self.get_tariff_for_user(room.created_by).await?;
+        tariff.require_feature(&features::CALL_IN_MODULE_FEATURE_ID)?;
 
         let config = inventory
             .get_room_sip_config(room_id)
@@ -55,7 +49,6 @@ impl ControllerBackend {
         room_id: RoomId,
         modify_sip_config: PutSipConfigRequestBody,
     ) -> Result<(SipConfigResource, bool), CaptureApiError> {
-        let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let room = inventory.get_room(room_id).await?;
@@ -67,13 +60,8 @@ impl ControllerBackend {
                 .into());
         }
 
-        require_feature(
-            inventory.as_mut(),
-            &settings,
-            room.created_by,
-            &features::CALL_IN_MODULE_FEATURE_ID,
-        )
-        .await?;
+        let tariff = self.get_tariff_for_user(room.created_by).await?;
+        tariff.require_feature(&features::CALL_IN_MODULE_FEATURE_ID)?;
 
         let changeset = UpdateSipConfig {
             password: modify_sip_config.password.clone(),
@@ -118,19 +106,10 @@ impl ControllerBackend {
     }
 
     pub(crate) async fn delete_sip_config(&self, room_id: RoomId) -> Result<(), CaptureApiError> {
-        let settings = self.settings_provider.get();
+        let tariff = self.get_tariff_for_room(room_id).await?;
+        tariff.require_feature(&features::CALL_IN_MODULE_FEATURE_ID)?;
+
         let mut inventory = self.inventory_provider.get_inventory().await?;
-
-        let room = inventory.get_room(room_id).await?;
-
-        require_feature(
-            inventory.as_mut(),
-            &settings,
-            room.created_by,
-            &features::CALL_IN_MODULE_FEATURE_ID,
-        )
-        .await?;
-
         inventory.delete_room_sip_config(room_id).await?;
 
         Ok(())
