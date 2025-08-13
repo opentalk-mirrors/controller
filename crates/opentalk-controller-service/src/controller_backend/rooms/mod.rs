@@ -34,7 +34,8 @@ use opentalk_types_api_v1::{
     },
 };
 use opentalk_types_common::{
-    features,
+    features::{self, GUESTS_ALLOWED_FEATURE_ID},
+    modules::CORE_MODULE_ID,
     rooms::{RoomId, RoomPassword, invite_codes::InviteCode},
     tariffs::TariffResource,
     users::UserId,
@@ -230,13 +231,23 @@ impl ControllerBackend {
     pub(crate) async fn get_room_tariff(
         &self,
         room_id: RoomId,
+        invite_code: Option<InviteCode>,
     ) -> Result<TariffResource, CaptureApiError> {
-        self.get_tariff_for_room(room_id).await
+        let tariff = self.get_tariff_for_room(room_id).await?;
+
+        if invite_code.is_some()
+            && !tariff.has_feature_enabled(&CORE_MODULE_ID, &GUESTS_ALLOWED_FEATURE_ID)
+        {
+            return Err(ApiError::not_found().into());
+        }
+
+        Ok(tariff)
     }
 
     pub(crate) async fn get_room_event(
         &self,
         room_id: &RoomId,
+        invite_code: Option<InviteCode>,
     ) -> Result<GetRoomEventResponseBody, CaptureApiError> {
         let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
@@ -246,6 +257,12 @@ impl ControllerBackend {
         let room = inventory.get_room(*room_id).await?;
 
         let tariff = self.get_tariff_for_user(room.created_by).await?;
+
+        if invite_code.is_some()
+            && !tariff.has_feature_enabled(&CORE_MODULE_ID, &GUESTS_ALLOWED_FEATURE_ID)
+        {
+            return Err(ApiError::not_found().into());
+        }
 
         match event.as_ref() {
             Some(event) => {

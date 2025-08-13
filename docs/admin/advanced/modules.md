@@ -5,8 +5,8 @@ Modules provide functionality that can be used inside meetings.
 ## Features
 
 A module might have features that can be enabled or disabled in the
-[configuration file](../core/configuration.md) or using [tariffs](tariffs.md). The
-features available can be obtained using the
+[configuration file](../core/configuration.md) or using [tariffs](tariffs.md).
+The features available can be obtained using the
 [`modules`](#opentalk-controller-modules-subcommand) subcommand.
 
 ## Available modules
@@ -28,7 +28,7 @@ Example output:
 echo: []
 breakout: []
 moderation: []
-core: ["call_in", "storage_upgradable"]
+core: ["call_in", "guests_allowed", "storage_upgradable"]
 recording: ["record", "stream"]
 recording_service: []
 chat: []

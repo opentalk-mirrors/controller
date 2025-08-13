@@ -206,6 +206,7 @@ where
                             req.extensions_mut()
                                 .insert(build_request_user(current_user));
                             req.extensions_mut().insert(access_token);
+                            req.extensions_mut().insert(None::<InviteCode>);
                             service.call(req).await
                         }
                         Err(err) => Ok(req.into_response(err.error_response())),
@@ -216,6 +217,7 @@ where
                                 current_invite_code,
                             )));
                         req.extensions_mut().insert(current_invite_code);
+                        req.extensions_mut().insert(Some(current_invite_code));
                         service.call(req).await
                     }
                 }

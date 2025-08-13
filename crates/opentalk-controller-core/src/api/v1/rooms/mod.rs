@@ -25,7 +25,11 @@ use opentalk_types_api_v1::{
         },
     },
 };
-use opentalk_types_common::{events::EventInfo, rooms::RoomId, tariffs::TariffResource};
+use opentalk_types_common::{
+    events::EventInfo,
+    rooms::{RoomId, invite_codes::InviteCode},
+    tariffs::TariffResource,
+};
 
 use super::response::NoContent;
 use crate::api::{
@@ -335,8 +339,13 @@ pub async fn get(
 pub async fn get_room_tariff(
     service: Data<OpenTalkControllerService>,
     room_id: Path<RoomId>,
+    invite_code: ReqData<Option<InviteCode>>,
 ) -> Result<Json<TariffResource>, ApiError> {
-    Ok(Json(service.get_room_tariff(&room_id).await?))
+    Ok(Json(
+        service
+            .get_room_tariff(&room_id, invite_code.into_inner())
+            .await?,
+    ))
 }
 
 /// Get a room's event
@@ -380,8 +389,13 @@ pub async fn get_room_tariff(
 pub async fn get_room_event(
     service: Data<OpenTalkControllerService>,
     room_id: Path<RoomId>,
+    invite_code: ReqData<Option<InviteCode>>,
 ) -> Result<Json<GetRoomEventResponseBody>, ApiError> {
-    Ok(Json(service.get_room_event(&room_id).await?))
+    Ok(Json(
+        service
+            .get_room_event(&room_id, invite_code.into_inner())
+            .await?,
+    ))
 }
 
 /// Start a signaling session as a registered user
@@ -420,7 +434,7 @@ pub async fn get_room_event(
             examples(
                 ("NoBreakoutRooms" = (summary = "No breakout rooms", value = json!(ApiError::from(StartRoomError::NoBreakoutRooms).body))),
                 ("InvalidBreakoutRoomId" = (summary = "Invalid breakout room id", value = json!(ApiError::from(StartRoomError::InvalidBreakoutRoomId).body))),
-                ("LegacySignalingDisabled" = (summary = "Legacy signaling is disabled", value = json!(ApiError::from(StartRoomError::LegacySignalingDisabled).body))) 
+                ("LegacySignalingDisabled" = (summary = "Legacy signaling is disabled", value = json!(ApiError::from(StartRoomError::LegacySignalingDisabled).body)))
             ),
         ),
         (
