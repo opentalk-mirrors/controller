@@ -42,6 +42,7 @@ use opentalk_types_common::{
     rooms::RoomId,
     shared_folders::SharedFolder,
     streaming::RoomStreamingTarget,
+    tariffs::TariffResource,
     users::UserId,
 };
 use snafu::Report;
@@ -142,6 +143,8 @@ impl ControllerBackend {
 
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
         let current_user = inventory.get_user(current_user.id).await?;
+        let event = inventory.get_event(event_id).await?;
+        let room_tariff = self.get_tariff_for_room(event.room).await?;
 
         match create_invite {
             PostEventInviteBody::User(user_invite) => {
@@ -151,6 +154,7 @@ impl ControllerBackend {
                     &self.authz,
                     current_user,
                     event_id,
+                    &room_tariff,
                     user_invite,
                     &mail_service,
                 )
@@ -165,6 +169,7 @@ impl ControllerBackend {
                     &current_tenant,
                     &current_user,
                     event_id,
+                    &room_tariff,
                     email_invite,
                     &mail_service,
                 )
@@ -250,11 +255,12 @@ impl ControllerBackend {
             sip_config,
             _is_favorite,
             shared_folder,
-            _tariff,
+            tariff,
             _training_participation_report_parameter_set,
         ) = inventory
             .get_event_with_related_items(current_user.id, event_id)
             .await?;
+        let room_tariff = self.build_tariff_resource(&tariff)?;
         let streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
 
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
@@ -317,6 +323,7 @@ impl ControllerBackend {
             notify_invitees_about_uninvite(
                 &settings,
                 notification_values,
+                &room_tariff,
                 mail_service,
                 &self.user_search_client,
                 shared_folder.map(SharedFolder::from),
@@ -358,11 +365,12 @@ impl ControllerBackend {
             sip_config,
             _is_favorite,
             shared_folder,
-            _tariff,
+            tariff,
             _training_participation_report_parameter_set,
         ) = inventory
             .get_event_with_related_items(current_user.id, event_id)
             .await?;
+        let room_tariff = self.build_tariff_resource(&tariff)?;
         let streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
 
         let created_by = if event.created_by == current_user.id {
@@ -443,6 +451,7 @@ impl ControllerBackend {
             notify_invitees_about_uninvite(
                 &settings,
                 notification_values,
+                &room_tariff,
                 mail_service,
                 &self.user_search_client,
                 shared_folder.map(SharedFolder::from),
@@ -519,6 +528,7 @@ async fn create_user_event_invite(
     authz: &Authz,
     inviter: User,
     event_id: EventId,
+    room_tariff: &TariffResource,
     user_invite: UserInvite,
     mail_service: &Option<MailService>,
 ) -> Result<bool, CaptureApiError> {
@@ -569,6 +579,7 @@ async fn create_user_event_invite(
                         inviter,
                         event,
                         room,
+                        room_tariff,
                         sip_config,
                         invitee,
                         shared_folder,
@@ -601,6 +612,7 @@ async fn create_email_event_invite(
     current_tenant: &Tenant,
     current_user: &User,
     event_id: EventId,
+    room_tariff: &TariffResource,
     email_invite: EmailInvite,
     mail_service: &Option<MailService>,
 ) -> Result<bool, CaptureApiError> {
@@ -709,6 +721,7 @@ async fn create_email_event_invite(
                         current_user.clone(),
                         event,
                         room,
+                        room_tariff,
                         sip_config,
                         invitee,
                         shared_folder,
@@ -740,6 +753,7 @@ async fn create_email_event_invite(
                 current_user.clone(),
                 event,
                 room,
+                room_tariff,
                 sip_config,
                 email,
                 email_invite.role,
@@ -765,6 +779,7 @@ async fn create_invite_to_non_matching_email(
     current_user: User,
     event: Event,
     room: Room,
+    room_tariff: &TariffResource,
     sip_config: Option<SipConfig>,
     email: EmailAddress,
     role: EmailInviteRole,
@@ -814,6 +829,7 @@ async fn create_invite_to_non_matching_email(
                             inviter,
                             event,
                             room,
+                            room_tariff,
                             sip_config,
                             invitee_user,
                             shared_folder,
@@ -853,6 +869,7 @@ async fn create_invite_to_non_matching_email(
                                 inviter,
                                 event,
                                 room,
+                                room_tariff,
                                 sip_config,
                                 invitee_email.as_ref(),
                                 invite.id.to_string(),
@@ -931,6 +948,7 @@ async fn remove_invitee_permissions(
 async fn notify_invitees_about_uninvite(
     settings: &Settings,
     notification_values: UninviteNotificationValues,
+    room_tariff: &TariffResource,
     mail_service: &MailService,
     user_search_client: &Option<KeycloakAdminClient>,
     shared_folder: Option<SharedFolder>,
@@ -958,6 +976,7 @@ async fn notify_invitees_about_uninvite(
                 notification_values.created_by.clone(),
                 notification_values.event.clone(),
                 notification_values.room.clone(),
+                room_tariff,
                 notification_values.sip_config.clone(),
                 invited_user,
                 shared_folder.clone(),

@@ -33,7 +33,7 @@ pub mod signaling;
 pub mod user_profiles;
 
 pub use controller_backend::ControllerBackend;
-pub use helpers::{ToUserProfile, email_to_libravatar_url, require_feature};
+pub use helpers::{ToUserProfile, email_to_libravatar_url};
 use snafu::{Backtrace, Snafu};
 
 type Result<T, E = Whatever> = std::result::Result<T, E>;

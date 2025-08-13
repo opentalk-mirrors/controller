@@ -18,19 +18,14 @@ use opentalk_controller_service::signaling::{
     ticket::TicketData,
 };
 use opentalk_controller_settings::SettingsProvider;
-use opentalk_controller_utils::CaptureApiError;
+use opentalk_controller_utils::{CaptureApiError, get_tariff_for_room};
 use opentalk_db_storage::{rooms::Room, users::User};
 use opentalk_inventory::{Inventory, InventoryProvider};
 use opentalk_signaling_core::{
     ExchangeHandle, ObjectStorage, Participant, SignalingMetrics, SignalingModule, VolatileStorage,
 };
 use opentalk_types_api_v1::error::ApiError;
-use opentalk_types_common::{
-    auth::TicketToken,
-    features::{FeatureId, ModuleFeatureId},
-    modules::ModuleId,
-    tariffs::TariffResource,
-};
+use opentalk_types_common::{auth::TicketToken, features::FeatureId, modules::ModuleId};
 use snafu::Report;
 use tokio::{
     sync::{broadcast, mpsc},
@@ -200,7 +195,8 @@ async fn ws_service_inner(
         settings_provider.get().defaults.disabled_features.clone(),
         modules.get_module_features(),
     )
-    .await?;
+    .await
+    .map_err(CaptureApiError::from)?;
 
     // Create keep-alive util for resumption data
     let resumption_keep_alive =
@@ -382,15 +378,4 @@ async fn get_user_and_room_from_ticket_data(
     let room = inventory.get_room(room_id).await?;
 
     Ok((participant, room))
-}
-
-async fn get_tariff_for_room(
-    conn: &mut dyn Inventory,
-    room: &Room,
-    disabled_features: BTreeSet<ModuleFeatureId>,
-    module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
-) -> Result<TariffResource, CaptureApiError> {
-    let tariff = conn.get_tariff_for_user(room.created_by).await?;
-
-    Ok(tariff.to_tariff_resource(disabled_features, module_features))
 }

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_controller_utils::CaptureApiError;
+use opentalk_controller_utils::{CaptureApiError, TariffResourceExt as _};
 use opentalk_signaling_core::Participant;
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -10,16 +10,13 @@ use opentalk_types_api_v1::{
 };
 use opentalk_types_common::features;
 
-use crate::{
-    ControllerBackend, require_feature, signaling::ticket::start_or_continue_signaling_session,
-};
+use crate::{ControllerBackend, signaling::ticket::start_or_continue_signaling_session};
 
 impl ControllerBackend {
     pub(crate) async fn start_call_in(
         &self,
         request: PostCallInStartRequestBody,
     ) -> Result<PostServiceStartResponseBody, CaptureApiError> {
-        let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
         let mut volatile = self.volatile.clone();
 
@@ -35,13 +32,9 @@ impl ControllerBackend {
                 .into());
         }
 
-        require_feature(
-            inventory.as_mut(),
-            &settings,
-            room.created_by,
-            &features::CALL_IN_MODULE_FEATURE_ID,
-        )
-        .await?;
+        let tariff = self.get_tariff_for_user(room.created_by).await?;
+
+        tariff.require_feature(&features::CALL_IN_MODULE_FEATURE_ID)?;
 
         if sip_config.password != request.pin {
             return Err(invalid_credentials_error().into());

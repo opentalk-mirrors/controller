@@ -206,7 +206,7 @@ impl ControllerBackend {
             .await?
             .map(|invite| invite.id);
 
-        let tariff = self.get_room_tariff(&room.id).await?;
+        let tariff = self.get_tariff_for_room(room.id).await?;
 
         let timezone = get_user_timezone(room.created_by.id, inventory.as_mut(), &settings).await;
 

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeSet,
     future,
     mem::replace,
     ops::ControlFlow,
@@ -32,7 +32,8 @@ use opentalk_controller_service::{
     },
 };
 use opentalk_controller_settings::SettingsProvider;
-use opentalk_db_storage::{rooms::Room, tariffs::Tariff, users::User};
+use opentalk_controller_utils::get_tariff_for_user;
+use opentalk_db_storage::{rooms::Room, users::User};
 use opentalk_inventory::{Inventory, InventoryProvider, utils::build_event_info};
 use opentalk_signaling_core::{
     AnyStream, ExchangeHandle, LockError, ObjectStorage, Participant, RoomLockingProvider as _,
@@ -48,7 +49,6 @@ use opentalk_signaling_core::{
     },
 };
 use opentalk_types_common::{
-    features::FeatureId,
     modules::ModuleId,
     rooms::{BreakoutRoomId, RoomId},
     tariffs::{QuotaType, TariffResource},
@@ -1467,8 +1467,8 @@ impl Runner {
     /// Requires the room lock to be taken before calling
     async fn enforce_tariff(
         &mut self,
-        tariff: Tariff,
-    ) -> Result<ControlFlow<JoinBlockedReason, Tariff>> {
+        tariff: TariffResource,
+    ) -> Result<ControlFlow<JoinBlockedReason, TariffResource>> {
         let tariff = self
             .volatile
             .control_storage()
@@ -1509,15 +1509,7 @@ impl Runner {
         timestamp: Timestamp,
         control_data: ControlState,
     ) -> Result<()> {
-        let creator_id = self.room.created_by;
-
-        let tariff = self
-            .inventory_provider
-            .get_inventory()
-            .await?
-            .get_tariff_for_user(creator_id)
-            .await
-            .whatever_context::<_, RunnerError>("Failed to get user")?;
+        let tariff = self.get_room_tariff().await?;
 
         let guard = self.volatile.room_locking().lock_room(self.room_id).await?;
 
@@ -1606,15 +1598,7 @@ impl Runner {
         // If we haven't joined the waiting room yet, fetch, set and enforce the tariff for the room.
         // When in waiting-room this logic was already executed in `join_waiting_room`.
         let (guard, tariff) = if !joining_from_waiting_room {
-            let creator_id = self.room.created_by;
-
-            let mut tariff = self
-                .inventory_provider
-                .get_inventory()
-                .await?
-                .get_tariff_for_user(creator_id)
-                .await
-                .whatever_context::<_, RunnerError>("Failed to get user")?;
+            let mut tariff = self.get_room_tariff().await?;
 
             let guard = self.volatile.room_locking().lock_room(self.room_id).await?;
 
@@ -1712,17 +1696,7 @@ impl Runner {
 
         let settings = self.settings_provider.get();
 
-        let mut module_features = BTreeMap::<ModuleId, BTreeSet<FeatureId>>::new();
-        self.modules
-            .get_module_features()
-            .iter()
-            .for_each(|(k, v)| {
-                module_features.insert(k.clone(), v.clone());
-            });
-
-        let tariff_resource = tariff
-            .to_tariff_resource(settings.defaults.disabled_features.clone(), module_features)
-            .into();
+        let tariff = Box::new(tariff);
 
         let event_info = match event.as_ref() {
             Some(event) => {
@@ -1755,7 +1729,7 @@ impl Runner {
                 avatar_url: control_data.avatar_url.clone(),
                 role: self.role,
                 closes_at,
-                tariff: tariff_resource,
+                tariff,
                 module_data,
                 participants,
                 event_info,
@@ -2598,6 +2572,25 @@ impl Runner {
         }
 
         None
+    }
+
+    async fn get_room_tariff(&self) -> Result<TariffResource> {
+        let mut inventory = self.inventory_provider.get_inventory().await?;
+        let disabled_features = self
+            .settings_provider
+            .get()
+            .defaults
+            .disabled_features
+            .clone();
+
+        get_tariff_for_user(
+            inventory.as_mut(),
+            self.room.created_by,
+            disabled_features,
+            self.modules.get_module_features(),
+        )
+        .await
+        .whatever_context::<_, RunnerError>("Failed to room owner tariff")
     }
 }
 

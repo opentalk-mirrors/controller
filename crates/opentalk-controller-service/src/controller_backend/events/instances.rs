@@ -139,6 +139,8 @@ impl ControllerBackend {
 
         drop(inventory);
 
+        let tariff = self.build_tariff_resource(&tariff)?;
+
         let room = EventRoomInfo::from_room(&settings, room, sip_config, &tariff);
 
         let can_edit = can_edit(&event, &current_user);
@@ -256,6 +258,8 @@ impl ControllerBackend {
             .add(&exception)
             .fetch(&settings, inventory.as_mut())
             .await?;
+
+        let tariff = self.build_tariff_resource(&tariff)?;
 
         let room = EventRoomInfo::from_room(&settings, room, sip_config, &tariff);
 
@@ -423,6 +427,8 @@ impl ControllerBackend {
             .fetch(&settings, inventory.as_mut())
             .await?;
 
+        let tariff = self.build_tariff_resource(&tariff)?;
+
         let event_room_info =
             EventRoomInfo::from_room(&settings, room.clone(), sip_config.clone(), &tariff);
 
@@ -473,6 +479,7 @@ impl ControllerBackend {
 
                 notify_invitees_about_update(
                     &settings,
+                    &tariff,
                     notification_values,
                     mail_service,
                     &self.user_search_client,

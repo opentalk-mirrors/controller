@@ -18,6 +18,7 @@ use opentalk_inventory::Inventory;
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_common::{
     rooms::RoomId, shared_folders::SharedFolder, streaming::RoomStreamingTarget,
+    tariffs::TariffResource,
 };
 use snafu::Report;
 
@@ -51,6 +52,7 @@ pub struct UpdateNotificationValues {
 }
 
 /// Notifies the invitees of an event belonging to the specified room
+#[allow(clippy::too_many_arguments)]
 pub async fn notify_event_invitees_by_room_about_update(
     user_search_client: &Option<KeycloakAdminClient>,
     settings: &Settings,
@@ -59,6 +61,7 @@ pub async fn notify_event_invitees_by_room_about_update(
     current_user: User,
     inventory: &mut dyn Inventory,
     room_id: RoomId,
+    room_tariff: &TariffResource,
 ) -> Result<(), CaptureApiError> {
     let event = inventory.get_event_for_room(room_id).await?;
 
@@ -90,6 +93,7 @@ pub async fn notify_event_invitees_by_room_about_update(
             inventory,
             event,
             room,
+            room_tariff,
             sip_config,
             shared_folder_for_user,
             streaming_targets,
@@ -110,6 +114,7 @@ pub async fn notify_event_invitees_about_update(
     inventory: &mut dyn Inventory,
     event: Event,
     room: Room,
+    room_tariff: &TariffResource,
     sip_config: Option<SipConfig>,
     shared_folder_for_user: Option<SharedFolder>,
     streaming_targets: Vec<RoomStreamingTarget>,
@@ -142,6 +147,7 @@ pub async fn notify_event_invitees_about_update(
 
     notify_invitees_about_update(
         settings,
+        room_tariff,
         notification_values,
         mail_service,
         user_search_client,
@@ -155,6 +161,7 @@ pub async fn notify_event_invitees_about_update(
 /// Notifies the invitees of an event about updates
 pub async fn notify_invitees_about_update(
     settings: &Settings,
+    room_tariff: &TariffResource,
     notification_values: UpdateNotificationValues,
     mail_service: &MailService,
     user_search_client: &Option<KeycloakAdminClient>,
@@ -177,6 +184,7 @@ pub async fn notify_invitees_about_update(
                 notification_values.event.clone(),
                 notification_values.event_exception.clone(),
                 notification_values.room.clone(),
+                room_tariff,
                 notification_values.sip_config.clone(),
                 invited_user,
                 notification_values.invite_for_room.id.to_string(),

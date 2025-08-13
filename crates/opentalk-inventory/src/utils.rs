@@ -4,16 +4,15 @@
 
 //! Some helper utilities for interacting with the data storage.
 
-use opentalk_db_storage::{
-    events::{Event, EventAndEncryption},
-    tariffs::Tariff,
-};
+use opentalk_db_storage::events::{Event, EventAndEncryption};
 use opentalk_types_common::{
     call_in::CallInInfo,
     events::{EventInfo, MeetingDetails},
-    features,
+    features::CALL_IN_FEATURE_ID,
+    modules::CORE_MODULE_ID,
     rooms::RoomId,
     streaming::get_public_urls_from_room_streaming_targets,
+    tariffs::TariffResource,
 };
 
 use crate::{Inventory, Result};
@@ -25,13 +24,13 @@ pub async fn build_event_info(
     room_id: RoomId,
     e2e_encryption: bool,
     event: &Event,
-    tariff: &Tariff,
+    tariff: &TariffResource,
 ) -> Result<EventInfo> {
     let event_info = if event.show_meeting_details {
         let invite = inventory.get_valid_invite_for_room(room_id).await?;
 
         let call_in = if let Some(call_in_tel) = call_in_tel {
-            if e2e_encryption || tariff.is_feature_disabled(&features::CALL_IN_MODULE_FEATURE_ID) {
+            if e2e_encryption || !tariff.has_feature_enabled(&CORE_MODULE_ID, &CALL_IN_FEATURE_ID) {
                 None
             } else {
                 inventory

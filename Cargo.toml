@@ -108,7 +108,7 @@ opentalk-nextcloud-client = { version = "0.2.0", default-features = false, featu
 opentalk-roomserver-client = "0.0.5"
 opentalk-roomserver-types = "0.0.5"
 opentalk-types-api-v1 = "0.40.0"
-opentalk-types-common = "0.36.0"
+opentalk-types-common = "0.36.1"
 opentalk-types-signaling = "0.38.0"
 opentalk-types-signaling-automod = "0.7.0"
 opentalk-types-signaling-breakout = "0.37.0"
