@@ -240,6 +240,37 @@ impl ControllerBackend {
         current_user: RequestUser,
         query: GetEventsQuery,
     ) -> Result<(Vec<EventOrException>, Option<String>, Option<String>), CaptureApiError> {
+        let (event_resources, before, after) =
+            self.get_events_internal(current_user, query, true).await?;
+
+        let mut event_or_exception_resources: Vec<EventOrException> = vec![];
+
+        // We always return the event, immediately followed by its exceptions.
+        // Currently the exceptions aren't considered for paging and simply returned additionally.
+        for (event_resource, event_exception_resources) in event_resources {
+            event_or_exception_resources.push(EventOrException::Event(event_resource));
+            for event_exception_resource in event_exception_resources {
+                event_or_exception_resources
+                    .push(EventOrException::Exception(event_exception_resource));
+            }
+        }
+
+        Ok((event_or_exception_resources, before, after))
+    }
+
+    async fn get_events_internal(
+        &self,
+        current_user: RequestUser,
+        query: GetEventsQuery,
+        with_exceptions: bool,
+    ) -> Result<
+        (
+            Vec<(EventResource, Vec<EventExceptionResource>)>,
+            Option<String>,
+            Option<String>,
+        ),
+        CaptureApiError,
+    > {
         let settings = self.settings_provider.get();
 
         let per_page = query
@@ -377,7 +408,15 @@ impl ControllerBackend {
 
             let tariff = self.build_tariff_resource(&tariff)?;
 
-            event_resources.push(EventOrException::Event(EventResource {
+            let invitees = enrich_invitees_from_optional_user_search(
+                &settings,
+                &self.user_search_client,
+                &current_tenant,
+                invitees,
+            )
+            .await;
+
+            let event_resource = EventResource {
                 id: event.id,
                 created_by,
                 created_at: event.created_at.into(),
@@ -409,46 +448,27 @@ impl ControllerBackend {
                 streaming_targets: Vec::new(),
                 show_meeting_details: event.show_meeting_details,
                 training_participation_report,
-            }));
+            };
 
-            for exception in exceptions {
-                let created_by = users.get(exception.created_by);
+            let mut event_exception_resources: Vec<EventExceptionResource> = vec![];
 
-                event_resources.push(EventOrException::Exception(
-                    EventExceptionResource::from_db(exception, created_by, can_edit),
-                ));
+            if with_exceptions {
+                for exception in exceptions {
+                    let created_by = users.get(exception.created_by);
+                    let exception_resource =
+                        EventExceptionResource::from_db(exception, created_by, can_edit);
+
+                    event_exception_resources.push(exception_resource);
+                }
             }
+
+            event_resources.push((event_resource, event_exception_resources));
         }
 
-        let events_data = GetPaginatedEventsData {
-            event_resources,
-            before: None,
-            after: ret_cursor_data.map(|c| Cursor(c).to_base64()),
-        };
+        let before = None;
+        let after = ret_cursor_data.map(|c| Cursor(c).to_base64());
 
-        let resource_mapping_futures =
-            events_data
-                .event_resources
-                .into_iter()
-                .map(|resource| async {
-                    match resource {
-                        EventOrException::Event(inner) => EventOrException::Event(EventResource {
-                            invitees: enrich_invitees_from_optional_user_search(
-                                &settings,
-                                &self.user_search_client,
-                                &current_tenant,
-                                inner.invitees,
-                            )
-                            .await,
-                            ..inner
-                        }),
-                        EventOrException::Exception(inner) => EventOrException::Exception(inner),
-                    }
-                });
-
-        let event_resources = futures::future::join_all(resource_mapping_futures).await;
-
-        Ok((event_resources, events_data.before, events_data.after))
+        Ok((event_resources, before, after))
     }
 
     pub(crate) async fn get_event(
@@ -1324,12 +1344,6 @@ async fn create_time_dependent_event(
         },
         mail_resource,
     ))
-}
-
-struct GetPaginatedEventsData {
-    event_resources: Vec<EventOrException>,
-    before: Option<String>,
-    after: Option<String>,
 }
 
 /// Part of `PATCH /events/{event_id}` (see [`patch_event`])

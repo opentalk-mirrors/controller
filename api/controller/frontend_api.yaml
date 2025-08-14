@@ -85,8 +85,11 @@ paths:
     get:
       tags:
         - "api::v1::events"
-      summary: Get a list of events accessible by the requesting user
-      description: Returns a paginated list of events and their exceptions inside the given time range
+      summary: Get a list of events and exceptions
+      description: |-
+        The exceptions are returned immediately following the according event
+
+        Returns a paginated list of events and their exceptions inside the given time range
       operationId: get_events
       parameters:
         - name: time_min
@@ -244,6 +247,153 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+  /events/instances:
+    get:
+      tags:
+        - "api::v1::events::instances"
+      summary: Get a list of events and instances
+      description: |-
+        The instances are calculated based on the RRULE of the event. If no RRULE is
+        set for an event, the event instance is returned
+
+        Returns a paginated list of events or their instances inside the given time range
+      operationId: get_events_and_instances
+      parameters:
+        - name: time_min
+          in: query
+          description: Optional minimum time in which the event or instance happens
+          required: false
+          schema:
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/Timestamp"
+        - name: time_max
+          in: query
+          description: Optional maximum time in which the event or instance happens
+          required: false
+          schema:
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/Timestamp"
+        - name: created_before
+          in: query
+          description: Only query events created before this timestamp
+          required: false
+          schema:
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/Timestamp"
+        - name: created_after
+          in: query
+          description: Only query events created after this timestamp
+          required: false
+          schema:
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/Timestamp"
+        - name: invitees_max
+          in: query
+          description: |-
+            Maximum number of invitees to return inside the event resource
+
+            Default value is 0
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+        - name: instances_max
+          in: query
+          description: |-
+            Maximum number of instances to return for each recurring event
+
+            Default value is 0
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: favorites
+          in: query
+          description: Return only favorite events
+          required: false
+          schema:
+            type: boolean
+        - name: invite_status
+          in: query
+          description: Filter the events by invite status
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/EventInviteStatus"
+        - name: per_page
+          in: query
+          description: How many events and instances to return per page
+          required: false
+          schema:
+            type:
+              - integer
+              - "null"
+            format: int64
+        - name: after
+          in: query
+          description: |-
+            Cursor token to get the next page of events and instances
+
+            Returned by the endpoint if the maximum number of events and instances per page has been hit
+          required: false
+          schema:
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/Cursor_GetEventsAndInstancesCursorData"
+        - name: adhoc
+          in: query
+          description: |-
+            Only get events that are either marked as adhoc or non-adhoc
+
+            If present, all adhoc events will be returned when `true`, all non-adhoc
+            events will be returned when `false`. If not present, all events will
+            be returned regardless of their `adhoc` flag value.
+          required: false
+          schema:
+            type:
+              - boolean
+              - "null"
+        - name: time_independent
+          in: query
+          description: |-
+            Only get events that are either time-independent or time-dependent
+
+            If present, all time-independent events will be returned when `true`,
+            all time-dependent events will be returned when `false`. If absent,
+            all events will be returned regardless of their time dependency.
+          required: false
+          schema:
+            type:
+              - boolean
+              - "null"
+      responses:
+        "200":
+          description: List of events and instances successfully returned
+          headers:
+            link:
+              schema:
+                $ref: "#/components/schemas/PageLink"
+              description: Links for paging through the results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetEventInstancesResponseBody"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -2738,6 +2888,11 @@ components:
       description: A cursor pointing to an event instance
       examples:
         - BAAAAAAAAAA
+    Cursor_GetEventsAndInstancesCursorData:
+      type: string
+      description: A cursor pointing to an event instance
+      examples:
+        - EAAAAAAAAAAAAAAAAAAAAAAAAEQzIhEAFAAAAAAAAAAyMDI0LTA3LTIwVDE0OjE2OjE5WgA
     Cursor_GetEventsCursorData:
       type: string
       description: A cursor pointing to an event instance
@@ -3728,6 +3883,11 @@ components:
           minimum: 0
       example:
         total_pending_invites: 3
+    GetEventsAndInstancesCursorData:
+      type: string
+      description: A cursor pointing to an event instance
+      examples:
+        - EAAAAAAAAAAAAAAAAAAAAAAAAEQzIhEAFAAAAAAAAAAyMDI0LTA3LTIwVDE0OjE2OjE5WgA
     GetEventsCursorData:
       type: string
       description: A cursor pointing to an event instance

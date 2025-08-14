@@ -40,11 +40,12 @@ use opentalk_types_api_v1::{
     events::{
         DeleteEventInvitePath, DeleteEventsQuery, DeleteSharedFolderQuery, EventInstance,
         EventInstancePath, EventInstanceQuery, EventInvitee, EventOptionsQuery, EventOrException,
-        EventResource, GetEventInstanceResponseBody, GetEventInstancesQuery,
-        GetEventInstancesResponseBody, GetEventQuery, GetEventsQuery, PatchEmailInviteBody,
-        PatchEventBody, PatchEventInstanceBody, PatchEventQuery, PatchInviteBody,
-        PostEventInviteBody, PostEventInviteQuery, PostEventsBody, PutSharedFolderQuery,
-        StreamingTargetOptionsQuery, by_event_id::invites::GetEventsInvitesQuery,
+        EventOrInstance, EventResource, GetEventInstanceResponseBody, GetEventInstancesQuery,
+        GetEventInstancesResponseBody, GetEventQuery, GetEventsAndInstancesQuery, GetEventsQuery,
+        PatchEmailInviteBody, PatchEventBody, PatchEventInstanceBody, PatchEventQuery,
+        PatchInviteBody, PostEventInviteBody, PostEventInviteQuery, PostEventsBody,
+        PutSharedFolderQuery, StreamingTargetOptionsQuery,
+        by_event_id::invites::GetEventsInvitesQuery,
     },
     pagination::PagePaginationQuery,
     rooms::{
@@ -363,6 +364,14 @@ impl OpenTalkControllerServiceBackend for ControllerBackend {
         query: DeleteEventsQuery,
     ) -> Result<(), ApiError> {
         Ok(self.delete_event(current_user, event_id, query).await?)
+    }
+
+    async fn get_events_and_instances(
+        &self,
+        current_user: RequestUser,
+        query: GetEventsAndInstancesQuery,
+    ) -> Result<(Vec<EventOrInstance>, Option<String>, Option<String>), ApiError> {
+        Ok(self.get_events_and_instances(current_user, query).await?)
     }
 
     async fn get_event_instances(

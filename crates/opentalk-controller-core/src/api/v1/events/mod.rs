@@ -80,7 +80,9 @@ pub async fn new_event(
     Ok(ApiResponse::new(event_resource))
 }
 
-/// Get a list of events accessible by the requesting user
+/// Get a list of events and exceptions
+///
+/// The exceptions are returned immediately following the according event
 ///
 /// Returns a paginated list of events and their exceptions inside the given time range
 #[utoipa::path(

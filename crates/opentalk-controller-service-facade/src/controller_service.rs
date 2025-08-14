@@ -17,11 +17,12 @@ use opentalk_types_api_v1::{
     events::{
         DeleteEventInvitePath, DeleteEventsQuery, DeleteSharedFolderQuery, EventInstance,
         EventInstancePath, EventInstanceQuery, EventInvitee, EventOptionsQuery, EventOrException,
-        EventResource, GetEventInstanceResponseBody, GetEventInstancesQuery,
-        GetEventInstancesResponseBody, GetEventQuery, GetEventsQuery, PatchEmailInviteBody,
-        PatchEventBody, PatchEventInstanceBody, PatchEventQuery, PatchInviteBody,
-        PostEventInviteBody, PostEventInviteQuery, PostEventsBody, PutSharedFolderQuery,
-        StreamingTargetOptionsQuery, by_event_id::invites::GetEventsInvitesQuery,
+        EventOrInstance, EventResource, GetEventInstanceResponseBody, GetEventInstancesQuery,
+        GetEventInstancesResponseBody, GetEventQuery, GetEventsAndInstancesQuery, GetEventsQuery,
+        PatchEmailInviteBody, PatchEventBody, PatchEventInstanceBody, PatchEventQuery,
+        PatchInviteBody, PostEventInviteBody, PostEventInviteQuery, PostEventsBody,
+        PutSharedFolderQuery, StreamingTargetOptionsQuery,
+        by_event_id::invites::GetEventsInvitesQuery,
     },
     pagination::PagePaginationQuery,
     rooms::{
@@ -336,7 +337,7 @@ impl OpenTalkControllerService {
             .await
     }
 
-    /// Get a list of events accessible by the requesting user
+    /// Get a list of events and exceptions
     pub async fn get_events(
         &self,
         current_user: RequestUser,
@@ -389,6 +390,19 @@ impl OpenTalkControllerService {
             .read()
             .await
             .delete_event(current_user, event_id, query)
+            .await
+    }
+
+    /// Get a list of events and instances
+    pub async fn get_events_and_instances(
+        &self,
+        current_user: RequestUser,
+        query: GetEventsAndInstancesQuery,
+    ) -> Result<(Vec<EventOrInstance>, Option<String>, Option<String>), ApiError> {
+        self.backend
+            .read()
+            .await
+            .get_events_and_instances(current_user, query)
             .await
     }
 

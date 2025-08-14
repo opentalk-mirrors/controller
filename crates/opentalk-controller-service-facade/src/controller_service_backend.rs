@@ -16,11 +16,12 @@ use opentalk_types_api_v1::{
     events::{
         DeleteEventInvitePath, DeleteEventsQuery, DeleteSharedFolderQuery, EventInstance,
         EventInstancePath, EventInstanceQuery, EventInvitee, EventOptionsQuery, EventOrException,
-        EventResource, GetEventInstanceResponseBody, GetEventInstancesQuery,
-        GetEventInstancesResponseBody, GetEventQuery, GetEventsQuery, PatchEmailInviteBody,
-        PatchEventBody, PatchEventInstanceBody, PatchEventQuery, PatchInviteBody,
-        PostEventInviteBody, PostEventInviteQuery, PostEventsBody, PutSharedFolderQuery,
-        StreamingTargetOptionsQuery, by_event_id::invites::GetEventsInvitesQuery,
+        EventOrInstance, EventResource, GetEventInstanceResponseBody, GetEventInstancesQuery,
+        GetEventInstancesResponseBody, GetEventQuery, GetEventsAndInstancesQuery, GetEventsQuery,
+        PatchEmailInviteBody, PatchEventBody, PatchEventInstanceBody, PatchEventQuery,
+        PatchInviteBody, PostEventInviteBody, PostEventInviteQuery, PostEventsBody,
+        PutSharedFolderQuery, StreamingTargetOptionsQuery,
+        by_event_id::invites::GetEventsInvitesQuery,
     },
     pagination::PagePaginationQuery,
     rooms::{
@@ -199,7 +200,7 @@ pub trait OpenTalkControllerServiceBackend: Send + Sync {
         query: EventOptionsQuery,
     ) -> Result<EventResource, ApiError>;
 
-    /// Get a list of events accessible by the requesting user
+    /// Get a list of events and exceptions
     async fn get_events(
         &self,
         current_user: RequestUser,
@@ -230,6 +231,13 @@ pub trait OpenTalkControllerServiceBackend: Send + Sync {
         event_id: EventId,
         query: DeleteEventsQuery,
     ) -> Result<(), ApiError>;
+
+    /// Get a list of events and instances
+    async fn get_events_and_instances(
+        &self,
+        current_user: RequestUser,
+        query: GetEventsAndInstancesQuery,
+    ) -> Result<(Vec<EventOrInstance>, Option<String>, Option<String>), ApiError>;
 
     /// Get a list of the instances of an event
     async fn get_event_instances(
