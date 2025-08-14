@@ -218,12 +218,20 @@ impl OpenTalkControllerServiceBackend for ControllerBackend {
         Ok(self.get_room(room_id).await?)
     }
 
-    async fn get_room_tariff(&self, room_id: &RoomId) -> Result<TariffResource, ApiError> {
-        Ok(self.get_room_tariff(*room_id).await?)
+    async fn get_room_tariff(
+        &self,
+        room_id: &RoomId,
+        invite_code: Option<InviteCode>,
+    ) -> Result<TariffResource, ApiError> {
+        Ok(self.get_room_tariff(*room_id, invite_code).await?)
     }
 
-    async fn get_room_event(&self, room_id: &RoomId) -> Result<GetRoomEventResponseBody, ApiError> {
-        Ok(self.get_room_event(room_id).await?)
+    async fn get_room_event(
+        &self,
+        room_id: &RoomId,
+        invite_code: Option<InviteCode>,
+    ) -> Result<GetRoomEventResponseBody, ApiError> {
+        Ok(self.get_room_event(room_id, invite_code).await?)
     }
 
     async fn start_room_session(

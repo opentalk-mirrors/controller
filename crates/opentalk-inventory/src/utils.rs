@@ -8,7 +8,7 @@ use opentalk_db_storage::events::{Event, EventAndEncryption};
 use opentalk_types_common::{
     call_in::CallInInfo,
     events::{EventInfo, MeetingDetails},
-    features::CALL_IN_FEATURE_ID,
+    features::{CALL_IN_FEATURE_ID, GUESTS_ALLOWED_FEATURE_ID},
     modules::CORE_MODULE_ID,
     rooms::RoomId,
     streaming::get_public_urls_from_room_streaming_targets,
@@ -27,7 +27,11 @@ pub async fn build_event_info(
     tariff: &TariffResource,
 ) -> Result<EventInfo> {
     let event_info = if event.show_meeting_details {
-        let invite = inventory.get_valid_invite_for_room(room_id).await?;
+        let invite = if tariff.has_feature_enabled(&CORE_MODULE_ID, &GUESTS_ALLOWED_FEATURE_ID) {
+            inventory.get_valid_invite_for_room(room_id).await?
+        } else {
+            None
+        };
 
         let call_in = if let Some(call_in_tel) = call_in_tel {
             if e2e_encryption || !tariff.has_feature_enabled(&CORE_MODULE_ID, &CALL_IN_FEATURE_ID) {

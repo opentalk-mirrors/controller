@@ -173,16 +173,29 @@ impl OpenTalkControllerService {
     }
 
     /// Get a room's tariff
-    pub async fn get_room_tariff(&self, room_id: &RoomId) -> Result<TariffResource, ApiError> {
-        self.backend.read().await.get_room_tariff(room_id).await
+    pub async fn get_room_tariff(
+        &self,
+        room_id: &RoomId,
+        invite_code: Option<InviteCode>,
+    ) -> Result<TariffResource, ApiError> {
+        self.backend
+            .read()
+            .await
+            .get_room_tariff(room_id, invite_code)
+            .await
     }
 
     /// Get a room's event
     pub async fn get_room_event(
         &self,
         room_id: &RoomId,
+        invite_code: Option<InviteCode>,
     ) -> Result<GetRoomEventResponseBody, ApiError> {
-        self.backend.read().await.get_room_event(room_id).await
+        self.backend
+            .read()
+            .await
+            .get_room_event(room_id, invite_code)
+            .await
     }
 
     /// Start a signaling session as a registered user

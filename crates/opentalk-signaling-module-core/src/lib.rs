@@ -9,7 +9,9 @@ use opentalk_signaling_core::{
     SignalingModuleInitData,
 };
 use opentalk_types_common::{
-    features::{CALL_IN_FEATURE_ID, FeatureId, STORAGE_UPGRADABLE_FEATURE_ID},
+    features::{
+        CALL_IN_FEATURE_ID, FeatureId, GUESTS_ALLOWED_FEATURE_ID, STORAGE_UPGRADABLE_FEATURE_ID,
+    },
     modules::{CORE_MODULE_ID, ModuleId},
 };
 
@@ -36,7 +38,11 @@ impl SignalingModule for Core {
     }
 
     fn get_provided_features() -> BTreeSet<FeatureId> {
-        BTreeSet::from_iter([CALL_IN_FEATURE_ID, STORAGE_UPGRADABLE_FEATURE_ID])
+        BTreeSet::from_iter([
+            CALL_IN_FEATURE_ID,
+            STORAGE_UPGRADABLE_FEATURE_ID,
+            GUESTS_ALLOWED_FEATURE_ID,
+        ])
     }
 
     async fn on_event(

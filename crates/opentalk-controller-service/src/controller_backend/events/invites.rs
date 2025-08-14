@@ -39,6 +39,8 @@ use opentalk_types_common::{
         EventId,
         invites::{EmailInviteRole, EventInviteStatus},
     },
+    features::GUESTS_ALLOWED_FEATURE_ID,
+    modules::CORE_MODULE_ID,
     rooms::RoomId,
     shared_folders::SharedFolder,
     streaming::RoomStreamingTarget,
@@ -800,7 +802,10 @@ async fn create_invite_to_non_matching_email(
         None
     };
 
-    if invitee_user.is_some() || settings.endpoints.event_invite_external_email_address {
+    if invitee_user.is_some()
+        || (settings.endpoints.event_invite_external_email_address
+            && room_tariff.has_feature_enabled(&CORE_MODULE_ID, &GUESTS_ALLOWED_FEATURE_ID))
+    {
         let inviter = current_user.clone();
         let invitee_email = email.clone();
 

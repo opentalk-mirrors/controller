@@ -6,7 +6,7 @@ use chrono::Utc;
 use kustos::policies_builder::PoliciesBuilder;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_utils::{
-    CaptureApiError, deletion::room::associated_resource_ids_for_invite,
+    CaptureApiError, TariffResourceExt, deletion::room::associated_resource_ids_for_invite,
 };
 use opentalk_db_storage::invites::{Invite, NewInvite, UpdateInvite};
 use opentalk_types_api_v1::{
@@ -18,7 +18,11 @@ use opentalk_types_api_v1::{
     },
     users::PublicUserProfile,
 };
-use opentalk_types_common::rooms::{RoomId, invite_codes::InviteCode};
+use opentalk_types_common::{
+    features::{GUESTS_ALLOWED_FEATURE_ID, GUESTS_ALLOWED_MODULE_FEATURE_ID},
+    modules::DEFAULT_MODULE_ID,
+    rooms::{RoomId, invite_codes::InviteCode},
+};
 
 use crate::{ControllerBackend, ToUserProfile, controller_backend::RoomsPoliciesBuilderExt};
 
@@ -30,6 +34,10 @@ impl ControllerBackend {
         new_invite: PostInviteRequestBody,
     ) -> Result<InviteResource, CaptureApiError> {
         let settings = self.settings_provider.get();
+
+        let tariff = self.get_tariff_for_room(room_id).await?;
+        tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
+
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let invite = inventory
@@ -64,13 +72,15 @@ impl ControllerBackend {
         pagination: &PagePaginationQuery,
     ) -> Result<(GetRoomsInvitesResponseBody, i64), CaptureApiError> {
         let settings = self.settings_provider.get();
-        let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let room = inventory.get_room(room_id).await?;
+        let tariff = self.get_tariff_for_room(room_id).await?;
+        tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
+
+        let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let (invites_with_users, total_invites) = inventory
             .get_room_invites_paginated_with_creator_and_updater(
-                room.id,
+                room_id,
                 pagination.per_page,
                 pagination.page,
             )
@@ -95,6 +105,10 @@ impl ControllerBackend {
         invite_code: InviteCode,
     ) -> Result<InviteResource, CaptureApiError> {
         let settings = self.settings_provider.get();
+
+        let tariff = self.get_tariff_for_room(room_id).await?;
+        tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
+
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let (invite, created_by, updated_by) = inventory
@@ -119,6 +133,10 @@ impl ControllerBackend {
         body: PutInviteRequestBody,
     ) -> Result<InviteResource, CaptureApiError> {
         let settings = self.settings_provider.get();
+
+        let tariff = self.get_tariff_for_room(room_id).await?;
+        tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
+
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let (invite, created_by, _updated_by) = inventory
@@ -156,6 +174,9 @@ impl ControllerBackend {
         room_id: RoomId,
         invite_code: InviteCode,
     ) -> Result<(), CaptureApiError> {
+        let tariff = self.get_tariff_for_room(room_id).await?;
+        tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
+
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         _ = inventory
@@ -190,21 +211,25 @@ impl ControllerBackend {
         let invite = inventory.get_room_invite(data.invite_code).await?;
         let room = inventory.get_room(invite.room).await?;
 
-        if invite.active {
-            if let Some(expiration) = invite.expiration
-                && expiration <= Utc::now()
-            {
-                // Do not leak the existence of the invite when it is expired
-                return Err(ApiError::not_found().into());
-            }
-            Ok(PostInviteVerifyResponseBody {
-                room_id: invite.room,
-                password_required: room.password.is_some(),
-            })
-        } else {
-            // TODO(r.floren) Do we want to return something else here?
-            Err(ApiError::not_found().into())
+        let tariff = self.get_tariff_for_room(room.id).await?;
+
+        let expired = invite
+            .expiration
+            .map(|expiration| expiration <= Utc::now())
+            .unwrap_or_default();
+
+        if !invite.active
+            || !tariff.has_feature_enabled(&DEFAULT_MODULE_ID, &GUESTS_ALLOWED_FEATURE_ID)
+            || expired
+        {
+            // Do not leak the existence of the invite
+            return Err(ApiError::not_found().into());
         }
+
+        Ok(PostInviteVerifyResponseBody {
+            room_id: invite.room,
+            password_required: room.password.is_some(),
+        })
     }
 }
 
