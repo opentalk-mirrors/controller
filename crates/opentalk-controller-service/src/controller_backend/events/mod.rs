@@ -21,7 +21,7 @@ use opentalk_controller_utils::{
 };
 use opentalk_db_storage::{
     events::{
-        Event, EventException, EventExceptionKind, EventInvite,
+        EventException, EventExceptionKind, EventInvite,
         EventTrainingParticipationReportParameterSet, NewEvent, UpdateEvent,
         UpdateEventTrainingParticipationReportParameterSet, email_invites::EventEmailInvite,
     },
@@ -29,7 +29,7 @@ use opentalk_db_storage::{
     sip_configs::{NewSipConfig, SipConfig},
     users::User,
 };
-use opentalk_inventory::{Inventory, Tenant, transaction};
+use opentalk_inventory::{Event, Inventory, Tenant, transaction};
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
     Cursor,
@@ -51,7 +51,7 @@ use opentalk_types_common::{
     shared_folders::SharedFolder,
     streaming::{RoomStreamingTarget, StreamingTarget},
     tariffs::TariffResource,
-    time::{DateTimeTz, RecurrencePattern, TimeZone, Timestamp},
+    time::{DateTimeTz, RecurrencePattern, TimeZone},
     training_participation_report::TrainingParticipationReportParameterSet,
 };
 use rrule::{Frequency, RRuleSet};
@@ -316,7 +316,10 @@ impl ControllerBackend {
 
         let users = users.fetch(&settings, inventory.as_mut()).await?;
 
-        let event_refs: Vec<&Event> = events.iter().map(|(event, ..)| event).collect();
+        let event_refs = events
+            .iter()
+            .map(|(event, ..)| event)
+            .collect::<Vec<&Event>>();
 
         // Build list of event invites with user, grouped by events
         let invites_with_users_grouped_by_event = if query.invitees_max == 0 {
@@ -367,8 +370,8 @@ impl ControllerBackend {
         {
             ret_cursor_data = Some(GetEventsCursorData {
                 event_id: event.id,
-                event_created_at: event.created_at.into(),
-                event_starts_at: event.starts_at.map(Timestamp::from),
+                event_created_at: event.created_at,
+                event_starts_at: event.starts_at,
             });
 
             let created_by = users.get(event.created_by);
@@ -418,9 +421,9 @@ impl ControllerBackend {
             let event_resource = EventResource {
                 id: event.id,
                 created_by,
-                created_at: event.created_at.into(),
+                created_at: event.created_at,
                 updated_by,
-                updated_at: event.updated_at.into(),
+                updated_at: event.updated_at,
                 title: event.title,
                 description: event.description,
                 room: EventRoomInfo::from_room(&settings, room, sip_config, &tariff),
@@ -523,9 +526,9 @@ impl ControllerBackend {
             invitees_truncated,
             invitees,
             created_by: users.get(event.created_by),
-            created_at: event.created_at.into(),
+            created_at: event.created_at,
             updated_by: users.get(event.updated_by),
-            updated_at: event.updated_at.into(),
+            updated_at: event.updated_at,
             is_time_independent: event.is_time_independent,
             is_all_day: event.is_all_day,
             starts_at,
@@ -754,9 +757,9 @@ impl ControllerBackend {
         let event_resource = EventResource {
             id: event.id,
             created_by: created_by.to_public_user_profile(&settings),
-            created_at: event.created_at.into(),
+            created_at: event.created_at,
             updated_by: current_user.to_public_user_profile(&settings),
-            updated_at: event.updated_at.into(),
+            updated_at: event.updated_at,
             title: event.title,
             description: event.description,
             room: EventRoomInfo::from_room(&settings, room, sip_config, &tariff),
@@ -935,7 +938,7 @@ impl DateTimeTzFromDb for DateTimeTz {
     fn starts_at_of(event: &Event) -> Option<Self> {
         if let (Some(dt), Some(tz)) = (event.starts_at, event.starts_at_tz) {
             Some(Self {
-                datetime: dt,
+                datetime: dt.into(),
                 timezone: tz,
             })
         } else {
@@ -946,7 +949,7 @@ impl DateTimeTzFromDb for DateTimeTz {
     /// Creates the `ends_at` DateTimeTz from an event
     fn ends_at_of(event: &Event) -> Option<Self> {
         event.ends_at_of_first_occurrence().map(|(dt, tz)| Self {
-            datetime: dt,
+            datetime: dt.into(),
             timezone: tz,
         })
     }
@@ -1204,9 +1207,9 @@ async fn create_time_independent_event(
             invitees_truncated: false,
             invitees: vec![],
             created_by: current_user.to_public_user_profile(settings),
-            created_at: event.created_at.into(),
+            created_at: event.created_at,
             updated_by: current_user.to_public_user_profile(settings),
-            updated_at: event.updated_at.into(),
+            updated_at: event.updated_at,
             is_time_independent: true,
             is_all_day: None,
             starts_at: None,
@@ -1316,9 +1319,9 @@ async fn create_time_dependent_event(
             invitees_truncated: false,
             invitees: vec![],
             created_by: current_user.to_public_user_profile(settings),
-            created_at: event.created_at.into(),
+            created_at: event.created_at,
             updated_by: current_user.to_public_user_profile(settings),
-            updated_at: event.updated_at.into(),
+            updated_at: event.updated_at,
             is_time_independent: event.is_time_independent,
             is_all_day: event.is_all_day,
             starts_at: Some(starts_at),
@@ -1552,7 +1555,7 @@ pub(crate) async fn notify_invitees_about_delete(
 ) {
     // Don't send mails for past events
     match notification_values.event.ends_at {
-        Some(ends_at) if ends_at < Utc::now() => {
+        Some(ends_at) if ends_at < Utc::now().into() => {
             return;
         }
         _ => {}

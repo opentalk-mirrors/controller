@@ -10,14 +10,16 @@
 // TODO: We probably can avoid the conversion to MailTasks if no rabbit_mq_queue is set in all mail fns
 use std::sync::Arc;
 
+use chrono::DateTime;
 use lapin_pool::{RabbitMqChannel, RabbitMqPool};
 use opentalk_controller_settings::Settings;
 use opentalk_db_storage::{
-    events::{Event, EventException, EventExceptionKind},
+    events::{EventException, EventExceptionKind},
     rooms::Room,
     sip_configs::SipConfig,
     users::User,
 };
+use opentalk_inventory::Event;
 use opentalk_mail_worker_protocol::*;
 use opentalk_types_common::{
     features::CALL_IN_FEATURE_ID,
@@ -104,13 +106,19 @@ fn to_event(
     const ONE_DAY_IN_SECONDS: u64 = 86400;
 
     let created_at = v1::Time {
-        time: event.created_at,
+        time: event.created_at.into(),
         timezone: event.created_at.timezone().to_string(),
     };
 
-    let start_time: Option<v1::Time> = event.starts_at.zip(event.starts_at_tz).map(Into::into);
+    let start_time: Option<v1::Time> = event
+        .starts_at
+        .map(DateTime::from)
+        .zip(event.starts_at_tz)
+        .map(Into::into);
 
-    let end_time: Option<v1::Time> = event.ends_at_of_first_occurrence().map(Into::into);
+    let end_time: Option<v1::Time> = event
+        .ends_at_of_first_occurrence()
+        .map(|(timestamp, timezone)| v1::Time::from((DateTime::from(timestamp), timezone)));
 
     let mut call_in = None;
 

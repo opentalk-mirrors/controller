@@ -6,7 +6,7 @@ use std::collections::BTreeSet;
 
 use opentalk_db_storage::{
     events::{
-        Event, EventException, EventExceptionId, EventInvite,
+        EventException, EventExceptionId, EventInvite,
         EventTrainingParticipationReportParameterSet, GetEventsCursor, NewEvent, NewEventException,
         UpdateEvent, UpdateEventException, shared_folders::EventSharedFolder,
     },
@@ -23,6 +23,7 @@ use opentalk_types_common::{
     users::UserId,
 };
 
+use super::Event;
 use crate::Result;
 
 /// A trait for retrieving and storing event entities.

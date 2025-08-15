@@ -9,8 +9,7 @@ use chrono::{DateTime, Local, Utc};
 use chrono_tz::Tz;
 use either::Either;
 use futures::{StreamExt as _, TryStreamExt, stream};
-use opentalk_db_storage::events::Event as DbEvent;
-use opentalk_inventory::InventoryProvider;
+use opentalk_inventory::{Event as InventoryEvent, InventoryProvider};
 use opentalk_report_generation::ToReportDateTime;
 use opentalk_signaling_core::{
     ChunkFormat, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage,
@@ -175,7 +174,7 @@ impl MeetingReport {
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         include_email_addresses: bool,
-    ) -> Result<(Vec<ReportParticipant>, DbEvent, TimeZone), SignalingModuleError> {
+    ) -> Result<(Vec<ReportParticipant>, InventoryEvent, TimeZone), SignalingModuleError> {
         const CONCURRENT_PARTICIPANT_QUERIES: usize = 10;
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
@@ -211,13 +210,13 @@ impl MeetingReport {
 
     async fn generate_pdf_report(
         template: String,
-        event: DbEvent,
+        event: InventoryEvent,
         participants: Vec<ReportParticipant>,
         report_timezone: TimeZone,
     ) -> Result<Vec<u8>, SignalingModuleError> {
         let tz = Tz::from(report_timezone);
-        let starts_at = event.starts_at.to_report_date_time(&tz);
-        let ends_at = event.ends_at.to_report_date_time(&tz);
+        let starts_at = event.starts_at.map(DateTime::from).to_report_date_time(&tz);
+        let ends_at = event.ends_at.map(DateTime::from).to_report_date_time(&tz);
         let timestamp = Local::now().naive_local().format("%Y-%m-%dT%H:%M:%S.%f");
         Self::generate_pdf_report_from_template(
             template,

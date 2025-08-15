@@ -8,7 +8,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use opentalk_db_storage::events::Event;
+use opentalk_inventory::Event;
 use opentalk_types_common::{
     rooms::RoomId, tariffs::TariffResource, time::Timestamp, users::UserInfo,
 };

@@ -12,7 +12,7 @@ use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_db_storage::{
     events::{
-        Event, EventInvite, NewEventInvite, UpdateEventInvite,
+        EventInvite, NewEventInvite, UpdateEventInvite,
         email_invites::{NewEventEmailInvite, UpdateEventEmailInvite},
     },
     invites::NewInvite,
@@ -20,7 +20,7 @@ use opentalk_db_storage::{
     sip_configs::SipConfig,
     users::User,
 };
-use opentalk_inventory::{Inventory, InventoryProvider, Tenant, transaction};
+use opentalk_inventory::{Event, Inventory, InventoryProvider, Tenant, transaction};
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -960,7 +960,7 @@ async fn notify_invitees_about_uninvite(
 ) {
     // Don't send mails for past events
     match notification_values.event.ends_at {
-        Some(ends_at) if ends_at < Utc::now() => {
+        Some(ends_at) if ends_at < Utc::now().into() => {
             return;
         }
         _ => {}

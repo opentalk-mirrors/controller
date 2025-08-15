@@ -4,12 +4,12 @@
 
 use opentalk_db_storage::{
     events::{
-        Event, EventInvite, NewEventInvite, UpdateEventInvite,
+        EventInvite, NewEventInvite, UpdateEventInvite,
         email_invites::{EventEmailInvite, NewEventEmailInvite, UpdateEventEmailInvite},
     },
     users::User,
 };
-use opentalk_inventory::{EventInviteInventory, error::StorageBackendSnafu};
+use opentalk_inventory::{Event, EventInviteInventory, error::StorageBackendSnafu};
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
     rooms::RoomId,
@@ -90,7 +90,15 @@ impl EventInviteInventory for DatabaseConnection {
         &mut self,
         events: &[&Event],
     ) -> Result<Vec<Vec<(EventInvite, User)>>> {
-        EventInvite::get_for_events(&mut self.inner, events)
+        let events = events
+            .iter()
+            .cloned()
+            .map(opentalk_db_storage::events::Event::from)
+            .collect::<Vec<opentalk_db_storage::events::Event>>();
+        let events = events
+            .iter()
+            .collect::<Vec<&opentalk_db_storage::events::Event>>();
+        EventInvite::get_for_events(&mut self.inner, &events)
             .await
             .context(StorageBackendSnafu)
     }
@@ -100,7 +108,13 @@ impl EventInviteInventory for DatabaseConnection {
         &mut self,
         events: &[&Event],
     ) -> Result<Vec<Vec<EventEmailInvite>>> {
-        EventEmailInvite::get_for_events(&mut self.inner, events)
+        let events = events
+            .iter()
+            .cloned()
+            .map(Into::into)
+            .collect::<Vec<opentalk_db_storage::events::Event>>();
+        let events = events.iter().collect::<Vec<&_>>();
+        EventEmailInvite::get_for_events(&mut self.inner, &events)
             .await
             .context(StorageBackendSnafu)
     }

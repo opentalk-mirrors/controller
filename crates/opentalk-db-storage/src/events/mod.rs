@@ -20,7 +20,7 @@ use opentalk_database::{DatabaseError, DbConnection, Paginate, Result};
 use opentalk_diesel_newtype::DieselNewtype;
 use opentalk_types_common::{
     events::{
-        EventDescription, EventId, EventInfo, EventTitle,
+        EventDescription, EventId, EventTitle,
         invites::{EventInviteStatus, InviteRole},
     },
     rooms::RoomId,
@@ -199,22 +199,6 @@ impl Event {
             Some((dt, tz))
         } else {
             None
-        }
-    }
-}
-
-pub struct EventAndEncryption<'a>(pub &'a Event, pub bool);
-
-impl<'a> From<EventAndEncryption<'a>> for EventInfo {
-    fn from(value: EventAndEncryption<'a>) -> Self {
-        let EventAndEncryption(event, e2e_encryption) = value;
-        EventInfo {
-            id: event.id,
-            room_id: event.room,
-            title: event.title.clone(),
-            is_adhoc: event.is_adhoc,
-            meeting_details: None,
-            e2e_encryption,
         }
     }
 }

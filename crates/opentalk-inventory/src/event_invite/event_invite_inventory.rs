@@ -4,7 +4,7 @@
 
 use opentalk_db_storage::{
     events::{
-        Event, EventInvite, NewEventInvite, UpdateEventInvite,
+        EventInvite, NewEventInvite, UpdateEventInvite,
         email_invites::{EventEmailInvite, NewEventEmailInvite, UpdateEventEmailInvite},
     },
     users::User,
@@ -15,7 +15,7 @@ use opentalk_types_common::{
     users::UserId,
 };
 
-use crate::Result;
+use crate::{Event, Result};
 
 /// A trait for retrieving and storing event invite entities.
 #[async_trait::async_trait]

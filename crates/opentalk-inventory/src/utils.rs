@@ -4,7 +4,6 @@
 
 //! Some helper utilities for interacting with the data storage.
 
-use opentalk_db_storage::events::{Event, EventAndEncryption};
 use opentalk_types_common::{
     call_in::CallInInfo,
     events::{EventInfo, MeetingDetails},
@@ -15,7 +14,7 @@ use opentalk_types_common::{
     tariffs::TariffResource,
 };
 
-use crate::{Inventory, Result};
+use crate::{Event, Inventory, Result, event::EventAndEncryption};
 
 /// Build the user-facing event info for a room.
 pub async fn build_event_info(

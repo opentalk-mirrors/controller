@@ -245,7 +245,7 @@ async fn event_replace_updated_by(
                         title: None,
                         description: None,
                         updated_by: event.created_by,
-                        updated_at: event.updated_at,
+                        updated_at: event.updated_at.into(),
                         is_time_independent: None,
                         is_all_day: None,
                         starts_at: None,

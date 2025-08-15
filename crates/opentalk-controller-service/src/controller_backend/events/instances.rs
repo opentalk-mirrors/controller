@@ -9,8 +9,9 @@ use kustos::policies_builder::PoliciesBuilder;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_utils::{CaptureApiError, event::EventExt};
 use opentalk_db_storage::events::{
-    Event, EventException, EventExceptionKind, NewEventException, UpdateEventException,
+    EventException, EventExceptionKind, NewEventException, UpdateEventException,
 };
+use opentalk_inventory::Event;
 use opentalk_types_api_v1::{
     Cursor,
     error::ApiError,
@@ -618,7 +619,7 @@ fn create_event_instance(
 
     if let Some(exception) = exception {
         event.updated_by = exception.created_by;
-        event.updated_at = exception.created_at;
+        event.updated_at = exception.created_at.into();
 
         patch(&mut event.title, exception.title);
         patch(&mut event.description, exception.description);
@@ -647,9 +648,9 @@ fn create_event_instance(
         recurring_event_id: event.id,
         instance_id,
         created_by,
-        created_at: event.created_at.into(),
+        created_at: event.created_at,
         updated_by,
-        updated_at: event.updated_at.into(),
+        updated_at: event.updated_at,
         title: event.title,
         description: event.description,
         room,

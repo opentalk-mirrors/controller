@@ -101,10 +101,10 @@ mod tests {
     use log::logger;
     use opentalk_controller_settings::SettingsProvider;
     use opentalk_db_storage::{
-        events::{Event, UpdateEvent},
+        events::UpdateEvent,
         users::{UpdateUser, User},
     };
-    use opentalk_inventory::Inventory;
+    use opentalk_inventory::{Event, Inventory};
     use opentalk_signaling_core::ExchangeHandle;
     use opentalk_test_util::database::DatabaseContext;
     use opentalk_types_common::{events::EventId, users::UserId};
