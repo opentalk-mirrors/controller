@@ -21,7 +21,7 @@ use opentalk_controller_utils::{
 };
 use opentalk_db_storage::{
     events::{
-        EventInvite, EventTrainingParticipationReportParameterSet, NewEvent, UpdateEvent,
+        EventTrainingParticipationReportParameterSet, NewEvent, UpdateEvent,
         UpdateEventTrainingParticipationReportParameterSet, email_invites::EventEmailInvite,
     },
     rooms::{NewRoom, Room, UpdateRoom},
@@ -29,7 +29,7 @@ use opentalk_db_storage::{
     users::User,
 };
 use opentalk_inventory::{
-    Event, EventException, EventExceptionKind, Inventory, Tenant, transaction,
+    Event, EventException, EventExceptionKind, EventInvite, Inventory, Tenant, transaction,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{

@@ -12,7 +12,7 @@ use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_db_storage::{
     events::{
-        EventInvite, NewEventInvite, UpdateEventInvite,
+        NewEventInvite, UpdateEventInvite,
         email_invites::{NewEventEmailInvite, UpdateEventEmailInvite},
     },
     invites::NewInvite,
@@ -20,7 +20,7 @@ use opentalk_db_storage::{
     sip_configs::SipConfig,
     users::User,
 };
-use opentalk_inventory::{Event, Inventory, InventoryProvider, Tenant, transaction};
+use opentalk_inventory::{Event, EventInvite, Inventory, InventoryProvider, Tenant, transaction};
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
     error::ApiError,

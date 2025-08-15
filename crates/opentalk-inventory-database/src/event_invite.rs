@@ -4,12 +4,12 @@
 
 use opentalk_db_storage::{
     events::{
-        EventInvite, NewEventInvite, UpdateEventInvite,
+        self as db, NewEventInvite, UpdateEventInvite,
         email_invites::{EventEmailInvite, NewEventEmailInvite, UpdateEventEmailInvite},
     },
     users::User,
 };
-use opentalk_inventory::{Event, EventInviteInventory, error::StorageBackendSnafu};
+use opentalk_inventory::{Event, EventInvite, EventInviteInventory, error::StorageBackendSnafu};
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
     rooms::RoomId,
@@ -37,10 +37,11 @@ impl EventInviteInventory for DatabaseConnection {
         &mut self,
         invite: NewEventInvite,
     ) -> Result<Option<EventInvite>> {
-        invite
+        Ok(invite
             .try_insert(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .map(Into::into))
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -51,7 +52,7 @@ impl EventInviteInventory for DatabaseConnection {
         page: i64,
         filter_by_status: Option<EventInviteStatus>,
     ) -> Result<(Vec<(EventInvite, User)>, i64)> {
-        EventInvite::get_for_event_paginated(
+        let (items, overall) = db::EventInvite::get_for_event_paginated(
             &mut self.inner,
             event_id,
             per_page,
@@ -59,7 +60,14 @@ impl EventInviteInventory for DatabaseConnection {
             filter_by_status,
         )
         .await
-        .context(StorageBackendSnafu)
+        .context(StorageBackendSnafu)?;
+        Ok((
+            items
+                .into_iter()
+                .map(|(invite, user)| (invite.into(), user))
+                .collect(),
+            overall,
+        ))
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -80,9 +88,12 @@ impl EventInviteInventory for DatabaseConnection {
         user_id: UserId,
         room_id: RoomId,
     ) -> Result<Option<EventInvite>> {
-        EventInvite::get_for_user_and_room(&mut self.inner, user_id, room_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::EventInvite::get_for_user_and_room(&mut self.inner, user_id, room_id)
+                .await
+                .context(StorageBackendSnafu)?
+                .map(Into::into),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -98,9 +109,18 @@ impl EventInviteInventory for DatabaseConnection {
         let events = events
             .iter()
             .collect::<Vec<&opentalk_db_storage::events::Event>>();
-        EventInvite::get_for_events(&mut self.inner, &events)
+        let invites = db::EventInvite::get_for_events(&mut self.inner, &events)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?;
+        Ok(invites
+            .into_iter()
+            .map(|items| {
+                items
+                    .into_iter()
+                    .map(|(invite, user)| (invite.into(), user))
+                    .collect()
+            })
+            .collect())
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -124,9 +144,14 @@ impl EventInviteInventory for DatabaseConnection {
         &mut self,
         user_id: UserId,
     ) -> Result<Vec<EventInvite>> {
-        EventInvite::get_pending_for_user(&mut self.inner, user_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::EventInvite::get_pending_for_user(&mut self.inner, user_id)
+                .await
+                .context(StorageBackendSnafu)?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -135,9 +160,12 @@ impl EventInviteInventory for DatabaseConnection {
         event_id: EventId,
         user_id: UserId,
     ) -> Result<EventInvite> {
-        EventInvite::delete_by_invitee(&mut self.inner, event_id, user_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::EventInvite::delete_by_invitee(&mut self.inner, event_id, user_id)
+                .await
+                .context(StorageBackendSnafu)?
+                .into(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -158,10 +186,11 @@ impl EventInviteInventory for DatabaseConnection {
         user_id: UserId,
         event_invite: UpdateEventInvite,
     ) -> Result<EventInvite> {
-        event_invite
+        Ok(event_invite
             .apply(&mut self.inner, user_id, event_id)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into())
     }
 
     #[tracing::instrument(err, skip_all)]
