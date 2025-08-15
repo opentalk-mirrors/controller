@@ -6,8 +6,8 @@
 
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
-use opentalk_db_storage::{assets::Asset, users::User};
-use opentalk_inventory::Inventory;
+use opentalk_db_storage::users::User;
+use opentalk_inventory::{Asset, Inventory};
 use opentalk_types_api_v1::{
     assets::AssetResource,
     users::{PrivateUserProfile, PublicUserProfile},
@@ -130,7 +130,7 @@ pub fn asset_to_asset_resource(asset: Asset) -> AssetResource {
         id,
         filename,
         namespace,
-        created_at,
+        created_at: created_at.into(),
         kind,
         size,
     }
