@@ -13,6 +13,7 @@ mod event_inventory;
 mod new_event;
 mod new_event_exception;
 mod update_event;
+mod update_event_exception;
 
 pub use event::Event;
 pub(crate) use event_and_encryption::EventAndEncryption;
@@ -23,3 +24,4 @@ pub use event_inventory::EventInventory;
 pub use new_event::NewEvent;
 pub use new_event_exception::NewEventException;
 pub use update_event::UpdateEvent;
+pub use update_event_exception::UpdateEventException;

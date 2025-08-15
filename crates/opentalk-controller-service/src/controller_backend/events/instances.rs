@@ -8,8 +8,9 @@ use chrono::{DateTime, Utc};
 use kustos::policies_builder::PoliciesBuilder;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_utils::{CaptureApiError, event::EventExt};
-use opentalk_db_storage::events::UpdateEventException;
-use opentalk_inventory::{Event, EventException, EventExceptionKind, NewEventException};
+use opentalk_inventory::{
+    Event, EventException, EventExceptionKind, NewEventException, UpdateEventException,
+};
 use opentalk_types_api_v1::{
     Cursor,
     error::ApiError,
@@ -432,10 +433,8 @@ impl ControllerBackend {
                     exception.id,
                     UpdateEventException {
                         kind: match patch.status {
-                            Some(EventStatus::Ok) => Some(EventExceptionKind::Modified.into()),
-                            Some(EventStatus::Cancelled) => {
-                                Some(EventExceptionKind::Cancelled.into())
-                            }
+                            Some(EventStatus::Ok) => Some(EventExceptionKind::Modified),
+                            Some(EventStatus::Cancelled) => Some(EventExceptionKind::Cancelled),
                             None => None,
                         },
                         title: patch.title.map(Some),
