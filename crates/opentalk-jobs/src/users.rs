@@ -8,8 +8,8 @@ use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::deletion::{Deleter, user::UserDeleter};
-use opentalk_db_storage::{events::UpdateEvent, invites::UpdateInvite};
-use opentalk_inventory::{Inventory, InventoryProvider};
+use opentalk_db_storage::invites::UpdateInvite;
+use opentalk_inventory::{Inventory, InventoryProvider, UpdateEvent};
 use opentalk_log::{debug, info, warn};
 use opentalk_signaling_core::{ExchangeHandle, ObjectStorage};
 use opentalk_types_common::{events::EventId, rooms::RoomId, time::Timestamp, users::UserId};
@@ -245,7 +245,7 @@ async fn event_replace_updated_by(
                         title: None,
                         description: None,
                         updated_by: event.created_by,
-                        updated_at: event.updated_at.into(),
+                        updated_at: event.updated_at,
                         is_time_independent: None,
                         is_all_day: None,
                         starts_at: None,

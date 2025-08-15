@@ -20,17 +20,15 @@ use opentalk_controller_utils::{
     deletion::{Deleter, EventDeleter},
 };
 use opentalk_db_storage::{
-    events::{
-        UpdateEvent, UpdateEventTrainingParticipationReportParameterSet,
-        email_invites::EventEmailInvite,
-    },
+    events::{UpdateEventTrainingParticipationReportParameterSet, email_invites::EventEmailInvite},
     rooms::{NewRoom, Room, UpdateRoom},
     sip_configs::{NewSipConfig, SipConfig},
     users::User,
 };
 use opentalk_inventory::{
     Event, EventException, EventExceptionKind, EventInvite,
-    EventTrainingParticipationReportParameterSet, Inventory, NewEvent, Tenant, transaction,
+    EventTrainingParticipationReportParameterSet, Inventory, NewEvent, Tenant, UpdateEvent,
+    transaction,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
@@ -1380,7 +1378,7 @@ fn patch_event_change_to_time_dependent(
             title: patch.title,
             description: patch.description,
             updated_by: current_user.id,
-            updated_at: Utc::now(),
+            updated_at: Timestamp::now(),
             is_time_independent: Some(false),
             is_all_day: Some(Some(is_all_day)),
             starts_at: Some(Some(starts_at.to_datetime_tz())),
@@ -1478,7 +1476,7 @@ async fn patch_time_independent_event(
         title: patch.title,
         description: patch.description,
         updated_by: current_user.id,
-        updated_at: Utc::now(),
+        updated_at: Timestamp::now(),
         is_time_independent: Some(true),
         is_all_day: Some(None),
         starts_at: Some(None),
@@ -1530,7 +1528,7 @@ async fn patch_time_dependent_event(
         title: patch.title,
         description: patch.description,
         updated_by: current_user.id,
-        updated_at: Utc::now(),
+        updated_at: Timestamp::now(),
         is_time_independent: Some(false),
         is_all_day: Some(Some(is_all_day)),
         starts_at: Some(Some(starts_at.to_datetime_tz())),
