@@ -2,12 +2,12 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::groups::Group;
 use opentalk_types_common::{
     tenants::TenantId,
     users::{GroupName, UserId},
 };
 
+use super::Group;
 use crate::Result;
 
 /// A trait for retrieving and storing group entities.

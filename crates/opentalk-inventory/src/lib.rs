@@ -54,7 +54,7 @@ pub use event::EventInventory;
 pub use event_invite::EventInviteInventory;
 pub use event_shared_folder::EventSharedFolderInventory;
 pub use event_training_participation_report::EventTrainingParticipationReportInventory;
-pub use group::GroupInventory;
+pub use group::{Group, GroupInventory};
 pub use inventory::Inventory;
 pub use inventory_provider::InventoryProvider;
 pub use job_execution::JobExecutionInventory;

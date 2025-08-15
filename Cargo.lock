@@ -6675,7 +6675,6 @@ dependencies = [
  "chrono",
  "either",
  "log",
- "opentalk-db-storage",
  "opentalk-inventory",
  "opentalk-r3dlock",
  "opentalk-signaling-core",

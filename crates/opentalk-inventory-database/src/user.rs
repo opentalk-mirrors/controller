@@ -7,8 +7,7 @@ use std::collections::BTreeSet;
 use bigdecimal::BigDecimal;
 use opentalk_db_storage::{
     groups::{
-        Group, insert_user_into_groups, remove_user_from_all_groups,
-        remove_user_from_all_groups_except,
+        insert_user_into_groups, remove_user_from_all_groups, remove_user_from_all_groups_except,
     },
     users::{NewUser, UpdateUser, User},
 };
@@ -165,7 +164,7 @@ impl UserInventory for DatabaseConnection {
     async fn add_user_to_groups(
         &mut self,
         user: &User,
-        groups: &[Group],
+        groups: &[GroupId],
     ) -> Result<BTreeSet<GroupId>> {
         insert_user_into_groups(&mut self.inner, user, groups)
             .await
@@ -176,9 +175,9 @@ impl UserInventory for DatabaseConnection {
     async fn remove_user_from_all_groups_except(
         &mut self,
         user: &User,
-        groups_to_keep: &[Group],
+        group_ids_to_keep: &[GroupId],
     ) -> Result<BTreeSet<GroupId>> {
-        remove_user_from_all_groups_except(&mut self.inner, user, groups_to_keep)
+        remove_user_from_all_groups_except(&mut self.inner, user, group_ids_to_keep)
             .await
             .context(StorageBackendSnafu)
     }

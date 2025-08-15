@@ -5,10 +5,7 @@
 use std::collections::BTreeSet;
 
 use bigdecimal::BigDecimal;
-use opentalk_db_storage::{
-    groups::Group,
-    users::{NewUser, UpdateUser, User},
-};
+use opentalk_db_storage::users::{NewUser, UpdateUser, User};
 use opentalk_types_common::{
     tenants::TenantId,
     time::Timestamp,
@@ -79,14 +76,14 @@ pub trait UserInventory {
     async fn add_user_to_groups(
         &mut self,
         user: &User,
-        groups: &[Group],
+        groups: &[GroupId],
     ) -> Result<BTreeSet<GroupId>>;
 
-    /// Remove a user from all groups not in the given `groups_to_keep` parameter.
+    /// Remove a user from all groups not in the given `group_ids_to_keep` parameter.
     async fn remove_user_from_all_groups_except(
         &mut self,
         user: &User,
-        groups_to_keep: &[Group],
+        group_ids_to_keep: &[GroupId],
     ) -> Result<BTreeSet<GroupId>>;
 
     /// Remove a user from all groups.

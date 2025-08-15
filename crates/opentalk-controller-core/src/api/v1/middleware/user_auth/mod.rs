@@ -36,7 +36,6 @@ use opentalk_controller_settings::{
 };
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_db_storage::{
-    groups::Group,
     tariffs::{ExternalTariffId, Tariff},
     tenants::{OidcTenantId, Tenant},
     users::User,
@@ -448,7 +447,12 @@ async fn check_access_token_inner(
         .iter()
         .map(|group| (tenant.id, GroupName::from(group.clone())))
         .collect();
-    let groups = inventory.get_or_create_groups_by_name(&groups).await?;
+    let groups = inventory
+        .get_or_create_groups_by_name(&groups)
+        .await?
+        .into_iter()
+        .map(|g| g.id)
+        .collect::<Vec<GroupId>>();
 
     let login_result = {
         let tenant = tenant.clone();
@@ -459,7 +463,7 @@ async fn check_access_token_inner(
                     tenant,
                     info,
                     settings,
-                    groups,
+                    &groups,
                     tariff,
                     tariff_status,
                     fallback_locale,
@@ -482,7 +486,7 @@ async fn create_or_update_user(
     tenant: Tenant,
     info: OpenIdConnectUserInfo,
     settings: &Settings,
-    groups: Vec<Group>,
+    groups: &[GroupId],
     tariff: Tariff,
     tariff_status: TariffStatus,
     fallback_locale: Language,
@@ -524,7 +528,7 @@ async fn create_or_update_user(
 
     match outcome {
         UpsertOutcome::Inserted(user) => {
-            let groups_added_to = inventory.add_user_to_groups(&user, &groups).await?;
+            let groups = inventory.add_user_to_groups(&user, groups).await?;
 
             let event_and_room_ids = inventory
                 .migrate_event_email_invites_to_user_invites(&user)
@@ -532,14 +536,14 @@ async fn create_or_update_user(
 
             Ok(LoginResult::UserCreated {
                 user,
-                groups: groups_added_to,
+                groups,
                 event_and_room_ids,
             })
         }
         UpsertOutcome::Updated(user) => {
-            let groups_added_to = inventory.add_user_to_groups(&user, &groups).await?;
+            let groups_added_to = inventory.add_user_to_groups(&user, groups).await?;
             let groups_removed_from = inventory
-                .remove_user_from_all_groups_except(&user, &groups)
+                .remove_user_from_all_groups_except(&user, groups)
                 .await?;
 
             Ok(LoginResult::UserUpdated {

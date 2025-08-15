@@ -14,8 +14,7 @@ use std::{
 };
 
 use either::Either;
-use opentalk_db_storage::groups::Group;
-use opentalk_inventory::InventoryProvider;
+use opentalk_inventory::{Group, InventoryProvider};
 use opentalk_signaling_core::{
     CleanupScope, DestroyContext, Event, InitContext, LockError, ModuleContext, Participant,
     RoomLockingProvider as _, SignalingModule, SignalingModuleError, SignalingModuleInitData,

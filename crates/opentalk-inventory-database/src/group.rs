@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::groups::{Group, get_or_create_groups_by_name};
-use opentalk_inventory::{GroupInventory, error::StorageBackendSnafu};
+use opentalk_db_storage::groups::get_or_create_groups_by_name;
+use opentalk_inventory::{Group, GroupInventory, error::StorageBackendSnafu};
 use opentalk_types_common::{
     tenants::TenantId,
     users::{GroupName, UserId},
@@ -19,15 +19,23 @@ impl GroupInventory for DatabaseConnection {
         &mut self,
         groups: &[(TenantId, GroupName)],
     ) -> Result<Vec<Group>> {
-        get_or_create_groups_by_name(&mut self.inner, groups)
+        Ok(get_or_create_groups_by_name(&mut self.inner, groups)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into_iter()
+            .map(Into::into)
+            .collect())
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_groups_for_user(&mut self, user_id: UserId) -> Result<Vec<Group>> {
-        Group::get_all_for_user(&mut self.inner, user_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            opentalk_db_storage::groups::Group::get_all_for_user(&mut self.inner, user_id)
+                .await
+                .context(StorageBackendSnafu)?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
     }
 }
