@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::tenants::{OidcTenantId, Tenant, get_or_create_tenant_by_oidc_id};
-use opentalk_inventory::{TenantInventory, error::StorageBackendSnafu};
+use opentalk_db_storage::tenants::{Tenant, get_or_create_tenant_by_oidc_id};
+use opentalk_inventory::{OidcTenantId, TenantInventory, error::StorageBackendSnafu};
 use opentalk_types_common::tenants::TenantId;
 use snafu::ResultExt as _;
 
@@ -23,7 +23,7 @@ impl TenantInventory for DatabaseConnection {
         &mut self,
         oidc_tenant_id: &OidcTenantId,
     ) -> Result<Tenant> {
-        get_or_create_tenant_by_oidc_id(&mut self.inner, oidc_tenant_id)
+        get_or_create_tenant_by_oidc_id(&mut self.inner, &oidc_tenant_id.into())
             .await
             .context(StorageBackendSnafu)
     }

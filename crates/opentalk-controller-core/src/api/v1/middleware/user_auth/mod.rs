@@ -37,7 +37,7 @@ use opentalk_controller_settings::{
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_db_storage::{
     tariffs::{ExternalTariffId, Tariff},
-    tenants::{OidcTenantId, Tenant},
+    tenants::Tenant,
     users::User,
 };
 use opentalk_inventory::{
@@ -439,7 +439,7 @@ async fn check_access_token_inner(
         })?,
     };
     let tenant = inventory
-        .get_or_create_tenant_by_oidc_id(&OidcTenantId::from(tenant_id))
+        .get_or_create_tenant_by_oidc_id(&tenant_id.into())
         .await?;
 
     let groups: Vec<(TenantId, GroupName)> = info

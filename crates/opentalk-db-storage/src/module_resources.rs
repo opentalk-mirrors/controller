@@ -374,7 +374,7 @@ mod tests {
 
         let tenant = get_or_create_tenant_by_oidc_id(
             &mut db_conn,
-            &OidcTenantId::from("OpenTalkDefaultTenant".to_owned()),
+            &OidcTenantId::from("OpenTalkDefaultTenant"),
         )
         .await
         .unwrap();
@@ -1303,7 +1303,7 @@ mod tests {
 
         let tenant = get_or_create_tenant_by_oidc_id(
             &mut db_conn,
-            &OidcTenantId::from("OpenTalkDefaultTenant".to_owned()),
+            &OidcTenantId::from("OpenTalkDefaultTenant"),
         )
         .await
         .unwrap();

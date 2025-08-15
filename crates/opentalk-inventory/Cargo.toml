@@ -16,6 +16,13 @@ workspace = true
 [dependencies]
 async-trait.workspace = true
 bigdecimal.workspace = true
+derive_more = { workspace = true, features = [
+  "as_ref",
+  "display",
+  "from",
+  "from_str",
+  "into",
+] }
 opentalk-database.workspace = true
 opentalk-db-storage.workspace = true
 opentalk-types-common.workspace = true

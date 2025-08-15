@@ -64,7 +64,7 @@ pub use room_invite::RoomInviteInventory;
 pub use room_sip_config::RoomSipConfigInventory;
 pub use room_streaming_target::RoomStreamingTargetInventory;
 pub use tariff::TariffInventory;
-pub use tenant::TenantInventory;
+pub use tenant::{OidcTenantId, TenantInventory};
 pub use transaction::transaction;
 pub use transaction_manager::TransactionManager;
 pub use upsert::UpsertOutcome;
