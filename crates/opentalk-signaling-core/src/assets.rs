@@ -12,8 +12,8 @@ use aws_sdk_s3::primitives::{ByteStream, ByteStreamError};
 use bigdecimal::BigDecimal;
 use bytes::Bytes;
 use futures::Stream;
-use opentalk_db_storage::{assets::NewAsset, rooms::Room};
-use opentalk_inventory::{Asset, Inventory, InventoryProvider};
+use opentalk_db_storage::rooms::Room;
+use opentalk_inventory::{Asset, Inventory, InventoryProvider, NewAsset};
 use opentalk_types_common::{
     assets::{AssetFileKind, AssetId, FileExtension},
     events::EventTitle,

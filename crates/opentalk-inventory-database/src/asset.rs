@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_database::DatabaseError;
-use opentalk_db_storage::assets::{self as db, NewAsset, UpdateAsset};
-use opentalk_inventory::{Asset, AssetInventory, error::StorageBackendSnafu};
+use opentalk_db_storage::assets::{self as db, UpdateAsset};
+use opentalk_inventory::{Asset, AssetInventory, NewAsset, error::StorageBackendSnafu};
 use opentalk_types_common::{
     assets::{AssetId, AssetSorting},
     events::EventId,
@@ -20,7 +20,7 @@ use crate::{DatabaseConnection, Result};
 impl AssetInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn create_asset_for_room(&mut self, room_id: RoomId, asset: NewAsset) -> Result<Asset> {
-        Ok(asset
+        Ok(db::NewAsset::from(asset)
             .insert_for_room(&mut self.inner, room_id)
             .await
             .context(StorageBackendSnafu)?
