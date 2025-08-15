@@ -27,7 +27,7 @@ use opentalk_types_common::{
     sql_enum,
     tenants::TenantId,
     time::TimeZone,
-    training_participation_report::{TimeRange, TrainingParticipationReportParameterSet},
+    training_participation_report::TrainingParticipationReportParameterSet,
     users::UserId,
 };
 use redis_args::{FromRedisValue, ToRedisArgs};
@@ -1212,56 +1212,6 @@ impl EventTrainingParticipationReportParameterSet {
         query.execute(conn).await?;
 
         Ok(())
-    }
-}
-
-impl From<EventTrainingParticipationReportParameterSet>
-    for TrainingParticipationReportParameterSet
-{
-    fn from(
-        EventTrainingParticipationReportParameterSet {
-            event_id: _,
-            initial_checkpoint_delay_after,
-            initial_checkpoint_delay_within,
-            checkpoint_interval_after,
-            checkpoint_interval_within,
-        }: EventTrainingParticipationReportParameterSet,
-    ) -> Self {
-        Self {
-            initial_checkpoint_delay: TimeRange {
-                after: u64::try_from(initial_checkpoint_delay_after).unwrap_or_default(),
-                within: u64::try_from(initial_checkpoint_delay_within).unwrap_or_default(),
-            },
-            checkpoint_interval: TimeRange {
-                after: u64::try_from(checkpoint_interval_after).unwrap_or_default(),
-                within: u64::try_from(checkpoint_interval_within).unwrap_or_default(),
-            },
-        }
-    }
-}
-
-impl From<(EventId, TrainingParticipationReportParameterSet)>
-    for EventTrainingParticipationReportParameterSet
-{
-    fn from(
-        (
-            event_id,
-            TrainingParticipationReportParameterSet {
-                initial_checkpoint_delay,
-                checkpoint_interval,
-            },
-        ): (EventId, TrainingParticipationReportParameterSet),
-    ) -> Self {
-        Self {
-            event_id,
-            initial_checkpoint_delay_after: i64::try_from(initial_checkpoint_delay.after)
-                .unwrap_or(i64::MAX),
-            initial_checkpoint_delay_within: i64::try_from(initial_checkpoint_delay.within)
-                .unwrap_or(i64::MAX),
-            checkpoint_interval_after: i64::try_from(checkpoint_interval.after).unwrap_or(i64::MAX),
-            checkpoint_interval_within: i64::try_from(checkpoint_interval.within)
-                .unwrap_or(i64::MAX),
-        }
     }
 }
 

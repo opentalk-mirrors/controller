@@ -3,5 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 mod event_training_participation_report_inventory;
+mod event_training_participation_report_parameter_set;
 
 pub use event_training_participation_report_inventory::EventTrainingParticipationReportInventory;
+pub use event_training_participation_report_parameter_set::EventTrainingParticipationReportParameterSet;

@@ -2,12 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::events::{
-    EventTrainingParticipationReportParameterSet,
-    UpdateEventTrainingParticipationReportParameterSet,
-};
+use opentalk_db_storage::events::UpdateEventTrainingParticipationReportParameterSet;
 use opentalk_types_common::events::EventId;
 
+use super::EventTrainingParticipationReportParameterSet;
 use crate::Result;
 
 /// A trait for retrieving and storing event shared folder entities.

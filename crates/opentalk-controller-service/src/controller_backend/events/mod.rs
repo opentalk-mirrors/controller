@@ -21,15 +21,16 @@ use opentalk_controller_utils::{
 };
 use opentalk_db_storage::{
     events::{
-        EventTrainingParticipationReportParameterSet, NewEvent, UpdateEvent,
-        UpdateEventTrainingParticipationReportParameterSet, email_invites::EventEmailInvite,
+        NewEvent, UpdateEvent, UpdateEventTrainingParticipationReportParameterSet,
+        email_invites::EventEmailInvite,
     },
     rooms::{NewRoom, Room, UpdateRoom},
     sip_configs::{NewSipConfig, SipConfig},
     users::User,
 };
 use opentalk_inventory::{
-    Event, EventException, EventExceptionKind, EventInvite, Inventory, Tenant, transaction,
+    Event, EventException, EventExceptionKind, EventInvite,
+    EventTrainingParticipationReportParameterSet, Inventory, Tenant, transaction,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
