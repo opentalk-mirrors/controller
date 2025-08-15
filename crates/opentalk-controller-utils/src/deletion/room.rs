@@ -9,8 +9,7 @@ use kustos::{Authz, Resource as _, ResourceId};
 use kustos_shared::access::AccessMethod;
 use log::Log;
 use opentalk_controller_settings::Settings;
-use opentalk_db_storage::events::shared_folders::EventSharedFolder;
-use opentalk_inventory::{Inventory, transaction};
+use opentalk_inventory::{EventSharedFolder, Inventory, transaction};
 use opentalk_log::{debug, warn};
 use opentalk_signaling_core::{ExchangeHandle, ObjectStorage, assets::asset_key, control};
 use opentalk_types_common::{

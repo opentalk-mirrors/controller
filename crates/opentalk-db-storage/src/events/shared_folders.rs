@@ -6,11 +6,7 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DbConnection, Result};
-use opentalk_types_common::{
-    events::EventId,
-    rooms::RoomId,
-    shared_folders::{SharedFolder, SharedFolderAccess},
-};
+use opentalk_types_common::{events::EventId, rooms::RoomId};
 
 use super::Event;
 use crate::schema::{event_shared_folders, events};
@@ -125,28 +121,5 @@ impl EventSharedFolder {
     #[tracing::instrument(err, skip_all)]
     pub async fn delete(self, conn: &mut DbConnection) -> Result<()> {
         Self::delete_by_event_id(conn, self.event_id).await
-    }
-}
-
-impl From<EventSharedFolder> for SharedFolder {
-    fn from(
-        EventSharedFolder {
-            write_password,
-            write_url,
-            read_password,
-            read_url,
-            ..
-        }: EventSharedFolder,
-    ) -> Self {
-        SharedFolder {
-            read: SharedFolderAccess {
-                url: read_url,
-                password: read_password,
-            },
-            read_write: Some(SharedFolderAccess {
-                url: write_url,
-                password: write_password,
-            }),
-        }
     }
 }

@@ -11,8 +11,8 @@ use log::warn;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_db_storage::events::shared_folders::{EventSharedFolder, NewEventSharedFolder};
-use opentalk_inventory::Inventory;
+use opentalk_db_storage::events::shared_folders::NewEventSharedFolder;
+use opentalk_inventory::{EventSharedFolder, Inventory};
 use opentalk_nextcloud_client::{Client, ShareId, SharePermission, ShareType};
 use opentalk_types_api_v1::{
     error::ApiError,

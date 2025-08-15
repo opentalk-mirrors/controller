@@ -55,7 +55,7 @@ pub use event::{
     NewEventException, UpdateEvent, UpdateEventException,
 };
 pub use event_invite::{EventInvite, EventInviteId, EventInviteInventory};
-pub use event_shared_folder::EventSharedFolderInventory;
+pub use event_shared_folder::{EventSharedFolder, EventSharedFolderInventory};
 pub use event_training_participation_report::{
     EventTrainingParticipationReportInventory, EventTrainingParticipationReportParameterSet,
 };

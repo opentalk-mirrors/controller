@@ -2,9 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::events::shared_folders::{EventSharedFolder, NewEventSharedFolder};
+use opentalk_db_storage::events::shared_folders::NewEventSharedFolder;
 use opentalk_types_common::{events::EventId, rooms::RoomId};
 
+use super::EventSharedFolder;
 use crate::Result;
 
 /// A trait for retrieving and storing event shared folder entities.
