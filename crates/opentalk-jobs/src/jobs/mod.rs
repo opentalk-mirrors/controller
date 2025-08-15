@@ -25,12 +25,11 @@ pub use user_cleanup::UserCleanup;
 #[cfg(test)]
 mod test_utils {
     use opentalk_db_storage::{
-        events::NewEvent,
         invites::{Invite, NewInvite},
         rooms::{NewRoom, Room},
         users::User,
     };
-    use opentalk_inventory::{Event, Inventory};
+    use opentalk_inventory::{Event, Inventory, NewEvent};
     use opentalk_test_util::database::DatabaseContext;
 
     pub(super) async fn create_events_and_independent_rooms(

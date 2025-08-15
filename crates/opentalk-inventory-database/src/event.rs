@@ -6,7 +6,7 @@ use std::collections::BTreeSet;
 
 use opentalk_db_storage::{
     events::{
-        self as db, EventFavorite, GetEventsCursor, NewEvent, NewEventException, NewEventFavorite,
+        self as db, EventFavorite, GetEventsCursor, NewEventException, NewEventFavorite,
         UpdateEvent, UpdateEventException, shared_folders::EventSharedFolder,
     },
     rooms::Room,
@@ -16,7 +16,7 @@ use opentalk_db_storage::{
 };
 use opentalk_inventory::{
     Event, EventException, EventExceptionId, EventInventory, EventInvite,
-    EventTrainingParticipationReportParameterSet, error::StorageBackendSnafu,
+    EventTrainingParticipationReportParameterSet, NewEvent, error::StorageBackendSnafu,
 };
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
@@ -33,7 +33,7 @@ use crate::{DatabaseConnection, Result};
 impl EventInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn create_event(&mut self, new_event: NewEvent) -> Result<Event> {
-        Ok(new_event
+        Ok(db::NewEvent::from(new_event)
             .insert(&mut self.inner)
             .await
             .context(StorageBackendSnafu)?

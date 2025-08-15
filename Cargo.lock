@@ -6216,6 +6216,7 @@ dependencies = [
  "bigdecimal",
  "bincode 2.0.1",
  "chrono",
+ "chrono-tz",
  "derive_more 2.0.1",
  "opentalk-database",
  "opentalk-db-storage",
