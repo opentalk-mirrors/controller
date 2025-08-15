@@ -9,8 +9,9 @@ use super::{
     oidc_and_user_search_builder::OidcAndUserSearchBuilder,
 };
 use crate::{
-    Result, SettingsError, SettingsRaw, settings_file::UsersFindBehavior,
-    settings_runtime::RoomServer,
+    Result, SettingsError, SettingsRaw,
+    settings_file::UsersFindBehavior,
+    settings_runtime::{RoomServer, WebSocketRateLimit},
 };
 
 /// The settings used for the OpenTalk controller at runtime
@@ -88,6 +89,9 @@ pub struct Settings {
     /// The defaults configuration.
     pub defaults: Defaults,
 
+    /// The websocket rate limiting configuration.
+    pub ws_rate_limit: Option<WebSocketRateLimit>,
+
     /// The livekit settings.
     pub livekit: LiveKit,
 
@@ -125,6 +129,8 @@ impl TryFrom<SettingsRaw> for Settings {
             users_find_behavior,
         } = OidcAndUserSearchBuilder::load_from_settings_raw(&raw)?;
 
+        let ws_rate_limit = WebSocketRateLimit::from_settings_file(raw.websocket_rate_limit)?;
+
         let frontend = raw.frontend.clone().into();
         let http = raw.http.clone().into();
         let database = raw.database.clone().into();
@@ -150,6 +156,7 @@ impl TryFrom<SettingsRaw> for Settings {
         let tenants = raw.tenants.clone().map(Into::into).unwrap_or_default();
         let tariffs = raw.tariffs.clone().map(Into::into).unwrap_or_default();
         let defaults = raw.defaults.clone().map(Into::into).unwrap_or_default();
+
         let livekit = raw.livekit.clone().into();
         let operator_information = raw.operator_information.clone().map(Into::into);
         let roomserver = raw.roomserver.clone().map(Into::into);
@@ -180,6 +187,7 @@ impl TryFrom<SettingsRaw> for Settings {
             tariffs,
             defaults,
             livekit,
+            ws_rate_limit,
             operator_information,
             roomserver,
         })
@@ -285,6 +293,7 @@ pub(crate) fn minimal_example() -> Settings {
             screen_share_requires_permission: false,
             disabled_features: BTreeSet::new(),
         },
+        ws_rate_limit: Some(WebSocketRateLimit::default()),
         livekit: LiveKit {
             public_url: "ws://localhost:7880".to_string(),
             service_url: "http://localhost:7880".to_string(),

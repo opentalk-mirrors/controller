@@ -204,10 +204,13 @@ async fn ws_service_inner(
 
     // Finish websocket handshake
     let (sender, recv) = mpsc::unbounded_channel();
-    let (addr, response) =
-        ws::WsResponseBuilder::new(WebSocketActor::new(sender), &request, stream)
-            .protocols(protocols.0)
-            .start_with_addr()?;
+    let (addr, response) = ws::WsResponseBuilder::new(
+        WebSocketActor::new(sender, settings_provider.get().ws_rate_limit.clone()),
+        &request,
+        stream,
+    )
+    .protocols(protocols.0)
+    .start_with_addr()?;
 
     let mut builder = match Runner::builder(
         request_id.into(),

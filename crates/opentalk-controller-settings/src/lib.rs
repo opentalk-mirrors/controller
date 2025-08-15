@@ -46,7 +46,7 @@ pub use settings_runtime::{
     Etherpad, Frontend, Http, HttpTls, LiveKit, Logging, LoggingOltpTracing, Metrics, MinIO,
     Monitoring, Oidc, OidcController, OidcFrontend, OperatorInformation, Settings, SharedFolder,
     Spacedeck, SubroomAudio, TariffAssignment, TariffStatusMapping, Tariffs, TenantAssignment,
-    Tenants, UserSearchBackend, UserSearchBackendKeycloak,
+    Tenants, UserSearchBackend, UserSearchBackendKeycloak, WebSocketRateLimit,
 };
 
 type Result<T, E = SettingsError> = std::result::Result<T, E>;

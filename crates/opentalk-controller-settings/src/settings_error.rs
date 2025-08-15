@@ -46,4 +46,14 @@ pub enum SettingsError {
         "Found `user_search.users_find_behavior` value `from_user_search_backend`, but no user search backend is configured"
     ))]
     UsersFindBehaviorBackendMissing,
+
+    #[snafu(display(
+        "Missing `tokens_per_second` field in the `websocket_rate_limit` configuration"
+    ))]
+    RateLimitTokensPerSecondMissing,
+
+    #[snafu(display(
+        "Missing `token_bucket_size` field in the `websocket_rate_limit` configuration"
+    ))]
+    RateLimitTokenBucketSizeMissing,
 }
