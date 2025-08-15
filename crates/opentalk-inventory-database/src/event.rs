@@ -247,6 +247,22 @@ impl EventInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err, skip_all)]
+    async fn get_all_event_ids_with_creator_id(&mut self) -> Result<Vec<(EventId, UserId)>> {
+        db::Event::get_all_with_creator(&mut self.inner)
+            .await
+            .context(StorageBackendSnafu)
+    }
+
+    #[tracing::instrument(err, skip_all)]
+    async fn get_all_event_ids_with_room_ids_and_invitee_ids(
+        &mut self,
+    ) -> Result<Vec<(EventId, RoomId, UserId)>> {
+        db::Event::get_all_with_invitee(&mut self.inner)
+            .await
+            .context(StorageBackendSnafu)
+    }
+
+    #[tracing::instrument(err, skip_all)]
     async fn create_event_exception(
         &mut self,
         event_exception: NewEventException,

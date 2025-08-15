@@ -22,6 +22,9 @@ pub trait RoomInventory {
     /// Get a room and its creator by its id.
     async fn get_room_with_creator(&mut self, room_id: RoomId) -> Result<(Room, User)>;
 
+    /// Get all rooms and their creators.
+    async fn get_all_rooms_with_creator(&mut self) -> Result<Vec<(Room, User)>>;
+
     /// Update a room.
     async fn update_room(&mut self, room_id: RoomId, update: UpdateRoom) -> Result<Room>;
 

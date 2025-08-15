@@ -119,6 +119,14 @@ pub trait EventInventory {
         )>,
     >;
 
+    /// Get the ids of all events with the ids of their creator.
+    async fn get_all_event_ids_with_creator_id(&mut self) -> Result<Vec<(EventId, UserId)>>;
+
+    /// Get all event ids with room ids and their invitee ids.
+    async fn get_all_event_ids_with_room_ids_and_invitee_ids(
+        &mut self,
+    ) -> Result<Vec<(EventId, RoomId, UserId)>>;
+
     /// Create an event exception.
     async fn create_event_exception(
         &mut self,

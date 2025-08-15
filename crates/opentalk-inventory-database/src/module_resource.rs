@@ -7,7 +7,7 @@ use opentalk_inventory::{
     ModuleResourceInventory,
     error::{JsonOperationSnafu, StorageBackendSnafu},
 };
-use opentalk_types_common::{module_resources::ModuleResourceId, rooms::RoomId};
+use opentalk_types_common::{module_resources::ModuleResourceId, rooms::RoomId, users::UserId};
 use snafu::ResultExt as _;
 
 use crate::{DatabaseConnection, Result};
@@ -31,6 +31,15 @@ impl ModuleResourceInventory for DatabaseConnection {
         resource_filter: Filter,
     ) -> Result<Vec<ModuleResource>> {
         ModuleResource::get(&mut self.inner, resource_filter)
+            .await
+            .context(StorageBackendSnafu)
+    }
+
+    #[tracing::instrument(err, skip_all)]
+    async fn get_all_module_resources(
+        &mut self,
+    ) -> Result<Vec<(ModuleResourceId, UserId, UserId)>> {
+        ModuleResource::get_all_with_creator_and_owner(&mut self.inner)
             .await
             .context(StorageBackendSnafu)
     }

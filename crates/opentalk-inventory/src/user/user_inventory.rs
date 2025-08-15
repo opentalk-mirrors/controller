@@ -13,7 +13,7 @@ use opentalk_types_common::{
 };
 
 use super::UserCreateOrUpdateByOidcSub;
-use crate::{Result, UpsertOutcome};
+use crate::{Group, Result, UpsertOutcome};
 
 /// A trait for retrieving and storing user entities.
 #[async_trait::async_trait]
@@ -32,6 +32,9 @@ pub trait UserInventory {
 
     /// Get all users.
     async fn get_all_users(&mut self) -> Result<Vec<User>>;
+
+    /// Get all users and their groups.
+    async fn get_all_users_with_groups(&mut self) -> Result<Vec<(User, Vec<Group>)>>;
 
     /// Get a list of users by their ids.
     async fn get_users_by_ids(&mut self, user_ids: &[UserId]) -> Result<Vec<User>>;

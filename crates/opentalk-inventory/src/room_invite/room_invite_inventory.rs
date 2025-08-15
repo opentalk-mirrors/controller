@@ -20,6 +20,9 @@ pub trait RoomInviteInventory {
     /// Get a room invite by the invite code.
     async fn get_room_invite(&mut self, invite_code: InviteCode) -> Result<Invite>;
 
+    /// Get all room invites.
+    async fn get_all_room_invites(&mut self) -> Result<Vec<Invite>>;
+
     /// Get a valid invite for a room.
     async fn get_valid_invite_for_room(&mut self, room_id: RoomId) -> Result<Option<Invite>>;
 

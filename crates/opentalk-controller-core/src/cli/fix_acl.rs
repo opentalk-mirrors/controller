@@ -11,10 +11,10 @@ use clap::Parser;
 use kustos::prelude::*;
 use opentalk_controller_service::controller_backend::RoomsPoliciesBuilderExt;
 use opentalk_controller_settings::Settings;
-use opentalk_database::{Db, DbConnection};
-use opentalk_db_storage::{
-    events::Event, invites::Invite, module_resources::ModuleResource, rooms::Room, users::User,
-};
+use opentalk_database::Db;
+use opentalk_db_storage::invites::Invite;
+use opentalk_inventory::Inventory;
+use opentalk_inventory_database::DatabaseConnection;
 use snafu::{ResultExt, whatever};
 
 use crate::{
@@ -55,10 +55,11 @@ pub(super) async fn fix_acl(settings: &Settings, args: Args) -> Result<()> {
     let db = Arc::new(
         Db::connect(&settings.database).whatever_context("Failed to connect to database")?,
     );
-    let mut conn = db
+    let conn = db
         .get_conn()
         .await
         .whatever_context("Failed to get connection from connection pool")?;
+    let mut inventory = DatabaseConnection::new(conn);
 
     let authz = kustos::Authz::new(db.clone())
         .await
@@ -94,19 +95,19 @@ pub(super) async fn fix_acl(settings: &Settings, args: Args) -> Result<()> {
     let mut errors: Vec<kustos::Error> = Vec::new();
 
     if !(args.skip_users && args.skip_groups) {
-        fix_user(&args, &mut conn, &authz, &mut errors).await?;
+        fix_user(&args, &mut inventory, &authz, &mut errors).await?;
     }
 
     if !args.skip_rooms {
-        fix_rooms(&mut conn, &authz).await?;
+        fix_rooms(&mut inventory, &authz).await?;
     }
 
     if !args.skip_module_resources {
-        fix_module_resources(&mut conn, &authz).await?;
+        fix_module_resources(&mut inventory, &authz).await?;
     }
 
     if !args.skip_events {
-        fix_events(&mut conn, &authz).await?;
+        fix_events(&mut inventory, &authz).await?;
     }
 
     if errors.is_empty() {
@@ -126,11 +127,12 @@ pub(super) async fn fix_acl(settings: &Settings, args: Args) -> Result<()> {
 
 async fn fix_user(
     args: &Args,
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     authz: &kustos::Authz,
     errors: &mut Vec<kustos::Error>,
 ) -> Result<()> {
-    let users = User::get_all_with_groups(conn)
+    let users = inventory
+        .get_all_users_with_groups()
         .await
         .whatever_context("Failed to load users")?;
 
@@ -174,10 +176,11 @@ async fn fix_user(
     Ok(())
 }
 
-async fn fix_rooms(conn: &mut DbConnection, authz: &kustos::Authz) -> Result<()> {
+async fn fix_rooms(inventory: &mut dyn Inventory, authz: &kustos::Authz) -> Result<()> {
     let mut policies = PoliciesBuilder::new();
 
-    let rooms = Room::get_all_with_creator(conn)
+    let rooms = inventory
+        .get_all_rooms_with_creator()
         .await
         .whatever_context("Failed to load rooms")?;
     for (room, user) in rooms {
@@ -189,7 +192,8 @@ async fn fix_rooms(conn: &mut DbConnection, authz: &kustos::Authz) -> Result<()>
     }
 
     let now = Utc::now();
-    let invites = Invite::get_all(conn)
+    let invites = inventory
+        .get_all_room_invites()
         .await
         .whatever_context("Failed to load invites")?;
     for Invite {
@@ -216,8 +220,9 @@ async fn fix_rooms(conn: &mut DbConnection, authz: &kustos::Authz) -> Result<()>
     Ok(())
 }
 
-async fn fix_module_resources(conn: &mut DbConnection, authz: &kustos::Authz) -> Result<()> {
-    let module_resources_with_creator = ModuleResource::get_all_with_creator_and_owner(conn)
+async fn fix_module_resources(inventory: &mut dyn Inventory, authz: &kustos::Authz) -> Result<()> {
+    let module_resources_with_creator = inventory
+        .get_all_module_resources()
         .await
         .whatever_context("Failed to load module resources")?;
 
@@ -249,11 +254,13 @@ async fn fix_module_resources(conn: &mut DbConnection, authz: &kustos::Authz) ->
     Ok(())
 }
 
-async fn fix_events(conn: &mut DbConnection, authz: &kustos::Authz) -> Result<()> {
-    let events_with_creator = Event::get_all_with_creator(conn)
+async fn fix_events(inventory: &mut dyn Inventory, authz: &kustos::Authz) -> Result<()> {
+    let events_with_creator = inventory
+        .get_all_event_ids_with_creator_id()
         .await
         .whatever_context("Failed to load events")?;
-    let events_with_invitee = Event::get_all_with_invitee(conn)
+    let events_with_invitee = inventory
+        .get_all_event_ids_with_room_ids_and_invitee_ids()
         .await
         .whatever_context("Failed to load events")?;
 

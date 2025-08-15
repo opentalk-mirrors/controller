@@ -37,6 +37,13 @@ impl RoomInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err, skip_all)]
+    async fn get_all_rooms_with_creator(&mut self) -> Result<Vec<(Room, User)>> {
+        Room::get_all_with_creator(&mut self.inner)
+            .await
+            .context(StorageBackendSnafu)
+    }
+
+    #[tracing::instrument(err, skip_all)]
     async fn update_room(&mut self, room_id: RoomId, update: UpdateRoom) -> Result<Room> {
         update
             .apply(&mut self.inner, room_id)

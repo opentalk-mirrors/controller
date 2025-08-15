@@ -12,7 +12,7 @@ use opentalk_db_storage::{
     users::{NewUser, UpdateUser, User},
 };
 use opentalk_inventory::{
-    UpsertOutcome, UserCreateOrUpdateByOidcSub, UserInventory, error::StorageBackendSnafu,
+    Group, UpsertOutcome, UserCreateOrUpdateByOidcSub, UserInventory, error::StorageBackendSnafu,
 };
 use opentalk_types_common::{
     tenants::TenantId,
@@ -59,6 +59,16 @@ impl UserInventory for DatabaseConnection {
         User::get_all(&mut self.inner)
             .await
             .context(StorageBackendSnafu)
+    }
+
+    #[tracing::instrument(err, skip_all)]
+    async fn get_all_users_with_groups(&mut self) -> Result<Vec<(User, Vec<Group>)>> {
+        Ok(User::get_all_with_groups(&mut self.inner)
+            .await
+            .context(StorageBackendSnafu)?
+            .into_iter()
+            .map(|(user, groups)| (user, groups.into_iter().map(Into::into).collect()))
+            .collect())
     }
 
     #[tracing::instrument(err, skip_all)]

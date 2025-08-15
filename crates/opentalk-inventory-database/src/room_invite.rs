@@ -31,6 +31,12 @@ impl RoomInviteInventory for DatabaseConnection {
             .context(StorageBackendSnafu)
     }
 
+    async fn get_all_room_invites(&mut self) -> Result<Vec<Invite>> {
+        Invite::get_all(&mut self.inner)
+            .await
+            .context(StorageBackendSnafu)
+    }
+
     #[tracing::instrument(err, skip_all)]
     async fn get_valid_invite_for_room(&mut self, room_id: RoomId) -> Result<Option<Invite>> {
         Invite::get_valid_for_room(&mut self.inner, room_id, Utc::now())
