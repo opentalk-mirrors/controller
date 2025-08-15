@@ -2,10 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::tenants::Tenant;
 use opentalk_types_common::tenants::TenantId;
 
-use super::OidcTenantId;
+use super::{OidcTenantId, Tenant};
 use crate::Result;
 
 /// A trait for retrieving and storing room entities.

@@ -27,10 +27,9 @@ use opentalk_db_storage::{
     },
     rooms::{NewRoom, Room, UpdateRoom},
     sip_configs::{NewSipConfig, SipConfig},
-    tenants::Tenant,
     users::User,
 };
-use opentalk_inventory::{Inventory, transaction};
+use opentalk_inventory::{Inventory, Tenant, transaction};
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
     Cursor,

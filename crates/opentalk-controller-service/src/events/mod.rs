@@ -7,8 +7,8 @@
 pub(crate) mod notifications;
 
 use opentalk_controller_settings::{Settings, TenantAssignment};
-use opentalk_db_storage::{events::shared_folders::EventSharedFolder, tenants::Tenant};
-use opentalk_inventory::Inventory;
+use opentalk_db_storage::events::shared_folders::EventSharedFolder;
+use opentalk_inventory::{Inventory, Tenant};
 use opentalk_keycloak_admin::{KeycloakAdminClient, users::TenantFilter};
 use opentalk_types_api_v1::{
     events::{EventInvitee, EventInviteeProfile},

@@ -11,10 +11,9 @@ use opentalk_db_storage::{
     invites::Invite,
     rooms::Room,
     sip_configs::SipConfig,
-    tenants::Tenant,
     users::User,
 };
-use opentalk_inventory::Inventory;
+use opentalk_inventory::{Inventory, Tenant};
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_common::{
     rooms::RoomId, shared_folders::SharedFolder, streaming::RoomStreamingTarget,

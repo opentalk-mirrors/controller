@@ -18,10 +18,9 @@ use opentalk_db_storage::{
     invites::NewInvite,
     rooms::Room,
     sip_configs::SipConfig,
-    tenants::Tenant,
     users::User,
 };
-use opentalk_inventory::{Inventory, InventoryProvider, transaction};
+use opentalk_inventory::{Inventory, InventoryProvider, Tenant, transaction};
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
     error::ApiError,

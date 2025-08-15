@@ -4,11 +4,6 @@
 
 /// The tenant id communicated as an OIDC claim.
 #[derive(
-    derive_more::AsRef,
-    derive_more::Display,
-    derive_more::From,
-    derive_more::FromStr,
-    derive_more::Into,
     Debug,
     Clone,
     PartialEq,
@@ -16,6 +11,15 @@
     PartialOrd,
     Ord,
     Hash,
+    derive_more::AsRef,
+    derive_more::Display,
+    derive_more::From,
+    derive_more::FromStr,
+    derive_more::Into,
+    serde::Serialize,
+    serde::Deserialize,
+    bincode::Encode,
+    bincode::Decode,
 )]
 pub struct OidcTenantId(String);
 

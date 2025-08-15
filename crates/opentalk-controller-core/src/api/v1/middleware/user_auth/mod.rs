@@ -37,11 +37,10 @@ use opentalk_controller_settings::{
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_db_storage::{
     tariffs::{ExternalTariffId, Tariff},
-    tenants::Tenant,
     users::User,
 };
 use opentalk_inventory::{
-    Inventory, InventoryProvider, UpsertOutcome, UserCreateOrUpdateByOidcSub, transaction,
+    Inventory, InventoryProvider, Tenant, UpsertOutcome, UserCreateOrUpdateByOidcSub, transaction,
 };
 use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use opentalk_types_common::{
