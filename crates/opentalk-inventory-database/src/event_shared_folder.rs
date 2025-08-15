@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::events::shared_folders::{self as db, NewEventSharedFolder};
+use opentalk_db_storage::events::shared_folders::{self as db};
 use opentalk_inventory::{
-    EventSharedFolder, EventSharedFolderInventory, error::StorageBackendSnafu,
+    EventSharedFolder, EventSharedFolderInventory, NewEventSharedFolder, error::StorageBackendSnafu,
 };
 use opentalk_types_common::{events::EventId, rooms::RoomId};
 use snafu::ResultExt as _;
@@ -18,7 +18,7 @@ impl EventSharedFolderInventory for DatabaseConnection {
         &mut self,
         new_shared_folder: NewEventSharedFolder,
     ) -> Result<Option<EventSharedFolder>> {
-        Ok(new_shared_folder
+        Ok(db::NewEventSharedFolder::from(new_shared_folder)
             .try_insert(&mut self.inner)
             .await
             .context(StorageBackendSnafu)?

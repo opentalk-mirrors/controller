@@ -17,7 +17,6 @@ workspace = true
 async-trait.workspace = true
 either.workspace = true
 log.workspace = true
-opentalk-db-storage.workspace = true
 opentalk-inventory.workspace = true
 opentalk-signaling-core.workspace = true
 opentalk-types-common = { workspace = true, features = ["backend"] }

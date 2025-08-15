@@ -6905,7 +6905,6 @@ dependencies = [
  "async-trait",
  "either",
  "log",
- "opentalk-db-storage",
  "opentalk-inventory",
  "opentalk-signaling-core",
  "opentalk-test-util",
