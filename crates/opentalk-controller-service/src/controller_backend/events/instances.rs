@@ -428,7 +428,7 @@ impl ControllerBackend {
 
             inventory
                 .update_event_exception(
-                    exception.id,
+                    exception.id.into(),
                     UpdateEventException {
                         kind: match patch.status {
                             Some(EventStatus::Ok) => Some(EventExceptionKind::Modified),

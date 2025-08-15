@@ -31,3 +31,4 @@ opentalk-types-common.workspace = true
 scoped-futures.workspace = true
 serde = { workspace = true, features = ["derive"] }
 snafu.workspace = true
+uuid.workspace = true

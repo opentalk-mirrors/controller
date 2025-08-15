@@ -50,7 +50,7 @@ pub mod utils;
 
 pub use asset::{Asset, AssetInventory, NewAsset, UpdateAsset};
 pub use error::Error;
-pub use event::{Event, EventInventory};
+pub use event::{Event, EventExceptionId, EventInventory};
 pub use event_invite::EventInviteInventory;
 pub use event_shared_folder::EventSharedFolderInventory;
 pub use event_training_participation_report::EventTrainingParticipationReportInventory;
