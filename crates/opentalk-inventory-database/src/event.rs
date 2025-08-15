@@ -6,16 +6,18 @@ use std::collections::BTreeSet;
 
 use opentalk_db_storage::{
     events::{
-        self as db, EventException, EventFavorite, EventInvite,
-        EventTrainingParticipationReportParameterSet, GetEventsCursor, NewEvent, NewEventException,
-        NewEventFavorite, UpdateEvent, UpdateEventException, shared_folders::EventSharedFolder,
+        self as db, EventFavorite, EventInvite, EventTrainingParticipationReportParameterSet,
+        GetEventsCursor, NewEvent, NewEventException, NewEventFavorite, UpdateEvent,
+        UpdateEventException, shared_folders::EventSharedFolder,
     },
     rooms::Room,
     sip_configs::SipConfig,
     tariffs::Tariff,
     users::User,
 };
-use opentalk_inventory::{Event, EventExceptionId, EventInventory, error::StorageBackendSnafu};
+use opentalk_inventory::{
+    Event, EventException, EventExceptionId, EventInventory, error::StorageBackendSnafu,
+};
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
     rooms::RoomId,
@@ -230,6 +232,7 @@ impl EventInventory for DatabaseConnection {
                     tariff,
                     training_participation_report_parameters,
                 )| {
+                    let exceptions = exceptions.into_iter().map(EventException::from).collect();
                     (
                         event.into(),
                         invite,
@@ -267,10 +270,11 @@ impl EventInventory for DatabaseConnection {
         &mut self,
         event_exception: NewEventException,
     ) -> Result<EventException> {
-        event_exception
+        Ok(event_exception
             .insert(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into())
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -280,9 +284,14 @@ impl EventInventory for DatabaseConnection {
         timestamps: &[Timestamp],
     ) -> Result<Vec<EventException>> {
         let timestamps: Vec<&_> = timestamps.iter().map(|v| v.as_ref()).collect();
-        EventException::get_all_for_event(&mut self.inner, event_id, &timestamps)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::EventException::get_all_for_event(&mut self.inner, event_id, &timestamps)
+                .await
+                .context(StorageBackendSnafu)?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -291,9 +300,14 @@ impl EventInventory for DatabaseConnection {
         event_id: EventId,
         instance_id_timestamp: Timestamp,
     ) -> Result<Option<EventException>> {
-        EventException::get_for_event(&mut self.inner, event_id, instance_id_timestamp.into())
-            .await
-            .context(StorageBackendSnafu)
+        Ok(db::EventException::get_for_event(
+            &mut self.inner,
+            event_id,
+            instance_id_timestamp.into(),
+        )
+        .await
+        .context(StorageBackendSnafu)?
+        .map(Into::into))
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -302,15 +316,16 @@ impl EventInventory for DatabaseConnection {
         event_exception_id: EventExceptionId,
         event_exception: UpdateEventException,
     ) -> Result<EventException> {
-        event_exception
+        Ok(event_exception
             .apply(&mut self.inner, event_exception_id.into())
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into())
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn delete_event_exceptions_for_event(&mut self, event_id: EventId) -> Result<()> {
-        EventException::delete_all_for_event(&mut self.inner, event_id)
+        db::EventException::delete_all_for_event(&mut self.inner, event_id)
             .await
             .context(StorageBackendSnafu)
     }

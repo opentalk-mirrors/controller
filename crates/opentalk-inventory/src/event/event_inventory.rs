@@ -6,9 +6,8 @@ use std::collections::BTreeSet;
 
 use opentalk_db_storage::{
     events::{
-        EventException, EventInvite, EventTrainingParticipationReportParameterSet, GetEventsCursor,
-        NewEvent, NewEventException, UpdateEvent, UpdateEventException,
-        shared_folders::EventSharedFolder,
+        EventInvite, EventTrainingParticipationReportParameterSet, GetEventsCursor, NewEvent,
+        NewEventException, UpdateEvent, UpdateEventException, shared_folders::EventSharedFolder,
     },
     rooms::Room,
     sip_configs::SipConfig,
@@ -23,7 +22,7 @@ use opentalk_types_common::{
     users::UserId,
 };
 
-use super::{Event, EventExceptionId};
+use super::{Event, EventException, EventExceptionId};
 use crate::Result;
 
 /// A trait for retrieving and storing event entities.

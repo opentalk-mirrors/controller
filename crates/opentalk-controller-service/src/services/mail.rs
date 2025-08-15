@@ -13,13 +13,8 @@ use std::sync::Arc;
 use chrono::DateTime;
 use lapin_pool::{RabbitMqChannel, RabbitMqPool};
 use opentalk_controller_settings::Settings;
-use opentalk_db_storage::{
-    events::{EventException, EventExceptionKind},
-    rooms::Room,
-    sip_configs::SipConfig,
-    users::User,
-};
-use opentalk_inventory::Event;
+use opentalk_db_storage::{rooms::Room, sip_configs::SipConfig, users::User};
+use opentalk_inventory::{Event, EventException, EventExceptionKind};
 use opentalk_mail_worker_protocol::*;
 use opentalk_types_common::{
     features::CALL_IN_FEATURE_ID,
@@ -161,7 +156,7 @@ fn to_event(
 
 fn to_event_exception(exception: EventException) -> v1::EventException {
     let exception_date = v1::Time {
-        time: exception.exception_date,
+        time: exception.exception_date.into(),
         timezone: exception.exception_date_tz.to_string(),
     };
 
@@ -172,10 +167,15 @@ fn to_event_exception(exception: EventException) -> v1::EventException {
 
     let starts_at: Option<v1::Time> = exception
         .starts_at
+        .map(DateTime::from)
         .zip(exception.starts_at_tz)
         .map(Into::into);
 
-    let ends_at: Option<v1::Time> = exception.ends_at.zip(exception.ends_at_tz).map(Into::into);
+    let ends_at: Option<v1::Time> = exception
+        .ends_at
+        .map(DateTime::from)
+        .zip(exception.ends_at_tz)
+        .map(Into::into);
 
     v1::EventException {
         exception_date,

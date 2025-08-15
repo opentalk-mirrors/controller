@@ -21,15 +21,16 @@ use opentalk_controller_utils::{
 };
 use opentalk_db_storage::{
     events::{
-        EventException, EventExceptionKind, EventInvite,
-        EventTrainingParticipationReportParameterSet, NewEvent, UpdateEvent,
+        EventInvite, EventTrainingParticipationReportParameterSet, NewEvent, UpdateEvent,
         UpdateEventTrainingParticipationReportParameterSet, email_invites::EventEmailInvite,
     },
     rooms::{NewRoom, Room, UpdateRoom},
     sip_configs::{NewSipConfig, SipConfig},
     users::User,
 };
-use opentalk_inventory::{Event, Inventory, Tenant, transaction};
+use opentalk_inventory::{
+    Event, EventException, EventExceptionKind, Inventory, Tenant, transaction,
+};
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
     Cursor,
@@ -51,7 +52,7 @@ use opentalk_types_common::{
     shared_folders::SharedFolder,
     streaming::{RoomStreamingTarget, StreamingTarget},
     tariffs::TariffResource,
-    time::{DateTimeTz, RecurrencePattern, TimeZone},
+    time::{DateTimeTz, RecurrencePattern, TimeZone, Timestamp},
     training_participation_report::TrainingParticipationReportParameterSet,
 };
 use rrule::{Frequency, RRuleSet};
@@ -458,7 +459,7 @@ impl ControllerBackend {
                 for exception in exceptions {
                     let created_by = users.get(exception.created_by);
                     let exception_resource =
-                        EventExceptionResource::from_db(exception, created_by, can_edit);
+                        EventExceptionResource::from_inventory(exception, created_by, can_edit);
 
                     event_exception_resources.push(exception_resource);
                 }
@@ -909,24 +910,24 @@ impl ControllerBackend {
     }
 }
 
-pub(crate) trait DateTimeTzFromDb: Sized {
-    fn maybe_from_db(utc_dt: Option<DateTime<Utc>>, tz: Option<TimeZone>) -> Option<Self>;
+pub(crate) trait DateTimeTzFromInventory: Sized {
+    fn maybe_from_inventory(utc_dt: Option<Timestamp>, tz: Option<TimeZone>) -> Option<Self>;
     fn starts_at_of(event: &Event) -> Option<Self>;
     fn ends_at_of(event: &Event) -> Option<Self>;
     fn to_datetime_tz(self) -> DateTime<Tz>;
 }
 
-impl DateTimeTzFromDb for DateTimeTz {
+impl DateTimeTzFromInventory for DateTimeTz {
     /// Create a [`DateTimeTz`] from the database results
     ///
     /// Returns None if any of them are none.
     ///
     /// Only used to exceptions. To get the correct starts_at/ends_at [`DateTimeTz`] values
     /// [`DateTimeTz::starts_at_of`] and [`DateTimeTz::ends_at_of`] is used
-    fn maybe_from_db(utc_dt: Option<DateTime<Utc>>, tz: Option<TimeZone>) -> Option<Self> {
+    fn maybe_from_inventory(utc_dt: Option<Timestamp>, tz: Option<TimeZone>) -> Option<Self> {
         if let (Some(utc_dt), Some(tz)) = (utc_dt, tz) {
             Some(Self {
-                datetime: utc_dt,
+                datetime: utc_dt.into(),
                 timezone: tz,
             })
         } else {
@@ -961,26 +962,37 @@ impl DateTimeTzFromDb for DateTimeTz {
 }
 
 trait EventResourceExt {
-    fn from_db(exception: EventException, created_by: PublicUserProfile, can_edit: bool) -> Self;
+    fn from_inventory(
+        exception: EventException,
+        created_by: PublicUserProfile,
+        can_edit: bool,
+    ) -> Self;
 }
 
 impl EventResourceExt for EventExceptionResource {
-    fn from_db(exception: EventException, created_by: PublicUserProfile, can_edit: bool) -> Self {
+    fn from_inventory(
+        exception: EventException,
+        created_by: PublicUserProfile,
+        can_edit: bool,
+    ) -> Self {
         Self {
             id: EventAndInstanceId(exception.event_id, exception.exception_date.into()),
             recurring_event_id: exception.event_id,
             instance_id: exception.exception_date.into(),
             created_by: created_by.clone(),
-            created_at: exception.created_at.into(),
+            created_at: exception.created_at,
             updated_by: created_by,
-            updated_at: exception.created_at.into(),
+            updated_at: exception.created_at,
             title: exception.title,
             description: exception.description,
             is_all_day: exception.is_all_day,
-            starts_at: DateTimeTz::maybe_from_db(exception.starts_at, exception.starts_at_tz),
-            ends_at: DateTimeTz::maybe_from_db(exception.ends_at, exception.ends_at_tz),
+            starts_at: DateTimeTz::maybe_from_inventory(
+                exception.starts_at,
+                exception.starts_at_tz,
+            ),
+            ends_at: DateTimeTz::maybe_from_inventory(exception.ends_at, exception.ends_at_tz),
             original_starts_at: DateTimeTz {
-                datetime: exception.exception_date,
+                datetime: exception.exception_date.into(),
                 timezone: exception.exception_date_tz,
             },
             type_: EventType::Exception,

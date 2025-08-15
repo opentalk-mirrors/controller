@@ -8,10 +8,8 @@ use chrono::{DateTime, Utc};
 use kustos::policies_builder::PoliciesBuilder;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_utils::{CaptureApiError, event::EventExt};
-use opentalk_db_storage::events::{
-    EventException, EventExceptionKind, NewEventException, UpdateEventException,
-};
-use opentalk_inventory::Event;
+use opentalk_db_storage::events::{NewEventException, UpdateEventException};
+use opentalk_inventory::{Event, EventException, EventExceptionKind};
 use opentalk_types_api_v1::{
     Cursor,
     error::ApiError,
@@ -35,7 +33,7 @@ use crate::{
     ControllerBackend,
     controller_backend::{
         RoomsPoliciesBuilderExt,
-        events::{DateTimeTzFromDb, EventRoomInfoExt, ONE_HUNDRED_YEARS_IN_DAYS, can_edit},
+        events::{DateTimeTzFromInventory, EventRoomInfoExt, ONE_HUNDRED_YEARS_IN_DAYS, can_edit},
     },
     events::{
         enrich_invitees_from_optional_user_search, get_invited_mail_recipients_for_event,
@@ -216,8 +214,7 @@ impl ControllerBackend {
         let mut instances = vec![];
 
         for datetime in datetimes {
-            let exception =
-                exceptions.next_if(|exception| &exception.exception_date == datetime.as_ref());
+            let exception = exceptions.next_if(|exception| exception.exception_date == datetime);
 
             let instance = create_event_instance(
                 &users,
@@ -416,23 +413,29 @@ impl ControllerBackend {
             let starts_at = patch
                 .starts_at
                 .or_else(|| DateTimeTz::starts_at_of(&event))
-                .or_else(|| DateTimeTz::maybe_from_db(exception.starts_at, exception.starts_at_tz))
+                .or_else(|| {
+                    DateTimeTz::maybe_from_inventory(exception.starts_at, exception.starts_at_tz)
+                })
                 .unwrap();
             let ends_at = patch
                 .ends_at
                 .or_else(|| DateTimeTz::ends_at_of(&event))
-                .or_else(|| DateTimeTz::maybe_from_db(exception.ends_at, exception.ends_at_tz))
+                .or_else(|| {
+                    DateTimeTz::maybe_from_inventory(exception.ends_at, exception.ends_at_tz)
+                })
                 .unwrap();
 
             super::verify_exception_dt_params(is_all_day, starts_at, ends_at)?;
 
             inventory
                 .update_event_exception(
-                    exception.id.into(),
+                    exception.id,
                     UpdateEventException {
                         kind: match patch.status {
-                            Some(EventStatus::Ok) => Some(EventExceptionKind::Modified),
-                            Some(EventStatus::Cancelled) => Some(EventExceptionKind::Cancelled),
+                            Some(EventStatus::Ok) => Some(EventExceptionKind::Modified.into()),
+                            Some(EventStatus::Cancelled) => {
+                                Some(EventExceptionKind::Cancelled.into())
+                            }
                             None => None,
                         },
                         title: patch.title.map(Some),
@@ -465,9 +468,9 @@ impl ControllerBackend {
                     exception_date_tz: event.starts_at_tz.unwrap(),
                     created_by: current_user.id,
                     kind: if let Some(EventStatus::Cancelled) = patch.status {
-                        EventExceptionKind::Cancelled
+                        EventExceptionKind::Cancelled.into()
                     } else {
-                        EventExceptionKind::Modified
+                        EventExceptionKind::Modified.into()
                     },
                     title: patch.title,
                     description: patch.description,
@@ -619,7 +622,7 @@ fn create_event_instance(
 
     if let Some(exception) = exception {
         event.updated_by = exception.created_by;
-        event.updated_at = exception.created_at.into();
+        event.updated_at = exception.created_at;
 
         patch(&mut event.title, exception.title);
         patch(&mut event.description, exception.description);
@@ -658,7 +661,7 @@ fn create_event_instance(
         invitees,
         is_all_day: event.is_all_day.unwrap(),
         starts_at: DateTimeTz {
-            datetime: instance_starts_at,
+            datetime: instance_starts_at.into(),
             timezone: instance_starts_at_tz,
         },
         ends_at: DateTimeTz {
