@@ -48,7 +48,7 @@ mod user;
 
 pub mod utils;
 
-pub use asset::{Asset, AssetInventory, NewAsset};
+pub use asset::{Asset, AssetInventory, NewAsset, UpdateAsset};
 pub use error::Error;
 pub use event::EventInventory;
 pub use event_invite::EventInviteInventory;

@@ -3,8 +3,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_database::DatabaseError;
-use opentalk_db_storage::assets::{self as db, UpdateAsset};
-use opentalk_inventory::{Asset, AssetInventory, NewAsset, error::StorageBackendSnafu};
+use opentalk_db_storage::assets as db;
+use opentalk_inventory::{
+    Asset, AssetInventory, NewAsset, UpdateAsset, error::StorageBackendSnafu,
+};
 use opentalk_types_common::{
     assets::{AssetId, AssetSorting},
     events::EventId,
@@ -104,7 +106,10 @@ impl AssetInventory for DatabaseConnection {
         asset_id: AssetId,
         asset: UpdateAsset,
     ) -> Result<Option<Asset>> {
-        match asset.apply(&mut self.inner, asset_id).await {
+        match db::UpdateAsset::from(asset)
+            .apply(&mut self.inner, asset_id)
+            .await
+        {
             Ok(asset) => Ok(Some(asset.into())),
             Err(DatabaseError::NotFound) => Ok(None),
             Err(e) => Err(e).context(StorageBackendSnafu),

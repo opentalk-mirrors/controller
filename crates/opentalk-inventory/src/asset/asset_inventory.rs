@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::assets::UpdateAsset;
 use opentalk_types_common::{
     assets::{AssetId, AssetSorting},
     events::EventId,
@@ -11,7 +10,7 @@ use opentalk_types_common::{
     users::UserId,
 };
 
-use super::{Asset, NewAsset};
+use super::{Asset, NewAsset, UpdateAsset};
 use crate::Result;
 
 /// A trait for retrieving and storing event entities.
