@@ -4,12 +4,14 @@
 
 use opentalk_db_storage::{
     events::{
-        self as db, NewEventInvite, UpdateEventInvite,
+        self as db, UpdateEventInvite,
         email_invites::{EventEmailInvite, NewEventEmailInvite, UpdateEventEmailInvite},
     },
     users::User,
 };
-use opentalk_inventory::{Event, EventInvite, EventInviteInventory, error::StorageBackendSnafu};
+use opentalk_inventory::{
+    Event, EventInvite, EventInviteInventory, NewEventInvite, error::StorageBackendSnafu,
+};
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
     rooms::RoomId,
@@ -37,7 +39,7 @@ impl EventInviteInventory for DatabaseConnection {
         &mut self,
         invite: NewEventInvite,
     ) -> Result<Option<EventInvite>> {
-        Ok(invite
+        Ok(db::NewEventInvite::from(invite)
             .try_insert(&mut self.inner)
             .await
             .context(StorageBackendSnafu)?

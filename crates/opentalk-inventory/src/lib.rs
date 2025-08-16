@@ -54,7 +54,7 @@ pub use event::{
     Event, EventException, EventExceptionId, EventExceptionKind, EventInventory, GetEventsCursor,
     NewEvent, NewEventException, UpdateEvent, UpdateEventException,
 };
-pub use event_invite::{EventInvite, EventInviteId, EventInviteInventory};
+pub use event_invite::{EventInvite, EventInviteId, EventInviteInventory, NewEventInvite};
 pub use event_shared_folder::{
     EventSharedFolder, EventSharedFolderInventory, NewEventSharedFolder,
 };
