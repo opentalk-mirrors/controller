@@ -40,7 +40,7 @@ use opentalk_db_storage::{
     users::User,
 };
 use opentalk_inventory::{
-    Inventory, InventoryProvider, Tenant, UpsertOutcome, UserCreateOrUpdateByOidcSub, transaction,
+    Inventory, InventoryProvider, NewUser, Tenant, UpsertOutcome, transaction,
 };
 use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use opentalk_types_common::{
@@ -506,7 +506,7 @@ async fn create_or_update_user(
 
     let outcome = inventory
         .create_or_update_user_by_oidc_sub(
-            UserCreateOrUpdateByOidcSub {
+            NewUser {
                 oidc_sub: info.sub,
                 email: info.email,
                 title: UserTitle::new(),

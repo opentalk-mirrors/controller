@@ -9,9 +9,9 @@ use opentalk_database::Db;
 use opentalk_db_storage::{
     migrations::migrate_from_url,
     rooms::{NewRoom, Room},
-    users::{NewUser, User},
+    users::User,
 };
-use opentalk_inventory::InventoryProvider;
+use opentalk_inventory::{InventoryProvider, NewUser};
 use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_types_common::{
     rooms::RoomId,

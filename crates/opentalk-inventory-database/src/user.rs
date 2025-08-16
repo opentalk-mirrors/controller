@@ -9,10 +9,10 @@ use opentalk_db_storage::{
     groups::{
         insert_user_into_groups, remove_user_from_all_groups, remove_user_from_all_groups_except,
     },
-    users::{NewUser, UpdateUser, User},
+    users::{self as db, UpdateUser, User},
 };
 use opentalk_inventory::{
-    Group, UpsertOutcome, UserCreateOrUpdateByOidcSub, UserInventory, error::StorageBackendSnafu,
+    Group, NewUser, UpsertOutcome, UserInventory, error::StorageBackendSnafu,
 };
 use opentalk_types_common::{
     tenants::TenantId,
@@ -27,7 +27,7 @@ use crate::{DatabaseConnection, Result};
 impl UserInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn create_user(&mut self, new_user: NewUser) -> Result<User> {
-        new_user
+        db::NewUser::from(new_user)
             .insert(&mut self.inner)
             .await
             .context(StorageBackendSnafu)
@@ -110,41 +110,13 @@ impl UserInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn create_or_update_user_by_oidc_sub(
         &mut self,
-        UserCreateOrUpdateByOidcSub {
-            oidc_sub,
-            email,
-            title,
-            firstname,
-            lastname,
-            display_name,
-            phone,
-            tenant_id,
-            tariff_id,
-            tariff_status,
-            avatar_url,
-            timezone,
-            language,
-        }: UserCreateOrUpdateByOidcSub,
+        user: NewUser,
         enforce_display_name_on_update: bool,
     ) -> Result<UpsertOutcome<User>> {
-        let user = NewUser {
-            oidc_sub,
-            email: email.to_lowercase().to_string(),
-            title,
-            firstname,
-            lastname,
-            display_name,
-            phone,
-            tenant_id,
-            tariff_id,
-            tariff_status,
-            avatar_url,
-            timezone,
-            language,
-        }
-        .insert_or_update_by_oidc_sub(&mut self.inner, enforce_display_name_on_update)
-        .await
-        .context(StorageBackendSnafu)?;
+        let user = db::NewUser::from(user)
+            .insert_or_update_by_oidc_sub(&mut self.inner, enforce_display_name_on_update)
+            .await
+            .context(StorageBackendSnafu)?;
         if user.created_at == user.updated_at {
             Ok(UpsertOutcome::Inserted(user))
         } else {

@@ -5,14 +5,14 @@
 use std::collections::BTreeSet;
 
 use bigdecimal::BigDecimal;
-use opentalk_db_storage::users::{NewUser, UpdateUser, User};
+use opentalk_db_storage::users::{UpdateUser, User};
 use opentalk_types_common::{
     tenants::TenantId,
     time::Timestamp,
     users::{GroupId, UserId},
 };
 
-use super::UserCreateOrUpdateByOidcSub;
+use super::NewUser;
 use crate::{Group, Result, UpsertOutcome};
 
 /// A trait for retrieving and storing user entities.
@@ -59,7 +59,7 @@ pub trait UserInventory {
     /// Create or update a user.
     async fn create_or_update_user_by_oidc_sub(
         &mut self,
-        user: UserCreateOrUpdateByOidcSub,
+        user: NewUser,
         enforce_display_name_on_update: bool,
     ) -> Result<UpsertOutcome<User>>;
 
