@@ -9,10 +9,10 @@ use opentalk_db_storage::{
     groups::{
         insert_user_into_groups, remove_user_from_all_groups, remove_user_from_all_groups_except,
     },
-    users::{self as db, UpdateUser, User},
+    users::{self as db, User},
 };
 use opentalk_inventory::{
-    Group, NewUser, UpsertOutcome, UserInventory, error::StorageBackendSnafu,
+    Group, NewUser, UpdateUser, UpsertOutcome, UserInventory, error::StorageBackendSnafu,
 };
 use opentalk_types_common::{
     tenants::TenantId,
@@ -42,7 +42,8 @@ impl UserInventory for DatabaseConnection {
 
     #[tracing::instrument(err, skip_all)]
     async fn update_user<'a>(&mut self, user_id: UserId, user: UpdateUser<'a>) -> Result<User> {
-        user.apply(&mut self.inner, user_id)
+        db::UpdateUser::from(user)
+            .apply(&mut self.inner, user_id)
             .await
             .context(StorageBackendSnafu)
     }

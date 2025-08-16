@@ -100,8 +100,8 @@ mod tests {
     use kustos::Authz;
     use log::logger;
     use opentalk_controller_settings::SettingsProvider;
-    use opentalk_db_storage::users::{UpdateUser, User};
-    use opentalk_inventory::{Event, Inventory, UpdateEvent};
+    use opentalk_db_storage::users::User;
+    use opentalk_inventory::{Event, Inventory, UpdateEvent, UpdateUser};
     use opentalk_signaling_core::ExchangeHandle;
     use opentalk_test_util::database::DatabaseContext;
     use opentalk_types_common::{events::EventId, time::Timestamp, users::UserId};
@@ -145,8 +145,8 @@ mod tests {
                     conference_theme: None,
                     tariff_id: None,
                     tariff_status: None,
-                    disabled_since: Some(Some(since)),
-                    updated_at: Utc::now(),
+                    disabled_since: Some(Some(since.into())),
+                    updated_at: Timestamp::now(),
                 },
             )
             .await

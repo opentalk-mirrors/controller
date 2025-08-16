@@ -5,14 +5,14 @@
 use std::collections::BTreeSet;
 
 use bigdecimal::BigDecimal;
-use opentalk_db_storage::users::{UpdateUser, User};
+use opentalk_db_storage::users::User;
 use opentalk_types_common::{
     tenants::TenantId,
     time::Timestamp,
     users::{GroupId, UserId},
 };
 
-use super::NewUser;
+use super::{NewUser, UpdateUser};
 use crate::{Group, Result, UpsertOutcome};
 
 /// A trait for retrieving and storing user entities.

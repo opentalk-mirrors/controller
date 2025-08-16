@@ -2,15 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use chrono::Utc;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::{
     TenantAssignment, UserSearchBackend, UserSearchBackendKeycloak,
     settings_file::UsersFindBehavior,
 };
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_db_storage::users::UpdateUser;
-use opentalk_inventory::Inventory;
+use opentalk_inventory::{Inventory, UpdateUser};
 use opentalk_types_api_v1::{
     assets::AssetSortingQuery,
     error::ApiError,
@@ -21,7 +19,7 @@ use opentalk_types_api_v1::{
         me::PatchMeRequestBody,
     },
 };
-use opentalk_types_common::{tariffs::TariffResource, users::UserId};
+use opentalk_types_common::{tariffs::TariffResource, time::Timestamp, users::UserId};
 use snafu::{ResultExt, Whatever};
 
 use crate::{
@@ -69,7 +67,7 @@ impl ControllerBackend {
                     tariff_id: None,
                     tariff_status: None,
                     disabled_since: None,
-                    updated_at: Utc::now(),
+                    updated_at: Timestamp::now(),
                 },
             )
             .await?;

@@ -77,7 +77,7 @@ pub use tenant::{OidcTenantId, Tenant, TenantInventory};
 pub use transaction::transaction;
 pub use transaction_manager::TransactionManager;
 pub use upsert::UpsertOutcome;
-pub use user::{NewUser, UserInventory};
+pub use user::{NewUser, UpdateUser, UserInventory};
 
 /// The result type typically used for functions in this crate.
 pub type Result<T, E = Error> = std::result::Result<T, E>;
