@@ -11,17 +11,15 @@ use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_db_storage::{
-    events::{
-        UpdateEventInvite,
-        email_invites::{NewEventEmailInvite, UpdateEventEmailInvite},
-    },
+    events::email_invites::{NewEventEmailInvite, UpdateEventEmailInvite},
     invites::NewInvite,
     rooms::Room,
     sip_configs::SipConfig,
     users::User,
 };
 use opentalk_inventory::{
-    Event, EventInvite, Inventory, InventoryProvider, NewEventInvite, Tenant, transaction,
+    Event, EventInvite, Inventory, InventoryProvider, NewEventInvite, Tenant, UpdateEventInvite,
+    transaction,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
