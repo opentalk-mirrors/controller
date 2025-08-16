@@ -5,7 +5,7 @@
 use std::collections::BTreeSet;
 
 use opentalk_db_storage::{
-    events::{self as db, EventFavorite, GetEventsCursor, NewEventFavorite},
+    events::{self as db, EventFavorite, NewEventFavorite},
     rooms::Room,
     sip_configs::SipConfig,
     tariffs::Tariff,
@@ -13,8 +13,8 @@ use opentalk_db_storage::{
 };
 use opentalk_inventory::{
     Event, EventException, EventExceptionId, EventInventory, EventInvite, EventSharedFolder,
-    EventTrainingParticipationReportParameterSet, NewEvent, NewEventException, UpdateEvent,
-    UpdateEventException, error::StorageBackendSnafu,
+    EventTrainingParticipationReportParameterSet, GetEventsCursor, NewEvent, NewEventException,
+    UpdateEvent, UpdateEventException, error::StorageBackendSnafu,
 };
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
@@ -211,7 +211,7 @@ impl EventInventory for DatabaseConnection {
             created_after.map(Into::into),
             adhoc,
             time_independent,
-            cursor,
+            cursor.map(Into::into),
             limit,
         )
         .await

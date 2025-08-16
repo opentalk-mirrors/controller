@@ -51,8 +51,8 @@ pub mod utils;
 pub use asset::{Asset, AssetInventory, NewAsset, UpdateAsset};
 pub use error::Error;
 pub use event::{
-    Event, EventException, EventExceptionId, EventExceptionKind, EventInventory, NewEvent,
-    NewEventException, UpdateEvent, UpdateEventException,
+    Event, EventException, EventExceptionId, EventExceptionKind, EventInventory, GetEventsCursor,
+    NewEvent, NewEventException, UpdateEvent, UpdateEventException,
 };
 pub use event_invite::{EventInvite, EventInviteId, EventInviteInventory};
 pub use event_shared_folder::{

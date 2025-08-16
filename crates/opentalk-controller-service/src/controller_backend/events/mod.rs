@@ -27,8 +27,8 @@ use opentalk_db_storage::{
 };
 use opentalk_inventory::{
     Event, EventException, EventExceptionKind, EventInvite,
-    EventTrainingParticipationReportParameterSet, Inventory, NewEvent, Tenant, UpdateEvent,
-    transaction,
+    EventTrainingParticipationReportParameterSet, GetEventsCursor, Inventory, NewEvent, Tenant,
+    UpdateEvent, transaction,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
@@ -279,14 +279,13 @@ impl ControllerBackend {
 
         let mut users = GetUserProfilesBatched::new();
 
-        let get_events_cursor =
-            query
-                .after
-                .map(|cursor| opentalk_db_storage::events::GetEventsCursor {
-                    from_id: cursor.event_id,
-                    from_created_at: cursor.event_created_at.into(),
-                    from_starts_at: cursor.event_starts_at.map(DateTime::from),
-                });
+        let get_events_cursor = query.after.map(|cursor| {
+            GetEventsCursor::new(
+                cursor.event_id,
+                cursor.event_created_at,
+                cursor.event_starts_at,
+            )
+        });
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
