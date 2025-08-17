@@ -58,7 +58,7 @@ pub async fn build_event_info(
 
         EventInfo::from(EventAndEncryption(event, e2e_encryption)).with_meeting_details(
             MeetingDetails {
-                invite_code_id: invite.map(|invite| invite.id),
+                invite_code_id: invite.map(|invite| invite.invite_code),
                 call_in,
                 streaming_links,
             },

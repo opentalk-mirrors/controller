@@ -6,15 +6,14 @@
 
 use std::sync::Arc;
 
-use chrono::Utc;
 use clap::Parser;
 use kustos::prelude::*;
 use opentalk_controller_service::controller_backend::RoomsPoliciesBuilderExt;
 use opentalk_controller_settings::Settings;
 use opentalk_database::Db;
-use opentalk_db_storage::invites::Invite;
-use opentalk_inventory::Inventory;
+use opentalk_inventory::{Inventory, RoomInvite};
 use opentalk_inventory_database::DatabaseConnection;
+use opentalk_types_common::time::Timestamp;
 use snafu::{ResultExt, whatever};
 
 use crate::{
@@ -191,13 +190,13 @@ async fn fix_rooms(inventory: &mut dyn Inventory, authz: &kustos::Authz) -> Resu
             .finish();
     }
 
-    let now = Utc::now();
+    let now = Timestamp::now();
     let invites = inventory
         .get_all_room_invites()
         .await
         .whatever_context("Failed to load invites")?;
-    for Invite {
-        id,
+    for RoomInvite {
+        invite_code,
         room,
         active,
         expiration,
@@ -206,7 +205,7 @@ async fn fix_rooms(inventory: &mut dyn Inventory, authz: &kustos::Authz) -> Resu
     {
         if active && (expiration.is_none() || Some(now) <= expiration) {
             policies = policies
-                .grant_invite_access(id)
+                .grant_invite_access(invite_code)
                 .room_guest_read_access(room)
                 .finish();
         }

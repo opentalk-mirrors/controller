@@ -203,7 +203,7 @@ impl ControllerBackend {
         let invite_code = inventory
             .get_valid_invite_for_room(room.id)
             .await?
-            .map(|invite| invite.id);
+            .map(|invite| invite.invite_code);
 
         let tariff = self.get_tariff_for_room(room.id).await?;
 

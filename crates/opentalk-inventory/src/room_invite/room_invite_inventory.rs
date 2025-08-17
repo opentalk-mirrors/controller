@@ -2,29 +2,30 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::invites::{Invite, InviteWithUsers, NewInvite, UpdateInvite};
+use opentalk_db_storage::invites::{InviteWithUsers, NewInvite, UpdateInvite};
 use opentalk_types_common::{
     rooms::{RoomId, invite_codes::InviteCode},
     time::Timestamp,
     users::UserId,
 };
 
+use super::RoomInvite;
 use crate::Result;
 
 /// A trait for retrieving and storing room invite entities.
 #[async_trait::async_trait]
 pub trait RoomInviteInventory {
     /// Create a room invite.
-    async fn create_room_invite(&mut self, invite: NewInvite) -> Result<Invite>;
+    async fn create_room_invite(&mut self, invite: NewInvite) -> Result<RoomInvite>;
 
     /// Get a room invite by the invite code.
-    async fn get_room_invite(&mut self, invite_code: InviteCode) -> Result<Invite>;
+    async fn get_room_invite(&mut self, invite_code: InviteCode) -> Result<RoomInvite>;
 
     /// Get all room invites.
-    async fn get_all_room_invites(&mut self) -> Result<Vec<Invite>>;
+    async fn get_all_room_invites(&mut self) -> Result<Vec<RoomInvite>>;
 
     /// Get a valid invite for a room.
-    async fn get_valid_invite_for_room(&mut self, room_id: RoomId) -> Result<Option<Invite>>;
+    async fn get_valid_invite_for_room(&mut self, room_id: RoomId) -> Result<Option<RoomInvite>>;
 
     /// Get a valid invite for a room, or create one if none exists.
     ///
@@ -35,10 +36,10 @@ pub trait RoomInviteInventory {
         &mut self,
         room_id: RoomId,
         user_id: UserId,
-    ) -> Result<Invite>;
+    ) -> Result<RoomInvite>;
 
     /// Get all room invites updated by a specific user.
-    async fn get_room_invites_updated_by(&mut self, user_id: UserId) -> Result<Vec<Invite>>;
+    async fn get_room_invites_updated_by(&mut self, user_id: UserId) -> Result<Vec<RoomInvite>>;
 
     /// Get all room invites with the creator and updater users.
     ///
@@ -64,7 +65,7 @@ pub trait RoomInviteInventory {
         room_id: RoomId,
         invite_code: InviteCode,
         invite: UpdateInvite,
-    ) -> Result<Invite>;
+    ) -> Result<RoomInvite>;
 
     /// Get the invite code
     async fn get_room_invites_with_room_inactive_or_expired_before(

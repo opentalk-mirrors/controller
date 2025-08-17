@@ -210,7 +210,7 @@ async fn invite_replace_updated_by(
             inventory
                 .update_room_invite(
                     invite.room,
-                    invite.id,
+                    invite.invite_code,
                     UpdateInvite {
                         updated_by: Some(invite.created_by),
                         updated_at: None,

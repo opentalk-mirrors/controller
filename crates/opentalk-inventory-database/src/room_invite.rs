@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use chrono::Utc;
-use opentalk_db_storage::invites::{Invite, InviteWithUsers, NewInvite, UpdateInvite};
-use opentalk_inventory::{RoomInviteInventory, error::StorageBackendSnafu};
+use opentalk_db_storage::invites::{self as db, InviteWithUsers, NewInvite, UpdateInvite};
+use opentalk_inventory::{RoomInvite, RoomInviteInventory, error::StorageBackendSnafu};
 use opentalk_types_common::{
     rooms::{RoomId, invite_codes::InviteCode},
     time::Timestamp,
@@ -17,31 +17,39 @@ use crate::{DatabaseConnection, Result};
 #[async_trait::async_trait]
 impl RoomInviteInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
-    async fn create_room_invite(&mut self, invite: NewInvite) -> Result<Invite> {
-        invite
+    async fn create_room_invite(&mut self, invite: NewInvite) -> Result<RoomInvite> {
+        Ok(invite
             .insert(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into())
     }
 
     #[tracing::instrument(err, skip_all)]
-    async fn get_room_invite(&mut self, invite_code: InviteCode) -> Result<Invite> {
-        Invite::get(&mut self.inner, invite_code)
+    async fn get_room_invite(&mut self, invite_code: InviteCode) -> Result<RoomInvite> {
+        Ok(db::Invite::get(&mut self.inner, invite_code)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into())
     }
 
-    async fn get_all_room_invites(&mut self) -> Result<Vec<Invite>> {
-        Invite::get_all(&mut self.inner)
+    async fn get_all_room_invites(&mut self) -> Result<Vec<RoomInvite>> {
+        Ok(db::Invite::get_all(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into_iter()
+            .map(Into::into)
+            .collect())
     }
 
     #[tracing::instrument(err, skip_all)]
-    async fn get_valid_invite_for_room(&mut self, room_id: RoomId) -> Result<Option<Invite>> {
-        Invite::get_valid_for_room(&mut self.inner, room_id, Utc::now())
-            .await
-            .context(StorageBackendSnafu)
+    async fn get_valid_invite_for_room(&mut self, room_id: RoomId) -> Result<Option<RoomInvite>> {
+        Ok(
+            db::Invite::get_valid_for_room(&mut self.inner, room_id, Utc::now())
+                .await
+                .context(StorageBackendSnafu)?
+                .map(Into::into),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -49,17 +57,23 @@ impl RoomInviteInventory for DatabaseConnection {
         &mut self,
         room_id: RoomId,
         user_id: UserId,
-    ) -> Result<Invite> {
-        Invite::get_valid_or_create_for_room(&mut self.inner, room_id, user_id)
-            .await
-            .context(StorageBackendSnafu)
+    ) -> Result<RoomInvite> {
+        Ok(
+            db::Invite::get_valid_or_create_for_room(&mut self.inner, room_id, user_id)
+                .await
+                .context(StorageBackendSnafu)?
+                .into(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
-    async fn get_room_invites_updated_by(&mut self, user_id: UserId) -> Result<Vec<Invite>> {
-        Invite::get_updated_by(&mut self.inner, user_id)
+    async fn get_room_invites_updated_by(&mut self, user_id: UserId) -> Result<Vec<RoomInvite>> {
+        Ok(db::Invite::get_updated_by(&mut self.inner, user_id)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into_iter()
+            .map(Into::into)
+            .collect())
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -69,7 +83,7 @@ impl RoomInviteInventory for DatabaseConnection {
         limit: i64,
         page: i64,
     ) -> Result<(Vec<InviteWithUsers>, i64)> {
-        Invite::get_all_for_room_with_users_paginated(&mut self.inner, room_id, limit, page)
+        db::Invite::get_all_for_room_with_users_paginated(&mut self.inner, room_id, limit, page)
             .await
             .context(StorageBackendSnafu)
     }
@@ -79,7 +93,7 @@ impl RoomInviteInventory for DatabaseConnection {
         &mut self,
         invite_code: InviteCode,
     ) -> Result<InviteWithUsers> {
-        Invite::get_with_users(&mut self.inner, invite_code)
+        db::Invite::get_with_users(&mut self.inner, invite_code)
             .await
             .context(StorageBackendSnafu)
     }
@@ -90,11 +104,12 @@ impl RoomInviteInventory for DatabaseConnection {
         room_id: RoomId,
         invite_code: InviteCode,
         invite: UpdateInvite,
-    ) -> Result<Invite> {
-        invite
+    ) -> Result<RoomInvite> {
+        Ok(invite
             .apply(&mut self.inner, room_id, invite_code)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into())
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -102,7 +117,7 @@ impl RoomInviteInventory for DatabaseConnection {
         &mut self,
         expired_before: Timestamp,
     ) -> Result<Vec<(InviteCode, RoomId)>> {
-        Invite::get_inactive_or_expired_before(&mut self.inner, expired_before.into())
+        db::Invite::get_inactive_or_expired_before(&mut self.inner, expired_before.into())
             .await
             .context(StorageBackendSnafu)
     }

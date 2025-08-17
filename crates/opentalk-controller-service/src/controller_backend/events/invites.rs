@@ -860,7 +860,7 @@ async fn create_invite_to_non_matching_email(
 
                     let policies = PoliciesBuilder::new()
                         // Grant invitee access
-                        .grant_invite_access(invite.id)
+                        .grant_invite_access(invite.invite_code)
                         .room_guest_read_access(room.id)
                         .finish();
 
@@ -876,7 +876,7 @@ async fn create_invite_to_non_matching_email(
                                 room_tariff,
                                 sip_config,
                                 invitee_email.as_ref(),
-                                invite.id.to_string(),
+                                invite.invite_code.to_string(),
                                 shared_folder,
                                 streaming_targets,
                             )

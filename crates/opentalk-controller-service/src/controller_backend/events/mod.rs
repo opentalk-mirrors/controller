@@ -721,7 +721,7 @@ impl ControllerBackend {
         // add the policy, because it has no access to the `RoomsPoliciesBuilderExt` trait.
         let policies = PoliciesBuilder::new()
             // Grant invitee access
-            .grant_invite_access(invite_for_room.id)
+            .grant_invite_access(invite_for_room.invite_code)
             .room_guest_read_access(room.id)
             .finish();
         self.authz.add_policies(policies).await?;
