@@ -68,7 +68,7 @@ pub use inventory::Inventory;
 pub use inventory_provider::InventoryProvider;
 pub use job_execution::JobExecutionInventory;
 pub use module_resource::ModuleResourceInventory;
-pub use room::RoomInventory;
+pub use room::{NewRoom, RoomInventory};
 pub use room_invite::{
     NewRoomInvite, RoomInvite, RoomInviteInventory, RoomInviteWithUsers, UpdateRoomInvite,
 };

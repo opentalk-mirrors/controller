@@ -17,10 +17,10 @@ use opentalk_controller_utils::{
     deletion::{Deleter, RoomDeleter},
 };
 use opentalk_db_storage::{
-    rooms::{NewRoom, Room, UpdateRoom},
+    rooms::{Room, UpdateRoom},
     sip_configs::NewSipConfig,
 };
-use opentalk_inventory::utils::build_event_info;
+use opentalk_inventory::{NewRoom, utils::build_event_info};
 use opentalk_signaling_core::Participant;
 use opentalk_types_api_v1::{
     error::{ApiError, ERROR_CODE_INVALID_VALUE, ValidationErrorEntry},

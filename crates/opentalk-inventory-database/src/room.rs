@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_db_storage::{
-    rooms::{NewRoom, Room, UpdateRoom},
+    rooms::{self as db, Room, UpdateRoom},
     users::User,
 };
-use opentalk_inventory::{RoomInventory, error::StorageBackendSnafu};
+use opentalk_inventory::{NewRoom, RoomInventory, error::StorageBackendSnafu};
 use opentalk_types_common::rooms::RoomId;
 use snafu::ResultExt as _;
 
@@ -16,7 +16,7 @@ use crate::{DatabaseConnection, Result};
 impl RoomInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn create_room(&mut self, new_room: NewRoom) -> Result<Room> {
-        new_room
+        db::NewRoom::from(new_room)
             .insert(&mut self.inner)
             .await
             .context(StorageBackendSnafu)
