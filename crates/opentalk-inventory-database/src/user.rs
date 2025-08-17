@@ -9,10 +9,10 @@ use opentalk_db_storage::{
     groups::{
         insert_user_into_groups, remove_user_from_all_groups, remove_user_from_all_groups_except,
     },
-    users::{self as db, User},
+    users::{self as db},
 };
 use opentalk_inventory::{
-    Group, NewUser, UpdateUser, UpsertOutcome, UserInventory, error::StorageBackendSnafu,
+    Group, NewUser, UpdateUser, UpsertOutcome, User, UserInventory, error::StorageBackendSnafu,
 };
 use opentalk_types_common::{
     tenants::TenantId,
@@ -27,61 +27,70 @@ use crate::{DatabaseConnection, Result};
 impl UserInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn create_user(&mut self, new_user: NewUser) -> Result<User> {
-        db::NewUser::from(new_user)
+        Ok(db::NewUser::from(new_user)
             .insert(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into())
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_user(&mut self, user_id: UserId) -> Result<User> {
-        User::get(&mut self.inner, user_id)
+        Ok(db::User::get(&mut self.inner, user_id)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into())
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn update_user<'a>(&mut self, user_id: UserId, user: UpdateUser<'a>) -> Result<User> {
-        db::UpdateUser::from(user)
+        Ok(db::UpdateUser::from(user)
             .apply(&mut self.inner, user_id)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into())
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn delete_user(&mut self, user_id: UserId) -> Result<()> {
-        User::delete_by_id(&mut self.inner, user_id)
+        db::User::delete_by_id(&mut self.inner, user_id)
             .await
             .context(StorageBackendSnafu)
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_all_users(&mut self) -> Result<Vec<User>> {
-        User::get_all(&mut self.inner)
+        Ok(db::User::get_all(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into_iter()
+            .map(Into::into)
+            .collect())
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_all_users_with_groups(&mut self) -> Result<Vec<(User, Vec<Group>)>> {
-        Ok(User::get_all_with_groups(&mut self.inner)
+        Ok(db::User::get_all_with_groups(&mut self.inner)
             .await
             .context(StorageBackendSnafu)?
             .into_iter()
-            .map(|(user, groups)| (user, groups.into_iter().map(Into::into).collect()))
+            .map(|(user, groups)| (user.into(), groups.into_iter().map(Into::into).collect()))
             .collect())
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_users_by_ids(&mut self, user_ids: &[UserId]) -> Result<Vec<User>> {
-        User::get_all_by_ids(&mut self.inner, user_ids)
+        Ok(db::User::get_all_by_ids(&mut self.inner, user_ids)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into_iter()
+            .map(Into::into)
+            .collect())
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_user_ids_disabled_before(&mut self, timestamp: Timestamp) -> Result<Vec<UserId>> {
-        User::get_disabled_before(&mut self.inner, timestamp.into())
+        db::User::get_disabled_before(&mut self.inner, timestamp.into())
             .await
             .context(StorageBackendSnafu)
     }
@@ -92,9 +101,12 @@ impl UserInventory for DatabaseConnection {
         tenant_id: TenantId,
         email_address: &str,
     ) -> Result<Option<User>> {
-        User::get_by_email(&mut self.inner, tenant_id, email_address)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::User::get_by_email(&mut self.inner, tenant_id, email_address)
+                .await
+                .context(StorageBackendSnafu)?
+                .map(Into::into),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -103,9 +115,14 @@ impl UserInventory for DatabaseConnection {
         tenant_id: TenantId,
         phone_number_e164: &str,
     ) -> Result<Vec<User>> {
-        User::get_by_phone(&mut self.inner, tenant_id, phone_number_e164)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::User::get_by_phone(&mut self.inner, tenant_id, phone_number_e164)
+                .await
+                .context(StorageBackendSnafu)?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -119,9 +136,9 @@ impl UserInventory for DatabaseConnection {
             .await
             .context(StorageBackendSnafu)?;
         if user.created_at == user.updated_at {
-            Ok(UpsertOutcome::Inserted(user))
+            Ok(UpsertOutcome::Inserted(user.into()))
         } else {
-            Ok(UpsertOutcome::Updated(user))
+            Ok(UpsertOutcome::Updated(user.into()))
         }
     }
 
@@ -131,25 +148,33 @@ impl UserInventory for DatabaseConnection {
         tenant_id: TenantId,
         subs: &[&str],
     ) -> Result<Vec<User>> {
-        User::get_all_by_oidc_subs(&mut self.inner, tenant_id, subs)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::User::get_all_by_oidc_subs(&mut self.inner, tenant_id, subs)
+                .await
+                .context(StorageBackendSnafu)?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_user_for_tenant(&mut self, tenant_id: TenantId, user_id: UserId) -> Result<User> {
-        User::get_filtered_by_tenant(&mut self.inner, tenant_id, user_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::User::get_filtered_by_tenant(&mut self.inner, tenant_id, user_id)
+                .await
+                .context(StorageBackendSnafu)?
+                .into(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn add_user_to_groups(
         &mut self,
-        user: &User,
+        user_id: UserId,
         groups: &[GroupId],
     ) -> Result<BTreeSet<GroupId>> {
-        insert_user_into_groups(&mut self.inner, user, groups)
+        insert_user_into_groups(&mut self.inner, user_id, groups)
             .await
             .context(StorageBackendSnafu)
     }
@@ -157,10 +182,10 @@ impl UserInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn remove_user_from_all_groups_except(
         &mut self,
-        user: &User,
+        user_id: UserId,
         group_ids_to_keep: &[GroupId],
     ) -> Result<BTreeSet<GroupId>> {
-        remove_user_from_all_groups_except(&mut self.inner, user, group_ids_to_keep)
+        remove_user_from_all_groups_except(&mut self.inner, user_id, group_ids_to_keep)
             .await
             .context(StorageBackendSnafu)
     }
@@ -174,14 +199,14 @@ impl UserInventory for DatabaseConnection {
 
     #[tracing::instrument(err, skip_all)]
     async fn get_user_storage_used_size(&mut self, user_id: UserId) -> Result<BigDecimal> {
-        User::get_used_storage(&mut self.inner, &user_id)
+        db::User::get_used_storage(&mut self.inner, &user_id)
             .await
             .context(StorageBackendSnafu)
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_user_storage_used_size_u64(&mut self, user_id: UserId) -> Result<u64> {
-        User::get_used_storage_u64(&mut self.inner, &user_id)
+        db::User::get_used_storage_u64(&mut self.inner, &user_id)
             .await
             .context(StorageBackendSnafu)
     }
@@ -193,8 +218,13 @@ impl UserInventory for DatabaseConnection {
         search_string: &str,
         limit: usize,
     ) -> Result<Vec<User>> {
-        User::find(&mut self.inner, tenant_id, search_string, limit)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::User::find(&mut self.inner, tenant_id, search_string, limit)
+                .await
+                .context(StorageBackendSnafu)?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
     }
 }

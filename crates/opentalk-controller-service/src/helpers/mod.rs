@@ -26,6 +26,7 @@ pub trait ToUserProfile {
     -> PrivateUserProfile;
 }
 
+/*
 impl ToUserProfile for opentalk_db_storage::users::User {
     fn to_public_user_profile(&self, settings: &Settings) -> PublicUserProfile {
         let default_avatar = email_to_libravatar_url(&settings.avatar.libravatar_url, &self.email);
@@ -66,6 +67,7 @@ impl ToUserProfile for opentalk_db_storage::users::User {
         }
     }
 }
+*/
 
 impl ToUserProfile for opentalk_inventory::User {
     fn to_public_user_profile(&self, settings: &Settings) -> PublicUserProfile {

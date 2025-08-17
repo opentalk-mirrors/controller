@@ -23,12 +23,11 @@ use opentalk_db_storage::{
     events::{UpdateEventTrainingParticipationReportParameterSet, email_invites::EventEmailInvite},
     rooms::{Room, UpdateRoom},
     sip_configs::{NewSipConfig, SipConfig},
-    users::User,
 };
 use opentalk_inventory::{
     Event, EventException, EventExceptionKind, EventInvite,
     EventTrainingParticipationReportParameterSet, GetEventsCursor, Inventory, NewEvent, NewRoom,
-    Tenant, UpdateEvent, transaction,
+    Tenant, UpdateEvent, User, transaction,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
@@ -294,7 +293,7 @@ impl ControllerBackend {
 
         let events = inventory
             .get_all_events_for_user_paginated(
-                &current_user,
+                current_user.clone(),
                 query.favorites,
                 BTreeSet::from_iter(query.invite_status),
                 query.time_min,
@@ -402,7 +401,7 @@ impl ControllerBackend {
             let starts_at = DateTimeTz::starts_at_of(&event);
             let ends_at = DateTimeTz::ends_at_of(&event);
 
-            let can_edit = can_edit(&event, &current_user);
+            let can_edit = current_user.can_edit(&event);
 
             let shared_folder =
                 shared_folder_for_user(shared_folder, event.created_by, current_user.id);
@@ -510,7 +509,7 @@ impl ControllerBackend {
         let starts_at = DateTimeTz::starts_at_of(&event);
         let ends_at = DateTimeTz::ends_at_of(&event);
 
-        let can_edit = can_edit(&event, &current_user);
+        let can_edit = current_user.can_edit(&event);
 
         let shared_folder =
             shared_folder_for_user(shared_folder, event.created_by, current_user.id);
@@ -746,7 +745,7 @@ impl ControllerBackend {
         let starts_at = DateTimeTz::starts_at_of(&event);
         let ends_at = DateTimeTz::ends_at_of(&event);
 
-        let can_edit = can_edit(&event, &current_user);
+        let can_edit = current_user.can_edit(&event);
 
         let shared_folder =
             shared_folder_for_user(shared_folder, event.created_by, current_user.id);
@@ -1785,13 +1784,6 @@ fn parse_event_dt_params(
     } else {
         Ok((None, ends_at.to_datetime_tz(), ends_at.timezone))
     }
-}
-
-/// calculate if `user` can edit `event`
-fn can_edit(event: &Event, user: &User) -> bool {
-    // Its sufficient to check if the user created the event as here isn't currently a system which allows users to
-    // grant write access to event
-    event.created_by == user.id
 }
 
 /// Helper trait to to reduce boilerplate in the single route handlers

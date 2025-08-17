@@ -100,8 +100,7 @@ mod tests {
     use kustos::Authz;
     use log::logger;
     use opentalk_controller_settings::SettingsProvider;
-    use opentalk_db_storage::users::User;
-    use opentalk_inventory::{Event, Inventory, UpdateEvent, UpdateUser};
+    use opentalk_inventory::{Event, Inventory, UpdateEvent, UpdateUser, User};
     use opentalk_signaling_core::ExchangeHandle;
     use opentalk_test_util::database::DatabaseContext;
     use opentalk_types_common::{events::EventId, time::Timestamp, users::UserId};

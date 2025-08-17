@@ -426,7 +426,7 @@ impl Event {
     #[allow(clippy::too_many_arguments, clippy::type_complexity)]
     pub async fn get_all_for_user_paginated(
         conn: &mut DbConnection,
-        user: &User,
+        user: User,
         only_favorites: bool,
         invite_status_filter: Vec<EventInviteStatus>,
         time_min: Option<DateTime<Utc>>,

@@ -9,12 +9,11 @@ use opentalk_db_storage::{
     rooms::Room,
     sip_configs::SipConfig,
     tariffs::Tariff,
-    users::User,
 };
 use opentalk_inventory::{
     Event, EventException, EventExceptionId, EventInventory, EventInvite, EventSharedFolder,
     EventTrainingParticipationReportParameterSet, GetEventsCursor, NewEvent, NewEventException,
-    UpdateEvent, UpdateEventException, error::StorageBackendSnafu,
+    UpdateEvent, UpdateEventException, User, error::StorageBackendSnafu,
 };
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
@@ -176,7 +175,7 @@ impl EventInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn get_all_events_for_user_paginated(
         &mut self,
-        user: &User,
+        user: User,
         only_favorites: bool,
         invite_status_filter: BTreeSet<EventInviteStatus>,
         time_min: Option<Timestamp>,
@@ -202,7 +201,7 @@ impl EventInventory for DatabaseConnection {
     > {
         let items = db::Event::get_all_for_user_paginated(
             &mut self.inner,
-            user,
+            user.into(),
             only_favorites,
             Vec::from_iter(invite_status_filter),
             time_min.map(Into::into),

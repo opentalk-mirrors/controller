@@ -6,8 +6,8 @@ use std::{marker::PhantomData, sync::Arc};
 
 use futures::{Stream, stream::SelectAll};
 use kustos::Authz;
-use opentalk_db_storage::{rooms::Room, users::User};
-use opentalk_inventory::InventoryProvider;
+use opentalk_db_storage::rooms::Room;
+use opentalk_inventory::{InventoryProvider, User};
 use opentalk_types_common::{rooms::BreakoutRoomId, tariffs::TariffResource};
 use opentalk_types_signaling::{ParticipantId, Role};
 

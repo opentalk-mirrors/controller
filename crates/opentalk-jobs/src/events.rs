@@ -14,8 +14,7 @@ use opentalk_controller_utils::{
     deletion::{Deleter, EventDeleter, RoomDeleter},
     event::EventExt as _,
 };
-use opentalk_db_storage::users::User;
-use opentalk_inventory::{Inventory, InventoryProvider, UpdateUser};
+use opentalk_inventory::{Inventory, InventoryProvider, UpdateUser, User};
 use opentalk_log::{debug, info, warn};
 use opentalk_signaling_core::{ExchangeHandle, ObjectStorage};
 use opentalk_types_common::{events::EventId, rooms::RoomId, time::Timestamp, users::UserId};

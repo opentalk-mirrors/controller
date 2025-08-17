@@ -4,7 +4,7 @@
 
 use std::collections::BTreeSet;
 
-use opentalk_db_storage::{rooms::Room, sip_configs::SipConfig, tariffs::Tariff, users::User};
+use opentalk_db_storage::{rooms::Room, sip_configs::SipConfig, tariffs::Tariff};
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
     rooms::RoomId,
@@ -17,7 +17,9 @@ use super::{
     Event, EventException, EventExceptionId, GetEventsCursor, NewEvent, NewEventException,
     UpdateEvent, UpdateEventException,
 };
-use crate::{EventInvite, EventSharedFolder, EventTrainingParticipationReportParameterSet, Result};
+use crate::{
+    EventInvite, EventSharedFolder, EventTrainingParticipationReportParameterSet, Result, User,
+};
 
 /// A trait for retrieving and storing event entities.
 #[async_trait::async_trait]
@@ -87,7 +89,7 @@ pub trait EventInventory {
     #[allow(clippy::too_many_arguments, clippy::type_complexity)]
     async fn get_all_events_for_user_paginated(
         &mut self,
-        user: &User,
+        user: User,
         only_favorites: bool,
         invite_status_filter: BTreeSet<EventInviteStatus>,
         time_min: Option<Timestamp>,

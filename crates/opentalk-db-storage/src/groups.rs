@@ -163,15 +163,12 @@ pub async fn get_or_create_groups_by_name(
 #[tracing::instrument(err, skip_all)]
 pub async fn insert_user_into_groups(
     conn: &mut DbConnection,
-    user: &User,
+    user_id: UserId,
     groups: &[GroupId],
 ) -> Result<BTreeSet<GroupId>> {
     let new_user_groups = groups
         .iter()
-        .map(|&group_id| NewUserGroupRelation {
-            user_id: user.id,
-            group_id,
-        })
+        .map(|&group_id| NewUserGroupRelation { user_id, group_id })
         .collect::<Vec<_>>();
 
     let inserted_groups = diesel::insert_into(user_groups::table)
@@ -192,13 +189,13 @@ pub async fn insert_user_into_groups(
 #[tracing::instrument(err, skip_all)]
 pub async fn remove_user_from_all_groups_except(
     conn: &mut DbConnection,
-    user: &User,
+    user_id: UserId,
     group_ids_to_keep: &[GroupId],
 ) -> Result<BTreeSet<GroupId>> {
     let removed_groups = diesel::delete(user_groups::table)
         .filter(
             user_groups::user_id
-                .eq(user.id)
+                .eq(user_id)
                 .and(user_groups::group_id.ne_all(group_ids_to_keep)),
         )
         .returning(user_groups::group_id)

@@ -35,12 +35,9 @@ use opentalk_controller_settings::{
     Settings, SettingsProvider, TariffAssignment, TariffStatusMapping, TenantAssignment,
 };
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_db_storage::{
-    tariffs::{ExternalTariffId, Tariff},
-    users::User,
-};
+use opentalk_db_storage::tariffs::{ExternalTariffId, Tariff};
 use opentalk_inventory::{
-    Inventory, InventoryProvider, NewUser, Tenant, UpsertOutcome, transaction,
+    Inventory, InventoryProvider, NewUser, Tenant, UpsertOutcome, User, transaction,
 };
 use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use opentalk_types_common::{
@@ -527,10 +524,10 @@ async fn create_or_update_user(
 
     match outcome {
         UpsertOutcome::Inserted(user) => {
-            let groups = inventory.add_user_to_groups(&user, groups).await?;
+            let groups = inventory.add_user_to_groups(user.id, groups).await?;
 
             let event_and_room_ids = inventory
-                .migrate_event_email_invites_to_user_invites(&user)
+                .migrate_event_email_invites_to_user_invites(user.clone())
                 .await?;
 
             Ok(LoginResult::UserCreated {
@@ -540,9 +537,9 @@ async fn create_or_update_user(
             })
         }
         UpsertOutcome::Updated(user) => {
-            let groups_added_to = inventory.add_user_to_groups(&user, groups).await?;
+            let groups_added_to = inventory.add_user_to_groups(user.id, groups).await?;
             let groups_removed_from = inventory
-                .remove_user_from_all_groups_except(&user, groups)
+                .remove_user_from_all_groups_except(user.id, groups)
                 .await?;
 
             Ok(LoginResult::UserUpdated {

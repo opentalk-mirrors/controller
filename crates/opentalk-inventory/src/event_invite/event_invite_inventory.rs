@@ -2,9 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::{
-    events::email_invites::{EventEmailInvite, NewEventEmailInvite, UpdateEventEmailInvite},
-    users::User,
+use opentalk_db_storage::events::email_invites::{
+    EventEmailInvite, NewEventEmailInvite, UpdateEventEmailInvite,
 };
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
@@ -13,7 +12,7 @@ use opentalk_types_common::{
 };
 
 use super::{NewEventInvite, UpdateEventInvite};
-use crate::{Event, EventInvite, Result};
+use crate::{Event, EventInvite, Result, User};
 
 /// A trait for retrieving and storing event invite entities.
 #[async_trait::async_trait]
@@ -107,6 +106,6 @@ pub trait EventInviteInventory {
     /// Migrate event email invites to event user invites.
     async fn migrate_event_email_invites_to_user_invites(
         &mut self,
-        user: &User,
+        user: User,
     ) -> Result<Vec<(EventId, RoomId)>>;
 }

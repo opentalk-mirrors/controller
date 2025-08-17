@@ -6,8 +6,8 @@
 
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_db_storage::{rooms::Room, sip_configs::SipConfig, users::User};
-use opentalk_inventory::{Event, EventException, Inventory, RoomInvite, Tenant};
+use opentalk_db_storage::{rooms::Room, sip_configs::SipConfig};
+use opentalk_inventory::{Event, EventException, Inventory, RoomInvite, Tenant, User};
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_common::{
     rooms::RoomId, shared_folders::SharedFolder, streaming::RoomStreamingTarget,

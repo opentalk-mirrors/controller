@@ -6,8 +6,8 @@ use std::sync::Arc;
 
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use opentalk_database::Db;
-use opentalk_db_storage::{migrations::migrate_from_url, rooms::Room, users::User};
-use opentalk_inventory::{InventoryProvider, NewRoom, NewUser};
+use opentalk_db_storage::{migrations::migrate_from_url, rooms::Room};
+use opentalk_inventory::{InventoryProvider, NewRoom, NewUser, User};
 use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_types_common::{
     rooms::RoomId,
@@ -124,7 +124,7 @@ impl DatabaseContext {
             .map(|g| g.id)
             .collect::<Vec<GroupId>>();
         connection
-            .add_user_to_groups(&user, &groups)
+            .add_user_to_groups(user.id, &groups)
             .await
             .whatever_context("add user to group failed")?;
 

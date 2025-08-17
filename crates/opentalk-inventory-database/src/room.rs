@@ -2,11 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::{
-    rooms::{self as db, Room, UpdateRoom},
-    users::User,
-};
-use opentalk_inventory::{NewRoom, RoomInventory, error::StorageBackendSnafu};
+use opentalk_db_storage::rooms::{self as db, Room, UpdateRoom};
+use opentalk_inventory::{NewRoom, RoomInventory, User, error::StorageBackendSnafu};
 use opentalk_types_common::rooms::RoomId;
 use snafu::ResultExt as _;
 
@@ -31,16 +28,21 @@ impl RoomInventory for DatabaseConnection {
 
     #[tracing::instrument(err, skip_all)]
     async fn get_room_with_creator(&mut self, room_id: RoomId) -> Result<(Room, User)> {
-        Room::get_with_user(&mut self.inner, room_id)
+        let (room, user) = Room::get_with_user(&mut self.inner, room_id)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?;
+        Ok((room, user.into()))
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_all_rooms_with_creator(&mut self) -> Result<Vec<(Room, User)>> {
-        Room::get_all_with_creator(&mut self.inner)
+        let rooms = Room::get_all_with_creator(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?;
+        Ok(rooms
+            .into_iter()
+            .map(|(room, user)| (room, user.into()))
+            .collect())
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -71,9 +73,16 @@ impl RoomInventory for DatabaseConnection {
         limit: i64,
         page: i64,
     ) -> Result<(Vec<(Room, User)>, i64)> {
-        Room::get_all_with_creator_paginated(&mut self.inner, limit, page)
+        let (rooms, overall) = Room::get_all_with_creator_paginated(&mut self.inner, limit, page)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?;
+        Ok((
+            rooms
+                .into_iter()
+                .map(|(room, user)| (room, user.into()))
+                .collect(),
+            overall,
+        ))
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -83,8 +92,16 @@ impl RoomInventory for DatabaseConnection {
         limit: i64,
         page: i64,
     ) -> Result<(Vec<(Room, User)>, i64)> {
-        Room::get_by_ids_with_creator_paginated(&mut self.inner, room_ids, limit, page)
-            .await
-            .context(StorageBackendSnafu)
+        let (rooms, overall) =
+            Room::get_by_ids_with_creator_paginated(&mut self.inner, room_ids, limit, page)
+                .await
+                .context(StorageBackendSnafu)?;
+        Ok((
+            rooms
+                .into_iter()
+                .map(|(room, user)| (room, user.into()))
+                .collect(),
+            overall,
+        ))
     }
 }

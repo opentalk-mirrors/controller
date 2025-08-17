@@ -5,14 +5,13 @@
 use std::collections::BTreeSet;
 
 use bigdecimal::BigDecimal;
-use opentalk_db_storage::users::User;
 use opentalk_types_common::{
     tenants::TenantId,
     time::Timestamp,
     users::{GroupId, UserId},
 };
 
-use super::{NewUser, UpdateUser};
+use super::{NewUser, UpdateUser, User};
 use crate::{Group, Result, UpsertOutcome};
 
 /// A trait for retrieving and storing user entities.
@@ -78,14 +77,14 @@ pub trait UserInventory {
     /// Add a user to one or multiple groups.
     async fn add_user_to_groups(
         &mut self,
-        user: &User,
+        user_id: UserId,
         groups: &[GroupId],
     ) -> Result<BTreeSet<GroupId>>;
 
     /// Remove a user from all groups not in the given `group_ids_to_keep` parameter.
     async fn remove_user_from_all_groups_except(
         &mut self,
-        user: &User,
+        user_id: UserId,
         group_ids_to_keep: &[GroupId],
     ) -> Result<BTreeSet<GroupId>>;
 

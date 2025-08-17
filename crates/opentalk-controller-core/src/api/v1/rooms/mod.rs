@@ -13,7 +13,7 @@ use actix_web::{
 };
 use opentalk_controller_service::controller_backend::rooms::start_room_error::StartRoomError;
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
-use opentalk_db_storage::users::User;
+use opentalk_inventory::User;
 use opentalk_types_api_v1::{
     error::{ApiError, ErrorBody},
     pagination::PagePaginationQuery,

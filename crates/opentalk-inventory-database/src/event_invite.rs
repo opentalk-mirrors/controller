@@ -2,15 +2,12 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::{
-    events::{
-        self as db,
-        email_invites::{EventEmailInvite, NewEventEmailInvite, UpdateEventEmailInvite},
-    },
-    users::User,
+use opentalk_db_storage::events::{
+    self as db,
+    email_invites::{EventEmailInvite, NewEventEmailInvite, UpdateEventEmailInvite},
 };
 use opentalk_inventory::{
-    Event, EventInvite, EventInviteInventory, NewEventInvite, UpdateEventInvite,
+    Event, EventInvite, EventInviteInventory, NewEventInvite, UpdateEventInvite, User,
     error::StorageBackendSnafu,
 };
 use opentalk_types_common::{
@@ -67,7 +64,7 @@ impl EventInviteInventory for DatabaseConnection {
         Ok((
             items
                 .into_iter()
-                .map(|(invite, user)| (invite.into(), user))
+                .map(|(invite, user)| (invite.into(), user.into()))
                 .collect(),
             overall,
         ))
@@ -120,7 +117,7 @@ impl EventInviteInventory for DatabaseConnection {
             .map(|items| {
                 items
                     .into_iter()
-                    .map(|(invite, user)| (invite.into(), user))
+                    .map(|(invite, user)| (invite.into(), user.into()))
                     .collect()
             })
             .collect())
@@ -212,9 +209,9 @@ impl EventInviteInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn migrate_event_email_invites_to_user_invites(
         &mut self,
-        user: &User,
+        user: User,
     ) -> Result<Vec<(EventId, RoomId)>> {
-        EventEmailInvite::migrate_to_user_invites(&mut self.inner, user)
+        EventEmailInvite::migrate_to_user_invites(&mut self.inner, &user.into())
             .await
             .context(StorageBackendSnafu)
     }

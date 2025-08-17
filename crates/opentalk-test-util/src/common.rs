@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use kustos::Authz;
-use opentalk_db_storage::users::User;
+use opentalk_inventory::User;
 use opentalk_signaling_core::{
     SignalingModule, VolatileStaticMemoryStorage, VolatileStorage,
     module_tester::{ModuleTester, WsMessageOutgoing},

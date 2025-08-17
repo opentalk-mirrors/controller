@@ -13,9 +13,9 @@ use std::sync::Arc;
 use chrono::DateTime;
 use lapin_pool::{RabbitMqChannel, RabbitMqPool};
 use opentalk_controller_settings::Settings;
-use opentalk_db_storage::{rooms::Room, sip_configs::SipConfig, users::User};
-use opentalk_inventory::{Event, EventException, EventExceptionKind};
-use opentalk_mail_worker_protocol::*;
+use opentalk_db_storage::{rooms::Room, sip_configs::SipConfig};
+use opentalk_inventory::{Event, EventException, EventExceptionKind, User};
+use opentalk_mail_worker_protocol::{MailTask, v1};
 use opentalk_types_common::{
     features::CALL_IN_FEATURE_ID,
     modules::CORE_MODULE_ID,
@@ -56,6 +56,27 @@ impl From<User> for RegisteredMailRecipient {
             first_name: user.firstname,
             last_name: user.lastname,
             language: user.language,
+        }
+    }
+}
+
+impl From<RegisteredMailRecipient> for v1::RegisteredUser {
+    fn from(
+        RegisteredMailRecipient {
+            id: _,
+            email,
+            title,
+            first_name,
+            last_name,
+            language,
+        }: RegisteredMailRecipient,
+    ) -> Self {
+        Self {
+            email: email.into(),
+            title,
+            first_name,
+            last_name,
+            language,
         }
     }
 }
@@ -279,7 +300,7 @@ impl MailService {
 
         // Create MailTask
         let mail_task = MailTask::registered_event_invite(
-            inviter,
+            RegisteredMailRecipient::from(inviter),
             to_event(
                 settings,
                 event,
@@ -289,7 +310,7 @@ impl MailService {
                 shared_folder,
                 streaming_targets,
             ),
-            invitee,
+            RegisteredMailRecipient::from(invitee),
         );
 
         self.send_to_rabbitmq(settings, mail_task).await?;
@@ -318,7 +339,7 @@ impl MailService {
 
         // Create MailTask
         let mail_task = MailTask::unregistered_event_invite(
-            inviter,
+            RegisteredMailRecipient::from(inviter),
             to_event(
                 settings,
                 event,
@@ -352,7 +373,7 @@ impl MailService {
     ) -> Result<()> {
         // Create MailTask
         let mail_task = MailTask::external_event_invite(
-            inviter,
+            RegisteredMailRecipient::from(inviter),
             to_event(
                 settings,
                 event,
@@ -396,7 +417,7 @@ impl MailService {
                     }
                 });
                 MailTask::registered_event_update(
-                    inviter,
+                    RegisteredMailRecipient::from(inviter),
                     to_event(
                         settings,
                         event,
@@ -417,7 +438,7 @@ impl MailService {
                 )
             }
             MailRecipient::Unregistered(invitee) => MailTask::unregistered_event_update(
-                inviter,
+                RegisteredMailRecipient::from(inviter),
                 to_event(
                     settings,
                     event,
@@ -435,7 +456,7 @@ impl MailService {
                 },
             ),
             MailRecipient::External(invitee) => MailTask::external_event_update(
-                inviter,
+                RegisteredMailRecipient::from(inviter),
                 to_event(
                     settings,
                     event,
@@ -485,7 +506,7 @@ impl MailService {
                     }
                 });
                 MailTask::registered_event_cancellation(
-                    inviter,
+                    RegisteredMailRecipient::from(inviter),
                     to_event(
                         settings,
                         event,
@@ -505,7 +526,7 @@ impl MailService {
                 )
             }
             MailRecipient::Unregistered(invitee) => MailTask::unregistered_event_cancellation(
-                inviter,
+                RegisteredMailRecipient::from(inviter),
                 to_event(
                     settings,
                     event,
@@ -522,7 +543,7 @@ impl MailService {
                 },
             ),
             MailRecipient::External(invitee) => MailTask::external_event_cancellation(
-                inviter,
+                RegisteredMailRecipient::from(inviter),
                 to_event(
                     settings,
                     event,
@@ -570,7 +591,7 @@ impl MailService {
                     }
                 });
                 MailTask::registered_event_uninvite(
-                    inviter,
+                    RegisteredMailRecipient::from(inviter),
                     to_event(
                         settings,
                         event,
@@ -590,7 +611,7 @@ impl MailService {
                 )
             }
             MailRecipient::Unregistered(invitee) => MailTask::unregistered_event_uninvite(
-                inviter,
+                RegisteredMailRecipient::from(inviter),
                 to_event(
                     settings,
                     event,
@@ -607,7 +628,7 @@ impl MailService {
                 },
             ),
             MailRecipient::External(invitee) => MailTask::external_event_uninvite(
-                inviter,
+                RegisteredMailRecipient::from(inviter),
                 to_event(
                     settings,
                     event,

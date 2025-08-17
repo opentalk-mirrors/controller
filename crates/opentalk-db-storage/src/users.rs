@@ -60,7 +60,7 @@ const MAX_USER_SEARCH_RESULTS: usize = 50;
 /// Diesel user struct
 ///
 /// Is used as a result in various queries. Represents a user column
-#[derive(Clone, Queryable, Identifiable, Serialize, Deserialize, PartialEq, Eq, Encode, Decode)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Eq)]
 pub struct User {
     pub id: UserId,
     pub id_serial: SerialUserId,
@@ -77,13 +77,10 @@ pub struct User {
     pub tenant_id: TenantId,
     pub tariff_id: TariffId,
     pub tariff_status: TariffStatus,
-    #[bincode(with_serde)]
     pub disabled_since: Option<DateTime<Utc>>,
     pub avatar_url: Option<String>,
     pub timezone: Option<TimeZone>,
-    #[bincode(with_serde)]
     pub created_at: DateTime<Utc>,
-    #[bincode(with_serde)]
     pub updated_at: DateTime<Utc>,
 }
 

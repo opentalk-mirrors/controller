@@ -34,7 +34,7 @@ use crate::{
     ControllerBackend,
     controller_backend::{
         RoomsPoliciesBuilderExt,
-        events::{DateTimeTzFromInventory, EventRoomInfoExt, ONE_HUNDRED_YEARS_IN_DAYS, can_edit},
+        events::{DateTimeTzFromInventory, EventRoomInfoExt, ONE_HUNDRED_YEARS_IN_DAYS},
     },
     events::{
         enrich_invitees_from_optional_user_search, get_invited_mail_recipients_for_event,
@@ -205,7 +205,7 @@ impl ControllerBackend {
 
         let room = EventRoomInfo::from_room(&settings, room, sip_config, &tariff);
 
-        let can_edit = can_edit(&event, &current_user);
+        let can_edit = current_user.can_edit(&event);
 
         let shared_folder =
             shared_folder_for_user(shared_folder, event.created_by, current_user.id);
@@ -327,7 +327,7 @@ impl ControllerBackend {
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
         let current_user = inventory.get_user(current_user.id).await?;
 
-        let can_edit = can_edit(&event, &current_user);
+        let can_edit = current_user.can_edit(&event);
 
         let shared_folder =
             shared_folder_for_user(shared_folder, event.created_by, current_user.id);
@@ -500,7 +500,7 @@ impl ControllerBackend {
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
         let current_user = inventory.get_user(current_user.id).await?;
 
-        let can_edit = can_edit(&event, &current_user);
+        let can_edit = current_user.can_edit(&event);
 
         let shared_folder =
             shared_folder_for_user(shared_folder, event.created_by, current_user.id);
