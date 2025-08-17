@@ -2,14 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::invites::UpdateInvite;
 use opentalk_types_common::{
     rooms::{RoomId, invite_codes::InviteCode},
     time::Timestamp,
     users::UserId,
 };
 
-use super::{NewRoomInvite, RoomInvite, RoomInviteWithUsers};
+use super::{NewRoomInvite, RoomInvite, RoomInviteWithUsers, UpdateRoomInvite};
 use crate::Result;
 
 /// A trait for retrieving and storing room invite entities.
@@ -64,7 +63,7 @@ pub trait RoomInviteInventory {
         &mut self,
         room_id: RoomId,
         invite_code: InviteCode,
-        invite: UpdateInvite,
+        invite: UpdateRoomInvite,
     ) -> Result<RoomInvite>;
 
     /// Get the invite code

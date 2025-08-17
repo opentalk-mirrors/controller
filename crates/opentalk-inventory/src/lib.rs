@@ -69,7 +69,9 @@ pub use inventory_provider::InventoryProvider;
 pub use job_execution::JobExecutionInventory;
 pub use module_resource::ModuleResourceInventory;
 pub use room::RoomInventory;
-pub use room_invite::{NewRoomInvite, RoomInvite, RoomInviteInventory, RoomInviteWithUsers};
+pub use room_invite::{
+    NewRoomInvite, RoomInvite, RoomInviteInventory, RoomInviteWithUsers, UpdateRoomInvite,
+};
 pub use room_sip_config::RoomSipConfigInventory;
 pub use room_streaming_target::RoomStreamingTargetInventory;
 pub use tariff::TariffInventory;

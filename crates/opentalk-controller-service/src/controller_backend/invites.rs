@@ -2,14 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use chrono::Utc;
 use kustos::policies_builder::PoliciesBuilder;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_utils::{
     CaptureApiError, TariffResourceExt, deletion::room::associated_resource_ids_for_invite,
 };
-use opentalk_db_storage::invites::{Invite, UpdateInvite};
-use opentalk_inventory::{NewRoomInvite, RoomInvite, RoomInviteWithUsers};
+use opentalk_db_storage::invites::Invite;
+use opentalk_inventory::{NewRoomInvite, RoomInvite, RoomInviteWithUsers, UpdateRoomInvite};
 use opentalk_types_api_v1::{
     error::ApiError,
     pagination::PagePaginationQuery,
@@ -163,15 +162,15 @@ impl ControllerBackend {
             return Err(ApiError::not_found().into());
         }
 
-        let now = Utc::now();
+        let now = Timestamp::now();
         let invite = inventory
             .update_room_invite(
                 room_id,
                 invite_code,
-                UpdateInvite {
+                UpdateRoomInvite {
                     updated_by: Some(current_user.id),
                     updated_at: Some(now),
-                    expiration: Some(body.expiration),
+                    expiration: Some(body.expiration.map(Into::into)),
                     active: None,
                     room: None,
                 },
@@ -199,9 +198,9 @@ impl ControllerBackend {
             .update_room_invite(
                 room_id,
                 invite_code,
-                UpdateInvite {
+                UpdateRoomInvite {
                     updated_by: Some(current_user.id),
-                    updated_at: Some(Utc::now()),
+                    updated_at: Some(Timestamp::now()),
                     expiration: None,
                     active: Some(false),
                     room: None,
