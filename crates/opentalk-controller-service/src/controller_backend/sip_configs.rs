@@ -3,8 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_controller_utils::{CaptureApiError, TariffResourceExt as _};
-use opentalk_db_storage::sip_configs::UpdateSipConfig;
-use opentalk_inventory::NewRoomSipConfig;
+use opentalk_inventory::{NewRoomSipConfig, UpdateRoomSipConfig};
 use opentalk_types_api_v1::{
     error::ApiError,
     rooms::by_room_id::sip::{PutSipConfigRequestBody, SipConfigResource},
@@ -64,7 +63,7 @@ impl ControllerBackend {
         let tariff = self.get_tariff_for_user(room.created_by).await?;
         tariff.require_feature(&features::CALL_IN_MODULE_FEATURE_ID)?;
 
-        let changeset = UpdateSipConfig {
+        let changeset = UpdateRoomSipConfig {
             password: modify_sip_config.password.clone(),
             enable_lobby: modify_sip_config.lobby,
         };

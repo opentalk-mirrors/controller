@@ -72,7 +72,9 @@ pub use room::{NewRoom, RoomInventory};
 pub use room_invite::{
     NewRoomInvite, RoomInvite, RoomInviteInventory, RoomInviteWithUsers, UpdateRoomInvite,
 };
-pub use room_sip_config::{NewRoomSipConfig, RoomSipConfig, RoomSipConfigInventory};
+pub use room_sip_config::{
+    NewRoomSipConfig, RoomSipConfig, RoomSipConfigInventory, UpdateRoomSipConfig,
+};
 pub use room_streaming_target::RoomStreamingTargetInventory;
 pub use tariff::TariffInventory;
 pub use tenant::{OidcTenantId, Tenant, TenantInventory};
