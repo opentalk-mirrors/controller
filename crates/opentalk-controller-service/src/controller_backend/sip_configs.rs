@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_controller_utils::{CaptureApiError, TariffResourceExt as _};
-use opentalk_db_storage::sip_configs::{NewSipConfig, UpdateSipConfig};
+use opentalk_db_storage::sip_configs::UpdateSipConfig;
+use opentalk_inventory::NewRoomSipConfig;
 use opentalk_types_api_v1::{
     error::ApiError,
     rooms::by_room_id::sip::{PutSipConfigRequestBody, SipConfigResource},
@@ -84,7 +85,7 @@ impl ControllerBackend {
         } else {
             // Create a new sip config
             let mut new_config =
-                NewSipConfig::new(room_id, modify_sip_config.lobby.unwrap_or_default());
+                NewRoomSipConfig::new(room_id, modify_sip_config.lobby.unwrap_or_default());
 
             if let Some(password) = modify_sip_config.password {
                 new_config.password = password;

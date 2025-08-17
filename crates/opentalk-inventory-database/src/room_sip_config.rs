@@ -5,9 +5,11 @@
 use opentalk_database::DatabaseError;
 use opentalk_db_storage::{
     rooms::Room,
-    sip_configs::{self as db, NewSipConfig, UpdateSipConfig},
+    sip_configs::{self as db, UpdateSipConfig},
 };
-use opentalk_inventory::{RoomSipConfig, RoomSipConfigInventory, error::StorageBackendSnafu};
+use opentalk_inventory::{
+    NewRoomSipConfig, RoomSipConfig, RoomSipConfigInventory, error::StorageBackendSnafu,
+};
 use opentalk_types_common::{call_in::CallInId, rooms::RoomId};
 use snafu::ResultExt as _;
 
@@ -36,8 +38,11 @@ impl RoomSipConfigInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err, skip_all)]
-    async fn create_room_sip_config(&mut self, sip_config: NewSipConfig) -> Result<RoomSipConfig> {
-        Ok(sip_config
+    async fn create_room_sip_config(
+        &mut self,
+        sip_config: NewRoomSipConfig,
+    ) -> Result<RoomSipConfig> {
+        Ok(db::NewSipConfig::from(sip_config)
             .insert(&mut self.inner)
             .await
             .context(StorageBackendSnafu)?

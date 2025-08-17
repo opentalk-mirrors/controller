@@ -2,13 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::{
-    rooms::Room,
-    sip_configs::{NewSipConfig, UpdateSipConfig},
-};
+use opentalk_db_storage::{rooms::Room, sip_configs::UpdateSipConfig};
 use opentalk_types_common::{call_in::CallInId, rooms::RoomId};
 
-use super::RoomSipConfig;
+use super::{NewRoomSipConfig, RoomSipConfig};
 use crate::Result;
 
 /// A trait for retrieving and storing room sip config entities.
@@ -24,7 +21,10 @@ pub trait RoomSipConfigInventory {
     ) -> Result<Option<(RoomSipConfig, Room)>>;
 
     /// Create a SIP config for a room
-    async fn create_room_sip_config(&mut self, sip_config: NewSipConfig) -> Result<RoomSipConfig>;
+    async fn create_room_sip_config(
+        &mut self,
+        sip_config: NewRoomSipConfig,
+    ) -> Result<RoomSipConfig>;
 
     /// Update a room SIP config.
     async fn update_room_sip_config(

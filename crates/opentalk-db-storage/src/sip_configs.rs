@@ -84,15 +84,6 @@ pub struct NewSipConfig {
 }
 
 impl NewSipConfig {
-    pub fn new(room_id: RoomId, enable_lobby: bool) -> Self {
-        Self {
-            room: room_id,
-            sip_id: CallInId::generate(),
-            password: CallInPassword::generate(),
-            enable_lobby,
-        }
-    }
-
     fn re_generate_id(&mut self) {
         self.sip_id = CallInId::generate();
     }

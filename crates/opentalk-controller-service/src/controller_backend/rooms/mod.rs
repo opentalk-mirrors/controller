@@ -16,11 +16,8 @@ use opentalk_controller_utils::{
     CaptureApiError, TariffResourceExt as _,
     deletion::{Deleter, RoomDeleter},
 };
-use opentalk_db_storage::{
-    rooms::{Room, UpdateRoom},
-    sip_configs::NewSipConfig,
-};
-use opentalk_inventory::{NewRoom, utils::build_event_info};
+use opentalk_db_storage::rooms::{Room, UpdateRoom};
+use opentalk_inventory::{NewRoom, NewRoomSipConfig, utils::build_event_info};
 use opentalk_signaling_core::Participant;
 use opentalk_types_api_v1::{
     error::{ApiError, ERROR_CODE_INVALID_VALUE, ValidationErrorEntry},
@@ -127,7 +124,7 @@ impl ControllerBackend {
 
         if enable_sip {
             _ = inventory
-                .create_room_sip_config(NewSipConfig::new(room.id, false))
+                .create_room_sip_config(NewRoomSipConfig::new(room.id, false))
                 .await?;
         }
 

@@ -22,12 +22,11 @@ use opentalk_controller_utils::{
 use opentalk_db_storage::{
     events::{UpdateEventTrainingParticipationReportParameterSet, email_invites::EventEmailInvite},
     rooms::{Room, UpdateRoom},
-    sip_configs::NewSipConfig,
 };
 use opentalk_inventory::{
     Event, EventException, EventExceptionKind, EventInvite,
     EventTrainingParticipationReportParameterSet, GetEventsCursor, Inventory, NewEvent, NewRoom,
-    RoomSipConfig, Tenant, UpdateEvent, User, transaction,
+    NewRoomSipConfig, RoomSipConfig, Tenant, UpdateEvent, User, transaction,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
@@ -1164,7 +1163,7 @@ async fn create_time_independent_event(
         .await?;
 
     let sip_config = inventory
-        .create_room_sip_config(NewSipConfig::new(room.id, false))
+        .create_room_sip_config(NewRoomSipConfig::new(room.id, false))
         .await?;
 
     let event = inventory
@@ -1276,7 +1275,7 @@ async fn create_time_dependent_event(
         .await?;
 
     let sip_config = inventory
-        .create_room_sip_config(NewSipConfig::new(room.id, false))
+        .create_room_sip_config(NewRoomSipConfig::new(room.id, false))
         .await?;
 
     let event = inventory
