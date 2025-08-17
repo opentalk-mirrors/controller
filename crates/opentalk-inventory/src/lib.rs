@@ -69,7 +69,7 @@ pub use inventory_provider::InventoryProvider;
 pub use job_execution::JobExecutionInventory;
 pub use module_resource::ModuleResourceInventory;
 pub use room::RoomInventory;
-pub use room_invite::{RoomInvite, RoomInviteInventory};
+pub use room_invite::{RoomInvite, RoomInviteInventory, RoomInviteWithUsers};
 pub use room_sip_config::RoomSipConfigInventory;
 pub use room_streaming_target::RoomStreamingTargetInventory;
 pub use tariff::TariffInventory;
@@ -77,7 +77,7 @@ pub use tenant::{OidcTenantId, Tenant, TenantInventory};
 pub use transaction::transaction;
 pub use transaction_manager::TransactionManager;
 pub use upsert::UpsertOutcome;
-pub use user::{NewUser, UpdateUser, UserInventory};
+pub use user::{NewUser, UpdateUser, User, UserInventory};
 
 /// The result type typically used for functions in this crate.
 pub type Result<T, E = Error> = std::result::Result<T, E>;

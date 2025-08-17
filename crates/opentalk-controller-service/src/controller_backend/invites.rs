@@ -9,7 +9,7 @@ use opentalk_controller_utils::{
     CaptureApiError, TariffResourceExt, deletion::room::associated_resource_ids_for_invite,
 };
 use opentalk_db_storage::invites::{Invite, NewInvite, UpdateInvite};
-use opentalk_inventory::RoomInvite;
+use opentalk_inventory::{RoomInvite, RoomInviteWithUsers};
 use opentalk_types_api_v1::{
     error::ApiError,
     pagination::PagePaginationQuery,
@@ -90,12 +90,18 @@ impl ControllerBackend {
 
         let invites = invites_with_users
             .into_iter()
-            .map(|(db_invite, created_by, updated_by)| {
-                let created_by = created_by.to_public_user_profile(&settings);
-                let updated_by = updated_by.to_public_user_profile(&settings);
+            .map(
+                |RoomInviteWithUsers {
+                     invite,
+                     created_by,
+                     updated_by,
+                 }| {
+                    let created_by = created_by.to_public_user_profile(&settings);
+                    let updated_by = updated_by.to_public_user_profile(&settings);
 
-                db_invite.into_invite_resource(created_by, updated_by)
-            })
+                    invite.into_invite_resource(created_by, updated_by)
+                },
+            )
             .collect::<Vec<InviteResource>>();
 
         Ok((GetRoomsInvitesResponseBody(invites), total_invites))
@@ -113,7 +119,11 @@ impl ControllerBackend {
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let (invite, created_by, updated_by) = inventory
+        let RoomInviteWithUsers {
+            invite,
+            created_by,
+            updated_by,
+        } = inventory
             .get_room_invite_with_creator_and_updater(invite_code)
             .await?;
 
@@ -141,7 +151,11 @@ impl ControllerBackend {
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let (invite, created_by, _updated_by) = inventory
+        let RoomInviteWithUsers {
+            invite,
+            created_by,
+            updated_by: _,
+        } = inventory
             .get_room_invite_with_creator_and_updater(invite_code)
             .await?;
 

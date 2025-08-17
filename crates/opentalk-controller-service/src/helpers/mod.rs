@@ -6,7 +6,6 @@
 
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
-use opentalk_db_storage::users::User;
 use opentalk_inventory::{Asset, Inventory};
 use opentalk_types_api_v1::{
     assets::AssetResource,
@@ -27,7 +26,48 @@ pub trait ToUserProfile {
     -> PrivateUserProfile;
 }
 
-impl ToUserProfile for User {
+impl ToUserProfile for opentalk_db_storage::users::User {
+    fn to_public_user_profile(&self, settings: &Settings) -> PublicUserProfile {
+        let default_avatar = email_to_libravatar_url(&settings.avatar.libravatar_url, &self.email);
+
+        PublicUserProfile {
+            id: self.id,
+            email: self.email.clone(),
+            user_info: UserInfo {
+                title: self.title.clone(),
+                firstname: self.firstname.clone(),
+                lastname: self.lastname.clone(),
+                display_name: self.display_name.clone(),
+                avatar_url: self.avatar_url.clone().unwrap_or(default_avatar),
+            },
+        }
+    }
+
+    fn to_private_user_profile(
+        &self,
+        settings: &Settings,
+        used_storage: u64,
+    ) -> PrivateUserProfile {
+        let default_avatar = email_to_libravatar_url(&settings.avatar.libravatar_url, &self.email);
+
+        PrivateUserProfile {
+            id: self.id,
+            email: self.email.clone(),
+            title: self.title.clone(),
+            firstname: self.firstname.clone(),
+            lastname: self.lastname.clone(),
+            display_name: self.display_name.clone(),
+            dashboard_theme: self.dashboard_theme.clone(),
+            conference_theme: self.conference_theme.clone(),
+            avatar_url: self.avatar_url.clone().unwrap_or(default_avatar),
+            language: self.language.clone(),
+            tariff_status: self.tariff_status,
+            used_storage,
+        }
+    }
+}
+
+impl ToUserProfile for opentalk_inventory::User {
     fn to_public_user_profile(&self, settings: &Settings) -> PublicUserProfile {
         let default_avatar = email_to_libravatar_url(&settings.avatar.libravatar_url, &self.email);
 
