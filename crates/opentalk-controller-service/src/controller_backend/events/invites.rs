@@ -13,11 +13,10 @@ use opentalk_controller_utils::CaptureApiError;
 use opentalk_db_storage::{
     events::email_invites::{NewEventEmailInvite, UpdateEventEmailInvite},
     rooms::Room,
-    sip_configs::SipConfig,
 };
 use opentalk_inventory::{
-    Event, EventInvite, Inventory, InventoryProvider, NewEventInvite, NewRoomInvite, Tenant,
-    UpdateEventInvite, User, transaction,
+    Event, EventInvite, Inventory, InventoryProvider, NewEventInvite, NewRoomInvite, RoomSipConfig,
+    Tenant, UpdateEventInvite, User, transaction,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
@@ -624,7 +623,7 @@ async fn create_email_event_invite(
             event: Event,
             room: Room,
             invitee: User,
-            sip_config: Option<SipConfig>,
+            sip_config: Option<RoomSipConfig>,
             invite: EventInvite,
             shared_folder: Option<SharedFolder>,
             streaming_targets: Vec<RoomStreamingTarget>,
@@ -632,7 +631,7 @@ async fn create_email_event_invite(
         DoesNotExist {
             event: Event,
             room: Room,
-            sip_config: Option<SipConfig>,
+            sip_config: Option<RoomSipConfig>,
             shared_folder: Option<SharedFolder>,
             streaming_targets: Vec<RoomStreamingTarget>,
         },
@@ -779,7 +778,7 @@ async fn create_invite_to_non_matching_email(
     event: Event,
     room: Room,
     room_tariff: &TariffResource,
-    sip_config: Option<SipConfig>,
+    sip_config: Option<RoomSipConfig>,
     email: EmailAddress,
     role: EmailInviteRole,
     shared_folder: Option<SharedFolder>,
@@ -908,7 +907,7 @@ struct UninviteNotificationValues {
     pub created_by: User,
     pub event: Event,
     pub room: Room,
-    pub sip_config: Option<SipConfig>,
+    pub sip_config: Option<RoomSipConfig>,
     pub users_to_notify: Vec<MailRecipient>,
 }
 

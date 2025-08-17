@@ -13,8 +13,8 @@ use std::sync::Arc;
 use chrono::DateTime;
 use lapin_pool::{RabbitMqChannel, RabbitMqPool};
 use opentalk_controller_settings::Settings;
-use opentalk_db_storage::{rooms::Room, sip_configs::SipConfig};
-use opentalk_inventory::{Event, EventException, EventExceptionKind, User};
+use opentalk_db_storage::rooms::Room;
+use opentalk_inventory::{Event, EventException, EventExceptionKind, RoomSipConfig, User};
 use opentalk_mail_worker_protocol::{MailTask, v1};
 use opentalk_types_common::{
     features::CALL_IN_FEATURE_ID,
@@ -115,7 +115,7 @@ fn to_event(
     event: Event,
     room: Room,
     room_tariff: &TariffResource,
-    sip_config: Option<SipConfig>,
+    sip_config: Option<RoomSipConfig>,
     shared_folder: Option<SharedFolder>,
     streaming_targets: Vec<RoomStreamingTarget>,
 ) -> v1::Event {
@@ -285,7 +285,7 @@ impl MailService {
         event: Event,
         room: Room,
         room_tariff: &TariffResource,
-        sip_config: Option<SipConfig>,
+        sip_config: Option<RoomSipConfig>,
         invitee: User,
         shared_folder: Option<SharedFolder>,
         streaming_targets: Vec<RoomStreamingTarget>,
@@ -326,7 +326,7 @@ impl MailService {
         event: Event,
         room: Room,
         room_tariff: &TariffResource,
-        sip_config: Option<SipConfig>,
+        sip_config: Option<RoomSipConfig>,
         invitee: opentalk_keycloak_admin::users::User,
         shared_folder: Option<SharedFolder>,
         streaming_targets: Vec<RoomStreamingTarget>,
@@ -365,7 +365,7 @@ impl MailService {
         event: Event,
         room: Room,
         room_tariff: &TariffResource,
-        sip_config: Option<SipConfig>,
+        sip_config: Option<RoomSipConfig>,
         invitee: &str,
         invite_code: String,
         shared_folder: Option<SharedFolder>,
@@ -401,7 +401,7 @@ impl MailService {
         event_exception: Option<EventException>,
         room: Room,
         room_tariff: &TariffResource,
-        sip_config: Option<SipConfig>,
+        sip_config: Option<RoomSipConfig>,
         invitee: MailRecipient,
         invite_code: String,
         shared_folder: Option<SharedFolder>,
@@ -488,7 +488,7 @@ impl MailService {
         mut event: Event,
         room: Room,
         room_tariff: &TariffResource,
-        sip_config: Option<SipConfig>,
+        sip_config: Option<RoomSipConfig>,
         invitee: MailRecipient,
         shared_folder: Option<SharedFolder>,
         streaming_targets: Vec<RoomStreamingTarget>,
@@ -573,7 +573,7 @@ impl MailService {
         mut event: Event,
         room: Room,
         room_tariff: &TariffResource,
-        sip_config: Option<SipConfig>,
+        sip_config: Option<RoomSipConfig>,
         invitee: MailRecipient,
         shared_folder: Option<SharedFolder>,
         streaming_targets: Vec<RoomStreamingTarget>,

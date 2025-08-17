@@ -6,8 +6,10 @@
 
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_db_storage::{rooms::Room, sip_configs::SipConfig};
-use opentalk_inventory::{Event, EventException, Inventory, RoomInvite, Tenant, User};
+use opentalk_db_storage::rooms::Room;
+use opentalk_inventory::{
+    Event, EventException, Inventory, RoomInvite, RoomSipConfig, Tenant, User,
+};
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_common::{
     rooms::RoomId, shared_folders::SharedFolder, streaming::RoomStreamingTarget,
@@ -37,7 +39,7 @@ pub struct UpdateNotificationValues {
     /// The room of the updated event
     pub room: Room,
     /// The SIP configuration of the updated event
-    pub sip_config: Option<SipConfig>,
+    pub sip_config: Option<RoomSipConfig>,
     /// The users to notify about the update
     pub users_to_notify: Vec<MailRecipient>,
     /// The updated invite
@@ -108,7 +110,7 @@ pub async fn notify_event_invitees_about_update(
     event: Event,
     room: Room,
     room_tariff: &TariffResource,
-    sip_config: Option<SipConfig>,
+    sip_config: Option<RoomSipConfig>,
     shared_folder_for_user: Option<SharedFolder>,
     streaming_targets: Vec<RoomStreamingTarget>,
 ) -> Result<(), CaptureApiError> {

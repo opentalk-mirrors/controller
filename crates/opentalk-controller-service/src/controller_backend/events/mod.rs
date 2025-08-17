@@ -22,12 +22,12 @@ use opentalk_controller_utils::{
 use opentalk_db_storage::{
     events::{UpdateEventTrainingParticipationReportParameterSet, email_invites::EventEmailInvite},
     rooms::{Room, UpdateRoom},
-    sip_configs::{NewSipConfig, SipConfig},
+    sip_configs::NewSipConfig,
 };
 use opentalk_inventory::{
     Event, EventException, EventExceptionKind, EventInvite,
     EventTrainingParticipationReportParameterSet, GetEventsCursor, Inventory, NewEvent, NewRoom,
-    Tenant, UpdateEvent, User, transaction,
+    RoomSipConfig, Tenant, UpdateEvent, User, transaction,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
@@ -1034,7 +1034,7 @@ trait EventRoomInfoExt {
     fn from_room(
         settings: &Settings,
         room: Room,
-        sip_config: Option<SipConfig>,
+        sip_config: Option<RoomSipConfig>,
         tariff: &TariffResource,
     ) -> Self;
 }
@@ -1049,7 +1049,7 @@ impl EventRoomInfoExt for EventRoomInfo {
     fn from_room(
         settings: &Settings,
         room: Room,
-        sip_config: Option<SipConfig>,
+        sip_config: Option<RoomSipConfig>,
         tariff: &TariffResource,
     ) -> Self {
         let call_in_feature_is_enabled = tariff
@@ -1132,7 +1132,7 @@ struct MailResource {
     pub current_user: User,
     pub event: Event,
     pub room: Room,
-    pub sip_config: Option<SipConfig>,
+    pub sip_config: Option<RoomSipConfig>,
 }
 
 /// Part of `POST /events` endpoint
@@ -1546,7 +1546,7 @@ pub(crate) struct CancellationNotificationValues {
     pub created_by: User,
     pub event: Event,
     pub room: Room,
-    pub sip_config: Option<SipConfig>,
+    pub sip_config: Option<RoomSipConfig>,
     pub users_to_notify: Vec<MailRecipient>,
     pub shared_folder: Option<SharedFolder>,
     pub streaming_targets: Vec<RoomStreamingTarget>,

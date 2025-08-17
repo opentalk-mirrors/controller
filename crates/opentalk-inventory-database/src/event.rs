@@ -7,13 +7,12 @@ use std::collections::BTreeSet;
 use opentalk_db_storage::{
     events::{self as db, EventFavorite, NewEventFavorite},
     rooms::Room,
-    sip_configs::SipConfig,
     tariffs::Tariff,
 };
 use opentalk_inventory::{
     Event, EventException, EventExceptionId, EventInventory, EventInvite, EventSharedFolder,
     EventTrainingParticipationReportParameterSet, GetEventsCursor, NewEvent, NewEventException,
-    UpdateEvent, UpdateEventException, User, error::StorageBackendSnafu,
+    RoomSipConfig, UpdateEvent, UpdateEventException, User, error::StorageBackendSnafu,
 };
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
@@ -73,11 +72,11 @@ impl EventInventory for DatabaseConnection {
     async fn get_event_with_room_and_sip_config(
         &mut self,
         event_id: EventId,
-    ) -> Result<(Event, Room, Option<SipConfig>)> {
+    ) -> Result<(Event, Room, Option<RoomSipConfig>)> {
         let (event, room, sip_config) = db::Event::get_with_room(&mut self.inner, event_id)
             .await
             .context(StorageBackendSnafu)?;
-        Ok((event.into(), room, sip_config))
+        Ok((event.into(), room, sip_config.map(Into::into)))
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -89,7 +88,7 @@ impl EventInventory for DatabaseConnection {
         Event,
         Option<EventInvite>,
         Room,
-        Option<SipConfig>,
+        Option<RoomSipConfig>,
         bool,
         Option<EventSharedFolder>,
         Tariff,
@@ -111,7 +110,7 @@ impl EventInventory for DatabaseConnection {
             event.into(),
             invite.map(Into::into),
             room,
-            sip_config,
+            sip_config.map(Into::into),
             is_favourite,
             shared_folder.map(Into::into),
             tariff,
@@ -191,7 +190,7 @@ impl EventInventory for DatabaseConnection {
             Event,
             Option<EventInvite>,
             Room,
-            Option<SipConfig>,
+            Option<RoomSipConfig>,
             Vec<EventException>,
             bool,
             Option<EventSharedFolder>,
@@ -234,7 +233,7 @@ impl EventInventory for DatabaseConnection {
                         event.into(),
                         invite.map(Into::into),
                         room,
-                        sip_config,
+                        sip_config.map(Into::into),
                         exceptions,
                         is_favorite,
                         shared_folder.map(Into::into),

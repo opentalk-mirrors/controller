@@ -4,7 +4,7 @@
 
 use std::collections::BTreeSet;
 
-use opentalk_db_storage::{rooms::Room, sip_configs::SipConfig, tariffs::Tariff};
+use opentalk_db_storage::{rooms::Room, tariffs::Tariff};
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
     rooms::RoomId,
@@ -18,7 +18,8 @@ use super::{
     UpdateEvent, UpdateEventException,
 };
 use crate::{
-    EventInvite, EventSharedFolder, EventTrainingParticipationReportParameterSet, Result, User,
+    EventInvite, EventSharedFolder, EventTrainingParticipationReportParameterSet, Result,
+    RoomSipConfig, User,
 };
 
 /// A trait for retrieving and storing event entities.
@@ -43,7 +44,7 @@ pub trait EventInventory {
     async fn get_event_with_room_and_sip_config(
         &mut self,
         event_id: EventId,
-    ) -> Result<(Event, Room, Option<SipConfig>)>;
+    ) -> Result<(Event, Room, Option<RoomSipConfig>)>;
 
     /// Get an event with related items.
     async fn get_event_with_related_items(
@@ -54,7 +55,7 @@ pub trait EventInventory {
         Event,
         Option<EventInvite>,
         Room,
-        Option<SipConfig>,
+        Option<RoomSipConfig>,
         bool,
         Option<EventSharedFolder>,
         Tariff,
@@ -105,7 +106,7 @@ pub trait EventInventory {
             Event,
             Option<EventInvite>,
             Room,
-            Option<SipConfig>,
+            Option<RoomSipConfig>,
             Vec<EventException>,
             bool,
             Option<EventSharedFolder>,
