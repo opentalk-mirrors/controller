@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use chrono::Utc;
-use opentalk_db_storage::invites::{self as db, NewInvite, UpdateInvite};
+use opentalk_db_storage::invites::{self as db, UpdateInvite};
 use opentalk_inventory::{
-    RoomInvite, RoomInviteInventory, RoomInviteWithUsers, error::StorageBackendSnafu,
+    NewRoomInvite, RoomInvite, RoomInviteInventory, RoomInviteWithUsers, error::StorageBackendSnafu,
 };
 use opentalk_types_common::{
     rooms::{RoomId, invite_codes::InviteCode},
@@ -19,8 +19,8 @@ use crate::{DatabaseConnection, Result};
 #[async_trait::async_trait]
 impl RoomInviteInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
-    async fn create_room_invite(&mut self, invite: NewInvite) -> Result<RoomInvite> {
-        Ok(invite
+    async fn create_room_invite(&mut self, invite: NewRoomInvite) -> Result<RoomInvite> {
+        Ok(db::NewInvite::from(invite)
             .insert(&mut self.inner)
             .await
             .context(StorageBackendSnafu)?

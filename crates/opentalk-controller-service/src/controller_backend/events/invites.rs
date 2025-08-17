@@ -12,14 +12,13 @@ use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_db_storage::{
     events::email_invites::{NewEventEmailInvite, UpdateEventEmailInvite},
-    invites::NewInvite,
     rooms::Room,
     sip_configs::SipConfig,
     users::User,
 };
 use opentalk_inventory::{
-    Event, EventInvite, Inventory, InventoryProvider, NewEventInvite, Tenant, UpdateEventInvite,
-    transaction,
+    Event, EventInvite, Inventory, InventoryProvider, NewEventInvite, NewRoomInvite, Tenant,
+    UpdateEventInvite, transaction,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
@@ -849,7 +848,7 @@ async fn create_invite_to_non_matching_email(
                         })?;
                 } else {
                     let invite = inventory
-                        .create_room_invite(NewInvite {
+                        .create_room_invite(NewRoomInvite {
                             active: true,
                             created_by: current_user.id,
                             updated_by: current_user.id,

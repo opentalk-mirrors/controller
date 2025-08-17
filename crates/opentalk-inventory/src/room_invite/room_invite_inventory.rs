@@ -2,21 +2,21 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::invites::{NewInvite, UpdateInvite};
+use opentalk_db_storage::invites::UpdateInvite;
 use opentalk_types_common::{
     rooms::{RoomId, invite_codes::InviteCode},
     time::Timestamp,
     users::UserId,
 };
 
-use super::{RoomInvite, RoomInviteWithUsers};
+use super::{NewRoomInvite, RoomInvite, RoomInviteWithUsers};
 use crate::Result;
 
 /// A trait for retrieving and storing room invite entities.
 #[async_trait::async_trait]
 pub trait RoomInviteInventory {
     /// Create a room invite.
-    async fn create_room_invite(&mut self, invite: NewInvite) -> Result<RoomInvite>;
+    async fn create_room_invite(&mut self, invite: NewRoomInvite) -> Result<RoomInvite>;
 
     /// Get a room invite by the invite code.
     async fn get_room_invite(&mut self, invite_code: InviteCode) -> Result<RoomInvite>;

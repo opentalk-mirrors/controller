@@ -8,8 +8,8 @@ use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_utils::{
     CaptureApiError, TariffResourceExt, deletion::room::associated_resource_ids_for_invite,
 };
-use opentalk_db_storage::invites::{Invite, NewInvite, UpdateInvite};
-use opentalk_inventory::{RoomInvite, RoomInviteWithUsers};
+use opentalk_db_storage::invites::{Invite, UpdateInvite};
+use opentalk_inventory::{NewRoomInvite, RoomInvite, RoomInviteWithUsers};
 use opentalk_types_api_v1::{
     error::ApiError,
     pagination::PagePaginationQuery,
@@ -43,12 +43,12 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let invite = inventory
-            .create_room_invite(NewInvite {
+            .create_room_invite(NewRoomInvite {
                 active: true,
                 created_by: current_user.id,
                 updated_by: current_user.id,
                 room: room_id,
-                expiration: new_invite.expiration,
+                expiration: new_invite.expiration.map(Into::into),
             })
             .await?;
 

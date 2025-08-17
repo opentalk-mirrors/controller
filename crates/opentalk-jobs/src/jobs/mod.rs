@@ -25,11 +25,10 @@ pub use user_cleanup::UserCleanup;
 #[cfg(test)]
 mod test_utils {
     use opentalk_db_storage::{
-        invites::NewInvite,
         rooms::{NewRoom, Room},
         users::User,
     };
-    use opentalk_inventory::{Event, Inventory, NewEvent, RoomInvite};
+    use opentalk_inventory::{Event, Inventory, NewEvent, NewRoomInvite, RoomInvite};
     use opentalk_test_util::database::DatabaseContext;
 
     pub(super) async fn create_events_and_independent_rooms(
@@ -105,7 +104,7 @@ mod test_utils {
         room: &Room,
     ) -> RoomInvite {
         inventory
-            .create_room_invite(NewInvite {
+            .create_room_invite(NewRoomInvite {
                 created_by: inviter.id,
                 updated_by: updated_by.unwrap_or(inviter).id,
                 room: room.id,
