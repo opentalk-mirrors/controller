@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::jobs::{self as db, NewJobExecutionLog, UpdateJobExecution};
+use opentalk_db_storage::jobs::{self as db, NewJobExecutionLog};
 use opentalk_inventory::{
     Job, JobExecution, JobExecutionId, JobExecutionInventory, JobId, NewJobExecution,
-    error::StorageBackendSnafu,
+    UpdateJobExecution, error::StorageBackendSnafu,
 };
 use snafu::ResultExt as _;
 
@@ -34,7 +34,7 @@ impl JobExecutionInventory for DatabaseConnection {
         job_execution_id: JobExecutionId,
         job_execution: UpdateJobExecution,
     ) -> Result<JobExecution> {
-        Ok(job_execution
+        Ok(db::UpdateJobExecution::from(job_execution)
             .apply(&mut self.inner, job_execution_id.into())
             .await
             .context(StorageBackendSnafu)?
