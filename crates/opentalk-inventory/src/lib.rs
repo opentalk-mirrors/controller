@@ -69,8 +69,8 @@ pub use group::{Group, GroupInventory};
 pub use inventory::Inventory;
 pub use inventory_provider::InventoryProvider;
 pub use job_execution::{
-    Job, JobExecution, JobExecutionId, JobExecutionInventory, JobId, JobStatus, JobType,
-    NewJobExecution, UpdateJobExecution,
+    Job, JobExecution, JobExecutionId, JobExecutionInventory, JobExecutionLogLevel, JobId,
+    JobStatus, JobType, NewJobExecution, UpdateJobExecution,
 };
 pub use module_resource::ModuleResourceInventory;
 pub use room::{NewRoom, Room, RoomInventory, UpdateRoom};
