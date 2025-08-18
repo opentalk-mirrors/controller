@@ -5,7 +5,7 @@
 use std::{borrow::BorrowMut, sync::Arc, time::Duration};
 
 use chrono::Utc;
-use db::jobs::{JobStatus, NewJobExecution, UpdateJobExecution};
+use db::jobs::{NewJobExecution, UpdateJobExecution};
 use etcd_client::{
     Client, Compare, CompareOp, EventType, GetOptions, KeyValue, PutOptions, TxnOp, WatchOptions,
 };
@@ -13,7 +13,7 @@ use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::Settings;
 use opentalk_db_storage as db;
-use opentalk_inventory::{InventoryProvider, JobId, JobType};
+use opentalk_inventory::{InventoryProvider, JobId, JobStatus, JobType};
 use opentalk_signaling_core::ExchangeHandle;
 use snafu::{ResultExt, Snafu};
 use tokio::{sync::oneshot, task::JoinHandle, time::interval};
@@ -350,7 +350,7 @@ impl JobExecutor {
                 job_id: job.id.into(),
                 started_at: Utc::now(),
                 ended_at: None,
-                job_status: JobStatus::Started,
+                job_status: JobStatus::Started.into(),
             })
             .await
             .context(InventorySnafu {
@@ -385,11 +385,11 @@ impl JobExecutor {
         let job_execution_update = match result {
             Ok(_) => UpdateJobExecution {
                 ended_at: Some(Utc::now()),
-                job_status: Some(JobStatus::Succeeded),
+                job_status: Some(JobStatus::Succeeded.into()),
             },
             Err(_) => UpdateJobExecution {
                 ended_at: Some(Utc::now()),
-                job_status: Some(JobStatus::Failed),
+                job_status: Some(JobStatus::Failed.into()),
             },
         };
 
