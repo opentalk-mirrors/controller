@@ -2,16 +2,14 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::events::email_invites::{
-    EventEmailInvite, NewEventEmailInvite, UpdateEventEmailInvite,
-};
+use opentalk_db_storage::events::email_invites::{NewEventEmailInvite, UpdateEventEmailInvite};
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
     rooms::RoomId,
     users::UserId,
 };
 
-use super::{NewEventInvite, UpdateEventInvite};
+use super::{EventEmailInvite, NewEventInvite, UpdateEventInvite};
 use crate::{Event, EventInvite, Result, User};
 
 /// A trait for retrieving and storing event invite entities.

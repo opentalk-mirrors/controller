@@ -4,12 +4,14 @@
 
 #![allow(clippy::module_inception)]
 
+mod event_email_invite;
 mod event_invite;
 mod event_invite_id;
 mod event_invite_inventory;
 mod new_event_invite;
 mod update_event_invite;
 
+pub use event_email_invite::EventEmailInvite;
 pub use event_invite::EventInvite;
 pub use event_invite_id::EventInviteId;
 pub use event_invite_inventory::EventInviteInventory;
