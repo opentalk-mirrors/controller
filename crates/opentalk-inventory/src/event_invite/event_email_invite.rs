@@ -17,7 +17,7 @@ pub struct EventEmailInvite {
     /// The E-Mail address for which the invite is valid.
     pub email: String,
 
-    /// The id of the user who created the event.
+    /// The id of the user who created the invite.
     pub created_by: UserId,
 
     /// The creation timestamp.

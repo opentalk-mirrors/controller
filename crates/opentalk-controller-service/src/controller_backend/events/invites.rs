@@ -10,10 +10,10 @@ use kustos::{Authz, policies_builder::PoliciesBuilder};
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_db_storage::events::email_invites::{NewEventEmailInvite, UpdateEventEmailInvite};
+use opentalk_db_storage::events::email_invites::UpdateEventEmailInvite;
 use opentalk_inventory::{
-    Event, EventInvite, Inventory, InventoryProvider, NewEventInvite, NewRoomInvite, Room,
-    RoomSipConfig, Tenant, UpdateEventInvite, User, transaction,
+    Event, EventInvite, Inventory, InventoryProvider, NewEventEmailInvite, NewEventInvite,
+    NewRoomInvite, Room, RoomSipConfig, Tenant, UpdateEventInvite, User, transaction,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{

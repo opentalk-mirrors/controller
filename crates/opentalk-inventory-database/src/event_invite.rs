@@ -2,13 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::events::{
-    self as db,
-    email_invites::{NewEventEmailInvite, UpdateEventEmailInvite},
-};
+use opentalk_db_storage::events::{self as db, email_invites::UpdateEventEmailInvite};
 use opentalk_inventory::{
-    Event, EventEmailInvite, EventInvite, EventInviteInventory, NewEventInvite, UpdateEventInvite,
-    User, error::StorageBackendSnafu,
+    Event, EventEmailInvite, EventInvite, EventInviteInventory, NewEventEmailInvite,
+    NewEventInvite, UpdateEventInvite, User, error::StorageBackendSnafu,
 };
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
@@ -26,7 +23,7 @@ impl EventInviteInventory for DatabaseConnection {
         &mut self,
         invite: NewEventEmailInvite,
     ) -> Result<Option<EventEmailInvite>> {
-        Ok(invite
+        Ok(db::email_invites::NewEventEmailInvite::from(invite)
             .try_insert(&mut self.inner)
             .await
             .context(StorageBackendSnafu)?
