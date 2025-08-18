@@ -11,6 +11,7 @@ mod job_execution_inventory;
 mod job_id;
 mod job_status;
 mod job_type;
+mod new_job_execution;
 
 pub use job::Job;
 pub use job_execution::JobExecution;
@@ -19,3 +20,4 @@ pub use job_execution_inventory::JobExecutionInventory;
 pub use job_id::JobId;
 pub use job_status::JobStatus;
 pub use job_type::JobType;
+pub use new_job_execution::NewJobExecution;

@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::jobs::{NewJobExecution, NewJobExecutionLog, UpdateJobExecution};
+use opentalk_db_storage::jobs::{NewJobExecutionLog, UpdateJobExecution};
 
-use super::{Job, JobExecution, JobExecutionId, JobId};
+use super::{Job, JobExecution, JobExecutionId, JobId, NewJobExecution};
 use crate::Result;
 
 /// A trait for retrieving and storing job execution log entities.
