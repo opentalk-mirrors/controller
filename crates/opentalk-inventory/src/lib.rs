@@ -56,7 +56,7 @@ pub use event::{
 };
 pub use event_invite::{
     EventEmailInvite, EventInvite, EventInviteId, EventInviteInventory, NewEventEmailInvite,
-    NewEventInvite, UpdateEventInvite,
+    NewEventInvite, UpdateEventEmailInvite, UpdateEventInvite,
 };
 pub use event_shared_folder::{
     EventSharedFolder, EventSharedFolderInventory, NewEventSharedFolder,
