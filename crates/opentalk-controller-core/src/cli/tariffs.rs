@@ -5,20 +5,23 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     str::FromStr,
+    sync::Arc,
 };
 
-use chrono::Utc;
 use clap::Subcommand;
-use diesel_async::{AsyncConnection, scoped_futures::ScopedFutureExt};
+use diesel_async::scoped_futures::ScopedFutureExt;
 use humansize::{DECIMAL, FormatSizeOptions, format_size};
 use itertools::Itertools;
 use opentalk_controller_settings::Settings;
-use opentalk_database::{DatabaseError, Db, DbConnection};
-use opentalk_db_storage::{
-    tariffs::{ExternalTariff, ExternalTariffId, NewTariff, Tariff, UpdateTariff},
-    utils::Jsonb,
+use opentalk_database::{DatabaseError, Db};
+use opentalk_inventory::{
+    ExternalTariffId, Inventory, InventoryProvider as _, NewTariff, Tariff, UpdateTariff,
+    transaction,
 };
-use opentalk_types_common::{features::ModuleFeatureId, modules::ModuleId, tariffs::QuotaType};
+use opentalk_inventory_database::DatabaseConnectionPool;
+use opentalk_types_common::{
+    features::ModuleFeatureId, modules::ModuleId, tariffs::QuotaType, time::Timestamp,
+};
 use parse_size::parse_size;
 use snafu::{OptionExt, ResultExt, Snafu};
 use tabled::{Table, Tabled, settings::Style};
@@ -179,12 +182,13 @@ pub async fn handle_command(
 }
 
 async fn list_all_tariffs(settings: &Settings) -> Result<(), CliExecutionError> {
-    let db = Db::connect(&settings.database)?;
-    let mut conn = db.get_conn().await?;
+    let db = Arc::new(Db::connect(&settings.database)?);
+    let inventory_provider = DatabaseConnectionPool::new(db);
+    let mut inventory = inventory_provider.get_inventory().await?;
 
-    let tariffs = Tariff::get_all(&mut conn).await?;
+    let tariffs = inventory.get_all_tariffs().await?;
 
-    print_tariffs(&mut conn, tariffs).await
+    print_tariffs(inventory.as_mut(), tariffs).await
 }
 
 async fn create_tariff(
@@ -195,23 +199,22 @@ async fn create_tariff(
     disabled_features: BTreeSet<ModuleFeatureId>,
     quotas: BTreeMap<QuotaType, u64>,
 ) -> Result<(), CliExecutionError> {
-    let db = Db::connect(&settings.database)?;
-    let mut conn = db.get_conn().await?;
+    let db = Arc::new(Db::connect(&settings.database)?);
+    let inventory_provider = DatabaseConnectionPool::new(db);
+    let mut inventory = inventory_provider.get_inventory().await?;
 
-    conn.transaction(|conn| async move {
-        let tariff = NewTariff {
+    transaction(inventory.as_mut(), |inventory| async move {
+        let tariff = inventory.create_tariff(
+
+        NewTariff {
             name: name.clone(),
-            quotas: Jsonb(quotas),
-            disabled_modules: Vec::from_iter(disabled_modules),
-            disabled_features: Vec::from_iter(disabled_features),
-        }
-        .insert(conn).await?;
+            quotas,
+            disabled_modules,
+            disabled_features,
+        }).await?;
 
-        ExternalTariff {
-            external_id: ExternalTariffId::from(external_tariff_id.clone()),
-            tariff_id: tariff.id,
-        }
-        .insert(conn).await?;
+        inventory.create_external_tariff_mapping(external_tariff_id.clone().into(), tariff.id).await?;
+
 
         println!(
             "Created tariff name={name:?} with external external_tariff_id={external_tariff_id:?} ({})",
@@ -224,14 +227,17 @@ async fn create_tariff(
 }
 
 async fn delete_tariff(settings: &Settings, name: String) -> Result<(), CliExecutionError> {
-    let db = Db::connect(&settings.database)?;
-    let mut conn = db.get_conn().await?;
+    let db = Arc::new(Db::connect(&settings.database)?);
+    let inventory_provider = DatabaseConnectionPool::new(db);
+    let mut inventory = inventory_provider.get_inventory().await?;
 
-    conn.transaction(|conn| {
+    transaction(inventory.as_mut(), |inventory| {
         async move {
-            let tariff = Tariff::get_by_name(conn, &name).await?;
-            ExternalTariff::delete_all_for_tariff(conn, tariff.id).await?;
-            Tariff::delete_by_id(conn, tariff.id).await?;
+            let tariff = inventory.get_tariff_by_name(&name).await?;
+            inventory
+                .delete_all_external_tariff_mappings_for_tariff(tariff.id)
+                .await?;
+            inventory.delete_tariff(tariff.id).await?;
 
             println!("Deleted tariff name={name:?} ({})", tariff.id);
 
@@ -256,12 +262,13 @@ async fn edit_tariff(
     add_quotas: BTreeMap<QuotaType, u64>,
     remove_quotas: Vec<QuotaType>,
 ) -> Result<(), CliExecutionError> {
-    let db = Db::connect(&settings.database)?;
-    let mut conn = db.get_conn().await?;
+    let db = Arc::new(Db::connect(&settings.database)?);
+    let inventory_provider = DatabaseConnectionPool::new(db);
+    let mut inventory = inventory_provider.get_inventory().await?;
 
-    conn.transaction(|conn| {
+    transaction(inventory.as_mut(), |inventory| {
         async move {
-            let tariff = Tariff::get_by_name(conn, &name).await?;
+            let tariff = inventory.get_tariff_by_name(&name).await?;
 
             // Remove all specified external tariff ids
             if !remove_external_tariff_ids.is_empty() {
@@ -270,23 +277,20 @@ async fn edit_tariff(
                         .into_iter()
                         .map(ExternalTariffId::from)
                         .collect();
-                ExternalTariff::delete_all_for_tariff_by_external_id(
-                    conn,
-                    tariff.id,
-                    &external_tariff_ids_to_remove,
-                )
-                .await?;
+                inventory
+                    .delete_external_tariff_mappings_for_tariff_by_external_id(
+                        tariff.id,
+                        &external_tariff_ids_to_remove,
+                    )
+                    .await?;
             }
 
             // Add all specified external tariff ids
             if !add_external_tariff_ids.is_empty() {
                 for to_add in add_external_tariff_ids {
-                    ExternalTariff {
-                        external_id: ExternalTariffId::from(to_add.clone()),
-                        tariff_id: tariff.id,
-                    }
-                    .insert(conn)
-                    .await?;
+                    inventory
+                        .create_external_tariff_mapping(to_add.into(), tariff.id)
+                        .await?;
                 }
             }
 
@@ -303,23 +307,26 @@ async fn edit_tariff(
             disabled_features.extend(add_disabled_features);
 
             // Modify the `quotas` set
-            let mut quotas = tariff.quotas.0;
+            let mut quotas = tariff.quotas.clone();
             quotas.retain(|key, _| !remove_quotas.contains(key));
             quotas.extend(add_quotas);
 
             // Apply changeset
-            let tariff = UpdateTariff {
-                name: set_name,
-                updated_at: Utc::now(),
-                quotas: Some(Jsonb(quotas)),
-                disabled_modules: Some(Vec::from_iter(disabled_modules)),
-                disabled_features: Some(Vec::from_iter(disabled_features)),
-            }
-            .apply(conn, tariff.id)
-            .await?;
+            inventory
+                .update_tariff(
+                    tariff.id,
+                    UpdateTariff {
+                        name: set_name,
+                        updated_at: Timestamp::now(),
+                        quotas: Some(quotas),
+                        disabled_modules: Some(Vec::from_iter(disabled_modules)),
+                        disabled_features: Some(Vec::from_iter(disabled_features)),
+                    },
+                )
+                .await?;
 
             println!("Updated tariff name={:?} ({})", tariff.name, tariff.id);
-            print_tariffs(conn, [tariff]).await?;
+            print_tariffs(inventory, [tariff]).await?;
             Ok(())
         }
         .scope_boxed()
@@ -329,7 +336,7 @@ async fn edit_tariff(
 
 /// Print the list of tariffs as table
 async fn print_tariffs(
-    conn: &mut DbConnection,
+    inventory: &mut dyn Inventory,
     tariffs: impl IntoIterator<Item = Tariff>,
 ) -> Result<(), CliExecutionError> {
     #[derive(Tabled)]
@@ -348,7 +355,9 @@ async fn print_tariffs(
     let mut rows = vec![];
 
     for tariff in tariffs {
-        let ids = ExternalTariff::get_all_for_tariff(conn, tariff.id).await?;
+        let ids = inventory
+            .get_all_external_tariff_ids_for_tariff(tariff.id)
+            .await?;
         let mut ids = ids
             .into_iter()
             .map(|ext_tariff_id| ext_tariff_id.to_string())
@@ -369,7 +378,6 @@ async fn print_tariffs(
 
         let mut quotas = tariff
             .quotas
-            .0
             .into_iter()
             .map(|(k, v)| {
                 if matches!(k, QuotaType::MaxStorage) {

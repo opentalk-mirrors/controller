@@ -4,7 +4,6 @@
 
 use std::collections::BTreeSet;
 
-use opentalk_db_storage::tariffs::Tariff;
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
     rooms::RoomId,
@@ -19,7 +18,7 @@ use super::{
 };
 use crate::{
     EventInvite, EventSharedFolder, EventTrainingParticipationReportParameterSet, Result, Room,
-    RoomSipConfig, User,
+    RoomSipConfig, Tariff, User,
 };
 
 /// A trait for retrieving and storing event entities.

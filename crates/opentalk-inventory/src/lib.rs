@@ -76,7 +76,9 @@ pub use room_sip_config::{
     NewRoomSipConfig, RoomSipConfig, RoomSipConfigInventory, UpdateRoomSipConfig,
 };
 pub use room_streaming_target::RoomStreamingTargetInventory;
-pub use tariff::TariffInventory;
+pub use tariff::{
+    ExternalTariffId, ExternalTariffMapping, NewTariff, Tariff, TariffInventory, UpdateTariff,
+};
 pub use tenant::{OidcTenantId, Tenant, TenantInventory};
 pub use transaction::transaction;
 pub use transaction_manager::TransactionManager;

@@ -6220,8 +6220,10 @@ dependencies = [
  "opentalk-database",
  "opentalk-db-storage",
  "opentalk-types-common",
+ "pretty_assertions",
  "scoped-futures",
  "serde",
+ "serde_json",
  "snafu",
  "uuid",
 ]

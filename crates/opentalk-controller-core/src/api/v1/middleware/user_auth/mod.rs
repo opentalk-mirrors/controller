@@ -35,9 +35,8 @@ use opentalk_controller_settings::{
     Settings, SettingsProvider, TariffAssignment, TariffStatusMapping, TenantAssignment,
 };
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_db_storage::tariffs::{ExternalTariffId, Tariff};
 use opentalk_inventory::{
-    Inventory, InventoryProvider, NewUser, Tenant, UpsertOutcome, User, transaction,
+    Inventory, InventoryProvider, NewUser, Tariff, Tenant, UpsertOutcome, User, transaction,
 };
 use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use opentalk_types_common::{
@@ -390,7 +389,7 @@ async fn check_access_token_inner(
             })?;
 
             let tariff = inventory
-                .get_tariff_by_external_tariff_id(&ExternalTariffId::from(external_tariff_id))
+                .get_tariff_by_external_tariff_id(external_tariff_id.into())
                 .await?
                 .ok_or_else(|| {
                     ApiError::internal()

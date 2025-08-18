@@ -201,8 +201,6 @@ impl Deleter for RoomDeleter {
     ) -> Result<Self::CommitOutput, Error> {
         debug!(log: logger, "Deleting all database resources");
 
-        let inventory: &mut dyn Inventory = inventory;
-
         let room_id = self.room_id;
 
         let transaction_result: Result<(Vec<AssetId>, Vec<ResourceId>), Error> =
