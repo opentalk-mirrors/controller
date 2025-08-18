@@ -2,13 +2,19 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+#![allow(clippy::module_inception)]
+
 mod job;
+mod job_execution;
+mod job_execution_id;
 mod job_execution_inventory;
 mod job_id;
 mod job_status;
 mod job_type;
 
 pub use job::Job;
+pub use job_execution::JobExecution;
+pub use job_execution_id::JobExecutionId;
 pub use job_execution_inventory::JobExecutionInventory;
 pub use job_id::JobId;
 pub use job_status::JobStatus;

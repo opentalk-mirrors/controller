@@ -338,12 +338,9 @@ impl JobExecutor {
                     msg: "Failed to get database connection",
                 })?;
 
-        let job = inventory
-            .get_job(job_id.into())
-            .await
-            .context(InventorySnafu {
-                msg: "Failed to get Job from database",
-            })?;
+        let job = inventory.get_job(job_id).await.context(InventorySnafu {
+            msg: "Failed to get Job from database",
+        })?;
 
         let job_execution = inventory
             .create_job_execution(NewJobExecution {

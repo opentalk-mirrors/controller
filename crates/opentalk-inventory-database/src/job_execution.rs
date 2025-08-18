@@ -3,17 +3,19 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_db_storage::jobs::{
-    self as db, JobExecution, NewJobExecution, NewJobExecutionLog, SerialId, UpdateJobExecution,
+    self as db, NewJobExecution, NewJobExecutionLog, UpdateJobExecution,
 };
-use opentalk_inventory::{Job, JobExecutionInventory, error::StorageBackendSnafu};
+use opentalk_inventory::{
+    Job, JobExecution, JobExecutionId, JobExecutionInventory, JobId, error::StorageBackendSnafu,
+};
 use snafu::ResultExt as _;
 
 use crate::{DatabaseConnection, Result};
 
 #[async_trait::async_trait]
 impl JobExecutionInventory for DatabaseConnection {
-    async fn get_job(&mut self, job_id: SerialId) -> Result<Job> {
-        Ok(db::Job::get(&mut self.inner, job_id)
+    async fn get_job(&mut self, job_id: JobId) -> Result<Job> {
+        Ok(db::Job::get(&mut self.inner, job_id.into())
             .await
             .context(StorageBackendSnafu)?
             .into())
@@ -30,23 +32,25 @@ impl JobExecutionInventory for DatabaseConnection {
 
     async fn update_job_execution(
         &mut self,
-        job_execution_id: SerialId,
+        job_execution_id: JobExecutionId,
         job_execution: UpdateJobExecution,
     ) -> Result<JobExecution> {
-        job_execution
-            .apply(&mut self.inner, job_execution_id)
+        Ok(job_execution
+            .apply(&mut self.inner, job_execution_id.into())
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into())
     }
 
     async fn create_job_execution(
         &mut self,
         job_execution: NewJobExecution,
     ) -> Result<JobExecution> {
-        job_execution
+        Ok(job_execution
             .insert(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into())
     }
 
     /// Create a new batch of job execution logs.

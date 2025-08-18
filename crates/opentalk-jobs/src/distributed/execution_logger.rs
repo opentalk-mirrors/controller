@@ -6,8 +6,8 @@ use std::{sync::Arc, time::Duration};
 
 use chrono::Utc;
 use log::{Log, Metadata, Record};
-use opentalk_db_storage::jobs::{LogLevel, NewJobExecutionLog, SerialId};
-use opentalk_inventory::InventoryProvider;
+use opentalk_db_storage::jobs::{LogLevel, NewJobExecutionLog};
+use opentalk_inventory::{InventoryProvider, JobExecutionId};
 use snafu::{ResultExt, Snafu};
 use tokio::{
     sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -29,7 +29,7 @@ pub enum ExecutionLoggerError {
 #[derive(Clone)]
 pub struct ExecutionLogger {
     /// The execution id of the related job
-    execution_id: SerialId,
+    execution_id: JobExecutionId,
     /// A sender to signal the that no further messages will be logged and the pending messages can be written to the
     /// database.
     flush_sender: UnboundedSender<()>,
@@ -41,7 +41,7 @@ pub struct ExecutionLogger {
 
 impl ExecutionLogger {
     pub async fn create(
-        execution_id: SerialId,
+        execution_id: JobExecutionId,
         inventory_provider: Arc<dyn InventoryProvider>,
     ) -> Self {
         let (log_sender, log_receiver) = mpsc::unbounded_channel();
@@ -84,7 +84,7 @@ impl Log for ExecutionLogger {
         };
 
         let log = NewJobExecutionLog {
-            execution_id: self.execution_id,
+            execution_id: self.execution_id.into(),
             logged_at: Utc::now(),
             log_level,
             log_message: record.args().to_string(),
@@ -105,7 +105,7 @@ impl Log for ExecutionLogger {
 /// When the database operation fails, the task will fall back to stdout logging.
 struct LoggerTask {
     /// The id of the job execution
-    execution_id: SerialId,
+    execution_id: JobExecutionId,
     /// Receiver for log messages
     log_receiver: UnboundedReceiver<NewJobExecutionLog>,
     /// Receiver for the flush command
@@ -117,7 +117,7 @@ struct LoggerTask {
 impl LoggerTask {
     /// Starts the logger task
     async fn start(
-        execution_id: SerialId,
+        execution_id: JobExecutionId,
         log_receiver: UnboundedReceiver<NewJobExecutionLog>,
         flush_receiver: UnboundedReceiver<()>,
         inventory_provider: Arc<dyn InventoryProvider>,
