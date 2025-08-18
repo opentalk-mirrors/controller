@@ -2,10 +2,14 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::events::UpdateEventTrainingParticipationReportParameterSet;
-use opentalk_types_common::events::EventId;
+use opentalk_types_common::{
+    events::EventId, training_participation_report::TrainingParticipationReportParameterSet,
+};
 
-use super::EventTrainingParticipationReportParameterSet;
+use super::{
+    EventTrainingParticipationReportParameterSet,
+    UpdateEventTrainingParticipationReportParameterSet,
+};
 use crate::Result;
 
 /// A trait for retrieving and storing event shared folder entities.
@@ -35,4 +39,30 @@ pub trait EventTrainingParticipationReportInventory {
         &mut self,
         event_id: EventId,
     ) -> Result<()>;
+}
+
+impl From<TrainingParticipationReportParameterSet>
+    for UpdateEventTrainingParticipationReportParameterSet
+{
+    fn from(
+        TrainingParticipationReportParameterSet {
+            initial_checkpoint_delay,
+            checkpoint_interval,
+        }: TrainingParticipationReportParameterSet,
+    ) -> Self {
+        Self {
+            initial_checkpoint_delay_after: Some(
+                i64::try_from(initial_checkpoint_delay.after).unwrap_or(i64::MAX),
+            ),
+            initial_checkpoint_delay_within: Some(
+                i64::try_from(initial_checkpoint_delay.within).unwrap_or(i64::MAX),
+            ),
+            checkpoint_interval_after: Some(
+                i64::try_from(checkpoint_interval.after).unwrap_or(i64::MAX),
+            ),
+            checkpoint_interval_within: Some(
+                i64::try_from(checkpoint_interval.within).unwrap_or(i64::MAX),
+            ),
+        }
+    }
 }

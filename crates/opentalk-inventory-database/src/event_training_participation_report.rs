@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::events::{self as db, UpdateEventTrainingParticipationReportParameterSet};
+use opentalk_db_storage::events as db;
 use opentalk_inventory::{
     EventTrainingParticipationReportInventory, EventTrainingParticipationReportParameterSet,
-    error::StorageBackendSnafu,
+    UpdateEventTrainingParticipationReportParameterSet, error::StorageBackendSnafu,
 };
 use opentalk_types_common::events::EventId;
 use snafu::ResultExt as _;
@@ -36,11 +36,13 @@ impl EventTrainingParticipationReportInventory for DatabaseConnection {
         event_id: EventId,
         parameter_set: UpdateEventTrainingParticipationReportParameterSet,
     ) -> Result<EventTrainingParticipationReportParameterSet> {
-        Ok(parameter_set
-            .apply(&mut self.inner, event_id)
-            .await
-            .context(StorageBackendSnafu)?
-            .into())
+        Ok(
+            db::UpdateEventTrainingParticipationReportParameterSet::from(parameter_set)
+                .apply(&mut self.inner, event_id)
+                .await
+                .context(StorageBackendSnafu)?
+                .into(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]

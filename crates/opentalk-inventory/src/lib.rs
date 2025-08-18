@@ -63,6 +63,7 @@ pub use event_shared_folder::{
 };
 pub use event_training_participation_report::{
     EventTrainingParticipationReportInventory, EventTrainingParticipationReportParameterSet,
+    UpdateEventTrainingParticipationReportParameterSet,
 };
 pub use group::{Group, GroupInventory};
 pub use inventory::Inventory;
