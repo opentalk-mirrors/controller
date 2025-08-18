@@ -13,7 +13,7 @@ use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::Settings;
 use opentalk_db_storage as db;
-use opentalk_inventory::InventoryProvider;
+use opentalk_inventory::{InventoryProvider, JobType};
 use opentalk_signaling_core::ExchangeHandle;
 use snafu::{ResultExt, Snafu};
 use tokio::{sync::oneshot, task::JoinHandle, time::interval};
@@ -30,7 +30,7 @@ use crate::{
     },
     jobs::{
         AdhocEventCleanup, EventCleanup, InviteCleanup, KeycloakAccountSync, RoomCleanup,
-        SelfCheck, SyncStorageFiles,
+        SelfCheck, SyncStorageFiles, UserCleanup,
     },
 };
 
@@ -347,7 +347,7 @@ impl JobExecutor {
 
         let job_execution = inventory
             .create_job_execution(NewJobExecution {
-                job_id: job.id,
+                job_id: job.id.into(),
                 started_at: Utc::now(),
                 ended_at: None,
                 job_status: JobStatus::Started,
@@ -372,19 +372,14 @@ impl JobExecutor {
         };
 
         let result = match job.kind {
-            db::jobs::JobType::AdhocEventCleanup => {
-                execution_data.execute::<AdhocEventCleanup>().await
-            }
-            db::jobs::JobType::EventCleanup => execution_data.execute::<EventCleanup>().await,
-            db::jobs::JobType::InviteCleanup => execution_data.execute::<InviteCleanup>().await,
-            db::jobs::JobType::SelfCheck => execution_data.execute::<SelfCheck>().await,
-            db::jobs::JobType::SyncStorageFiles => {
-                execution_data.execute::<SyncStorageFiles>().await
-            }
-            db::jobs::JobType::RoomCleanup => execution_data.execute::<RoomCleanup>().await,
-            db::jobs::JobType::KeycloakAccountSync => {
-                execution_data.execute::<KeycloakAccountSync>().await
-            }
+            JobType::AdhocEventCleanup => execution_data.execute::<AdhocEventCleanup>().await,
+            JobType::EventCleanup => execution_data.execute::<EventCleanup>().await,
+            JobType::UserCleanup => execution_data.execute::<UserCleanup>().await,
+            JobType::InviteCleanup => execution_data.execute::<InviteCleanup>().await,
+            JobType::SelfCheck => execution_data.execute::<SelfCheck>().await,
+            JobType::SyncStorageFiles => execution_data.execute::<SyncStorageFiles>().await,
+            JobType::RoomCleanup => execution_data.execute::<RoomCleanup>().await,
+            JobType::KeycloakAccountSync => execution_data.execute::<KeycloakAccountSync>().await,
         };
 
         let job_execution_update = match result {

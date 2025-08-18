@@ -46,3 +46,35 @@ pub enum JobType {
     /// A job to synchronize the user account states with Keycloak
     KeycloakAccountSync,
 }
+
+impl From<opentalk_db_storage::jobs::JobType> for JobType {
+    fn from(value: opentalk_db_storage::jobs::JobType) -> Self {
+        use opentalk_db_storage::jobs::JobType as Other;
+        match value {
+            Other::AdhocEventCleanup => Self::AdhocEventCleanup,
+            Other::EventCleanup => Self::EventCleanup,
+            Other::UserCleanup => Self::UserCleanup,
+            Other::InviteCleanup => Self::InviteCleanup,
+            Other::SelfCheck => Self::SelfCheck,
+            Other::SyncStorageFiles => Self::SyncStorageFiles,
+            Other::RoomCleanup => Self::RoomCleanup,
+            Other::KeycloakAccountSync => Self::KeycloakAccountSync,
+        }
+    }
+}
+
+impl From<JobType> for opentalk_db_storage::jobs::JobType {
+    fn from(value: JobType) -> Self {
+        use JobType as Other;
+        match value {
+            Other::AdhocEventCleanup => Self::AdhocEventCleanup,
+            Other::EventCleanup => Self::EventCleanup,
+            Other::UserCleanup => Self::UserCleanup,
+            Other::InviteCleanup => Self::InviteCleanup,
+            Other::SelfCheck => Self::SelfCheck,
+            Other::SyncStorageFiles => Self::SyncStorageFiles,
+            Other::RoomCleanup => Self::RoomCleanup,
+            Other::KeycloakAccountSync => Self::KeycloakAccountSync,
+        }
+    }
+}

@@ -5,7 +5,7 @@
 use std::collections::{HashMap, HashSet};
 
 use etcd_client::{Client, Compare, CompareOp, TxnOp};
-use opentalk_db_storage::jobs::Job;
+use opentalk_inventory::Job;
 use snafu::{ResultExt, Snafu};
 use tokio_cron_scheduler::{JobScheduler, JobSchedulerError};
 use uuid::Uuid;
@@ -94,13 +94,13 @@ impl JobQueue {
 
     /// Add a new job or update it if it already exists
     pub(crate) async fn add_or_update(&mut self, job: Job) -> Result<(), QueueError> {
-        if let Some(job_info) = self.job_table.get(&job.id.into()) {
+        if let Some(job_info) = self.job_table.get(&job.id) {
             if job_info.job == job {
                 // The same job already exists
                 return Ok(());
             }
 
-            if let Some(job_info) = self.remove(job.id.into()).await? {
+            if let Some(job_info) = self.remove(job.id).await? {
                 log::debug!(
                     "Removed job in preparation for update (id: {}, name: {}, kind: {}, cron schedule: {}",
                     job_info.job.id,
@@ -130,7 +130,7 @@ impl JobQueue {
     pub(crate) async fn add(&mut self, job: Job) -> Result<Option<JobInfo>, QueueError> {
         let job_id = job.id;
 
-        if self.job_table.contains_key(&job_id.into()) {
+        if self.job_table.contains_key(&job_id) {
             log::debug!("Job {job_id} already exists in scheduler");
             return Ok(None);
         }
@@ -143,7 +143,7 @@ impl JobQueue {
 
                 Box::pin(async move {
                     log::debug!("adding job to queue {job_id}");
-                    if let Err(e) = add_job_to_queue(job_id.into(), client).await {
+                    if let Err(e) = add_job_to_queue(job_id, client).await {
                         log::error!("Failed to add job `{e}` to job queue, discarding job:");
                     }
                 })
@@ -161,7 +161,7 @@ impl JobQueue {
             job: job.clone(),
         };
 
-        let job = self.job_table.insert(job.id.into(), job_info);
+        let job = self.job_table.insert(job.id, job_info);
 
         Ok(job)
     }

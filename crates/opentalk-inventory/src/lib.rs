@@ -68,7 +68,7 @@ pub use event_training_participation_report::{
 pub use group::{Group, GroupInventory};
 pub use inventory::Inventory;
 pub use inventory_provider::InventoryProvider;
-pub use job_execution::{JobExecutionInventory, JobType};
+pub use job_execution::{Job, JobExecutionInventory, JobType};
 pub use module_resource::ModuleResourceInventory;
 pub use room::{NewRoom, Room, RoomInventory, UpdateRoom};
 pub use room_invite::{
