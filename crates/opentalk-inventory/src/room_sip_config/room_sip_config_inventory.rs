@@ -2,11 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::rooms::Room;
 use opentalk_types_common::{call_in::CallInId, rooms::RoomId};
 
 use super::{NewRoomSipConfig, RoomSipConfig, UpdateRoomSipConfig};
-use crate::Result;
+use crate::{Result, Room};
 
 /// A trait for retrieving and storing room sip config entities.
 #[async_trait::async_trait]

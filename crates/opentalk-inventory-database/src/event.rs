@@ -6,13 +6,12 @@ use std::collections::BTreeSet;
 
 use opentalk_db_storage::{
     events::{self as db, EventFavorite, NewEventFavorite},
-    rooms::Room,
     tariffs::Tariff,
 };
 use opentalk_inventory::{
     Event, EventException, EventExceptionId, EventInventory, EventInvite, EventSharedFolder,
     EventTrainingParticipationReportParameterSet, GetEventsCursor, NewEvent, NewEventException,
-    RoomSipConfig, UpdateEvent, UpdateEventException, User, error::StorageBackendSnafu,
+    Room, RoomSipConfig, UpdateEvent, UpdateEventException, User, error::StorageBackendSnafu,
 };
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
@@ -76,7 +75,7 @@ impl EventInventory for DatabaseConnection {
         let (event, room, sip_config) = db::Event::get_with_room(&mut self.inner, event_id)
             .await
             .context(StorageBackendSnafu)?;
-        Ok((event.into(), room, sip_config.map(Into::into)))
+        Ok((event.into(), room.into(), sip_config.map(Into::into)))
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -109,7 +108,7 @@ impl EventInventory for DatabaseConnection {
         Ok((
             event.into(),
             invite.map(Into::into),
-            room,
+            room.into(),
             sip_config.map(Into::into),
             is_favourite,
             shared_folder.map(Into::into),
@@ -232,7 +231,7 @@ impl EventInventory for DatabaseConnection {
                     (
                         event.into(),
                         invite.map(Into::into),
-                        room,
+                        room.into(),
                         sip_config.map(Into::into),
                         exceptions,
                         is_favorite,

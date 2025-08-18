@@ -6,9 +6,8 @@
 
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_db_storage::rooms::Room;
 use opentalk_inventory::{
-    Event, EventException, Inventory, RoomInvite, RoomSipConfig, Tenant, User,
+    Event, EventException, Inventory, Room, RoomInvite, RoomSipConfig, Tenant, User,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_common::{

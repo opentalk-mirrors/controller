@@ -13,8 +13,7 @@ use std::sync::Arc;
 use chrono::DateTime;
 use lapin_pool::{RabbitMqChannel, RabbitMqPool};
 use opentalk_controller_settings::Settings;
-use opentalk_db_storage::rooms::Room;
-use opentalk_inventory::{Event, EventException, EventExceptionKind, RoomSipConfig, User};
+use opentalk_inventory::{Event, EventException, EventExceptionKind, Room, RoomSipConfig, User};
 use opentalk_mail_worker_protocol::{MailTask, v1};
 use opentalk_types_common::{
     features::CALL_IN_FEATURE_ID,

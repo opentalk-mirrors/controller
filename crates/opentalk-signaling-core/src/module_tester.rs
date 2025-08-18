@@ -21,8 +21,7 @@ use actix_http::ws::CloseCode;
 use actix_rt::task::JoinHandle;
 use futures::{StreamExt, stream::SelectAll};
 use kustos::Authz;
-use opentalk_db_storage::rooms::Room;
-use opentalk_inventory::{InventoryProvider, User};
+use opentalk_inventory::{InventoryProvider, Room, User};
 use opentalk_types_common::{
     rooms::BreakoutRoomId,
     tariffs::{TariffId, TariffModuleResource, TariffResource},

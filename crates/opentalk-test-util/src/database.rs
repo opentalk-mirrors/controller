@@ -6,8 +6,8 @@ use std::sync::Arc;
 
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use opentalk_database::Db;
-use opentalk_db_storage::{migrations::migrate_from_url, rooms::Room};
-use opentalk_inventory::{InventoryProvider, NewRoom, NewUser, User};
+use opentalk_db_storage::migrations::migrate_from_url;
+use opentalk_inventory::{InventoryProvider, NewRoom, NewUser, Room, User};
 use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_types_common::{
     rooms::RoomId,

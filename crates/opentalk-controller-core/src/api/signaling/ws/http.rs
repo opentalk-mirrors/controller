@@ -19,8 +19,7 @@ use opentalk_controller_service::signaling::{
 };
 use opentalk_controller_settings::SettingsProvider;
 use opentalk_controller_utils::{CaptureApiError, get_tariff_for_room};
-use opentalk_db_storage::rooms::Room;
-use opentalk_inventory::{Inventory, InventoryProvider, User};
+use opentalk_inventory::{Inventory, InventoryProvider, Room, User};
 use opentalk_signaling_core::{
     ExchangeHandle, ObjectStorage, Participant, SignalingMetrics, SignalingModule, VolatileStorage,
 };

@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_database::DatabaseError;
-use opentalk_db_storage::{rooms::Room, sip_configs as db};
+use opentalk_db_storage::sip_configs as db;
 use opentalk_inventory::{
-    NewRoomSipConfig, RoomSipConfig, RoomSipConfigInventory, UpdateRoomSipConfig,
+    NewRoomSipConfig, Room, RoomSipConfig, RoomSipConfigInventory, UpdateRoomSipConfig,
     error::StorageBackendSnafu,
 };
 use opentalk_types_common::{call_in::CallInId, rooms::RoomId};
@@ -32,7 +32,7 @@ impl RoomSipConfigInventory for DatabaseConnection {
         Ok(db::SipConfig::get_with_room(&mut self.inner, &call_in_id)
             .await
             .context(StorageBackendSnafu)?
-            .map(|(sip_config, room)| (sip_config.into(), room)))
+            .map(|(sip_config, room)| (sip_config.into(), room.into())))
     }
 
     #[tracing::instrument(err, skip_all)]

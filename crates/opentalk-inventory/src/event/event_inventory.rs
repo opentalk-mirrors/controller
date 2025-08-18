@@ -4,7 +4,7 @@
 
 use std::collections::BTreeSet;
 
-use opentalk_db_storage::{rooms::Room, tariffs::Tariff};
+use opentalk_db_storage::tariffs::Tariff;
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
     rooms::RoomId,
@@ -18,7 +18,7 @@ use super::{
     UpdateEvent, UpdateEventException,
 };
 use crate::{
-    EventInvite, EventSharedFolder, EventTrainingParticipationReportParameterSet, Result,
+    EventInvite, EventSharedFolder, EventTrainingParticipationReportParameterSet, Result, Room,
     RoomSipConfig, User,
 };
 
