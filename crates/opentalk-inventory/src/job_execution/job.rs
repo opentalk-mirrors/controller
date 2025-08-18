@@ -2,13 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use super::JobType;
+use super::{JobId, JobType};
 
 /// The representation of a maintenace job in the inventory.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Job {
     /// The id of the job.
-    pub id: i64,
+    pub id: JobId,
 
     /// The name of the job.
     pub name: String,

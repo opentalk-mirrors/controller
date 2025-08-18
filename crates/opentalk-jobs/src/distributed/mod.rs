@@ -18,6 +18,8 @@
 //! [`JobExecutor`](executor_task::JobExecutor) - The task that watches the queue and executes jobs
 //! [`ExecutionLogger`](execution_logger::ExecutionLogger) - A logger that writes to the database
 //!
+
+use opentalk_inventory::JobId;
 mod election_task;
 mod execution_logger;
 mod executor_task;
@@ -32,10 +34,10 @@ pub const JOB_QUEUE_PREFIX: &str = "opentalk/jobs/queue/";
 /// The etcd prefix key to mark jobs as running
 pub const JOB_RUNNING_PREFIX: &str = "opentalk/jobs/running/";
 
-pub fn build_queue_key(job_id: i64) -> String {
+pub fn build_queue_key(job_id: JobId) -> String {
     format!("{JOB_QUEUE_PREFIX}job_{job_id}")
 }
 
-pub fn build_running_key(job_id: i64) -> String {
+pub fn build_running_key(job_id: JobId) -> String {
     format!("{JOB_RUNNING_PREFIX}job_{job_id}")
 }
