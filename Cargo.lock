@@ -6261,7 +6261,6 @@ dependencies = [
  "log",
  "opentalk-controller-settings",
  "opentalk-controller-utils",
- "opentalk-db-storage",
  "opentalk-inventory",
  "opentalk-keycloak-admin",
  "opentalk-log",

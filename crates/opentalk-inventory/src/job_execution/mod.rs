@@ -13,6 +13,7 @@ mod job_id;
 mod job_status;
 mod job_type;
 mod new_job_execution;
+mod new_job_execution_log;
 mod update_job_execution;
 
 pub use job::Job;
@@ -24,4 +25,5 @@ pub use job_id::JobId;
 pub use job_status::JobStatus;
 pub use job_type::JobType;
 pub use new_job_execution::NewJobExecution;
+pub use new_job_execution_log::NewJobExecutionLog;
 pub use update_job_execution::UpdateJobExecution;

@@ -70,7 +70,7 @@ pub use inventory::Inventory;
 pub use inventory_provider::InventoryProvider;
 pub use job_execution::{
     Job, JobExecution, JobExecutionId, JobExecutionInventory, JobExecutionLogLevel, JobId,
-    JobStatus, JobType, NewJobExecution, UpdateJobExecution,
+    JobStatus, JobType, NewJobExecution, NewJobExecutionLog, UpdateJobExecution,
 };
 pub use module_resource::ModuleResourceInventory;
 pub use room::{NewRoom, Room, RoomInventory, UpdateRoom};

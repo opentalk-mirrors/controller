@@ -4,10 +4,11 @@
 
 use std::{sync::Arc, time::Duration};
 
-use chrono::Utc;
 use log::{Log, Metadata, Record};
-use opentalk_db_storage::jobs::NewJobExecutionLog;
-use opentalk_inventory::{InventoryProvider, JobExecutionId, JobExecutionLogLevel as LogLevel};
+use opentalk_inventory::{
+    InventoryProvider, JobExecutionId, JobExecutionLogLevel as LogLevel, NewJobExecutionLog,
+};
+use opentalk_types_common::time::Timestamp;
 use snafu::{ResultExt, Snafu};
 use tokio::{
     sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -84,9 +85,9 @@ impl Log for ExecutionLogger {
         };
 
         let log = NewJobExecutionLog {
-            execution_id: self.execution_id.into(),
-            logged_at: Utc::now(),
-            log_level: log_level.into(),
+            execution_id: self.execution_id,
+            logged_at: Timestamp::now(),
+            log_level,
             log_message: record.args().to_string(),
         };
 
@@ -192,7 +193,7 @@ impl LoggerTask {
     }
 
     fn write_to_stdout(&self, msg: NewJobExecutionLog) {
-        let level = match LogLevel::from(msg.log_level) {
+        let level = match msg.log_level {
             LogLevel::Trace => log::Level::Trace,
             LogLevel::Debug => log::Level::Debug,
             LogLevel::Info => log::Level::Info,

@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::jobs::{self as db, NewJobExecutionLog};
+use opentalk_db_storage::jobs::{self as db};
 use opentalk_inventory::{
     Job, JobExecution, JobExecutionId, JobExecutionInventory, JobId, NewJobExecution,
-    UpdateJobExecution, error::StorageBackendSnafu,
+    NewJobExecutionLog, UpdateJobExecution, error::StorageBackendSnafu,
 };
 use snafu::ResultExt as _;
 
@@ -57,7 +57,14 @@ impl JobExecutionInventory for DatabaseConnection {
         &mut self,
         job_execution_logs: &[NewJobExecutionLog],
     ) -> Result<()> {
-        NewJobExecutionLog::insert_batch(&mut self.inner, job_execution_logs)
+        // TODO: this has much worse performance than it should,
+        // we should get rid of the clone and perform the insertion directly.
+        let job_execution_logs: Vec<_> = job_execution_logs
+            .iter()
+            .cloned()
+            .map(db::NewJobExecutionLog::from)
+            .collect();
+        db::NewJobExecutionLog::insert_batch(&mut self.inner, &job_execution_logs)
             .await
             .context(StorageBackendSnafu)
     }
