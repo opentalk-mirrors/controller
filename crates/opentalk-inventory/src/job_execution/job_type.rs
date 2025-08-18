@@ -2,10 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! A list of known types used by the job executor.
-
-use serde::{Deserialize, Serialize};
-
 /// Maintenance job types that can be executed by OpenTalk
 #[derive(
     Debug,
@@ -21,8 +17,8 @@ use serde::{Deserialize, Serialize};
     strum::VariantNames,
     strum::IntoStaticStr,
     clap::ValueEnum,
-    Serialize,
-    Deserialize,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 #[serde(rename_all = "snake_case")]
 pub enum JobType {

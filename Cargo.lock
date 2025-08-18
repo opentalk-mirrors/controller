@@ -6216,6 +6216,7 @@ dependencies = [
  "bincode 2.0.1",
  "chrono",
  "chrono-tz",
+ "clap",
  "derive_more 2.0.1",
  "opentalk-database",
  "opentalk-db-storage",
@@ -6225,6 +6226,7 @@ dependencies = [
  "serde",
  "serde_json",
  "snafu",
+ "strum 0.27.2",
  "uuid",
 ]
 
