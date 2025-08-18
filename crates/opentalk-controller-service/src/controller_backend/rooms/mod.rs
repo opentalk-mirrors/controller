@@ -16,8 +16,7 @@ use opentalk_controller_utils::{
     CaptureApiError, TariffResourceExt as _,
     deletion::{Deleter, RoomDeleter},
 };
-use opentalk_db_storage::rooms::UpdateRoom;
-use opentalk_inventory::{NewRoom, NewRoomSipConfig, Room, utils::build_event_info};
+use opentalk_inventory::{NewRoom, NewRoomSipConfig, Room, UpdateRoom, utils::build_event_info};
 use opentalk_signaling_core::Participant;
 use opentalk_types_api_v1::{
     error::{ApiError, ERROR_CODE_INVALID_VALUE, ValidationErrorEntry},

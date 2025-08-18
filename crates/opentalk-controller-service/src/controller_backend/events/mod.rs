@@ -19,14 +19,13 @@ use opentalk_controller_utils::{
     CaptureApiError,
     deletion::{Deleter, EventDeleter},
 };
-use opentalk_db_storage::{
-    events::{UpdateEventTrainingParticipationReportParameterSet, email_invites::EventEmailInvite},
-    rooms::UpdateRoom,
+use opentalk_db_storage::events::{
+    UpdateEventTrainingParticipationReportParameterSet, email_invites::EventEmailInvite,
 };
 use opentalk_inventory::{
     Event, EventException, EventExceptionKind, EventInvite,
     EventTrainingParticipationReportParameterSet, GetEventsCursor, Inventory, NewEvent, NewRoom,
-    NewRoomSipConfig, Room, RoomSipConfig, Tenant, UpdateEvent, User, transaction,
+    NewRoomSipConfig, Room, RoomSipConfig, Tenant, UpdateEvent, UpdateRoom, User, transaction,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{

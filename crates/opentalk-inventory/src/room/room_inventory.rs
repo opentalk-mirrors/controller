@@ -2,10 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::rooms::UpdateRoom;
 use opentalk_types_common::rooms::RoomId;
 
-use super::{NewRoom, Room};
+use super::{NewRoom, Room, UpdateRoom};
 use crate::{Result, User};
 
 /// A trait for retrieving and storing room entities.
