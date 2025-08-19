@@ -291,6 +291,17 @@ api_secret = "your-livekit-api-secret"
 #url = "http://localhost:11333"
 # The roomservers API key
 #api_token = "secret"
+#The Modules that are enabled in the roomserver
+#[roomserver.modules.chat]
+#[roomserver.modules.e2ee]
+#[roomserver.modules.livekit]
+#api_key = "devkey"
+#api_secret = "secret"
+#public_url = "http://localhost:7880"
+#service_url = "http://localhost:7880"
+#[roomserver.modules.echo]
+#[roomserver.modules.polls]
+#[roomserver.modules.timer]
 
 #[authz]
 # Should the controller publish/receive ACL changes via RabbitMQ to/from other controllers
