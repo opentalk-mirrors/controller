@@ -417,14 +417,13 @@ impl ControllerBackend {
 
         drop(inventory);
 
-        if let Some(room_password) = &room.password
-            && let Some(password) = &password
-            && password != room_password
-        {
-            return Err(StartRoomError::WrongRoomPassword.into());
+        match (&room.password, &password) {
+            (Some(_), None) => Err(StartRoomError::WrongRoomPassword.into()),
+            (Some(room_password), Some(password)) if password != room_password => {
+                Err(StartRoomError::WrongRoomPassword.into())
+            }
+            _ => Ok(room),
         }
-
-        Ok(room)
     }
 }
 
