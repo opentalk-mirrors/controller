@@ -34,7 +34,6 @@ opentalk-controller-service-facade.workspace = true
 opentalk-controller-settings.workspace = true
 opentalk-controller-utils.workspace = true
 opentalk-database.workspace = true
-opentalk-db-storage.workspace = true
 opentalk-inventory.workspace = true
 opentalk-keycloak-admin.workspace = true
 opentalk-mail-worker-protocol.workspace = true

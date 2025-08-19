@@ -44,7 +44,6 @@ use crate::{
     sip_configs::SipConfig,
     tariffs::Tariff,
     users::User,
-    utils::HasUsers,
 };
 
 #[derive(
@@ -200,13 +199,6 @@ impl Event {
         } else {
             None
         }
-    }
-}
-
-impl HasUsers for &Event {
-    fn populate(self, dst: &mut Vec<UserId>) {
-        dst.push(self.created_by);
-        dst.push(self.updated_by);
     }
 }
 
@@ -773,12 +765,6 @@ pub struct EventException {
     pub starts_at_tz: Option<TimeZone>,
     pub ends_at: Option<DateTime<Utc>>,
     pub ends_at_tz: Option<TimeZone>,
-}
-
-impl HasUsers for &EventException {
-    fn populate(self, dst: &mut Vec<UserId>) {
-        dst.push(self.created_by);
-    }
 }
 
 impl EventException {

@@ -31,6 +31,7 @@ mod event_invite;
 mod event_shared_folder;
 mod event_training_participation_report;
 mod group;
+mod has_users;
 mod inventory;
 mod inventory_provider;
 mod job_execution;
@@ -66,6 +67,7 @@ pub use event_training_participation_report::{
     UpdateEventTrainingParticipationReportParameterSet,
 };
 pub use group::{Group, GroupInventory};
+pub use has_users::HasUsers;
 pub use inventory::Inventory;
 pub use inventory_provider::InventoryProvider;
 pub use job_execution::{

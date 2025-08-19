@@ -8,8 +8,7 @@ use std::collections::HashMap;
 
 use opentalk_controller_settings::Settings;
 use opentalk_database::Result;
-use opentalk_db_storage::utils::HasUsers;
-use opentalk_inventory::Inventory;
+use opentalk_inventory::{HasUsers, Inventory};
 use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::users::UserId;
 

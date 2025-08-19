@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::utils::HasUsers;
 use opentalk_types_common::{
     events::{EventDescription, EventId, EventTitle},
     time::{TimeZone, Timestamp},
@@ -55,12 +54,6 @@ pub struct EventException {
 
     /// An optional ends_at timezone changed by the event exception.
     pub ends_at_tz: Option<TimeZone>,
-}
-
-impl HasUsers for &EventException {
-    fn populate(self, dst: &mut Vec<UserId>) {
-        dst.push(self.created_by);
-    }
 }
 
 impl From<opentalk_db_storage::events::EventException> for EventException {

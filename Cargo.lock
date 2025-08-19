@@ -6007,7 +6007,6 @@ dependencies = [
  "opentalk-controller-settings",
  "opentalk-controller-utils",
  "opentalk-database",
- "opentalk-db-storage",
  "opentalk-inventory",
  "opentalk-keycloak-admin",
  "opentalk-mail-worker-protocol",

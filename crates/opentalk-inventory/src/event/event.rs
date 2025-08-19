@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::utils::HasUsers;
 use opentalk_types_common::{
     events::{EventDescription, EventId, EventTitle},
     rooms::RoomId,
@@ -202,13 +201,6 @@ impl From<Event> for opentalk_db_storage::events::Event {
 impl From<&Event> for opentalk_db_storage::events::Event {
     fn from(value: &Event) -> Self {
         Self::from(value.clone())
-    }
-}
-
-impl HasUsers for &Event {
-    fn populate(self, dst: &mut Vec<UserId>) {
-        dst.push(self.created_by);
-        dst.push(self.updated_by);
     }
 }
 
