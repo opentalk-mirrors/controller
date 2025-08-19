@@ -21,8 +21,8 @@ use either::Either;
 use error::LegalVoteError;
 use futures::{FutureExt, stream::once};
 use kustos::{Authz, Resource, prelude::AccessMethod};
-use opentalk_db_storage::module_resources::{Filter, NewModuleResource};
-use opentalk_inventory::InventoryProvider;
+use opentalk_db_storage::module_resources::NewModuleResource;
+use opentalk_inventory::{InventoryProvider, ModuleResourceFilter};
 use opentalk_signaling_core::{
     ChunkFormat, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage, Participant,
     SerdeJsonSnafu, SignalingModule, SignalingModuleError, SignalingModuleInitData,
@@ -1327,7 +1327,7 @@ impl LegalVote {
             .get_inventory()
             .await?
             .patch_module_resources(
-                Filter::new()
+                ModuleResourceFilter::new()
                     .with_id(*legal_vote_id.inner())
                     .with_namespace("legal_vote".into()),
                 vec![add_protocol],
