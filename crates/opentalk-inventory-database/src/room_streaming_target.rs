@@ -3,11 +3,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_db_storage::streaming_targets::{
-    self as db, UpdateRoomStreamingTarget, get_room_streaming_targets,
-    insert_room_streaming_target, override_room_streaming_targets,
+    self as db, get_room_streaming_targets, insert_room_streaming_target,
+    override_room_streaming_targets,
 };
 use opentalk_inventory::{
-    RoomStreamingTargetInventory, RoomStreamingTargetRecord, error::StorageBackendSnafu,
+    RoomStreamingTargetInventory, RoomStreamingTargetRecord, UpdateRoomStreamingTarget,
+    error::StorageBackendSnafu,
 };
 use opentalk_types_common::{
     rooms::RoomId,
@@ -75,7 +76,7 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         streaming_target_id: StreamingTargetId,
         streaming_target: UpdateRoomStreamingTarget,
     ) -> Result<RoomStreamingTargetRecord> {
-        Ok(streaming_target
+        Ok(db::UpdateRoomStreamingTarget::from(streaming_target)
             .apply(&mut self.inner, room_id, streaming_target_id)
             .await
             .context(StorageBackendSnafu)?

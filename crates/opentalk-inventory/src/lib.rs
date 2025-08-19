@@ -83,7 +83,9 @@ pub use room_invite::{
 pub use room_sip_config::{
     NewRoomSipConfig, RoomSipConfig, RoomSipConfigInventory, UpdateRoomSipConfig,
 };
-pub use room_streaming_target::{RoomStreamingTargetInventory, RoomStreamingTargetRecord};
+pub use room_streaming_target::{
+    RoomStreamingTargetInventory, RoomStreamingTargetRecord, UpdateRoomStreamingTarget,
+};
 pub use tariff::{
     ExternalTariffId, ExternalTariffMapping, NewTariff, Tariff, TariffInventory, UpdateTariff,
 };
