@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::module_resources::{NewModuleResource, Operation};
+use opentalk_db_storage::module_resources::NewModuleResource;
 use opentalk_types_common::{module_resources::ModuleResourceId, rooms::RoomId, users::UserId};
 
 use super::ModuleResource;
-use crate::{ModuleResourceFilter, Result};
+use crate::{ModuleResourceFilter, ModuleResourceOperation, Result};
 
 /// A trait for retrieving and storing module resource entities.
 #[async_trait::async_trait]
@@ -31,7 +31,7 @@ pub trait ModuleResourceInventory {
     async fn patch_module_resources(
         &mut self,
         resource_filter: ModuleResourceFilter,
-        operations: Vec<Operation>,
+        operations: Vec<ModuleResourceOperation>,
     ) -> Result<Vec<ModuleResource>>;
 
     /// Get all module resources associated with a room.

@@ -22,7 +22,7 @@ use error::LegalVoteError;
 use futures::{FutureExt, stream::once};
 use kustos::{Authz, Resource, prelude::AccessMethod};
 use opentalk_db_storage::module_resources::NewModuleResource;
-use opentalk_inventory::{InventoryProvider, ModuleResourceFilter};
+use opentalk_inventory::{InventoryProvider, ModuleResourceFilter, ModuleResourceOperation};
 use opentalk_signaling_core::{
     ChunkFormat, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage, Participant,
     SerdeJsonSnafu, SignalingModule, SignalingModuleError, SignalingModuleInitData,
@@ -1318,7 +1318,7 @@ impl LegalVote {
             message: "Failed to serialize",
         })?;
 
-        let add_protocol = opentalk_db_storage::module_resources::Operation::Add {
+        let add_protocol = ModuleResourceOperation::Add {
             path: "/".into(),
             value: protocol,
         };

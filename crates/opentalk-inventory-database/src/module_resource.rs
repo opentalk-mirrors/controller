@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::module_resources::{self as db, NewModuleResource, Operation};
+use opentalk_db_storage::module_resources::{self as db, NewModuleResource};
 use opentalk_inventory::{
-    ModuleResource, ModuleResourceFilter, ModuleResourceInventory,
+    ModuleResource, ModuleResourceFilter, ModuleResourceInventory, ModuleResourceOperation,
     error::{JsonOperationSnafu, StorageBackendSnafu},
 };
 use opentalk_types_common::{module_resources::ModuleResourceId, rooms::RoomId, users::UserId};
@@ -54,16 +54,18 @@ impl ModuleResourceInventory for DatabaseConnection {
     async fn patch_module_resources(
         &mut self,
         resource_filter: ModuleResourceFilter,
-        operations: Vec<Operation>,
+        operations: Vec<ModuleResourceOperation>,
     ) -> Result<Vec<ModuleResource>> {
-        Ok(
-            db::ModuleResource::patch(&mut self.inner, resource_filter.into(), operations)
-                .await
-                .context(JsonOperationSnafu)?
-                .into_iter()
-                .map(Into::into)
-                .collect(),
+        Ok(db::ModuleResource::patch(
+            &mut self.inner,
+            resource_filter.into(),
+            operations.into_iter().map(Into::into).collect(),
         )
+        .await
+        .context(JsonOperationSnafu)?
+        .into_iter()
+        .map(Into::into)
+        .collect())
     }
 
     #[tracing::instrument(err, skip_all)]

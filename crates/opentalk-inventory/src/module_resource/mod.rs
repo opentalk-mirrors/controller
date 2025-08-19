@@ -7,7 +7,9 @@
 mod module_resource;
 mod module_resource_filter;
 mod module_resource_inventory;
+mod module_resource_operation;
 
 pub use module_resource::ModuleResource;
 pub use module_resource_filter::ModuleResourceFilter;
 pub use module_resource_inventory::ModuleResourceInventory;
+pub use module_resource_operation::ModuleResourceOperation;
