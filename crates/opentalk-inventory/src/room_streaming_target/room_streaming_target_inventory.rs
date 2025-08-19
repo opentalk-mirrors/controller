@@ -2,15 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::streaming_targets::{
-    RoomStreamingTargetRecord, UpdateRoomStreamingTarget,
-};
+use opentalk_db_storage::streaming_targets::UpdateRoomStreamingTarget;
 use opentalk_types_common::{
     rooms::RoomId,
     streaming::{RoomStreamingTarget, StreamingTarget, StreamingTargetId},
 };
 
-use crate::Result;
+use crate::{Result, RoomStreamingTargetRecord};
 
 /// A trait for retrieving and storing room streaming target entities.
 #[async_trait::async_trait]

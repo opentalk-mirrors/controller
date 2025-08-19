@@ -6876,6 +6876,7 @@ name = "opentalk-signaling-module-recording"
 version = "0.31.0"
 dependencies = [
  "async-trait",
+ "derive_more 2.0.1",
  "either",
  "futures",
  "lapin-pool",
@@ -6895,6 +6896,7 @@ dependencies = [
  "snafu",
  "tokio",
  "tracing",
+ "url",
 ]
 
 [[package]]

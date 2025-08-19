@@ -31,10 +31,14 @@ use opentalk_types_signaling_recording::{
 use snafu::{Report, ResultExt, Snafu};
 use tokio::time::Duration;
 
-use self::storage::RecordingStorage;
+use self::{
+    room_streaming_target_record_wrapper::RoomStreamingTargetRecordWrapper,
+    storage::RecordingStorage,
+};
 
 mod exchange;
 mod rabbitmq;
+mod room_streaming_target_record_wrapper;
 mod service;
 mod storage;
 
@@ -356,7 +360,7 @@ impl Recording {
                 .map(Ok)
                 .chain(streaming_targets.into_iter().map(|target| {
                     let id = target.id;
-                    StreamTargetSecret::try_from(target)
+                    StreamTargetSecret::try_from(RoomStreamingTargetRecordWrapper::from(target))
                         .map(|stream_target_secret| (id, stream_target_secret))
                         .with_whatever_context::<_, _, SignalingModuleError>(|err| format!("{err}"))
                 }))

@@ -3,10 +3,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_db_storage::streaming_targets::{
-    RoomStreamingTargetRecord, UpdateRoomStreamingTarget, get_room_streaming_targets,
+    self as db, UpdateRoomStreamingTarget, get_room_streaming_targets,
     insert_room_streaming_target, override_room_streaming_targets,
 };
-use opentalk_inventory::{RoomStreamingTargetInventory, error::StorageBackendSnafu};
+use opentalk_inventory::{
+    RoomStreamingTargetInventory, RoomStreamingTargetRecord, error::StorageBackendSnafu,
+};
 use opentalk_types_common::{
     rooms::RoomId,
     streaming::{RoomStreamingTarget, StreamingTarget, StreamingTargetId},
@@ -32,9 +34,14 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         &mut self,
         room_id: RoomId,
     ) -> Result<Vec<RoomStreamingTargetRecord>> {
-        RoomStreamingTargetRecord::get_all_for_room(&mut self.inner, room_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::RoomStreamingTargetRecord::get_all_for_room(&mut self.inner, room_id)
+                .await
+                .context(StorageBackendSnafu)?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -43,9 +50,12 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         room_id: RoomId,
         streaming_target_id: StreamingTargetId,
     ) -> Result<RoomStreamingTargetRecord> {
-        RoomStreamingTargetRecord::get(&mut self.inner, streaming_target_id, room_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::RoomStreamingTargetRecord::get(&mut self.inner, streaming_target_id, room_id)
+                .await
+                .context(StorageBackendSnafu)?
+                .into(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -65,10 +75,11 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         streaming_target_id: StreamingTargetId,
         streaming_target: UpdateRoomStreamingTarget,
     ) -> Result<RoomStreamingTargetRecord> {
-        streaming_target
+        Ok(streaming_target
             .apply(&mut self.inner, room_id, streaming_target_id)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into())
     }
 
     async fn delete_room_streaming_target(
@@ -76,7 +87,7 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         room_id: RoomId,
         streaming_target_id: StreamingTargetId,
     ) -> Result<()> {
-        RoomStreamingTargetRecord::delete_by_id(&mut self.inner, room_id, streaming_target_id)
+        db::RoomStreamingTargetRecord::delete_by_id(&mut self.inner, room_id, streaming_target_id)
             .await
             .context(StorageBackendSnafu)
     }
