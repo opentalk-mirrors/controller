@@ -21,39 +21,3 @@ pub struct NewJobExecution {
     /// The status of the job execution.
     pub job_status: JobStatus,
 }
-
-impl From<opentalk_db_storage::jobs::NewJobExecution> for NewJobExecution {
-    fn from(
-        opentalk_db_storage::jobs::NewJobExecution {
-            job_id,
-            started_at,
-            ended_at,
-            job_status,
-        }: opentalk_db_storage::jobs::NewJobExecution,
-    ) -> Self {
-        Self {
-            job_id: job_id.into(),
-            started_at: started_at.into(),
-            ended_at: ended_at.map(Into::into),
-            job_status: job_status.into(),
-        }
-    }
-}
-
-impl From<NewJobExecution> for opentalk_db_storage::jobs::NewJobExecution {
-    fn from(
-        NewJobExecution {
-            job_id,
-            started_at,
-            ended_at,
-            job_status,
-        }: NewJobExecution,
-    ) -> Self {
-        Self {
-            job_id: job_id.into(),
-            started_at: started_at.into(),
-            ended_at: ended_at.map(Into::into),
-            job_status: job_status.into(),
-        }
-    }
-}

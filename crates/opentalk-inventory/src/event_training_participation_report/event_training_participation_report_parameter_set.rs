@@ -26,50 +26,6 @@ pub struct EventTrainingParticipationReportParameterSet {
     pub checkpoint_interval_within: i64,
 }
 
-impl From<opentalk_db_storage::events::EventTrainingParticipationReportParameterSet>
-    for EventTrainingParticipationReportParameterSet
-{
-    fn from(
-        opentalk_db_storage::events::EventTrainingParticipationReportParameterSet {
-            event_id,
-            initial_checkpoint_delay_after,
-            initial_checkpoint_delay_within,
-            checkpoint_interval_after,
-            checkpoint_interval_within,
-        }: opentalk_db_storage::events::EventTrainingParticipationReportParameterSet,
-    ) -> Self {
-        Self {
-            event_id,
-            initial_checkpoint_delay_after,
-            initial_checkpoint_delay_within,
-            checkpoint_interval_after,
-            checkpoint_interval_within,
-        }
-    }
-}
-
-impl From<EventTrainingParticipationReportParameterSet>
-    for opentalk_db_storage::events::EventTrainingParticipationReportParameterSet
-{
-    fn from(
-        EventTrainingParticipationReportParameterSet {
-            event_id,
-            initial_checkpoint_delay_after,
-            initial_checkpoint_delay_within,
-            checkpoint_interval_after,
-            checkpoint_interval_within,
-        }: EventTrainingParticipationReportParameterSet,
-    ) -> Self {
-        Self {
-            event_id,
-            initial_checkpoint_delay_after,
-            initial_checkpoint_delay_within,
-            checkpoint_interval_after,
-            checkpoint_interval_within,
-        }
-    }
-}
-
 impl From<EventTrainingParticipationReportParameterSet>
     for TrainingParticipationReportParameterSet
 {

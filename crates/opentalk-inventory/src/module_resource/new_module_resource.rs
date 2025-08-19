@@ -25,25 +25,3 @@ pub struct NewModuleResource {
     /// The module resource data.
     pub data: serde_json::Value,
 }
-
-impl From<NewModuleResource> for opentalk_db_storage::module_resources::NewModuleResource {
-    fn from(
-        NewModuleResource {
-            tenant_id,
-            room_id,
-            created_by,
-            namespace,
-            tag,
-            data,
-        }: NewModuleResource,
-    ) -> Self {
-        Self {
-            tenant_id,
-            room_id,
-            created_by,
-            namespace,
-            tag,
-            data,
-        }
-    }
-}

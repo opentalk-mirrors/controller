@@ -22,39 +22,3 @@ pub struct NewEventEmailInvite {
     /// The id of the user who created the invite.
     pub created_by: UserId,
 }
-
-impl From<opentalk_db_storage::events::email_invites::NewEventEmailInvite> for NewEventEmailInvite {
-    fn from(
-        opentalk_db_storage::events::email_invites::NewEventEmailInvite {
-            event_id,
-            email,
-            role,
-            created_by,
-        }: opentalk_db_storage::events::email_invites::NewEventEmailInvite,
-    ) -> Self {
-        Self {
-            event_id,
-            email,
-            role,
-            created_by,
-        }
-    }
-}
-
-impl From<NewEventEmailInvite> for opentalk_db_storage::events::email_invites::NewEventEmailInvite {
-    fn from(
-        NewEventEmailInvite {
-            event_id,
-            email,
-            role,
-            created_by,
-        }: NewEventEmailInvite,
-    ) -> Self {
-        Self {
-            event_id,
-            email,
-            role,
-            created_by,
-        }
-    }
-}

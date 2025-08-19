@@ -33,29 +33,3 @@ pub struct Asset {
     /// The size of the asset, in bytes.
     pub size: i64,
 }
-
-impl From<opentalk_db_storage::assets::Asset> for Asset {
-    fn from(
-        opentalk_db_storage::assets::Asset {
-            id,
-            created_at,
-            updated_at,
-            namespace,
-            kind,
-            filename,
-            tenant_id,
-            size,
-        }: opentalk_db_storage::assets::Asset,
-    ) -> Self {
-        Self {
-            id,
-            created_at: created_at.into(),
-            updated_at: updated_at.into(),
-            namespace,
-            kind,
-            filename,
-            tenant_id,
-            size,
-        }
-    }
-}

@@ -23,6 +23,46 @@ pub struct SipConfig {
     pub lobby: bool,
 }
 
+impl From<SipConfig> for opentalk_inventory::RoomSipConfig {
+    fn from(
+        SipConfig {
+            id,
+            room,
+            sip_id,
+            password,
+            lobby,
+        }: SipConfig,
+    ) -> Self {
+        Self {
+            id,
+            room,
+            sip_id,
+            password,
+            lobby,
+        }
+    }
+}
+
+impl From<opentalk_inventory::RoomSipConfig> for SipConfig {
+    fn from(
+        opentalk_inventory::RoomSipConfig {
+            id,
+            room,
+            sip_id,
+            password,
+            lobby,
+        }: opentalk_inventory::RoomSipConfig,
+    ) -> Self {
+        Self {
+            id,
+            room,
+            sip_id,
+            password,
+            lobby,
+        }
+    }
+}
+
 impl SipConfig {
     /// Get the sip config for the specified sip_id
     #[tracing::instrument(err, skip_all)]
@@ -83,6 +123,24 @@ pub struct NewSipConfig {
     pub enable_lobby: bool,
 }
 
+impl From<opentalk_inventory::NewRoomSipConfig> for NewSipConfig {
+    fn from(
+        opentalk_inventory::NewRoomSipConfig {
+            room,
+            sip_id,
+            password,
+            enable_lobby,
+        }: opentalk_inventory::NewRoomSipConfig,
+    ) -> Self {
+        Self {
+            room,
+            sip_id,
+            password,
+            enable_lobby,
+        }
+    }
+}
+
 impl NewSipConfig {
     fn re_generate_id(&mut self) {
         self.sip_id = CallInId::generate();
@@ -123,6 +181,20 @@ impl NewSipConfig {
 pub struct UpdateSipConfig {
     pub password: Option<CallInPassword>,
     pub enable_lobby: Option<bool>,
+}
+
+impl From<opentalk_inventory::UpdateRoomSipConfig> for UpdateSipConfig {
+    fn from(
+        opentalk_inventory::UpdateRoomSipConfig {
+            password,
+            enable_lobby,
+        }: opentalk_inventory::UpdateRoomSipConfig,
+    ) -> Self {
+        Self {
+            password,
+            enable_lobby,
+        }
+    }
 }
 
 impl UpdateSipConfig {

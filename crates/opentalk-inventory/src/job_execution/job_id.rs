@@ -19,15 +19,3 @@
     derive_more::Into,
 )]
 pub struct JobId(i64);
-
-impl From<opentalk_db_storage::jobs::SerialId> for JobId {
-    fn from(value: opentalk_db_storage::jobs::SerialId) -> Self {
-        Self(value.into())
-    }
-}
-
-impl From<JobId> for opentalk_db_storage::jobs::SerialId {
-    fn from(JobId(value): JobId) -> Self {
-        Self::from(value)
-    }
-}

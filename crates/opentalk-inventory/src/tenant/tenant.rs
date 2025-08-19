@@ -32,21 +32,3 @@ pub struct Tenant {
     /// The OIDC tenant id.
     pub oidc_tenant_id: OidcTenantId,
 }
-
-impl From<opentalk_db_storage::tenants::Tenant> for Tenant {
-    fn from(
-        opentalk_db_storage::tenants::Tenant {
-            id,
-            created_at,
-            updated_at,
-            oidc_tenant_id,
-        }: opentalk_db_storage::tenants::Tenant,
-    ) -> Self {
-        Self {
-            id,
-            created_at: created_at.into(),
-            updated_at: updated_at.into(),
-            oidc_tenant_id: oidc_tenant_id.into(),
-        }
-    }
-}

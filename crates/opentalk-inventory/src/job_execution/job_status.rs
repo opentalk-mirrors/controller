@@ -31,25 +31,3 @@ pub enum JobStatus {
     /// The job has failed.
     Failed,
 }
-
-impl From<opentalk_db_storage::jobs::JobStatus> for JobStatus {
-    fn from(value: opentalk_db_storage::jobs::JobStatus) -> Self {
-        use opentalk_db_storage::jobs::JobStatus as Other;
-        match value {
-            Other::Started => Self::Started,
-            Other::Succeeded => Self::Succeeded,
-            Other::Failed => Self::Failed,
-        }
-    }
-}
-
-impl From<JobStatus> for opentalk_db_storage::jobs::JobStatus {
-    fn from(value: JobStatus) -> Self {
-        use JobStatus as Other;
-        match value {
-            Other::Started => Self::Started,
-            Other::Succeeded => Self::Succeeded,
-            Other::Failed => Self::Failed,
-        }
-    }
-}

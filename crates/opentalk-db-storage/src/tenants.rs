@@ -49,6 +49,24 @@ impl From<&str> for OidcTenantId {
     }
 }
 
+impl From<OidcTenantId> for opentalk_inventory::OidcTenantId {
+    fn from(OidcTenantId(value): OidcTenantId) -> Self {
+        Self::from(value)
+    }
+}
+
+impl From<opentalk_inventory::OidcTenantId> for OidcTenantId {
+    fn from(value: opentalk_inventory::OidcTenantId) -> Self {
+        Self(value.into())
+    }
+}
+
+impl From<&opentalk_inventory::OidcTenantId> for OidcTenantId {
+    fn from(value: &opentalk_inventory::OidcTenantId) -> Self {
+        value.as_str().into()
+    }
+}
+
 #[derive(Debug, Clone, Queryable, Identifiable, Serialize, Deserialize, Encode, Decode)]
 pub struct Tenant {
     pub id: TenantId,
@@ -57,6 +75,24 @@ pub struct Tenant {
     #[bincode(with_serde)]
     pub updated_at: DateTime<Utc>,
     pub oidc_tenant_id: OidcTenantId,
+}
+
+impl From<Tenant> for opentalk_inventory::Tenant {
+    fn from(
+        Tenant {
+            id,
+            created_at,
+            updated_at,
+            oidc_tenant_id,
+        }: Tenant,
+    ) -> Self {
+        Self {
+            id,
+            created_at: created_at.into(),
+            updated_at: updated_at.into(),
+            oidc_tenant_id: oidc_tenant_id.into(),
+        }
+    }
 }
 
 impl Tenant {

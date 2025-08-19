@@ -14,7 +14,6 @@ use opentalk_types_common::{
     module_resources::ModuleResourceId, rooms::RoomId, tenants::TenantId, users::UserId,
 };
 use serde::Serialize;
-use serde_json::Value;
 use snafu::Snafu;
 
 use crate::schema::{module_resources, rooms};
@@ -28,12 +27,16 @@ pub enum JsonPatchErrorCode {
     #[strum(serialize = "ot_invalid_path", to_string = "invalid_path")]
     InvalidPath,
 
-    /// Can only be thrown by the [`Test`](Operation::Test) when the compare returns `false`
+    /// Can only be thrown by the
+    /// [`Test`](opentalk_inventory::ModuleResourceOperation::Test) when the
+    /// compare returns `false`
     #[strum(serialize = "ot_value_not_equal", to_string = "value_not_equal")]
     ValueNotEqual,
 
-    /// Can only be thrown by a [`Copy`](Operation::Copy) or [`Move`](Operation::Move) operation when the `from`
-    /// parameter is invalid.
+    /// Can only be thrown by a
+    /// [`Copy`](opentalk_inventory::ModuleResourceOperation::Copy) or
+    /// [`Move`](opentalk_inventory::ModuleResourceOperation::Move) operation
+    /// when the `from` parameter is invalid.
     #[strum(serialize = "ot_invalid_from_path", to_string = "invalid_from_path")]
     InvalidFromPath,
 }
@@ -106,6 +109,30 @@ pub struct Filter {
     tag: Option<String>,
     /// Filter by the content of the module resource
     json: Option<serde_json::Value>,
+}
+
+impl From<opentalk_inventory::ModuleResourceFilter> for Filter {
+    fn from(value: opentalk_inventory::ModuleResourceFilter) -> Self {
+        let (id, namespace, created_by, tag, json) = value.into();
+
+        let mut filter = Self::default();
+        if let Some(id) = id {
+            filter = filter.with_id(id);
+        }
+        if let Some(namespace) = namespace {
+            filter = filter.with_namespace(namespace);
+        }
+        if let Some(created_by) = created_by {
+            filter = filter.with_created_by(created_by);
+        }
+        if let Some(tag) = tag {
+            filter = filter.with_tag(tag);
+        }
+        if let Some(json) = json {
+            filter = filter.with_json(json);
+        }
+        filter
+    }
 }
 
 type ResourceFilter =
@@ -209,6 +236,62 @@ pub struct ModuleResource {
     pub data: serde_json::Value,
 }
 
+impl From<ModuleResource> for opentalk_inventory::ModuleResource {
+    fn from(
+        ModuleResource {
+            id,
+            tenant_id,
+            room_id,
+            created_by,
+            created_at,
+            updated_at,
+            namespace,
+            tag,
+            data,
+        }: ModuleResource,
+    ) -> Self {
+        Self {
+            id,
+            tenant_id,
+            room_id,
+            created_by,
+            created_at: created_at.into(),
+            updated_at: updated_at.into(),
+            namespace,
+            tag,
+            data,
+        }
+    }
+}
+
+impl From<opentalk_inventory::ModuleResource> for ModuleResource {
+    fn from(
+        opentalk_inventory::ModuleResource {
+            id,
+            tenant_id,
+            room_id,
+            created_by,
+            created_at,
+            updated_at,
+            namespace,
+            tag,
+            data,
+        }: opentalk_inventory::ModuleResource,
+    ) -> Self {
+        Self {
+            id,
+            tenant_id,
+            room_id,
+            created_by,
+            created_at: created_at.into(),
+            updated_at: updated_at.into(),
+            namespace,
+            tag,
+            data,
+        }
+    }
+}
+
 impl ModuleResource {
     #[tracing::instrument(err, skip_all)]
     pub async fn get(conn: &mut DbConnection, filter: Filter) -> Result<Vec<Self>> {
@@ -279,12 +362,13 @@ impl ModuleResource {
         Ok(())
     }
 
-    /// Update the targeted json data by a set of json patch [Operations](Operation)
+    /// Update the targeted json data by a set of json patch
+    /// [ModuleResourceOperations](opentalk_inventory::ModuleResourceOperation).
     #[tracing::instrument(err, skip_all)]
     pub async fn patch(
         conn: &mut DbConnection,
         filter: Filter,
-        operations: Vec<Operation>,
+        operations: Vec<opentalk_inventory::ModuleResourceOperation>,
     ) -> Result<Vec<ModuleResource>, JsonOperationError> {
         let filter = filter
             .into_diesel_filter()
@@ -307,23 +391,6 @@ impl ModuleResource {
     }
 }
 
-/// Possible json patch operations based on [RFC6902](https://www.rfc-editor.org/rfc/rfc6902#section-4)
-#[derive(Serialize)]
-#[serde(tag = "op", rename_all = "snake_case")]
-pub enum Operation {
-    Add { path: String, value: Value },
-
-    Remove { path: String },
-
-    Replace { path: String, value: Value },
-
-    Move { from: String, path: String },
-
-    Copy { from: String, path: String },
-
-    Test { path: String, value: Value },
-}
-
 define_sql_function! {
     fn ot_patch_json(target: Jsonb, changeset: Jsonb) -> Jsonb;
 }
@@ -337,6 +404,28 @@ pub struct NewModuleResource {
     pub namespace: String,
     pub tag: Option<String>,
     pub data: serde_json::Value,
+}
+
+impl From<opentalk_inventory::NewModuleResource> for NewModuleResource {
+    fn from(
+        opentalk_inventory::NewModuleResource {
+            tenant_id,
+            room_id,
+            created_by,
+            namespace,
+            tag,
+            data,
+        }: opentalk_inventory::NewModuleResource,
+    ) -> Self {
+        Self {
+            tenant_id,
+            room_id,
+            created_by,
+            namespace,
+            tag,
+            data,
+        }
+    }
 }
 
 impl NewModuleResource {
@@ -353,6 +442,7 @@ impl NewModuleResource {
 
 #[cfg(test)]
 mod tests {
+    use opentalk_inventory::ModuleResourceOperation;
     use opentalk_test_util::{assert_eq, *};
     use serde_json::{Value, json};
     use serial_test::serial;
@@ -402,7 +492,7 @@ mod tests {
     async fn add_single() {
         let (_id, mut db_conn) = init_empty_resource().await;
 
-        let operations = vec![Operation::Add {
+        let operations = vec![ModuleResourceOperation::Add {
             path: "/foo".into(),
             value: Value::String("bar".into()),
         }];
@@ -429,7 +519,7 @@ mod tests {
     async fn empty_path() {
         let (_id, mut db_conn) = init_empty_resource().await;
 
-        let operations = vec![Operation::Add {
+        let operations = vec![ModuleResourceOperation::Add {
             path: "".into(),
             value: Value::String("bar".into()),
         }];
@@ -453,7 +543,7 @@ mod tests {
     async fn add_invalid() {
         let (_id, mut db_conn) = init_empty_resource().await;
 
-        let operations = vec![Operation::Add {
+        let operations = vec![ModuleResourceOperation::Add {
             path: "/foo/bar/baz".into(),
             value: Value::String("bar".into()),
         }];
@@ -484,7 +574,7 @@ mod tests {
         for i in 0..100 {
             let field = format!("foo{i}");
 
-            operations.push(Operation::Add {
+            operations.push(ModuleResourceOperation::Add {
                 path: format!("/{field}"),
                 value: Value::String("bar".into()),
             });
@@ -512,7 +602,7 @@ mod tests {
     async fn add_single_empty() {
         let (_id, mut db_conn) = init_empty_resource().await;
 
-        let operations = vec![Operation::Add {
+        let operations = vec![ModuleResourceOperation::Add {
             path: "/".into(),
             value: Value::String("bar".into()),
         }];
@@ -535,11 +625,11 @@ mod tests {
         let (_id, mut db_conn) = init_empty_resource().await;
 
         let operations = vec![
-            Operation::Add {
+            ModuleResourceOperation::Add {
                 path: "/foo".into(),
                 value: json!({"bar": 1}),
             },
-            Operation::Add {
+            ModuleResourceOperation::Add {
                 path: "/foo/bar".into(),
                 value: Value::Number(42.into()),
             },
@@ -573,7 +663,7 @@ mod tests {
 
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
-        let operations = vec![Operation::Add {
+        let operations = vec![ModuleResourceOperation::Add {
             path: "/foo/1".into(),
             value: Value::String("b".into()),
         }];
@@ -600,7 +690,7 @@ mod tests {
     async fn add_array() {
         let (_id, mut db_conn) = init_empty_resource().await;
 
-        let operations = vec![Operation::Add {
+        let operations = vec![ModuleResourceOperation::Add {
             path: "/foo".into(),
             value: Value::Array(vec![1.into(), 2.into(), 3.into()]),
         }];
@@ -628,11 +718,11 @@ mod tests {
         let (_id, mut db_conn) = init_empty_resource().await;
 
         let operations = vec![
-            Operation::Add {
+            ModuleResourceOperation::Add {
                 path: "/foo".into(),
                 value: Value::Number(1.into()),
             },
-            Operation::Add {
+            ModuleResourceOperation::Add {
                 path: "/bar".into(),
                 value: Value::Number(2.into()),
             },
@@ -662,15 +752,15 @@ mod tests {
         let (_id, mut db_conn) = init_empty_resource().await;
 
         let operations = vec![
-            Operation::Add {
+            ModuleResourceOperation::Add {
                 path: "/foo".into(),
                 value: Value::Number(1.into()),
             },
-            Operation::Add {
+            ModuleResourceOperation::Add {
                 path: "/bar".into(),
                 value: Value::Number(2.into()),
             },
-            Operation::Add {
+            ModuleResourceOperation::Add {
                 path: "/foo".into(),
                 value: Value::Number(42.into()),
             },
@@ -704,7 +794,7 @@ mod tests {
 
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
-        let operations = vec![Operation::Remove {
+        let operations = vec![ModuleResourceOperation::Remove {
             path: "/foo".into(),
         }];
 
@@ -739,10 +829,10 @@ mod tests {
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
         let operations = vec![
-            Operation::Remove {
+            ModuleResourceOperation::Remove {
                 path: "/foo/0".into(),
             },
-            Operation::Remove {
+            ModuleResourceOperation::Remove {
                 path: "/bar/0".into(),
             },
         ];
@@ -781,13 +871,13 @@ mod tests {
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
         let operations = vec![
-            Operation::Remove {
+            ModuleResourceOperation::Remove {
                 path: "/foo/0".into(),
             },
-            Operation::Remove {
+            ModuleResourceOperation::Remove {
                 path: "/bar/0".into(),
             },
-            Operation::Add {
+            ModuleResourceOperation::Add {
                 path: "/bar/0".into(),
                 value: Value::Number(42.into()),
             },
@@ -826,7 +916,7 @@ mod tests {
 
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
-        let operations = vec![Operation::Move {
+        let operations = vec![ModuleResourceOperation::Move {
             from: "/foo/qux".into(),
             path: "/bar/qux".into(),
         }];
@@ -864,7 +954,7 @@ mod tests {
 
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
-        let operations = vec![Operation::Move {
+        let operations = vec![ModuleResourceOperation::Move {
             from: "/".into(),
             path: "/bar/qux".into(),
         }];
@@ -896,7 +986,7 @@ mod tests {
 
         let from_path: String = "/foo".into();
         let to_path: String = "/foo/bar".into();
-        let operations = vec![Operation::Move {
+        let operations = vec![ModuleResourceOperation::Move {
             from: from_path,
             path: to_path,
         }];
@@ -922,7 +1012,7 @@ mod tests {
 
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
-        let operations = vec![Operation::Move {
+        let operations = vec![ModuleResourceOperation::Move {
             from: "/foo/1".into(),
             path: "/foo/3".into(),
         }];
@@ -955,7 +1045,7 @@ mod tests {
 
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
-        let operations = vec![Operation::Move {
+        let operations = vec![ModuleResourceOperation::Move {
             from: "/foo/0".into(),
             path: "/bar/baz/1".into(),
         }];
@@ -993,7 +1083,7 @@ mod tests {
 
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
-        let operations = vec![Operation::Copy {
+        let operations = vec![ModuleResourceOperation::Copy {
             from: "/foo/qux".into(),
             path: "/bar/qux".into(),
         }];
@@ -1029,7 +1119,7 @@ mod tests {
 
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
-        let operations = vec![Operation::Test {
+        let operations = vec![ModuleResourceOperation::Test {
             path: "/foo".into(),
             value: Value::Number(1.into()),
         }];
@@ -1062,7 +1152,7 @@ mod tests {
 
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
-        let operations = vec![Operation::Test {
+        let operations = vec![ModuleResourceOperation::Test {
             path: "/foo".into(),
             value: Value::Number(99.into()),
         }];
@@ -1092,14 +1182,14 @@ mod tests {
         let (id, mut db_conn) = init_resource(initial_json.clone()).await;
 
         let operations = vec![
-            Operation::Add {
+            ModuleResourceOperation::Add {
                 path: "/baz".into(),
                 value: Value::Number(3.into()),
             },
-            Operation::Remove {
+            ModuleResourceOperation::Remove {
                 path: "/bar".into(),
             },
-            Operation::Test {
+            ModuleResourceOperation::Test {
                 path: "/foo".into(),
                 value: Value::Number(99.into()),
             },
@@ -1138,7 +1228,7 @@ mod tests {
 
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
-        let operations = vec![Operation::Test {
+        let operations = vec![ModuleResourceOperation::Test {
             path: "/foo".into(),
             value: json!({
                 "baz": 1,
@@ -1177,7 +1267,7 @@ mod tests {
 
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
-        let operations = vec![Operation::Replace {
+        let operations = vec![ModuleResourceOperation::Replace {
             path: "/bar".into(),
             value: Value::Number(99.into()),
         }];
@@ -1209,7 +1299,7 @@ mod tests {
 
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
-        let operations = vec![Operation::Replace {
+        let operations = vec![ModuleResourceOperation::Replace {
             path: "/foo/0".into(),
             value: Value::String("a".into()),
         }];
@@ -1240,7 +1330,7 @@ mod tests {
 
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
-        let operations = vec![Operation::Replace {
+        let operations = vec![ModuleResourceOperation::Replace {
             path: "/foo/3".into(),
             value: Value::String("d".into()),
         }];
@@ -1268,7 +1358,7 @@ mod tests {
 
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
-        let operations = vec![Operation::Replace {
+        let operations = vec![ModuleResourceOperation::Replace {
             path: "/bar".into(),
             value: Value::String("2".into()),
         }];

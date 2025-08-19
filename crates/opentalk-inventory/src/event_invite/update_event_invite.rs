@@ -13,17 +13,3 @@ pub struct UpdateEventInvite {
     /// Update the role of the event invite.
     pub role: Option<InviteRole>,
 }
-
-impl From<opentalk_db_storage::events::UpdateEventInvite> for UpdateEventInvite {
-    fn from(
-        opentalk_db_storage::events::UpdateEventInvite{ status, role }: opentalk_db_storage::events::UpdateEventInvite,
-    ) -> Self {
-        Self { status, role }
-    }
-}
-
-impl From<UpdateEventInvite> for opentalk_db_storage::events::UpdateEventInvite {
-    fn from(UpdateEventInvite { status, role }: UpdateEventInvite) -> Self {
-        Self { status, role }
-    }
-}

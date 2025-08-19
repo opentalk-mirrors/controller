@@ -15,31 +15,3 @@ pub struct UpdateJobExecution {
     /// The status of the job execution.
     pub job_status: Option<JobStatus>,
 }
-
-impl From<opentalk_db_storage::jobs::UpdateJobExecution> for UpdateJobExecution {
-    fn from(
-        opentalk_db_storage::jobs::UpdateJobExecution {
-            ended_at,
-            job_status,
-        }: opentalk_db_storage::jobs::UpdateJobExecution,
-    ) -> Self {
-        Self {
-            ended_at: ended_at.map(Into::into),
-            job_status: job_status.map(Into::into),
-        }
-    }
-}
-
-impl From<UpdateJobExecution> for opentalk_db_storage::jobs::UpdateJobExecution {
-    fn from(
-        UpdateJobExecution {
-            ended_at,
-            job_status,
-        }: UpdateJobExecution,
-    ) -> Self {
-        Self {
-            ended_at: ended_at.map(Into::into),
-            job_status: job_status.map(Into::into),
-        }
-    }
-}

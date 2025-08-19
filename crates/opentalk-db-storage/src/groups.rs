@@ -55,6 +55,23 @@ pub struct Group {
     pub tenant_id: TenantId,
 }
 
+impl From<Group> for opentalk_inventory::Group {
+    fn from(
+        Group {
+            id,
+            id_serial: _,
+            name,
+            tenant_id,
+        }: Group,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            tenant_id,
+        }
+    }
+}
+
 impl Group {
     #[tracing::instrument(err, skip_all)]
     pub async fn get_all_for_user(conn: &mut DbConnection, user_id: UserId) -> Result<Vec<Group>> {

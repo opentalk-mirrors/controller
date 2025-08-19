@@ -37,6 +37,54 @@ pub struct RoomStreamingTargetRecord {
     pub public_url: String,
 }
 
+impl From<opentalk_inventory::RoomStreamingTargetRecord> for RoomStreamingTargetRecord {
+    fn from(
+        opentalk_inventory::RoomStreamingTargetRecord {
+            id,
+            room_id,
+            name,
+            kind,
+            streaming_endpoint,
+            streaming_key,
+            public_url,
+        }: opentalk_inventory::RoomStreamingTargetRecord,
+    ) -> Self {
+        Self {
+            id,
+            room_id,
+            name,
+            kind,
+            streaming_endpoint,
+            streaming_key,
+            public_url,
+        }
+    }
+}
+
+impl From<RoomStreamingTargetRecord> for opentalk_inventory::RoomStreamingTargetRecord {
+    fn from(
+        RoomStreamingTargetRecord {
+            id,
+            room_id,
+            name,
+            kind,
+            streaming_endpoint,
+            streaming_key,
+            public_url,
+        }: RoomStreamingTargetRecord,
+    ) -> Self {
+        Self {
+            id,
+            room_id,
+            name,
+            kind,
+            streaming_endpoint,
+            streaming_key,
+            public_url,
+        }
+    }
+}
+
 impl RoomStreamingTargetRecord {
     /// Retrieve a single streaming target
     #[tracing::instrument(err, skip_all)]
@@ -202,6 +250,26 @@ pub struct UpdateRoomStreamingTarget {
     pub streaming_endpoint: Option<String>,
     pub streaming_key: Option<String>,
     pub public_url: Option<String>,
+}
+
+impl From<opentalk_inventory::UpdateRoomStreamingTarget> for UpdateRoomStreamingTarget {
+    fn from(
+        opentalk_inventory::UpdateRoomStreamingTarget {
+            name,
+            kind,
+            streaming_endpoint,
+            streaming_key,
+            public_url,
+        }: opentalk_inventory::UpdateRoomStreamingTarget,
+    ) -> Self {
+        Self {
+            name,
+            kind,
+            streaming_endpoint,
+            streaming_key,
+            public_url,
+        }
+    }
 }
 
 impl UpdateRoomStreamingTarget {

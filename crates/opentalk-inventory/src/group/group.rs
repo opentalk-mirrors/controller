@@ -19,20 +19,3 @@ pub struct Group {
     /// The id of the tenant to which the group belongs.
     pub tenant_id: TenantId,
 }
-
-impl From<opentalk_db_storage::groups::Group> for Group {
-    fn from(
-        opentalk_db_storage::groups::Group {
-            id,
-            id_serial: _,
-            name,
-            tenant_id,
-        }: opentalk_db_storage::groups::Group,
-    ) -> Self {
-        Self {
-            id,
-            name,
-            tenant_id,
-        }
-    }
-}

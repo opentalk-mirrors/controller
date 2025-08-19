@@ -36,6 +36,30 @@ use crate::schema::{job_execution_logs, job_executions, jobs};
 #[diesel(sql_type = diesel::sql_types::BigInt)]
 pub struct SerialId(i64);
 
+impl From<SerialId> for opentalk_inventory::JobId {
+    fn from(SerialId(value): SerialId) -> Self {
+        Self::from(value)
+    }
+}
+
+impl From<opentalk_inventory::JobId> for SerialId {
+    fn from(value: opentalk_inventory::JobId) -> Self {
+        Self(value.into())
+    }
+}
+
+impl From<SerialId> for opentalk_inventory::JobExecutionId {
+    fn from(SerialId(value): SerialId) -> Self {
+        Self::from(value)
+    }
+}
+
+impl From<opentalk_inventory::JobExecutionId> for SerialId {
+    fn from(value: opentalk_inventory::JobExecutionId) -> Self {
+        Self(value.into())
+    }
+}
+
 #[derive(Debug, Clone, Queryable, Identifiable, PartialEq, Eq)]
 pub struct Job {
     pub id: SerialId,
@@ -44,6 +68,50 @@ pub struct Job {
     pub parameters: serde_json::Value,
     pub timeout_secs: i32,
     pub recurrence: String,
+}
+
+impl From<Job> for opentalk_inventory::Job {
+    fn from(
+        Job {
+            id,
+            name,
+            kind,
+            parameters,
+            timeout_secs,
+            recurrence,
+        }: Job,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            name,
+            kind: kind.into(),
+            parameters,
+            timeout_secs,
+            recurrence,
+        }
+    }
+}
+
+impl From<opentalk_inventory::Job> for Job {
+    fn from(
+        opentalk_inventory::Job {
+            id,
+            name,
+            kind,
+            parameters,
+            timeout_secs,
+            recurrence,
+        }: opentalk_inventory::Job,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            name,
+            kind: kind.into(),
+            parameters,
+            timeout_secs,
+            recurrence,
+        }
+    }
 }
 
 impl Job {
@@ -73,7 +141,45 @@ pub struct JobExecution {
     pub job_status: JobStatus,
 }
 
-impl JobExecution {}
+impl From<JobExecution> for opentalk_inventory::JobExecution {
+    fn from(
+        JobExecution {
+            id,
+            job_id,
+            started_at,
+            ended_at,
+            job_status,
+        }: JobExecution,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            job_id: job_id.into(),
+            started_at: started_at.into(),
+            ended_at: ended_at.map(Into::into),
+            job_status: job_status.into(),
+        }
+    }
+}
+
+impl From<opentalk_inventory::JobExecution> for JobExecution {
+    fn from(
+        opentalk_inventory::JobExecution {
+            id,
+            job_id,
+            started_at,
+            ended_at,
+            job_status,
+        }: opentalk_inventory::JobExecution,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            job_id: job_id.into(),
+            started_at: started_at.into(),
+            ended_at: ended_at.map(Into::into),
+            job_status: job_status.into(),
+        }
+    }
+}
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = job_executions)]
@@ -82,6 +188,24 @@ pub struct NewJobExecution {
     pub started_at: DateTime<Utc>,
     pub ended_at: Option<DateTime<Utc>>,
     pub job_status: JobStatus,
+}
+
+impl From<opentalk_inventory::NewJobExecution> for NewJobExecution {
+    fn from(
+        opentalk_inventory::NewJobExecution {
+            job_id,
+            started_at,
+            ended_at,
+            job_status,
+        }: opentalk_inventory::NewJobExecution,
+    ) -> Self {
+        Self {
+            job_id: job_id.into(),
+            started_at: started_at.into(),
+            ended_at: ended_at.map(Into::into),
+            job_status: job_status.into(),
+        }
+    }
 }
 
 impl NewJobExecution {
@@ -101,6 +225,20 @@ impl NewJobExecution {
 pub struct UpdateJobExecution {
     pub ended_at: Option<DateTime<Utc>>,
     pub job_status: Option<JobStatus>,
+}
+
+impl From<opentalk_inventory::UpdateJobExecution> for UpdateJobExecution {
+    fn from(
+        opentalk_inventory::UpdateJobExecution {
+            ended_at,
+            job_status,
+        }: opentalk_inventory::UpdateJobExecution,
+    ) -> Self {
+        Self {
+            ended_at: ended_at.map(Into::into),
+            job_status: job_status.map(Into::into),
+        }
+    }
 }
 
 impl UpdateJobExecution {
@@ -131,6 +269,24 @@ pub struct NewJobExecutionLog {
     pub logged_at: DateTime<Utc>,
     pub log_level: LogLevel,
     pub log_message: String,
+}
+
+impl From<opentalk_inventory::NewJobExecutionLog> for NewJobExecutionLog {
+    fn from(
+        opentalk_inventory::NewJobExecutionLog {
+            execution_id,
+            logged_at,
+            log_level,
+            log_message,
+        }: opentalk_inventory::NewJobExecutionLog,
+    ) -> Self {
+        Self {
+            execution_id: execution_id.into(),
+            logged_at: logged_at.into(),
+            log_level: log_level.into(),
+            log_message,
+        }
+    }
 }
 
 impl NewJobExecutionLog {
@@ -173,6 +329,37 @@ sql_enum!(
     }
 );
 
+impl From<JobType> for opentalk_inventory::JobType {
+    fn from(value: JobType) -> Self {
+        match value {
+            JobType::AdhocEventCleanup => Self::AdhocEventCleanup,
+            JobType::EventCleanup => Self::EventCleanup,
+            JobType::UserCleanup => Self::UserCleanup,
+            JobType::InviteCleanup => Self::InviteCleanup,
+            JobType::SelfCheck => Self::SelfCheck,
+            JobType::SyncStorageFiles => Self::SyncStorageFiles,
+            JobType::RoomCleanup => Self::RoomCleanup,
+            JobType::KeycloakAccountSync => Self::KeycloakAccountSync,
+        }
+    }
+}
+
+impl From<opentalk_inventory::JobType> for JobType {
+    fn from(value: opentalk_inventory::JobType) -> Self {
+        use opentalk_inventory::JobType as Other;
+        match value {
+            Other::AdhocEventCleanup => Self::AdhocEventCleanup,
+            Other::EventCleanup => Self::EventCleanup,
+            Other::UserCleanup => Self::UserCleanup,
+            Other::InviteCleanup => Self::InviteCleanup,
+            Other::SelfCheck => Self::SelfCheck,
+            Other::SyncStorageFiles => Self::SyncStorageFiles,
+            Other::RoomCleanup => Self::RoomCleanup,
+            Other::KeycloakAccountSync => Self::KeycloakAccountSync,
+        }
+    }
+}
+
 sql_enum!(
     #[derive(PartialEq, Eq, Display)]
     JobStatus,
@@ -184,6 +371,27 @@ sql_enum!(
         Failed = b"failed",
     }
 );
+
+impl From<JobStatus> for opentalk_inventory::JobStatus {
+    fn from(value: JobStatus) -> Self {
+        match value {
+            JobStatus::Started => Self::Started,
+            JobStatus::Succeeded => Self::Succeeded,
+            JobStatus::Failed => Self::Failed,
+        }
+    }
+}
+
+impl From<opentalk_inventory::JobStatus> for JobStatus {
+    fn from(value: opentalk_inventory::JobStatus) -> Self {
+        use opentalk_inventory::JobStatus as Other;
+        match value {
+            Other::Started => Self::Started,
+            Other::Succeeded => Self::Succeeded,
+            Other::Failed => Self::Failed,
+        }
+    }
+}
 
 sql_enum!(
     #[derive(PartialEq, Eq, Display)]
@@ -198,3 +406,28 @@ sql_enum!(
         Error = b"error",
     }
 );
+
+impl From<LogLevel> for opentalk_inventory::JobExecutionLogLevel {
+    fn from(value: LogLevel) -> Self {
+        match value {
+            LogLevel::Trace => Self::Trace,
+            LogLevel::Debug => Self::Debug,
+            LogLevel::Info => Self::Info,
+            LogLevel::Warn => Self::Warn,
+            LogLevel::Error => Self::Error,
+        }
+    }
+}
+
+impl From<opentalk_inventory::JobExecutionLogLevel> for LogLevel {
+    fn from(value: opentalk_inventory::JobExecutionLogLevel) -> Self {
+        use opentalk_inventory::JobExecutionLogLevel as Other;
+        match value {
+            Other::Trace => Self::Trace,
+            Other::Debug => Self::Debug,
+            Other::Info => Self::Info,
+            Other::Warn => Self::Warn,
+            Other::Error => Self::Error,
+        }
+    }
+}

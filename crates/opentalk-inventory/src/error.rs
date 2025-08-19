@@ -5,12 +5,11 @@
 //! This module contains the error type that is returned form the traits defined in this crate.
 //!
 //! The module is public so that implementors of the traits can create variants of it
-//! using the types defined by [snafu], e.g. [StorageBackendSnafu] or [JsonOperationSnafu].
+//! using the types defined by [snafu], e.g. [StorageBackendSnafu].
 //!
 //! [snafu::whatever] can be used with this type as well if necessary.
 
 use opentalk_database::DatabaseError;
-use opentalk_db_storage::module_resources::JsonOperationError;
 use snafu::Snafu;
 
 /// The error returned from function calls to the storage facade provider.
@@ -24,15 +23,6 @@ pub enum Error {
         // TODO: I wanted to insert that right away, but didn't get the compiler errors fixed,
         // TODO: so this is a task for later.
         source: DatabaseError,
-    },
-
-    /// An error happened when applying JSON operations to a module resource.
-    JsonOperation {
-        /// The cause of the error
-        // TODO: this needs to be replaced by a `Box<dyn std::error::Error + Sync + Send>`.
-        // TODO: I wanted to insert that right away, but didn't get the compiler errors fixed,
-        // TODO: so this is a task for later.
-        source: JsonOperationError,
     },
 
     /// An error occurred when attempting to begin, rollback or finish a transaction.

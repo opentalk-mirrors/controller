@@ -35,21 +35,3 @@ impl From<&str> for OidcTenantId {
         Self::from(value.to_string())
     }
 }
-
-impl From<opentalk_db_storage::tenants::OidcTenantId> for OidcTenantId {
-    fn from(value: opentalk_db_storage::tenants::OidcTenantId) -> Self {
-        Self(String::from(value))
-    }
-}
-
-impl From<OidcTenantId> for opentalk_db_storage::tenants::OidcTenantId {
-    fn from(OidcTenantId(value): OidcTenantId) -> Self {
-        value.into()
-    }
-}
-
-impl From<&OidcTenantId> for opentalk_db_storage::tenants::OidcTenantId {
-    fn from(OidcTenantId(value): &OidcTenantId) -> Self {
-        value.as_str().into()
-    }
-}

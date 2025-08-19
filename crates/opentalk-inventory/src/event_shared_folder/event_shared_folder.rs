@@ -42,66 +42,6 @@ pub struct EventSharedFolder {
     pub read_password: String,
 }
 
-impl From<opentalk_db_storage::events::shared_folders::EventSharedFolder> for EventSharedFolder {
-    fn from(
-        opentalk_db_storage::events::shared_folders::EventSharedFolder {
-            event_id,
-            created_at,
-            updated_at,
-            path,
-            write_share_id,
-            write_url,
-            write_password,
-            read_share_id,
-            read_url,
-            read_password,
-        }: opentalk_db_storage::events::shared_folders::EventSharedFolder,
-    ) -> Self {
-        Self {
-            event_id,
-            created_at: created_at.into(),
-            updated_at: updated_at.into(),
-            path,
-            write_share_id,
-            write_url,
-            write_password,
-            read_share_id,
-            read_url,
-            read_password,
-        }
-    }
-}
-
-impl From<EventSharedFolder> for opentalk_db_storage::events::shared_folders::EventSharedFolder {
-    fn from(
-        EventSharedFolder {
-            event_id,
-            created_at,
-            updated_at,
-            path,
-            write_share_id,
-            write_url,
-            write_password,
-            read_share_id,
-            read_url,
-            read_password,
-        }: EventSharedFolder,
-    ) -> Self {
-        Self {
-            event_id,
-            created_at: created_at.into(),
-            updated_at: updated_at.into(),
-            path,
-            write_share_id,
-            write_url,
-            write_password,
-            read_share_id,
-            read_url,
-            read_password,
-        }
-    }
-}
-
 impl From<EventSharedFolder> for SharedFolder {
     fn from(
         EventSharedFolder {

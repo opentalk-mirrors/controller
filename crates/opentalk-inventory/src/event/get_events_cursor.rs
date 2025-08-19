@@ -38,23 +38,7 @@ impl GetEventsCursor {
     }
 }
 
-impl From<opentalk_db_storage::events::GetEventsCursor> for GetEventsCursor {
-    fn from(
-        opentalk_db_storage::events::GetEventsCursor {
-            from_id,
-            from_created_at,
-            from_starts_at,
-        }: opentalk_db_storage::events::GetEventsCursor,
-    ) -> Self {
-        Self {
-            from_id,
-            from_created_at: from_created_at.into(),
-            from_starts_at: from_starts_at.map(Into::into),
-        }
-    }
-}
-
-impl From<GetEventsCursor> for opentalk_db_storage::events::GetEventsCursor {
+impl From<GetEventsCursor> for (EventId, Timestamp, Option<Timestamp>) {
     fn from(
         GetEventsCursor {
             from_id,
@@ -62,10 +46,6 @@ impl From<GetEventsCursor> for opentalk_db_storage::events::GetEventsCursor {
             from_starts_at,
         }: GetEventsCursor,
     ) -> Self {
-        Self {
-            from_id,
-            from_created_at: from_created_at.into(),
-            from_starts_at: from_starts_at.map(Into::into),
-        }
+        (from_id, from_created_at, from_starts_at)
     }
 }

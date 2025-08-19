@@ -27,6 +27,24 @@ pub struct NewEventEmailInvite {
     pub created_by: UserId,
 }
 
+impl From<opentalk_inventory::NewEventEmailInvite> for NewEventEmailInvite {
+    fn from(
+        opentalk_inventory::NewEventEmailInvite {
+            event_id,
+            email,
+            role,
+            created_by,
+        }: opentalk_inventory::NewEventEmailInvite,
+    ) -> Self {
+        Self {
+            event_id,
+            email,
+            role,
+            created_by,
+        }
+    }
+}
+
 impl NewEventEmailInvite {
     /// Tries to insert the EventEmailInvite into the database
     ///
@@ -58,6 +76,46 @@ pub struct EventEmailInvite {
     pub created_by: UserId,
     pub created_at: DateTime<Utc>,
     pub role: EmailInviteRole,
+}
+
+impl From<EventEmailInvite> for opentalk_inventory::EventEmailInvite {
+    fn from(
+        EventEmailInvite {
+            event_id,
+            email,
+            created_by,
+            created_at,
+            role,
+        }: EventEmailInvite,
+    ) -> Self {
+        Self {
+            event_id,
+            email,
+            created_by,
+            created_at: created_at.into(),
+            role,
+        }
+    }
+}
+
+impl From<opentalk_inventory::EventEmailInvite> for EventEmailInvite {
+    fn from(
+        opentalk_inventory::EventEmailInvite {
+            event_id,
+            email,
+            created_by,
+            created_at,
+            role,
+        }: opentalk_inventory::EventEmailInvite,
+    ) -> Self {
+        Self {
+            event_id,
+            email,
+            created_by,
+            created_at: created_at.into(),
+            role,
+        }
+    }
 }
 
 impl EventEmailInvite {
@@ -178,6 +236,14 @@ impl EventEmailInvite {
 #[diesel(table_name = event_email_invites)]
 pub struct UpdateEventEmailInvite {
     pub role: Option<EmailInviteRole>,
+}
+
+impl From<opentalk_inventory::UpdateEventEmailInvite> for UpdateEventEmailInvite {
+    fn from(
+        opentalk_inventory::UpdateEventEmailInvite { role }: opentalk_inventory::UpdateEventEmailInvite,
+    ) -> Self {
+        Self { role }
+    }
 }
 
 impl UpdateEventEmailInvite {

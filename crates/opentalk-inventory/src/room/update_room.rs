@@ -16,35 +16,3 @@ pub struct UpdateRoom {
     /// A flag indicating that e2e encryption is enabled for this room.
     pub e2e_encryption: Option<bool>,
 }
-
-impl From<opentalk_db_storage::rooms::UpdateRoom> for UpdateRoom {
-    fn from(
-        opentalk_db_storage::rooms::UpdateRoom {
-            password,
-            waiting_room,
-            e2e_encryption,
-        }: opentalk_db_storage::rooms::UpdateRoom,
-    ) -> Self {
-        Self {
-            password,
-            waiting_room,
-            e2e_encryption,
-        }
-    }
-}
-
-impl From<UpdateRoom> for opentalk_db_storage::rooms::UpdateRoom {
-    fn from(
-        UpdateRoom {
-            password,
-            waiting_room,
-            e2e_encryption,
-        }: UpdateRoom,
-    ) -> Self {
-        Self {
-            password,
-            waiting_room,
-            e2e_encryption,
-        }
-    }
-}

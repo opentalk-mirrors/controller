@@ -24,6 +24,32 @@ pub struct NewEventSharedFolder {
     pub read_password: String,
 }
 
+impl From<opentalk_inventory::NewEventSharedFolder> for NewEventSharedFolder {
+    fn from(
+        opentalk_inventory::NewEventSharedFolder {
+            event_id,
+            path,
+            write_share_id,
+            write_url,
+            write_password,
+            read_share_id,
+            read_url,
+            read_password,
+        }: opentalk_inventory::NewEventSharedFolder,
+    ) -> Self {
+        Self {
+            event_id,
+            path,
+            write_share_id,
+            write_url,
+            write_password,
+            read_share_id,
+            read_url,
+            read_password,
+        }
+    }
+}
+
 impl NewEventSharedFolder {
     /// Tries to insert the EventSharedFolder into the database
     ///
@@ -60,6 +86,66 @@ pub struct EventSharedFolder {
     pub read_share_id: String,
     pub read_url: String,
     pub read_password: String,
+}
+
+impl From<EventSharedFolder> for opentalk_inventory::EventSharedFolder {
+    fn from(
+        EventSharedFolder {
+            event_id,
+            created_at,
+            updated_at,
+            path,
+            write_share_id,
+            write_url,
+            write_password,
+            read_share_id,
+            read_url,
+            read_password,
+        }: EventSharedFolder,
+    ) -> Self {
+        Self {
+            event_id,
+            created_at: created_at.into(),
+            updated_at: updated_at.into(),
+            path,
+            write_share_id,
+            write_url,
+            write_password,
+            read_share_id,
+            read_url,
+            read_password,
+        }
+    }
+}
+
+impl From<opentalk_inventory::EventSharedFolder> for EventSharedFolder {
+    fn from(
+        opentalk_inventory::EventSharedFolder {
+            event_id,
+            created_at,
+            updated_at,
+            path,
+            write_share_id,
+            write_url,
+            write_password,
+            read_share_id,
+            read_url,
+            read_password,
+        }: opentalk_inventory::EventSharedFolder,
+    ) -> Self {
+        Self {
+            event_id,
+            created_at: created_at.into(),
+            updated_at: updated_at.into(),
+            path,
+            write_share_id,
+            write_url,
+            write_password,
+            read_share_id,
+            read_url,
+            read_password,
+        }
+    }
 }
 
 impl EventSharedFolder {

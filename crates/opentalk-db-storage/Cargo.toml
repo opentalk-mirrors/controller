@@ -39,6 +39,7 @@ kustos.workspace = true
 log = { workspace = true, features = ["serde"] }
 opentalk-database.workspace = true
 opentalk-diesel-newtype.workspace = true
+opentalk-inventory.workspace = true
 opentalk-mail-worker-protocol = { workspace = true, features = ["client"] }
 opentalk-types-common = { workspace = true, features = ["backend", "bincode"] }
 opentalk-types-signaling-recording = { workspace = true, features = [

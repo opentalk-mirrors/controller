@@ -4,7 +4,6 @@
 
 use std::collections::BTreeMap;
 
-use opentalk_db_storage::utils::Jsonb;
 use opentalk_types_common::{
     features::ModuleFeatureId, modules::ModuleId, tariffs::QuotaType, time::Timestamp,
 };
@@ -26,44 +25,4 @@ pub struct UpdateTariff {
 
     /// The list of disabled features in the tariff.
     pub disabled_features: Option<Vec<ModuleFeatureId>>,
-}
-
-impl From<opentalk_db_storage::tariffs::UpdateTariff> for UpdateTariff {
-    fn from(
-        opentalk_db_storage::tariffs::UpdateTariff {
-            name,
-            updated_at,
-            quotas,
-            disabled_modules,
-            disabled_features,
-        }: opentalk_db_storage::tariffs::UpdateTariff,
-    ) -> Self {
-        Self {
-            name,
-            updated_at: updated_at.into(),
-            quotas: quotas.map(|q| q.0),
-            disabled_modules,
-            disabled_features,
-        }
-    }
-}
-
-impl From<UpdateTariff> for opentalk_db_storage::tariffs::UpdateTariff {
-    fn from(
-        UpdateTariff {
-            name,
-            updated_at,
-            quotas,
-            disabled_modules,
-            disabled_features,
-        }: UpdateTariff,
-    ) -> Self {
-        Self {
-            name,
-            updated_at: updated_at.into(),
-            quotas: quotas.map(Jsonb),
-            disabled_modules,
-            disabled_features,
-        }
-    }
 }

@@ -40,6 +40,7 @@ pub struct UpdateUser<'a> {
 
     // The tenant_id should never be updated!
     //pub tenant_id: Option<TenantId>,
+    //
     /// Update the tariff id.
     pub tariff_id: Option<TariffId>,
 
@@ -57,44 +58,4 @@ pub struct UpdateUser<'a> {
 
     /// Update the updated_at timestamp.
     pub updated_at: Timestamp,
-}
-
-impl<'a> From<UpdateUser<'a>> for opentalk_db_storage::users::UpdateUser<'a> {
-    fn from(
-        UpdateUser {
-            title,
-            email,
-            firstname,
-            lastname,
-            phone,
-            display_name,
-            language,
-            dashboard_theme,
-            conference_theme,
-            tariff_id,
-            tariff_status,
-            disabled_since,
-            avatar_url,
-            timezone,
-            updated_at,
-        }: UpdateUser<'a>,
-    ) -> opentalk_db_storage::users::UpdateUser<'a> {
-        opentalk_db_storage::users::UpdateUser {
-            title,
-            email,
-            firstname,
-            lastname,
-            phone,
-            display_name,
-            language,
-            dashboard_theme,
-            conference_theme,
-            tariff_id,
-            tariff_status,
-            disabled_since: disabled_since.map(|d| d.map(Into::into)),
-            avatar_url,
-            timezone,
-            updated_at: updated_at.into(),
-        }
-    }
 }

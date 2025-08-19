@@ -103,30 +103,6 @@ impl Tariff {
     }
 }
 
-impl From<opentalk_db_storage::tariffs::Tariff> for Tariff {
-    fn from(
-        opentalk_db_storage::tariffs::Tariff {
-            id,
-            name,
-            created_at,
-            updated_at,
-            quotas,
-            disabled_modules,
-            disabled_features,
-        }: opentalk_db_storage::tariffs::Tariff,
-    ) -> Self {
-        Self {
-            id,
-            name,
-            created_at: created_at.into(),
-            updated_at: updated_at.into(),
-            quotas: quotas.0,
-            disabled_modules,
-            disabled_features,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use pretty_assertions::assert_eq;

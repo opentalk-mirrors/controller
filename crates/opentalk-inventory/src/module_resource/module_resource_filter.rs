@@ -56,7 +56,15 @@ impl ModuleResourceFilter {
     }
 }
 
-impl From<ModuleResourceFilter> for opentalk_db_storage::module_resources::Filter {
+impl From<ModuleResourceFilter>
+    for (
+        Option<ModuleResourceId>,
+        Option<String>,
+        Option<UserId>,
+        Option<String>,
+        Option<serde_json::Value>,
+    )
+{
     fn from(
         ModuleResourceFilter {
             id,
@@ -66,22 +74,6 @@ impl From<ModuleResourceFilter> for opentalk_db_storage::module_resources::Filte
             json,
         }: ModuleResourceFilter,
     ) -> Self {
-        let mut filter = Self::default();
-        if let Some(id) = id {
-            filter = filter.with_id(id);
-        }
-        if let Some(namespace) = namespace {
-            filter = filter.with_namespace(namespace);
-        }
-        if let Some(created_by) = created_by {
-            filter = filter.with_created_by(created_by);
-        }
-        if let Some(tag) = tag {
-            filter = filter.with_tag(tag);
-        }
-        if let Some(json) = json {
-            filter = filter.with_json(json);
-        }
-        filter
+        (id, namespace, created_by, tag, json)
     }
 }

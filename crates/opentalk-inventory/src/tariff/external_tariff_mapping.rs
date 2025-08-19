@@ -15,17 +15,3 @@ pub struct ExternalTariffMapping {
     /// The id of the tariff inside the service to which the external tariff id is mapped..
     pub tariff_id: TariffId,
 }
-
-impl From<opentalk_db_storage::tariffs::ExternalTariff> for ExternalTariffMapping {
-    fn from(
-        opentalk_db_storage::tariffs::ExternalTariff {
-            external_id,
-            tariff_id,
-        }: opentalk_db_storage::tariffs::ExternalTariff,
-    ) -> Self {
-        Self {
-            external_id: external_id.into(),
-            tariff_id,
-        }
-    }
-}

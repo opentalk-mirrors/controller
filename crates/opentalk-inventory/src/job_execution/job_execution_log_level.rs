@@ -37,29 +37,3 @@ pub enum JobExecutionLogLevel {
     /// ERROR log level.
     Error,
 }
-
-impl From<opentalk_db_storage::jobs::LogLevel> for JobExecutionLogLevel {
-    fn from(value: opentalk_db_storage::jobs::LogLevel) -> Self {
-        use opentalk_db_storage::jobs::LogLevel as Other;
-        match value {
-            Other::Trace => Self::Trace,
-            Other::Debug => Self::Debug,
-            Other::Info => Self::Info,
-            Other::Warn => Self::Warn,
-            Other::Error => Self::Error,
-        }
-    }
-}
-
-impl From<JobExecutionLogLevel> for opentalk_db_storage::jobs::LogLevel {
-    fn from(value: JobExecutionLogLevel) -> Self {
-        use JobExecutionLogLevel as Other;
-        match value {
-            Other::Trace => Self::Trace,
-            Other::Debug => Self::Debug,
-            Other::Info => Self::Info,
-            Other::Warn => Self::Warn,
-            Other::Error => Self::Error,
-        }
-    }
-}

@@ -34,6 +34,32 @@ pub struct Asset {
     pub size: i64,
 }
 
+impl From<Asset> for opentalk_inventory::Asset {
+    fn from(
+        Asset {
+            id,
+            created_at,
+            updated_at,
+            namespace,
+            kind,
+            filename,
+            tenant_id,
+            size,
+        }: Asset,
+    ) -> Self {
+        Self {
+            id,
+            created_at: created_at.into(),
+            updated_at: updated_at.into(),
+            namespace,
+            kind,
+            filename,
+            tenant_id,
+            size,
+        }
+    }
+}
+
 impl Asset {
     #[tracing::instrument(err, skip_all)]
     pub async fn get(conn: &mut DbConnection, room_id: RoomId, asset_id: AssetId) -> Result<Self> {
@@ -191,6 +217,28 @@ pub struct NewAsset {
     pub size: i64,
 }
 
+impl From<opentalk_inventory::NewAsset> for NewAsset {
+    fn from(
+        opentalk_inventory::NewAsset {
+            id,
+            namespace,
+            kind,
+            filename,
+            tenant_id,
+            size,
+        }: opentalk_inventory::NewAsset,
+    ) -> Self {
+        Self {
+            id,
+            namespace,
+            kind,
+            filename,
+            tenant_id,
+            size,
+        }
+    }
+}
+
 impl NewAsset {
     #[tracing::instrument(err, skip_all)]
     pub async fn insert_for_room(self, conn: &mut DbConnection, room_id: RoomId) -> Result<Asset> {
@@ -270,5 +318,19 @@ impl UpdateAsset {
         let asset = diesel::update(target).set(self).get_result(conn).await?;
 
         Ok(asset)
+    }
+}
+
+impl From<UpdateAsset> for opentalk_inventory::UpdateAsset {
+    fn from(UpdateAsset { size, filename }: UpdateAsset) -> Self {
+        Self { size, filename }
+    }
+}
+
+impl From<opentalk_inventory::UpdateAsset> for UpdateAsset {
+    fn from(
+        opentalk_inventory::UpdateAsset { size, filename }: opentalk_inventory::UpdateAsset,
+    ) -> Self {
+        Self { size, filename }
     }
 }

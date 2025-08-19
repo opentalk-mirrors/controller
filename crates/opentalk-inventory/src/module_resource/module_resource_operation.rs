@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 /// Possible json patch operations based on [RFC6902](https://www.rfc-editor.org/rfc/rfc6902#section-4)
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "op", rename_all = "snake_case")]
 pub enum ModuleResourceOperation {
     /// Json patch *add* operation.
     Add {
@@ -55,17 +56,4 @@ pub enum ModuleResourceOperation {
         /// The value with which to compare the specified location.
         value: serde_json::Value,
     },
-}
-
-impl From<ModuleResourceOperation> for opentalk_db_storage::module_resources::Operation {
-    fn from(value: ModuleResourceOperation) -> Self {
-        match value {
-            ModuleResourceOperation::Add { path, value } => Self::Add { path, value },
-            ModuleResourceOperation::Remove { path } => Self::Remove { path },
-            ModuleResourceOperation::Replace { path, value } => Self::Replace { path, value },
-            ModuleResourceOperation::Move { from, path } => Self::Move { from, path },
-            ModuleResourceOperation::Copy { from, path } => Self::Copy { from, path },
-            ModuleResourceOperation::Test { path, value } => Self::Test { path, value },
-        }
-    }
 }

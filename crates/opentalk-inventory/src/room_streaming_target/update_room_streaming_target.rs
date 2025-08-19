@@ -22,25 +22,3 @@ pub struct UpdateRoomStreamingTarget {
     /// The public URL where the stream can be watched.
     pub public_url: Option<String>,
 }
-
-impl From<UpdateRoomStreamingTarget>
-    for opentalk_db_storage::streaming_targets::UpdateRoomStreamingTarget
-{
-    fn from(
-        UpdateRoomStreamingTarget {
-            name,
-            kind,
-            streaming_endpoint,
-            streaming_key,
-            public_url,
-        }: UpdateRoomStreamingTarget,
-    ) -> Self {
-        Self {
-            name,
-            kind,
-            streaming_endpoint,
-            streaming_key,
-            public_url,
-        }
-    }
-}

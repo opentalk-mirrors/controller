@@ -34,39 +34,3 @@ impl NewRoomSipConfig {
         }
     }
 }
-
-impl From<opentalk_db_storage::sip_configs::NewSipConfig> for NewRoomSipConfig {
-    fn from(
-        opentalk_db_storage::sip_configs::NewSipConfig {
-            room,
-            sip_id,
-            password,
-            enable_lobby,
-        }: opentalk_db_storage::sip_configs::NewSipConfig,
-    ) -> Self {
-        Self {
-            room,
-            sip_id,
-            password,
-            enable_lobby,
-        }
-    }
-}
-
-impl From<NewRoomSipConfig> for opentalk_db_storage::sip_configs::NewSipConfig {
-    fn from(
-        NewRoomSipConfig {
-            room,
-            sip_id,
-            password,
-            enable_lobby,
-        }: NewRoomSipConfig,
-    ) -> Self {
-        Self {
-            room,
-            sip_id,
-            password,
-            enable_lobby,
-        }
-    }
-}

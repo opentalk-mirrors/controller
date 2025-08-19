@@ -51,7 +51,6 @@ use opentalk_types_common::{
 };
 use rrule::{Frequency, RRuleSet};
 use scoped_futures::ScopedFutureExt as _;
-use serde::Deserialize;
 use snafu::Report;
 
 use crate::{
@@ -1594,16 +1593,6 @@ pub(crate) async fn notify_invitees_about_delete(
             );
         }
     }
-}
-
-/// Currently unused
-#[derive(Debug, Deserialize)]
-pub struct EventRescheduleBody {
-    _from: DateTime<Utc>,
-    _is_all_day: Option<bool>,
-    _starts_at: Option<bool>,
-    _ends_at: Option<bool>,
-    _recurrence_pattern: RecurrencePattern,
 }
 
 async fn get_invitees_for_event(

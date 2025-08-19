@@ -10,21 +10,3 @@ pub struct UpdateEventEmailInvite {
     /// The role of the invited person.
     pub role: Option<EmailInviteRole>,
 }
-
-impl From<opentalk_db_storage::events::email_invites::UpdateEventEmailInvite>
-    for UpdateEventEmailInvite
-{
-    fn from(
-        opentalk_db_storage::events::email_invites::UpdateEventEmailInvite{ role }: opentalk_db_storage::events::email_invites::UpdateEventEmailInvite,
-    ) -> Self {
-        Self { role }
-    }
-}
-
-impl From<UpdateEventEmailInvite>
-    for opentalk_db_storage::events::email_invites::UpdateEventEmailInvite
-{
-    fn from(UpdateEventEmailInvite { role }: UpdateEventEmailInvite) -> Self {
-        Self { role }
-    }
-}

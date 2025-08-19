@@ -11,17 +11,3 @@ pub struct UpdateAsset {
     /// Update the filename of the asset.
     pub filename: Option<String>,
 }
-
-impl From<opentalk_db_storage::assets::UpdateAsset> for UpdateAsset {
-    fn from(
-        opentalk_db_storage::assets::UpdateAsset { size, filename }: opentalk_db_storage::assets::UpdateAsset,
-    ) -> Self {
-        Self { size, filename }
-    }
-}
-
-impl From<UpdateAsset> for opentalk_db_storage::assets::UpdateAsset {
-    fn from(UpdateAsset { size, filename }: UpdateAsset) -> Self {
-        Self { size, filename }
-    }
-}

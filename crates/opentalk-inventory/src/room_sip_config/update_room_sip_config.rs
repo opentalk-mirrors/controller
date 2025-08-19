@@ -13,31 +13,3 @@ pub struct UpdateRoomSipConfig {
     /// A flag indicating whether SIP participants should be sent to the lobby first.
     pub enable_lobby: Option<bool>,
 }
-
-impl From<opentalk_db_storage::sip_configs::UpdateSipConfig> for UpdateRoomSipConfig {
-    fn from(
-        opentalk_db_storage::sip_configs::UpdateSipConfig {
-            password,
-            enable_lobby,
-        }: opentalk_db_storage::sip_configs::UpdateSipConfig,
-    ) -> Self {
-        Self {
-            password,
-            enable_lobby,
-        }
-    }
-}
-
-impl From<UpdateRoomSipConfig> for opentalk_db_storage::sip_configs::UpdateSipConfig {
-    fn from(
-        UpdateRoomSipConfig {
-            password,
-            enable_lobby,
-        }: UpdateRoomSipConfig,
-    ) -> Self {
-        Self {
-            password,
-            enable_lobby,
-        }
-    }
-}

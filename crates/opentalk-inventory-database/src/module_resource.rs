@@ -5,8 +5,7 @@
 use opentalk_db_storage::module_resources::{self as db};
 use opentalk_inventory::{
     ModuleResource, ModuleResourceFilter, ModuleResourceInventory, ModuleResourceOperation,
-    NewModuleResource,
-    error::{JsonOperationSnafu, StorageBackendSnafu},
+    NewModuleResource, error::StorageBackendSnafu,
 };
 use opentalk_types_common::{module_resources::ModuleResourceId, rooms::RoomId, users::UserId};
 use snafu::ResultExt as _;
@@ -57,16 +56,14 @@ impl ModuleResourceInventory for DatabaseConnection {
         resource_filter: ModuleResourceFilter,
         operations: Vec<ModuleResourceOperation>,
     ) -> Result<Vec<ModuleResource>> {
-        Ok(db::ModuleResource::patch(
-            &mut self.inner,
-            resource_filter.into(),
-            operations.into_iter().map(Into::into).collect(),
+        Ok(
+            db::ModuleResource::patch(&mut self.inner, resource_filter.into(), operations)
+                .await
+                .with_whatever_context(|e| format!("Error patching module resource: {e}"))?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
         )
-        .await
-        .context(JsonOperationSnafu)?
-        .into_iter()
-        .map(Into::into)
-        .collect())
     }
 
     #[tracing::instrument(err, skip_all)]

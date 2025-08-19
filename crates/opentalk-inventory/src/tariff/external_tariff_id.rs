@@ -20,15 +20,3 @@
     serde::Deserialize,
 )]
 pub struct ExternalTariffId(String);
-
-impl From<opentalk_db_storage::tariffs::ExternalTariffId> for ExternalTariffId {
-    fn from(value: opentalk_db_storage::tariffs::ExternalTariffId) -> Self {
-        Self(value.into())
-    }
-}
-
-impl From<ExternalTariffId> for opentalk_db_storage::tariffs::ExternalTariffId {
-    fn from(ExternalTariffId(value): ExternalTariffId) -> Self {
-        Self::from(value)
-    }
-}

@@ -61,6 +61,58 @@ pub struct Room {
     pub e2e_encryption: bool,
 }
 
+impl From<Room> for opentalk_inventory::Room {
+    fn from(
+        Room {
+            id,
+            id_serial,
+            created_by,
+            created_at,
+            password,
+            waiting_room,
+            tenant_id,
+            e2e_encryption,
+        }: Room,
+    ) -> Self {
+        Self {
+            id,
+            id_serial: id_serial.into(),
+            created_by,
+            created_at: created_at.into(),
+            password,
+            waiting_room,
+            tenant_id,
+            e2e_encryption,
+        }
+    }
+}
+
+impl From<opentalk_inventory::Room> for Room {
+    fn from(
+        opentalk_inventory::Room {
+            id,
+            id_serial,
+            created_by,
+            created_at,
+            password,
+            waiting_room,
+            tenant_id,
+            e2e_encryption,
+        }: opentalk_inventory::Room,
+    ) -> Self {
+        Self {
+            id,
+            id_serial: id_serial.into(),
+            created_by,
+            created_at: created_at.into(),
+            password,
+            waiting_room,
+            tenant_id,
+            e2e_encryption,
+        }
+    }
+}
+
 impl Room {
     /// Select a room using the given id
     #[tracing::instrument(err, skip_all)]
@@ -183,6 +235,26 @@ pub struct NewRoom {
     pub e2e_encryption: bool,
 }
 
+impl From<opentalk_inventory::NewRoom> for NewRoom {
+    fn from(
+        opentalk_inventory::NewRoom {
+            created_by,
+            password,
+            waiting_room,
+            tenant_id,
+            e2e_encryption,
+        }: opentalk_inventory::NewRoom,
+    ) -> Self {
+        Self {
+            created_by,
+            password,
+            waiting_room,
+            tenant_id,
+            e2e_encryption,
+        }
+    }
+}
+
 impl NewRoom {
     #[tracing::instrument(err, skip_all)]
     pub async fn insert(self, conn: &mut DbConnection) -> Result<Room> {
@@ -201,6 +273,22 @@ pub struct UpdateRoom {
     pub password: Option<Option<RoomPassword>>,
     pub waiting_room: Option<bool>,
     pub e2e_encryption: Option<bool>,
+}
+
+impl From<opentalk_inventory::UpdateRoom> for UpdateRoom {
+    fn from(
+        opentalk_inventory::UpdateRoom {
+            password,
+            waiting_room,
+            e2e_encryption,
+        }: opentalk_inventory::UpdateRoom,
+    ) -> Self {
+        Self {
+            password,
+            waiting_room,
+            e2e_encryption,
+        }
+    }
 }
 
 impl UpdateRoom {

@@ -47,6 +47,18 @@ use crate::{
 #[diesel(sql_type = diesel::sql_types::Text)]
 pub struct ExternalTariffId(String);
 
+impl From<ExternalTariffId> for opentalk_inventory::ExternalTariffId {
+    fn from(ExternalTariffId(value): ExternalTariffId) -> Self {
+        Self::from(value)
+    }
+}
+
+impl From<opentalk_inventory::ExternalTariffId> for ExternalTariffId {
+    fn from(value: opentalk_inventory::ExternalTariffId) -> Self {
+        Self(value.into())
+    }
+}
+
 #[derive(
     Debug,
     Clone,
@@ -69,6 +81,30 @@ pub struct Tariff {
     pub quotas: Jsonb<BTreeMap<QuotaType, u64>>,
     pub disabled_modules: Vec<Option<ModuleId>>,
     pub disabled_features: Vec<Option<ModuleFeatureId>>,
+}
+
+impl From<Tariff> for opentalk_inventory::Tariff {
+    fn from(
+        Tariff {
+            id,
+            name,
+            created_at,
+            updated_at,
+            quotas,
+            disabled_modules,
+            disabled_features,
+        }: Tariff,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            created_at: created_at.into(),
+            updated_at: updated_at.into(),
+            quotas: quotas.0,
+            disabled_modules,
+            disabled_features,
+        }
+    }
 }
 
 impl Tariff {
@@ -145,6 +181,24 @@ impl NewTariff {
     }
 }
 
+impl From<opentalk_inventory::NewTariff> for NewTariff {
+    fn from(
+        opentalk_inventory::NewTariff {
+            name,
+            quotas,
+            disabled_modules,
+            disabled_features,
+        }: opentalk_inventory::NewTariff,
+    ) -> Self {
+        Self {
+            name,
+            quotas: Jsonb(quotas),
+            disabled_modules: Vec::from_iter(disabled_modules),
+            disabled_features: Vec::from_iter(disabled_features),
+        }
+    }
+}
+
 #[derive(Debug, Clone, AsChangeset)]
 #[diesel(table_name = tariffs)]
 pub struct UpdateTariff {
@@ -153,6 +207,26 @@ pub struct UpdateTariff {
     pub quotas: Option<Jsonb<BTreeMap<QuotaType, u64>>>,
     pub disabled_modules: Option<Vec<ModuleId>>,
     pub disabled_features: Option<Vec<ModuleFeatureId>>,
+}
+
+impl From<opentalk_inventory::UpdateTariff> for UpdateTariff {
+    fn from(
+        opentalk_inventory::UpdateTariff {
+            name,
+            updated_at,
+            quotas,
+            disabled_modules,
+            disabled_features,
+        }: opentalk_inventory::UpdateTariff,
+    ) -> Self {
+        Self {
+            name,
+            updated_at: updated_at.into(),
+            quotas: quotas.map(Jsonb),
+            disabled_modules,
+            disabled_features,
+        }
+    }
 }
 
 impl UpdateTariff {
@@ -168,6 +242,20 @@ impl UpdateTariff {
 pub struct ExternalTariff {
     pub external_id: ExternalTariffId,
     pub tariff_id: TariffId,
+}
+
+impl From<ExternalTariff> for opentalk_inventory::ExternalTariffMapping {
+    fn from(
+        ExternalTariff {
+            external_id,
+            tariff_id,
+        }: ExternalTariff,
+    ) -> Self {
+        Self {
+            external_id: external_id.into(),
+            tariff_id,
+        }
+    }
 }
 
 impl ExternalTariff {
