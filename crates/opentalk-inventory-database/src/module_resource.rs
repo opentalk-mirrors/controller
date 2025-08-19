@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::module_resources::{Filter, ModuleResource, NewModuleResource, Operation};
+use opentalk_db_storage::module_resources::{self as db, Filter, NewModuleResource, Operation};
 use opentalk_inventory::{
-    ModuleResourceInventory,
+    ModuleResource, ModuleResourceInventory,
     error::{JsonOperationSnafu, StorageBackendSnafu},
 };
 use opentalk_types_common::{module_resources::ModuleResourceId, rooms::RoomId, users::UserId};
@@ -19,10 +19,11 @@ impl ModuleResourceInventory for DatabaseConnection {
         &mut self,
         resource: NewModuleResource,
     ) -> Result<ModuleResource> {
-        resource
+        Ok(resource
             .insert(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into())
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -30,16 +31,19 @@ impl ModuleResourceInventory for DatabaseConnection {
         &mut self,
         resource_filter: Filter,
     ) -> Result<Vec<ModuleResource>> {
-        ModuleResource::get(&mut self.inner, resource_filter)
+        Ok(db::ModuleResource::get(&mut self.inner, resource_filter)
             .await
-            .context(StorageBackendSnafu)
+            .context(StorageBackendSnafu)?
+            .into_iter()
+            .map(Into::into)
+            .collect())
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_all_module_resources(
         &mut self,
     ) -> Result<Vec<(ModuleResourceId, UserId, UserId)>> {
-        ModuleResource::get_all_with_creator_and_owner(&mut self.inner)
+        db::ModuleResource::get_all_with_creator_and_owner(&mut self.inner)
             .await
             .context(StorageBackendSnafu)
     }
@@ -50,9 +54,14 @@ impl ModuleResourceInventory for DatabaseConnection {
         resource_filter: Filter,
         operations: Vec<Operation>,
     ) -> Result<Vec<ModuleResource>> {
-        ModuleResource::patch(&mut self.inner, resource_filter, operations)
-            .await
-            .context(JsonOperationSnafu)
+        Ok(
+            db::ModuleResource::patch(&mut self.inner, resource_filter, operations)
+                .await
+                .context(JsonOperationSnafu)?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -60,14 +69,14 @@ impl ModuleResourceInventory for DatabaseConnection {
         &mut self,
         room_id: RoomId,
     ) -> Result<Vec<ModuleResourceId>> {
-        ModuleResource::get_all_ids_for_room(&mut self.inner, room_id)
+        db::ModuleResource::get_all_ids_for_room(&mut self.inner, room_id)
             .await
             .context(StorageBackendSnafu)
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn delete_all_module_resources_for_room(&mut self, room_id: RoomId) -> Result<()> {
-        ModuleResource::delete_by_room(&mut self.inner, room_id)
+        db::ModuleResource::delete_by_room(&mut self.inner, room_id)
             .await
             .context(StorageBackendSnafu)
     }

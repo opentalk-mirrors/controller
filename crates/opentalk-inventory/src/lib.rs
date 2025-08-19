@@ -72,7 +72,7 @@ pub use job_execution::{
     Job, JobExecution, JobExecutionId, JobExecutionInventory, JobExecutionLogLevel, JobId,
     JobStatus, JobType, NewJobExecution, NewJobExecutionLog, UpdateJobExecution,
 };
-pub use module_resource::ModuleResourceInventory;
+pub use module_resource::{ModuleResource, ModuleResourceInventory};
 pub use room::{NewRoom, Room, RoomInventory, UpdateRoom};
 pub use room_invite::{
     NewRoomInvite, RoomInvite, RoomInviteInventory, RoomInviteWithUsers, UpdateRoomInvite,

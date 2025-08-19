@@ -2,9 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::module_resources::{Filter, ModuleResource, NewModuleResource, Operation};
+use opentalk_db_storage::module_resources::{Filter, NewModuleResource, Operation};
 use opentalk_types_common::{module_resources::ModuleResourceId, rooms::RoomId, users::UserId};
 
+use super::ModuleResource;
 use crate::Result;
 
 /// A trait for retrieving and storing module resource entities.
