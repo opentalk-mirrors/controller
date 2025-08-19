@@ -2,9 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::module_resources::{self as db, NewModuleResource};
+use opentalk_db_storage::module_resources::{self as db};
 use opentalk_inventory::{
     ModuleResource, ModuleResourceFilter, ModuleResourceInventory, ModuleResourceOperation,
+    NewModuleResource,
     error::{JsonOperationSnafu, StorageBackendSnafu},
 };
 use opentalk_types_common::{module_resources::ModuleResourceId, rooms::RoomId, users::UserId};
@@ -19,7 +20,7 @@ impl ModuleResourceInventory for DatabaseConnection {
         &mut self,
         resource: NewModuleResource,
     ) -> Result<ModuleResource> {
-        Ok(resource
+        Ok(db::NewModuleResource::from(resource)
             .insert(&mut self.inner)
             .await
             .context(StorageBackendSnafu)?

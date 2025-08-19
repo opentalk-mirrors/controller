@@ -21,8 +21,9 @@ use either::Either;
 use error::LegalVoteError;
 use futures::{FutureExt, stream::once};
 use kustos::{Authz, Resource, prelude::AccessMethod};
-use opentalk_db_storage::module_resources::NewModuleResource;
-use opentalk_inventory::{InventoryProvider, ModuleResourceFilter, ModuleResourceOperation};
+use opentalk_inventory::{
+    InventoryProvider, ModuleResourceFilter, ModuleResourceOperation, NewModuleResource,
+};
 use opentalk_signaling_core::{
     ChunkFormat, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage, Participant,
     SerdeJsonSnafu, SignalingModule, SignalingModuleError, SignalingModuleInitData,

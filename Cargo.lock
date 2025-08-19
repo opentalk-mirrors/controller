@@ -6746,7 +6746,6 @@ dependencies = [
  "insta",
  "kustos",
  "log",
- "opentalk-db-storage",
  "opentalk-inventory",
  "opentalk-report-generation",
  "opentalk-signaling-core",

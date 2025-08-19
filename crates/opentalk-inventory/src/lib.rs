@@ -74,6 +74,7 @@ pub use job_execution::{
 };
 pub use module_resource::{
     ModuleResource, ModuleResourceFilter, ModuleResourceInventory, ModuleResourceOperation,
+    NewModuleResource,
 };
 pub use room::{NewRoom, Room, RoomInventory, UpdateRoom};
 pub use room_invite::{
