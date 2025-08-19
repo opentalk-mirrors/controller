@@ -3,14 +3,14 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_db_storage::groups::get_or_create_groups_by_name;
-use opentalk_inventory::{Group, GroupInventory, error::StorageBackendSnafu};
+use opentalk_inventory::{Group, GroupInventory};
 use opentalk_types_common::{
     tenants::TenantId,
     users::{GroupName, UserId},
 };
 use snafu::ResultExt as _;
 
-use crate::{DatabaseConnection, Result};
+use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl GroupInventory for DatabaseConnection {
@@ -21,7 +21,7 @@ impl GroupInventory for DatabaseConnection {
     ) -> Result<Vec<Group>> {
         Ok(get_or_create_groups_by_name(&mut self.inner, groups)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into_iter()
             .map(Into::into)
             .collect())
@@ -32,7 +32,7 @@ impl GroupInventory for DatabaseConnection {
         Ok(
             opentalk_db_storage::groups::Group::get_all_for_user(&mut self.inner, user_id)
                 .await
-                .context(StorageBackendSnafu)?
+                .context(DatabaseSnafu)?
                 .into_iter()
                 .map(Into::into)
                 .collect(),

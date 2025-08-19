@@ -4,9 +4,7 @@
 
 use opentalk_database::DatabaseError;
 use opentalk_db_storage::assets as db;
-use opentalk_inventory::{
-    Asset, AssetInventory, NewAsset, UpdateAsset, error::StorageBackendSnafu,
-};
+use opentalk_inventory::{Asset, AssetInventory, NewAsset, UpdateAsset};
 use opentalk_types_common::{
     assets::{AssetId, AssetSorting},
     events::EventId,
@@ -16,7 +14,7 @@ use opentalk_types_common::{
 };
 use snafu::ResultExt as _;
 
-use crate::{DatabaseConnection, Result};
+use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl AssetInventory for DatabaseConnection {
@@ -25,30 +23,30 @@ impl AssetInventory for DatabaseConnection {
         Ok(db::NewAsset::from(asset)
             .insert_for_room(&mut self.inner, room_id)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into())
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn delete_asset_from_room(&mut self, room_id: RoomId, asset_id: AssetId) -> Result<()> {
-        db::Asset::delete_by_id(&mut self.inner, room_id, asset_id)
+        Ok(db::Asset::delete_by_id(&mut self.inner, room_id, asset_id)
             .await
-            .context(StorageBackendSnafu)
+            .context(DatabaseSnafu)?)
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_asset_for_room(&mut self, room_id: RoomId, asset_id: AssetId) -> Result<Asset> {
         Ok(db::Asset::get(&mut self.inner, room_id, asset_id)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into())
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_all_assets_with_size(&mut self) -> Result<Vec<(AssetId, i64)>> {
-        db::Asset::get_all_ids_and_size(&mut self.inner)
+        Ok(db::Asset::get_all_ids_and_size(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)
+            .context(DatabaseSnafu)?)
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -61,15 +59,15 @@ impl AssetInventory for DatabaseConnection {
         let (assets, overall) =
             db::Asset::get_all_for_room_paginated(&mut self.inner, room_id, per_page, page)
                 .await
-                .context(StorageBackendSnafu)?;
+                .context(DatabaseSnafu)?;
         Ok((assets.into_iter().map(Into::into).collect(), overall))
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_all_asset_ids_for_room(&mut self, room_id: RoomId) -> Result<Vec<AssetId>> {
-        db::Asset::get_all_ids_for_room(&mut self.inner, room_id)
+        Ok(db::Asset::get_all_ids_for_room(&mut self.inner, room_id)
             .await
-            .context(StorageBackendSnafu)
+            .context(DatabaseSnafu)?)
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -90,7 +88,7 @@ impl AssetInventory for DatabaseConnection {
             order,
         )
         .await
-        .context(StorageBackendSnafu)?;
+        .context(DatabaseSnafu)?;
         Ok((
             items
                 .into_iter()
@@ -112,21 +110,21 @@ impl AssetInventory for DatabaseConnection {
         {
             Ok(asset) => Ok(Some(asset.into())),
             Err(DatabaseError::NotFound) => Ok(None),
-            Err(e) => Err(e).context(StorageBackendSnafu),
+            Err(e) => Err(e).context(DatabaseSnafu)?,
         }
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn delete_asset_by_id_internal(&mut self, asset_id: AssetId) -> Result<()> {
-        db::Asset::internal_delete_by_id(&mut self.inner, &asset_id)
+        Ok(db::Asset::internal_delete_by_id(&mut self.inner, &asset_id)
             .await
-            .context(StorageBackendSnafu)
+            .context(DatabaseSnafu)?)
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn delete_assets_by_ids(&mut self, asset_ids: &[AssetId]) -> Result<()> {
-        db::Asset::delete_by_ids(&mut self.inner, asset_ids)
+        Ok(db::Asset::delete_by_ids(&mut self.inner, asset_ids)
             .await
-            .context(StorageBackendSnafu)
+            .context(DatabaseSnafu)?)
     }
 }

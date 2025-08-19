@@ -27,7 +27,6 @@ derive_more = { workspace = true, features = [
   "from_str",
   "into",
 ] }
-opentalk-database.workspace = true
 opentalk-types-common.workspace = true
 scoped-futures.workspace = true
 serde = { workspace = true, features = ["derive"] }

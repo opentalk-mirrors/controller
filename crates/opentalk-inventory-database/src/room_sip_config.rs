@@ -6,12 +6,11 @@ use opentalk_database::DatabaseError;
 use opentalk_db_storage::sip_configs as db;
 use opentalk_inventory::{
     NewRoomSipConfig, Room, RoomSipConfig, RoomSipConfigInventory, UpdateRoomSipConfig,
-    error::StorageBackendSnafu,
 };
 use opentalk_types_common::{call_in::CallInId, rooms::RoomId};
 use snafu::ResultExt as _;
 
-use crate::{DatabaseConnection, Result};
+use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl RoomSipConfigInventory for DatabaseConnection {
@@ -20,7 +19,7 @@ impl RoomSipConfigInventory for DatabaseConnection {
         match db::SipConfig::get_by_room(&mut self.inner, room_id).await {
             Ok(sip_config) => Ok(Some(sip_config.into())),
             Err(DatabaseError::NotFound) => Ok(None),
-            Err(e) => Err(e).context(StorageBackendSnafu),
+            Err(e) => Err(e).context(DatabaseSnafu)?,
         }
     }
 
@@ -31,7 +30,7 @@ impl RoomSipConfigInventory for DatabaseConnection {
     ) -> Result<Option<(RoomSipConfig, Room)>> {
         Ok(db::SipConfig::get_with_room(&mut self.inner, &call_in_id)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .map(|(sip_config, room)| (sip_config.into(), room.into())))
     }
 
@@ -43,7 +42,7 @@ impl RoomSipConfigInventory for DatabaseConnection {
         Ok(db::NewSipConfig::from(sip_config)
             .insert(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into())
     }
 
@@ -56,14 +55,14 @@ impl RoomSipConfigInventory for DatabaseConnection {
         Ok(db::UpdateSipConfig::from(sip_config)
             .apply(&mut self.inner, room_id)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .map(Into::into))
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn delete_room_sip_config(&mut self, room_id: RoomId) -> Result<()> {
-        db::SipConfig::delete_by_room(&mut self.inner, room_id)
+        Ok(db::SipConfig::delete_by_room(&mut self.inner, room_id)
             .await
-            .context(StorageBackendSnafu)
+            .context(DatabaseSnafu)?)
     }
 }

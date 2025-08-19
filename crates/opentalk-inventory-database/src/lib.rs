@@ -23,6 +23,7 @@
 mod asset;
 mod database_connection;
 mod database_connection_pool;
+mod error;
 mod event;
 mod event_invite;
 mod event_shared_folder;

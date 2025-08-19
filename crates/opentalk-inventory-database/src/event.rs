@@ -9,7 +9,6 @@ use opentalk_inventory::{
     Event, EventException, EventExceptionId, EventInventory, EventInvite, EventSharedFolder,
     EventTrainingParticipationReportParameterSet, GetEventsCursor, NewEvent, NewEventException,
     Room, RoomSipConfig, Tariff, UpdateEvent, UpdateEventException, User,
-    error::StorageBackendSnafu,
 };
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
@@ -20,7 +19,7 @@ use opentalk_types_common::{
 };
 use snafu::ResultExt as _;
 
-use crate::{DatabaseConnection, Result};
+use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl EventInventory for DatabaseConnection {
@@ -29,7 +28,7 @@ impl EventInventory for DatabaseConnection {
         Ok(db::NewEvent::from(new_event)
             .insert(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into())
     }
 
@@ -38,7 +37,7 @@ impl EventInventory for DatabaseConnection {
         Ok(db::UpdateEvent::from(event)
             .apply(&mut self.inner, event_id)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into())
     }
 
@@ -46,7 +45,7 @@ impl EventInventory for DatabaseConnection {
     async fn get_event(&mut self, event_id: EventId) -> Result<Event> {
         Ok(db::Event::get(&mut self.inner, event_id)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into())
     }
 
@@ -54,7 +53,7 @@ impl EventInventory for DatabaseConnection {
     async fn get_event_for_room(&mut self, room_id: RoomId) -> Result<Option<Event>> {
         Ok(db::Event::get_for_room(&mut self.inner, room_id)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .map(Into::into))
     }
 
@@ -62,7 +61,7 @@ impl EventInventory for DatabaseConnection {
     async fn get_event_id_for_room(&mut self, room_id: RoomId) -> Result<Option<EventId>> {
         Ok(db::Event::get_id_for_room(&mut self.inner, room_id)
             .await
-            .context(StorageBackendSnafu)?)
+            .context(DatabaseSnafu)?)
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -72,7 +71,7 @@ impl EventInventory for DatabaseConnection {
     ) -> Result<(Event, Room, Option<RoomSipConfig>)> {
         let (event, room, sip_config) = db::Event::get_with_room(&mut self.inner, event_id)
             .await
-            .context(StorageBackendSnafu)?;
+            .context(DatabaseSnafu)?;
         Ok((event.into(), room.into(), sip_config.map(Into::into)))
     }
 
@@ -102,7 +101,7 @@ impl EventInventory for DatabaseConnection {
             training_participation_report_parameter_set,
         ) = db::Event::get_with_related_items(&mut self.inner, user_id, event_id)
             .await
-            .context(StorageBackendSnafu)?;
+            .context(DatabaseSnafu)?;
         Ok((
             event.into(),
             invite.map(Into::into),
@@ -119,7 +118,7 @@ impl EventInventory for DatabaseConnection {
     async fn get_all_events_updated_by_user(&mut self, user_id: UserId) -> Result<Vec<Event>> {
         Ok(db::Event::get_all_updated_by_user(&mut self.inner, user_id)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into_iter()
             .map(Into::into)
             .collect())
@@ -130,12 +129,12 @@ impl EventInventory for DatabaseConnection {
         &mut self,
         created_before: Timestamp,
     ) -> Result<Vec<(EventId, RoomId)>> {
-        db::Event::get_all_adhoc_created_before_including_rooms(
+        Ok(db::Event::get_all_adhoc_created_before_including_rooms(
             &mut self.inner,
             created_before.into(),
         )
         .await
-        .context(StorageBackendSnafu)
+        .context(DatabaseSnafu)?)
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -143,9 +142,12 @@ impl EventInventory for DatabaseConnection {
         &mut self,
         ended_before: Timestamp,
     ) -> Result<Vec<(EventId, RoomId)>> {
-        db::Event::get_all_that_ended_before_including_rooms(&mut self.inner, ended_before.into())
-            .await
-            .context(StorageBackendSnafu)
+        Ok(db::Event::get_all_that_ended_before_including_rooms(
+            &mut self.inner,
+            ended_before.into(),
+        )
+        .await
+        .context(DatabaseSnafu)?)
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -153,16 +155,18 @@ impl EventInventory for DatabaseConnection {
         &mut self,
         user_id: UserId,
     ) -> Result<Vec<(EventId, RoomId)>> {
-        db::Event::get_all_for_creator_including_rooms(&mut self.inner, user_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::Event::get_all_for_creator_including_rooms(&mut self.inner, user_id)
+                .await
+                .context(DatabaseSnafu)?,
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_all_finite_recurring_events(&mut self) -> Result<Vec<Event>> {
         Ok(db::Event::get_all_finite_recurring(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into_iter()
             .map(Into::into)
             .collect())
@@ -210,7 +214,7 @@ impl EventInventory for DatabaseConnection {
             limit,
         )
         .await
-        .context(StorageBackendSnafu)?;
+        .context(DatabaseSnafu)?;
         Ok(items
             .into_iter()
             .map(
@@ -244,18 +248,18 @@ impl EventInventory for DatabaseConnection {
 
     #[tracing::instrument(err, skip_all)]
     async fn get_all_event_ids_with_creator_id(&mut self) -> Result<Vec<(EventId, UserId)>> {
-        db::Event::get_all_with_creator(&mut self.inner)
+        Ok(db::Event::get_all_with_creator(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)
+            .context(DatabaseSnafu)?)
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_all_event_ids_with_room_ids_and_invitee_ids(
         &mut self,
     ) -> Result<Vec<(EventId, RoomId, UserId)>> {
-        db::Event::get_all_with_invitee(&mut self.inner)
+        Ok(db::Event::get_all_with_invitee(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)
+            .context(DatabaseSnafu)?)
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -266,7 +270,7 @@ impl EventInventory for DatabaseConnection {
         Ok(db::NewEventException::from(event_exception)
             .insert(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into())
     }
 
@@ -280,7 +284,7 @@ impl EventInventory for DatabaseConnection {
         Ok(
             db::EventException::get_all_for_event(&mut self.inner, event_id, &timestamps)
                 .await
-                .context(StorageBackendSnafu)?
+                .context(DatabaseSnafu)?
                 .into_iter()
                 .map(Into::into)
                 .collect(),
@@ -299,7 +303,7 @@ impl EventInventory for DatabaseConnection {
             instance_id_timestamp.into(),
         )
         .await
-        .context(StorageBackendSnafu)?
+        .context(DatabaseSnafu)?
         .map(Into::into))
     }
 
@@ -312,22 +316,24 @@ impl EventInventory for DatabaseConnection {
         Ok(db::UpdateEventException::from(event_exception)
             .apply(&mut self.inner, event_exception_id.into())
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into())
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn delete_event_exceptions_for_event(&mut self, event_id: EventId) -> Result<()> {
-        db::EventException::delete_all_for_event(&mut self.inner, event_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::EventException::delete_all_for_event(&mut self.inner, event_id)
+                .await
+                .context(DatabaseSnafu)?,
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn delete_event_for_room(&mut self, room_id: RoomId) -> Result<()> {
-        db::Event::delete_for_room(&mut self.inner, room_id)
+        Ok(db::Event::delete_for_room(&mut self.inner, room_id)
             .await
-            .context(StorageBackendSnafu)
+            .context(DatabaseSnafu)?)
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -336,11 +342,11 @@ impl EventInventory for DatabaseConnection {
         event_id: EventId,
         user_id: UserId,
     ) -> Result<bool> {
-        NewEventFavorite { event_id, user_id }
+        Ok(NewEventFavorite { event_id, user_id }
             .try_insert(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)
-            .map(|v| v.is_some())
+            .context(DatabaseSnafu)?
+            .is_some())
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -349,8 +355,10 @@ impl EventInventory for DatabaseConnection {
         event_id: EventId,
         user_id: UserId,
     ) -> Result<bool> {
-        EventFavorite::delete_by_id(&mut self.inner, user_id, event_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            EventFavorite::delete_by_id(&mut self.inner, user_id, event_id)
+                .await
+                .context(DatabaseSnafu)?,
+        )
     }
 }

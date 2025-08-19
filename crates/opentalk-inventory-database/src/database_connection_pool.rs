@@ -5,10 +5,10 @@
 use std::sync::Arc;
 
 use opentalk_database::Db;
-use opentalk_inventory::{Inventory, InventoryProvider, error::StorageBackendSnafu};
+use opentalk_inventory::{Inventory, InventoryProvider};
 use snafu::ResultExt as _;
 
-use crate::{DatabaseConnection, Result};
+use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 /// The database connection pool.
 #[derive(Debug)]
@@ -33,7 +33,7 @@ impl DatabaseConnectionPool {
 
     /// Get a connection from the database pool.
     pub async fn get_connection(&self) -> Result<DatabaseConnection> {
-        let inner = self.db.get_conn().await.context(StorageBackendSnafu)?;
+        let inner = self.db.get_conn().await.context(DatabaseSnafu)?;
         Ok(DatabaseConnection { inner })
     }
 }

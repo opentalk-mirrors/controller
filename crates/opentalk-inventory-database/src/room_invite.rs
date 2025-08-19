@@ -6,7 +6,6 @@ use chrono::Utc;
 use opentalk_db_storage::invites::{self as db};
 use opentalk_inventory::{
     NewRoomInvite, RoomInvite, RoomInviteInventory, RoomInviteWithUsers, UpdateRoomInvite,
-    error::StorageBackendSnafu,
 };
 use opentalk_types_common::{
     rooms::{RoomId, invite_codes::InviteCode},
@@ -15,7 +14,7 @@ use opentalk_types_common::{
 };
 use snafu::ResultExt as _;
 
-use crate::{DatabaseConnection, Result};
+use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl RoomInviteInventory for DatabaseConnection {
@@ -24,7 +23,7 @@ impl RoomInviteInventory for DatabaseConnection {
         Ok(db::NewInvite::from(invite)
             .insert(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into())
     }
 
@@ -32,14 +31,14 @@ impl RoomInviteInventory for DatabaseConnection {
     async fn get_room_invite(&mut self, invite_code: InviteCode) -> Result<RoomInvite> {
         Ok(db::Invite::get(&mut self.inner, invite_code)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into())
     }
 
     async fn get_all_room_invites(&mut self) -> Result<Vec<RoomInvite>> {
         Ok(db::Invite::get_all(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into_iter()
             .map(Into::into)
             .collect())
@@ -50,7 +49,7 @@ impl RoomInviteInventory for DatabaseConnection {
         Ok(
             db::Invite::get_valid_for_room(&mut self.inner, room_id, Utc::now())
                 .await
-                .context(StorageBackendSnafu)?
+                .context(DatabaseSnafu)?
                 .map(Into::into),
         )
     }
@@ -64,7 +63,7 @@ impl RoomInviteInventory for DatabaseConnection {
         Ok(
             db::Invite::get_valid_or_create_for_room(&mut self.inner, room_id, user_id)
                 .await
-                .context(StorageBackendSnafu)?
+                .context(DatabaseSnafu)?
                 .into(),
         )
     }
@@ -73,7 +72,7 @@ impl RoomInviteInventory for DatabaseConnection {
     async fn get_room_invites_updated_by(&mut self, user_id: UserId) -> Result<Vec<RoomInvite>> {
         Ok(db::Invite::get_updated_by(&mut self.inner, user_id)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into_iter()
             .map(Into::into)
             .collect())
@@ -93,7 +92,7 @@ impl RoomInviteInventory for DatabaseConnection {
             page,
         )
         .await
-        .context(StorageBackendSnafu)?;
+        .context(DatabaseSnafu)?;
         Ok((
             invites
                 .into_iter()
@@ -113,7 +112,7 @@ impl RoomInviteInventory for DatabaseConnection {
         let (invite, created_by, updated_by) =
             db::Invite::get_with_users(&mut self.inner, invite_code)
                 .await
-                .context(StorageBackendSnafu)?;
+                .context(DatabaseSnafu)?;
         Ok(RoomInviteWithUsers::new(
             invite.into(),
             created_by.into(),
@@ -131,7 +130,7 @@ impl RoomInviteInventory for DatabaseConnection {
         Ok(db::UpdateInvite::from(invite)
             .apply(&mut self.inner, room_id, invite_code)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into())
     }
 
@@ -140,8 +139,10 @@ impl RoomInviteInventory for DatabaseConnection {
         &mut self,
         expired_before: Timestamp,
     ) -> Result<Vec<(InviteCode, RoomId)>> {
-        db::Invite::get_inactive_or_expired_before(&mut self.inner, expired_before.into())
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::Invite::get_inactive_or_expired_before(&mut self.inner, expired_before.into())
+                .await
+                .context(DatabaseSnafu)?,
+        )
     }
 }

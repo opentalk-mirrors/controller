@@ -6228,7 +6228,6 @@ dependencies = [
  "chrono-tz",
  "clap",
  "derive_more 2.0.1",
- "opentalk-database",
  "opentalk-types-common",
  "pretty_assertions",
  "scoped-futures",

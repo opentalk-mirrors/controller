@@ -50,7 +50,7 @@ mod user;
 pub mod utils;
 
 pub use asset::{Asset, AssetInventory, NewAsset, UpdateAsset};
-pub use error::Error;
+pub use error::{Error, InventoryBackendError};
 pub use event::{
     Event, EventException, EventExceptionId, EventExceptionKind, EventInventory, GetEventsCursor,
     NewEvent, NewEventException, UpdateEvent, UpdateEventException,

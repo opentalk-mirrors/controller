@@ -5,25 +5,25 @@
 use opentalk_db_storage::jobs::{self as db};
 use opentalk_inventory::{
     Job, JobExecution, JobExecutionId, JobExecutionInventory, JobId, NewJobExecution,
-    NewJobExecutionLog, UpdateJobExecution, error::StorageBackendSnafu,
+    NewJobExecutionLog, UpdateJobExecution,
 };
 use snafu::ResultExt as _;
 
-use crate::{DatabaseConnection, Result};
+use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl JobExecutionInventory for DatabaseConnection {
     async fn get_job(&mut self, job_id: JobId) -> Result<Job> {
         Ok(db::Job::get(&mut self.inner, job_id.into())
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into())
     }
 
     async fn get_all_jobs(&mut self) -> Result<Vec<Job>> {
         Ok(db::Job::get_all(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into_iter()
             .map(Into::into)
             .collect())
@@ -37,7 +37,7 @@ impl JobExecutionInventory for DatabaseConnection {
         Ok(db::UpdateJobExecution::from(job_execution)
             .apply(&mut self.inner, job_execution_id.into())
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into())
     }
 
@@ -48,7 +48,7 @@ impl JobExecutionInventory for DatabaseConnection {
         Ok(db::NewJobExecution::from(job_execution)
             .insert(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .into())
     }
 
@@ -64,8 +64,10 @@ impl JobExecutionInventory for DatabaseConnection {
             .cloned()
             .map(db::NewJobExecutionLog::from)
             .collect();
-        db::NewJobExecutionLog::insert_batch(&mut self.inner, &job_execution_logs)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::NewJobExecutionLog::insert_batch(&mut self.inner, &job_execution_logs)
+                .await
+                .context(DatabaseSnafu)?,
+        )
     }
 }

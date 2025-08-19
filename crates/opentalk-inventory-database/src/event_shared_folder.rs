@@ -3,13 +3,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_db_storage::events::shared_folders::{self as db};
-use opentalk_inventory::{
-    EventSharedFolder, EventSharedFolderInventory, NewEventSharedFolder, error::StorageBackendSnafu,
-};
+use opentalk_inventory::{EventSharedFolder, EventSharedFolderInventory, NewEventSharedFolder};
 use opentalk_types_common::{events::EventId, rooms::RoomId};
 use snafu::ResultExt as _;
 
-use crate::{DatabaseConnection, Result};
+use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl EventSharedFolderInventory for DatabaseConnection {
@@ -21,7 +19,7 @@ impl EventSharedFolderInventory for DatabaseConnection {
         Ok(db::NewEventSharedFolder::from(new_shared_folder)
             .try_insert(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)?
+            .context(DatabaseSnafu)?
             .map(Into::into))
     }
 
@@ -33,7 +31,7 @@ impl EventSharedFolderInventory for DatabaseConnection {
         Ok(
             db::EventSharedFolder::get_for_event(&mut self.inner, event_id)
                 .await
-                .context(StorageBackendSnafu)?
+                .context(DatabaseSnafu)?
                 .map(Into::into),
         )
     }
@@ -46,7 +44,7 @@ impl EventSharedFolderInventory for DatabaseConnection {
         Ok(
             db::EventSharedFolder::get_all_for_room(&mut self.inner, room_id)
                 .await
-                .context(StorageBackendSnafu)?
+                .context(DatabaseSnafu)?
                 .into_iter()
                 .map(Into::into)
                 .collect(),
@@ -55,15 +53,19 @@ impl EventSharedFolderInventory for DatabaseConnection {
 
     #[tracing::instrument(err, skip_all)]
     async fn delete_shared_folder_by_event_id(&mut self, event_id: EventId) -> Result<()> {
-        db::EventSharedFolder::delete_by_event_id(&mut self.inner, event_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::EventSharedFolder::delete_by_event_id(&mut self.inner, event_id)
+                .await
+                .context(DatabaseSnafu)?,
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn delete_shared_folders_by_event_ids(&mut self, event_ids: &[EventId]) -> Result<()> {
-        db::EventSharedFolder::delete_by_event_ids(&mut self.inner, event_ids)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::EventSharedFolder::delete_by_event_ids(&mut self.inner, event_ids)
+                .await
+                .context(DatabaseSnafu)?,
+        )
     }
 }
