@@ -7,7 +7,6 @@ use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_utils::{
     CaptureApiError, TariffResourceExt, deletion::room::associated_resource_ids_for_invite,
 };
-use opentalk_db_storage::invites::Invite;
 use opentalk_inventory::{NewRoomInvite, RoomInvite, RoomInviteWithUsers, UpdateRoomInvite};
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -254,25 +253,6 @@ trait IntoInviteResource {
         created_by: PublicUserProfile,
         updated_by: PublicUserProfile,
     ) -> InviteResource;
-}
-
-impl IntoInviteResource for Invite {
-    fn into_invite_resource(
-        self,
-        created_by: PublicUserProfile,
-        updated_by: PublicUserProfile,
-    ) -> InviteResource {
-        InviteResource {
-            invite_code: self.id,
-            created: self.created_at,
-            created_by,
-            updated: self.updated_at,
-            updated_by,
-            room_id: self.room,
-            active: self.active,
-            expiration: self.expiration,
-        }
-    }
 }
 
 impl IntoInviteResource for RoomInvite {
