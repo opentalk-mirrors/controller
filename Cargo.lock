@@ -5054,13 +5054,12 @@ version = "0.31.0"
 dependencies = [
  "actix-web",
  "async-trait",
- "barrel",
  "casbin",
- "diesel",
  "diesel-async",
  "env_logger",
  "futures",
  "itertools 0.14.0",
+ "kustos-db",
  "kustos-shared",
  "lapin",
  "lapin-pool",
@@ -5080,6 +5079,17 @@ dependencies = [
  "tracing-futures",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "kustos-db"
+version = "0.31.0"
+dependencies = [
+ "barrel",
+ "diesel",
+ "diesel-async",
+ "opentalk-database",
+ "tracing",
 ]
 
 [[package]]
@@ -6144,7 +6154,7 @@ dependencies = [
  "derive_more 2.0.1",
  "diesel",
  "diesel-async",
- "kustos",
+ "kustos-db",
  "log",
  "opentalk-database",
  "opentalk-diesel-newtype",

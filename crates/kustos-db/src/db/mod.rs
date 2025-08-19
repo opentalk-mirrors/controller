@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-pub(crate) mod casbin;
+pub mod casbin;
 mod schema;
 
 pub mod migrations;
-pub(crate) use self::casbin::*;
+pub use self::casbin::*;
 
 #[macro_export]
 macro_rules! eq_empty {

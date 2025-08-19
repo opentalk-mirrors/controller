@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+edition = "2024"
+license = "EUPL-1.2"
+name = "kustos-db"
+publish = false
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+barrel = { version = "0.7", features = ["pg"] }
+diesel = { workspace = true, features = ["chrono", "serde_json", "uuid"] }
+diesel-async.workspace = true
+opentalk-database.workspace = true
+tracing.workspace = true

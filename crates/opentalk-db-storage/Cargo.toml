@@ -35,7 +35,7 @@ diesel = { workspace = true, features = [
   "uuid",
 ] }
 diesel-async.workspace = true
-kustos.workspace = true
+kustos-db.workspace = true
 log = { workspace = true, features = ["serde"] }
 opentalk-database.workspace = true
 opentalk-diesel-newtype.workspace = true
