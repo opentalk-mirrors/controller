@@ -28,6 +28,7 @@ Functionality that can be configured through the configuration file:
 - [MinIO](minio.md)
 - [Monitoring](monitoring.md)
 - [OIDC Identity Provider](./keycloak.md)
+- [Operator information](./operator_information.md)
 - [RabbitMQ](rabbitmq.md)
     - The recording service is enabled/disabled by configuring the queue name
 - [Redis](redis.md)
