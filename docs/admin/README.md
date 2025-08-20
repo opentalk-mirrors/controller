@@ -27,10 +27,13 @@ title: Controller
 ### Services required by OpenTalk Controller
 
 - [Database](core/database.md)
-- [RabbitMQ](core/rabbitmq.md)
-- [Redis](core/redis.md)
 - [Keycloak](core/keycloak.md)
 - [MinIO](core/minio.md)
+
+### Services required by OpenTalk Controller for certain setups
+
+- [RabbitMQ](core/rabbitmq.md) for communication with [services that interact with OpenTalk Controller](#services-that-can-interact-with-opentalk-controller)
+- [Redis](core/redis.md) for the clustered mode of OpenTalk Controller
 
 ### Services that OpenTalk Controller can be integrated with
 
