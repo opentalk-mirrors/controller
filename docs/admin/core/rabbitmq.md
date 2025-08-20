@@ -1,5 +1,7 @@
 # Message Queue (RabbitMQ)
 
+RabbitMQ is required if you want to use [services that interact with OpenTalk Controller](../README.md#services-that-can-interact-with-opentalk-controller).
+
 ## Configuration
 
 The section in the [configuration file](configuration.md) is called `rabbit_mq`.
