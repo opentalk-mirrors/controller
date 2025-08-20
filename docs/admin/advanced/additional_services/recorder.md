@@ -49,16 +49,16 @@ client_id = "Recorder"
 client_secret = "the-client-secret"
 ```
 
-1. Create an [OpenID Connect client](https://www.keycloak.org/docs/25.0.0/server_admin/index.html#proc-creating-oidc-client_server_administration_guide).
+1. Create an [OpenID Connect client](https://www.keycloak.org/docs/latest/server_admin/index.html#proc-creating-oidc-client_server_administration_guide).
    - The **Client ID** will be used in the field `auth.client_id` of the configuration field (e.g. `Recorder`).
-   - Enable **Service account roles** in the [Capability Config](https://www.keycloak.org/docs/25.0.0/server_admin/index.html#capability-config).
-2. Create [client credentials](https://www.keycloak.org/docs/25.0.0/server_admin/index.html#_client-credentials).
+   - Enable **Service account roles** in the [Capability Config](https://www.keycloak.org/docs/latest/server_admin/index.html#capability-config).
+2. Create [client credentials](https://www.keycloak.org/docs/latest/server_admin/index.html#_client-credentials).
    - Use the Client Authenticator **Client Id and Secret** .
    - The **Client secret** will be used in the field `auth.client_secret` of the configuration field.
 3. Set the correct issuer URL in `auth.issuer`
    - Replace the domain and realm placeholders with your specific values: `http://<Keycloak domain>/auth/realms/<OpenTalk realm>`
 4. Grant the Recorder-Client access to the Controller API
-   - [Create a realm role](https://www.keycloak.org/docs/25.0.0/server_admin/index.html#proc-creating-realm-roles_server_administration_guide) with the id `opentalk-recorder`
+   - [Create a realm role](https://www.keycloak.org/docs/latest/server_admin/index.html#proc-creating-realm-roles_server_administration_guide) with the id `opentalk-recorder`
    - Assign the role to the service account of the recorder client
 
 ### Controller Configuration
