@@ -22,6 +22,7 @@ Functionality that can be configured through the configuration file:
 - [Default and fallback values](../advanced/defaults.md)
 - [Endpoints](endpoints.md)
 - [EtherPad](../advanced/additional_services/etherpad.md)
+- [Frontend](./frontend.md)
 - [HTTP server](http_server.md)
 - [Logging](logging/log_output.md)
 - [Metrics](logging/metrics.md)
