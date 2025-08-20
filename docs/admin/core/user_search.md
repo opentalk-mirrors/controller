@@ -141,9 +141,9 @@ and find the corresponding section there.
 
 1. Configure a client which will be used to access the Keycloak web api. Details
     about that can be found in the [Keycloak section](keycloak.md).
-2. For the [OpenID Connect client](https://www.keycloak.org/docs/25.0.0/server_admin/index.html#proc-creating-oidc-client_server_administration_guide)
-    enable **Service account roles** in the [Capability Config](https://www.keycloak.org/docs/25.0.0/server_admin/index.html#capability-config).
-3. In the [Service account](https://www.keycloak.org/docs/25.0.0/server_admin/index.html#_service_accounts) add these service account roles:
+2. For the [OpenID Connect client](https://www.keycloak.org/docs/latest/server_admin/index.html#proc-creating-oidc-client_server_administration_guide)
+    enable **Service account roles** in the [Capability Config](https://www.keycloak.org/docs/latest/server_admin/index.html#capability-config).
+3. In the [Service account](https://www.keycloak.org/docs/latest/server_admin/index.html#_service_accounts) add these service account roles:
     - `realm-management` *query-users*
     - `realm-management` *view-users*
 
