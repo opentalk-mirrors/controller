@@ -4,7 +4,7 @@
 
 The `room_server` configuration section described here was deprecated in the
 OpenTalk Controller version 0.25.0, and is no longer supported in version 0.26.0
-or later. The successor is [LiveKit](livekit.md).
+or later. The successor is [LiveKit](./livekit.md).
 
 :::
 
@@ -12,13 +12,13 @@ or later. The successor is [LiveKit](livekit.md).
 
 These are no longer valid configuration options in the OpenTalk controller, but the information remains available for the time being, as the older versions are available when needed.
 
-> OpenTalk organizes video and audio streams through [Janus](https://janus.conf.meetecho.com/) which is used as SFU (Selective Forwarding Unit) for the conferences. The communication between the OpenTalk controller and Janus goes through either a direct websocket connection or [RabbitMQ](rabbitmq.md). Multiple Janus instances can be configured for an OpenTalk deployment.
+> OpenTalk organizes video and audio streams through [Janus](https://janus.conf.meetecho.com/) which is used as SFU (Selective Forwarding Unit) for the conferences. The communication between the OpenTalk controller and Janus goes through either a direct websocket connection or [RabbitMQ](./rabbitmq.md). Multiple Janus instances can be configured for an OpenTalk deployment.
 >
 > The `room_server` section describes general settings that apply to all Janus instances that are used with the service. The individual Janus instances can be configured in the `room_server.connections` list field.
 >
 > ## Configuration
 >
-> The section in the [configuration file](configuration.md) is called `room_server`.
+> The section in the [configuration file](./configuration.md) is called `room_server`.
 >
 > ### Room Server section
 >

@@ -10,7 +10,7 @@ meeting. Registered users with an account can join meetings if personally invite
 or if they have received a guest link. The invitation status is stored in the
 database.
 
-## Joining the Meeting
+## Joining the meeting
 
 Once a user or guest joins a meeting, their participant state is tracked either
 in memory or Redis, depending on the controller's configuration. For each
@@ -36,7 +36,7 @@ enum RunnerState {
 }
 ```
 
-## Moderator Actions
+## Moderator actions
 
 Moderators have the authority to remove participants from a meeting, with varying
 consequences. A participant can either be sent to the waiting room—where the

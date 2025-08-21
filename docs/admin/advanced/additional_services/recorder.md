@@ -19,7 +19,7 @@ The section in the [configuration file](../../core/configuration.md) is called `
 
 In addition to the configuration file, Keycloak needs to be configured to allow the recorder to access meetings.
 
-### Keycloak Configuration
+### Keycloak configuration
 
 :::note
 
@@ -61,7 +61,7 @@ client_secret = "the-client-secret"
    - [Create a realm role](https://www.keycloak.org/docs/latest/server_admin/index.html#proc-creating-realm-roles_server_administration_guide) with the id `opentalk-recorder`
    - Assign the role to the service account of the recorder client
 
-### Controller Configuration
+### Controller configuration
 
 :::warning
 
@@ -69,7 +69,7 @@ The following configurations needs to be changed in the configuration file of th
 
 :::
 
-#### Disabling Recording Capability
+#### Disabling recording capability
 
 If you wish to disable the recording capability for the controller, simply
 refrain from setting the `recording_task_queue` parameter in the configuration

@@ -1,14 +1,14 @@
-# Default and fallback values
+# Default and Fallback Values
 
 ## Features
 
-In the [configuration file](../core/configuration.md), the format of a [`feature`](modules.md#features) is: `[<module>::]<feature>`.
+In the [configuration file](../core/configuration.md), the format of a [`feature`](./modules.md#features) is: `[<module>::]<feature>`.
 A missing module specifier defaults to `"core"`. The features currently supported are:
 
 - `core::call_in`
 - `integration::outlook`
 
-The [`modules`](modules.md#opentalk-controller-modules-subcommand) subcommand outputs all modules
+The [`modules`](./modules.md#opentalk-controller-modules-subcommand) subcommand outputs all modules
 available in the OpenTalk controller, including the features that can be enabled or disabled.
 
 ## Configuration

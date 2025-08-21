@@ -4,7 +4,7 @@ RabbitMQ is required if you want to use [services that interact with OpenTalk Co
 
 ## Configuration
 
-The section in the [configuration file](configuration.md) is called `rabbit_mq`.
+The section in the [configuration file](./configuration.md) is called `rabbit_mq`.
 
 | Field                  | Type     | Required | Default value                       | Description                                                      |
 | ---------------------- | -------- | -------- | ----------------------------------- | ---------------------------------------------------------------- |
@@ -16,14 +16,14 @@ The section in the [configuration file](configuration.md) is called `rabbit_mq`.
 
 ### Examples
 
-#### With Mail Worker Queue
+#### With mail worker queue
 
 ```toml
 [rabbit_mq]
 mail_task_queue = "opentalk_mailer"
 ```
 
-#### With All Configurations
+#### With all configurations
 
 ```toml
 [rabbit_mq]

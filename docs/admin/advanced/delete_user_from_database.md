@@ -1,4 +1,4 @@
-# Deleting a user from the database by hand
+# Deleting a User From the Database by Hand
 
 In some cases it may be necessary to delete a user's information from the
 database by hand. The development team is working on providing a

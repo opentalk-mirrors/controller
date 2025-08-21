@@ -1,4 +1,4 @@
-# User search
+# User Search
 
 OpenTalk can search for users and display suggestions when attempting to
 invite users into meetings. User search can be configured to behave differently
@@ -30,7 +30,7 @@ Available values:
 - `"disabled"`: Don't use user search at all in this endpoint. The `/users/find`
   endpoint will return a `404 NOT FOUND` HTTP status code.
   This is equivalent to what used to be `disable_users_find = true` in the
-  [`[endpoints]` section](endpoints.md).
+  [`[endpoints]` section](./endpoints.md).
 - `"from_database"`: Use the OpenTalk database to search for user accounts,
   but don't request any information from the user search backend, even if it is
   configured in the `backend` field.
@@ -57,7 +57,7 @@ invite link they can use to join a meeting.
 
 This behavior can be enabled by setting
 `endpoints.event_invite_external_email_address` to `true` in the
-[HTTP endpoints configuration](endpoints.md).
+[HTTP endpoints configuration](./endpoints.md).
 
 Because not all potential users might have logged in to OpenTalk, these cannot
 be found in its database. So if invitation of external E-Mail addresses

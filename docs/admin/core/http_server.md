@@ -1,4 +1,4 @@
-# HTTP server
+# HTTP Server
 
 The OpenTalk Controller provides its service to clients through a built-in HTTP
 server.
@@ -7,11 +7,11 @@ Services provided:
 
 - [`v1` REST API](https://opentalk.eu/docs/developer/controller/rest/) under `/v1`
 - [Signaling](https://opentalk.eu/docs/developer/controller/signaling/) for meetings under `/signaling`
-- [Metrics](logging/metrics.md) under `/metrics`
+- [Metrics](./logging/metrics.md) under `/metrics`
 
 ## Configuration
 
-The section in the [configuration file](configuration.md) is called `http`.
+The section in the [configuration file](./configuration.md) is called `http`.
 
 | Field  | Type                                    | Required | Default value | Description                                                                                    |
 | ------ | --------------------------------------- | -------- | ------------- | ---------------------------------------------------------------------------------------------- |

@@ -1,4 +1,4 @@
-# Entity-relationship model
+# Entity-Relationship Model
 
 The following shows the entity-relationship model of the Postgres database used
 by the opentalk controller.

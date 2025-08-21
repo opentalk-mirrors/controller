@@ -14,7 +14,7 @@ By default, the `/metrics` endpoint refuses all connections. The access can be c
 
 ### Examples
 
-#### Access Denied (default)
+#### Access denied (default)
 
 ```toml
 [metrics]
@@ -28,7 +28,7 @@ allowlist = []
 allowlist = ["127.0.0.0/8", "::ffff:0:0/96"]
 ```
 
-#### Allow IPs and Subnets
+#### Allow IPs and subnets
 
 ```toml
 [metrics]
@@ -39,7 +39,7 @@ allowlist = ["1.1.1.1", "127.0.0.0/8"]
 
 The metrics can be accessed via the `/metrics` endpoint in the [OpenMetrics Text Format](https://github.com/OpenObservability/OpenMetrics), which is utilized by [prometheus](https://prometheus.io/docs/instrumenting/exposition_formats/#openmetrics-text-format).
 
-### Metrics Exposed
+### Metrics exposed
 
 | Key                                              | Type      | Labels                  | Description                                                     |
 | ------------------------------------------------ | --------- | ----------------------- | --------------------------------------------------------------- |

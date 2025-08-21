@@ -8,17 +8,17 @@ The report configuration is deprecated and will be removed or changed in the fut
 
 :::
 
-# Report generator
+# Report Generator
 
-The [OpenTalk Report generator](https://gitlab.opencode.de/opentalk/terdoc) is a service whose main purpose is to generate reports (e.g. in PDF).
+The [OpenTalk report generator](https://gitlab.opencode.de/opentalk/terdoc) is a service whose main purpose is to generate reports (e.g. in PDF).
 
-When no Reports generator is configured, it is disabled.
+When no reports generator is configured, it is disabled.
 
-## Deploy Report generator
+## Deploy report generator
 
 The report generator has to be configured and started separately.
 
-You can clone the repository and build the Docker image yourself or download the image directly from the [Container Registry](https://gitlab.opencode.de/opentalk/terdoc/container_registry).
+You can clone the repository and build the Docker image yourself or download the image directly from the [container registry](https://gitlab.opencode.de/opentalk/terdoc/container_registry).
 
 ## Configuration
 
@@ -30,7 +30,7 @@ The section in the [configuration file](../../core/configuration.md) is called `
 
 ### Examples
 
-#### Default Setup
+#### Default setup
 
 ```toml
 [reports]

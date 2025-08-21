@@ -1,14 +1,14 @@
-# Identity Provider (Keycloak), deprecated configuration
+# Deprecated: Identity Provider (Keycloak)
 
 This page describes how OIDC using Keycloak was configured in the controller.
-Generic information for Keycloak and its configuration can be found in the [Keycloak section](keycloak.md).
+Generic information for Keycloak and its configuration can be found in the [Keycloak section](./keycloak.md).
 
 ## Deprecated Keycloak configuration
 
 :::warning
 
-In the past, the OIDC and user search section in the [configuration file](configuration.md) was called [`keycloak`](#deprecated-keycloak-configuration).
-Support will be removed in the future, use the separate [`oidc`](oidc.md#configuration) and [`user_search`](user_search.md#user-search-configuration)
+In the past, the OIDC and user search section in the [configuration file](./configuration.md) was called [`keycloak`](#deprecated-keycloak-configuration).
+Support will be removed in the future, use the separate [`oidc`](./oidc.md#configuration) and [`user_search`](./user_search.md#user-search-configuration)
 sections instead.
 
 :::
@@ -23,7 +23,7 @@ The section in the [configuration file](configuration.md) was called `keycloak`.
 | `client_secret`                     | `string` | yes      | -             | The secret corresponding to the specified client ID                                                                                    |
 | `external_id_user_attribute_name`   | `string` | no       | See below     | The attribute by which Keycloak and OpenTalk users are assigned to each other. See below for more details.                             |
 
-For configuring user search, see the [User search section](user_search.md).
+For configuring user search, see the [User search section](./user_search.md).
 
 The `external_id_user_attribute_name` setting is used to configure how Keycloak users resulting from a search and registered
 Opentalk users are assigned to each other.
@@ -36,7 +36,7 @@ The following assignment strategies are available:
 
 ### Examples
 
-#### Deprecated default Setup
+#### Deprecated default setup
 
 ```toml
 [keycloak]

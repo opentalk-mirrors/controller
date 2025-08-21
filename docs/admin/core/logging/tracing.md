@@ -23,4 +23,4 @@ service_namespace = "opentalk"
 service_instance_id = "627cc493-f310-47de-96bd-71410b7dec09"
 ```
 
-This is not an exhaustive list of the configuration values in the logging section, just the ones related to tracing. For more information look into the [logging docs](log_output.md).
+This is not an exhaustive list of the configuration values in the logging section, just the ones related to tracing. For more information look into the [logging docs](./log_output.md).

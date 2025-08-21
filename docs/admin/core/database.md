@@ -4,7 +4,7 @@ The OpenTalk Controller uses PostgreSQL database.
 
 ## Configuration
 
-The section in the [configuration file](configuration.md) is called `database`.
+The section in the [configuration file](./configuration.md) is called `database`.
 
 | Field             | Type     | Required | Default value | Description                                                                    |
 | ----------------- | -------- | -------- | ------------- | ------------------------------------------------------------------------------ |
@@ -20,7 +20,7 @@ The section in the [configuration file](configuration.md) is called `database`.
 url = "postgres://postgres:password123@localhost:5432/opentalk"
 ```
 
-#### With Maximum Connections
+#### With maximum connections
 
 ```toml
 [database]

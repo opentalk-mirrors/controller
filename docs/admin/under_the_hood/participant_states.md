@@ -16,7 +16,7 @@ stateDiagram-v2
     Banned --> [*]: User cannot rejoin
 ```
 
-## Waiting Room
+## Waiting room
 
 When the waiting room is enabled, both registered users and guests are directed
 to it before they can enter the meeting. Participants can only join the meeting

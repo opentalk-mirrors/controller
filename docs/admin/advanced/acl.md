@@ -1,4 +1,4 @@
-# ACL management
+# ACL Management
 
 OpenTalk uses an in-memory Access Control List to efficiently track permissions. The controller maintains that list in
 its database. Controllers will synchronize changes to the ACL by sending changesets to each other using RabbitMQ.

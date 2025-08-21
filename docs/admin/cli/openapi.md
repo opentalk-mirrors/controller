@@ -3,7 +3,7 @@ sidebar_position: 107
 title: Exporting the OpenAPI specification
 ---
 
-# OpenAPI specification
+# OpenAPI Specification
 
 The OpenAPI specification can be exported from the Command-Line interface using a subcommand.
 

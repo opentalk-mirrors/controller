@@ -7,7 +7,7 @@ verbosity and granularity of log messages.
 
 The section in the [configuration file](../configuration.md) is called `logging`. The examples here will only cover
 the log output of the controller. The rest of the fields of the `logging` section are related to the `tracing` configuration.
-See [tracing](tracing.md) for more information.
+See [tracing](./tracing.md) for more information.
 
 | Field                | Type       | Required | Default value                                                                         | Description                                                              |
 | -------------------- | ---------- | -------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |

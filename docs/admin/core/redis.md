@@ -12,7 +12,7 @@ section out to operate the controller in *standalone* mode.
 
 ## Configuration
 
-The section in the [configuration file](configuration.md) is called `redis`.
+The section in the [configuration file](./configuration.md) is called `redis`.
 
 | Field      | Type     | Required | Default value             | Description                                                                                                                            |
 | ---------- | -------- | -------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
@@ -20,7 +20,7 @@ The section in the [configuration file](configuration.md) is called `redis`.
 
 ### Examples
 
-#### Default Setup
+#### Default setup
 
 The default setup since `0.15` is to leave the `[redis]` section out entirely,
 therefore operating the `opentalk-controller` in *standalone* mode.
