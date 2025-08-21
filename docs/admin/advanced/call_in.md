@@ -1,4 +1,4 @@
-# Call-in
+# Call-In
 
 The call-in module provides a user-friendly solution that not only allows
 participants to connect via telephone but also displays the necessary phone

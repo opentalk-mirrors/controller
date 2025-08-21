@@ -3,7 +3,7 @@ sidebar_position: 104
 title: Update Migration Guide
 ---
 
-# Migration guide for updating to new versions
+# Migration Guide for Updating to New Versions
 
 ## General information
 
@@ -15,7 +15,7 @@ endpoints were added, simply running the command does no harm.
 
 ## Unreleased
 
-### Change to the OpenID Connect Integration
+### Change to the OpenID Connect integration
 
 The OpenID Connect integration has been changed to support more authentication
 flows for clients. Previously, ID tokens were used to synchronize user information

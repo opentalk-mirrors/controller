@@ -25,7 +25,7 @@ The SMTP-Mailer configuration is part of the [`rabbitmq`](../../core/rabbitmq.md
 
 ### Examples
 
-#### Default Setup
+#### Default setup
 
 ```toml
 [rabbit_mq]

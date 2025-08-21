@@ -2,7 +2,7 @@
 sidebar_position: 300
 ---
 
-# Shared folders on external storage systems
+# Shared Folders on External Storage Systems
 
 This feature allows to create shared folders on external storage systems. The
 following systems are supported:

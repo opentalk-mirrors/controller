@@ -4,7 +4,7 @@ The OpenTalk controller provides a simple Http-Server for monitoring purpose.
 
 ## Configuration
 
-The section in the [configuration file](configuration.md) is called `monitoring`.
+The section in the [configuration file](./configuration.md) is called `monitoring`.
 
 | Field  | Type     | Required | Default value | Description                            |
 | ------ | -------- | -------- | ------------- | -------------------------------------- |

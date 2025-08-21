@@ -1,4 +1,4 @@
-# Handling of WebAPI HTTP requests
+# Handling of WebAPI HTTP Requests
 
 Requests to the WebAPI are handled by the web server which is embedded in the
 OpenTalk controller. Each request is passed through some layers of middleware

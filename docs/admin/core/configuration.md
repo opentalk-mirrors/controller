@@ -2,9 +2,9 @@
 title: Configuration
 ---
 
-# Configuring OpenTalk-Controller
+# Configuring OpenTalk Controller
 
-When the controller gets started, it loads the configuration from the
+When the Controller gets started, it loads the configuration from the
 environment. It reads the settings in this order:
 
 - Read environment variables which have a specific name, see section
@@ -18,28 +18,28 @@ Functionality that can be configured through the configuration file:
 
 - [Authz](../advanced/acl.md)
 - [Call-in](../advanced/call_in.md)
-- [Database](database.md)
-- [Default and fallback values](../advanced/defaults.md)
-- [Endpoints](endpoints.md)
+- [Database](./database.md)
+- [Default and Fallback Values](../advanced/defaults.md)
+- [Endpoints](./endpoints.md)
 - [EtherPad](../advanced/additional_services/etherpad.md)
 - [Frontend](./frontend.md)
-- [HTTP server](http_server.md)
-- [Logging](logging/log_output.md)
-- [Metrics](logging/metrics.md)
-- [MinIO](minio.md)
-- [Monitoring](monitoring.md)
+- [HTTP Server](./http_server.md)
+- [Logging](./logging/log_output.md)
+- [Metrics](./logging/metrics.md)
+- [MinIO](./minio.md)
+- [Monitoring](./monitoring.md)
 - [OIDC Identity Provider](./keycloak.md)
-- [Operator information](./operator_information.md)
-- [RabbitMQ](rabbitmq.md)
+- [Operator Information](./operator_information.md)
+- [RabbitMQ](./rabbitmq.md)
     - The recording service is enabled/disabled by configuring the queue name
-- [Redis](redis.md)
-- [Room server](room_server.md)
+- [Redis](./redis.md)
+- [Room server](./room_server.md)
 - [Shared folders on external storage systems](../advanced/additional_services/shared_folder.md)
 - [SpaceDeck](../advanced/additional_services/spacedeck.md)
-- [Subroom Audio](subroom_audio.md)
+- [Subroom Audio](./subroom_audio.md)
 - [Tariffs](../advanced/tariffs.md)
 - [Tenants](../advanced/tenants.md)
-- [User search](./user_search.md)
+- [User Search](./user_search.md)
 
 ## Environment variables
 

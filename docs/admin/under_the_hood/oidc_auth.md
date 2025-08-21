@@ -1,4 +1,4 @@
-# OIDC Authentication Flow for OpenTalk Controller WebAPI endpoints
+# OIDC Authentication Flow for OpenTalk Controller WebAPI Endpoints
 
 This diagram describes the flow of an authentication against the OIDC provider
 for accessing the

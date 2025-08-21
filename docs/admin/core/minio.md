@@ -4,7 +4,7 @@ The OpenTalk Controller uses [MinIO](https://min.io/) as its object storage.
 
 ## Configuration
 
-The section in the [configuration file](configuration.md) is called `minio`.
+The section in the [configuration file](./configuration.md) is called `minio`.
 
 | Field        | Type     | Required | Default value | Description                                           |
 | ------------ | -------- | -------- | ------------- | ----------------------------------------------------- |
@@ -15,7 +15,7 @@ The section in the [configuration file](configuration.md) is called `minio`.
 
 ### Examples
 
-#### Default Setup
+#### Default setup
 
 ```toml
 [minio]

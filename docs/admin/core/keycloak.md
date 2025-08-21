@@ -30,6 +30,6 @@ OpenTalk components might need separate configuration.
 
 ## Controller configuration
 
-In the past, the OIDC and user search section in the [configuration file](configuration.md) was called [`keycloak`](keycloak_deprecated.md#deprecated-keycloak-configuration).
+In the past, the OIDC and user search section in the [configuration file](./configuration.md) was called [`keycloak`](./keycloak_deprecated.md#deprecated-keycloak-configuration).
 Starting with controller version 0.21.0, this is deprecated, support will be removed in the future.
-Use the separate [`oidc`](oidc.md#configuration) and [`user_search`](user_search.md#user-search-configuration) sections instead.
+Use the separate [`oidc`](./oidc.md#configuration) and [`user_search`](./user_search.md#user-search-configuration) sections instead.
