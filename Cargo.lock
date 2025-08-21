@@ -5038,7 +5038,7 @@ dependencies = [
 
 [[package]]
 name = "kustos"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "actix-web",
  "async-trait",
@@ -5864,7 +5864,7 @@ checksum = "d05e27ee213611ffe7d6348b942e8f942b37114c00cc03cec254295a4a17852e"
 
 [[package]]
 name = "opentalk-cache"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "bincode 2.0.1",
  "moka",
@@ -5876,7 +5876,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-controller"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "actix-web",
  "opentalk-controller-core",
@@ -5886,7 +5886,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-controller-core"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "actix",
  "actix-cors",
@@ -5974,7 +5974,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-controller-service"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -6033,7 +6033,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-controller-service-facade"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "async-trait",
  "bytes",
@@ -6046,7 +6046,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-controller-settings"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "anstream",
  "arc-swap",
@@ -6075,7 +6075,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-controller-utils"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "actix-web",
  "async-trait",
@@ -6104,7 +6104,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-database"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "async-trait",
  "deadpool-runtime",
@@ -6123,7 +6123,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-db-storage"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "actix-rt",
  "barrel",
@@ -6198,7 +6198,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-inventory"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "async-trait",
  "bigdecimal",
@@ -6211,7 +6211,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-inventory-database"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "async-trait",
  "bigdecimal",
@@ -6227,7 +6227,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-jobs"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -6297,7 +6297,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-log"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "log",
  "serial_test",
@@ -6335,7 +6335,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-r3dlock"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "pretty_assertions",
  "rand 0.9.2",
@@ -6346,7 +6346,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-report-generation"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -6577,7 +6577,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-core"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "actix-http",
  "actix-rt",
@@ -6628,7 +6628,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-module-automod"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -6656,7 +6656,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-module-chat"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -6686,7 +6686,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-module-core"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "async-trait",
  "opentalk-signaling-core",
@@ -6695,7 +6695,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-module-e2ee"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "async-trait",
  "opentalk-signaling-core",
@@ -6707,7 +6707,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-module-integration"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "async-trait",
  "opentalk-signaling-core",
@@ -6716,7 +6716,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-module-legal-vote"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -6753,7 +6753,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-module-livekit"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "async-trait",
  "either",
@@ -6780,7 +6780,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-module-meeting-notes"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -6805,7 +6805,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-module-meeting-report"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -6832,7 +6832,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-module-polls"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -6857,7 +6857,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-module-recording"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "async-trait",
  "either",
@@ -6883,7 +6883,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-module-shared-folder"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -6909,7 +6909,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-module-subroom-audio"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "async-trait",
  "either",
@@ -6934,7 +6934,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-module-timer"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -6961,7 +6961,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-module-training-participation-report"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -6994,7 +6994,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-module-whiteboard"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "async-trait",
  "bytes",
@@ -7022,7 +7022,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-signaling-modules"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "async-trait",
  "opentalk-signaling-core",
@@ -7045,7 +7045,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-test-util"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "diesel",
  "diesel-async",

@@ -5,6 +5,100 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.31.0] - 2025-08-21
+
+[0.31.0]: https://git.opentalk.dev/opentalk/backend/services/controller/-/compare/v0.30.3...v0.31.0
+
+### 🚀 New features
+
+- (migrations) Add migration to update ends_at for recurring events ([!1609](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1609), [bugs#113](https://git.opentalk.dev/opentalk/bugs/-/issues/113))
+- (metrics) Show warning on metrics denial ([!1616](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1616), [#1051](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1051))
+- (metrics) Add room life time ([!1620](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1620))
+- (metrics) Add participant meeting time ([!1620](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1620))
+- (metrics) Add participants per room ([!1620](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1620))
+- (settings) Add `Frontend` to config ([!1627](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1627), [#1052](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1052))
+- (settings) Add `OperatorInformation` to config ([!1627](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1627), [#1052](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1052))
+- (settings) Update `example/controller.toml` ([!1627](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1627), [#1052](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1052))
+- (cli) Print license information ([!1573](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1573))
+- (chat) Chunk message history and add server side history search ([!1637](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1637), [#1071](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1071), [bugs#137](https://git.opentalk.dev/opentalk/bugs/-/issues/137))
+- (timezone) Determine fallback timezone from configuration and/or environment variables ([!1671](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1671), [#1090](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1090))
+- (control) Kick participants when they exceed the websocket rate limit ([!1655](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1655), [#1072](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1072))
+- (auth) Implement guests_allowed module feature ([!1704](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1704), [#1082](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1082))
+- (api) Add GET /events/instances endpoint ([!1632](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1632), [#1061](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1061))
+- (roomserver) Add experimental start endpoints for the roomserver signaling ([!1621](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1621), [#994](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/994))
+- (roomserver) Set experimental roomserver modules via config ([!1652](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1652), [#1083](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1083))
+
+### 🐛 Bug fixes
+
+- (config) Install configuration to /etc/opentalk/controller.toml in container ([!1612](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1612), [#1059](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1059))
+- (migrations) Check for invalid quotas, modules and features for tariffs ([!1613](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1613), [#772](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/772))
+- (metrics) Add content type for the metrics endpoint ([!1617](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1617))
+- (api) Make paginated query work in async trait functions ([!1619](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1619))
+- (api) Don't expose expired invite links in meeting details ([!1645](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1645), [#1074](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1074))
+- (api) Fix `NoBreakoutRooms` error on start_invited endpoint ([!1649](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1649))
+- (oidc) Compare e-mail address in lowercase when updating user from OIDC information ([!1656](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1656), [#1084](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1084))
+- (auth) User creation race condition resulting in unique constraint violation ([!1662](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1662), [#1086](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1086))
+- (db) Properly compare expiration date for valid room invites ([!1665](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1665))
+- (db) User creation race condition which is still present in database transaction ([!1670](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1670), [#1094](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1094))
+- (chat) Redis args for last seen timestamps ([!1637](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1637), [#1071](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1071))
+- (oidc) Handle optional `exp` field ([!1667](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1667), [#1092](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1092))
+- (recording) Improve error message when recorder is unavailable ([!1615](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1615))
+
+### 📚 Documentation
+
+- (openapi) Align documentation with behavior ([!1697](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1697), [#1097](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1097))
+- (config) Improve consistency and documentation of user search configuration ([!1610](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1610), [#1058](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1058))
+- (config) Add `operator_information` section to admin docs ([!1715](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1715), [#1109](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1109))
+- (config) Add `frontend` section to admin docs ([!1716](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1716), [#1110](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1110))
+- (config) Use default values as examples in example.toml ([!1642](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1642), [#869](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/869))
+- Change index of admin docs to clarify requirement of redis and rabbitmq ([!1719](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1719), [#1098](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1098))
+- Make links to Keycloak documentation point to latest ([!1717](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1717), [#1095](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1095))
+- Fix some rough edges in the documentation ([!1623](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1623))
+
+### 🔨 Refactor
+
+- (metric) Restructure metric initialization ([!1620](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1620))
+- (database) Return vec instead of single item from module resource patch function ([!1630](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1630), [#1070](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1070))
+- (database) Create opentalk-inventory database abstraction layer ([!1631](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1631), [#1068](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1068))
+- (recording) Move module into a separate crate ([!1638](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1638))
+- (inventory) Use inventory interface instead of direct database access ([!1614](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1614), [#1069](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1069))
+- (chat) Move `RoomPrivateChatHistory` to a separate module ([!1637](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1637), [#1071](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1071))
+- (tariff) Enforce tariff features consistently in all locations ([!1700](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1700), [#1103](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1103))
+- (code) Remove unused api v1 streaming services file ([!1657](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1657))
+
+### 📦 Dependencies
+
+- Update all dependencies to the latest version possible ([!1679](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1679))
+- Update alpine docker tag to v3.22 ([!1611](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1611))
+- Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.89.0 ([!1634](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1634), [!1690](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1690))
+- Update opentalk-types ([!1604](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1604))
+- Update pre-commit hook daveshanley/vacuum to v0.17.8 ([!1673](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1673), [!1668](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1668), [!1658](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1658), [!1651](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1651))
+- Update pre-commit hook embarkstudios/cargo-deny to v0.18.4 ([!1705](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1705))
+- Update pre-commit hook pre-commit/pre-commit-hooks to v6 ([!1691](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1691))
+- Update redocly/cli docker tag to v1.34.5 ([!1660](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1660), [!1635](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1635))
+- Update rust crate async-trait to v0.1.89 ([!1706](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1706))
+- Update rust crate aws-sdk-s3 to v1.102.0 ([!1702](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1702))
+- Update rust crate bincode to v2 ([!1534](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1534))
+- Update rust crate cargo_metadata to 0.21 ([!1647](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1647), [!1606](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1606))
+- Update rust crate clap to v4.5.45 ([!1699](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1699), [!1696](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1696))
+- Update rust crate config to v0.15.14 ([!1701](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1701))
+- Update rust crate md5 to 0.8 ([!1633](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1633))
+- Update rust crate sysinfo to 0.37 ([!1693](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1693), [!1648](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1648))
+- Update rust crate tabled to 0.20 ([!1618](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1618))
+- Update rust crate tempfile to v3.21.0 ([!1714](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1714))
+- Update rust crate toml to 0.9 ([!1646](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1646))
+- Update rust crate uuid to v1.18.0 ([!1695](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1695))
+- Downgrade lapin and lapin-pool for now while the new versions are broken ([!1688](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1688), [#1101](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1101))
+- Lock file maintenance ([!1709](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1709), [!1676](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1676), [!1694](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1694))
+
+### ⚙ Miscellaneous
+
+- Update pre-commit hooks ([!1644](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1644))
+- Update to rust edition 2024 ([!1643](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1643))
+- Add ignoreDeps renovate rule for actix-web-actors ([!1674](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1674))
+- Fix clippy lints ([!1676](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1676), [!1687](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1687))
+- (ci) Remove rabbitmq service from check:docs-generated-parts job ([!1628](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1628))
+
 ## [0.30.0] - 2025-05-29
 
 [0.30.0]: https://git.opentalk.dev/opentalk/backend/services/controller/-/compare/v0.29.5...v0.30.0
