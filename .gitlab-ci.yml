@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
-image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.89.0-bookworm
+image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.89.0-trixie
 
 stages:
   - lint
@@ -22,10 +22,10 @@ variables:
   # Can be overridden entirely from project settings.
   KANIKO_IMAGE: gcr.io/kaniko-project/executor:debug
   SKOPEO_IMAGE: quay.io/skopeo/stable:v1
-  DEFAULT_FLAVOR: bookworm
+  DEFAULT_FLAVOR: trixie
 
 .template_vars:
-  FLAVORS: [bookworm, noble]
+  FLAVORS: [trixie, bookworm, noble]
 
 .default_job_condition: &default_job_condition
   needs: []
@@ -185,7 +185,7 @@ lint:mod-rs-files:
   variables:
     # For getting color output from `tput`
     TERM: xterm-256color
-  before_script: apt-get update && apt-get install -y fd-find
+  before_script: apt-get --update install -y fd-find
   script: ./ci/lint-mod-rs-files.sh
 
 lint:justfile:
@@ -228,7 +228,7 @@ test:cargo_test:
   before_script:
     - rustup component add rustfmt llvm-tools-preview
     # libxml2-utils contains the xmllint command used below
-    - apt-get update && apt-get install -y libxml2-utils
+    - apt-get --update install -y libxml2-utils
     - cargo install diesel_cli --version ~2 --no-default-features --features="postgres"
   script:
     - RUSTFLAGS="-C instrument-coverage -C link-arg=-fuse-ld=lld"
@@ -284,7 +284,7 @@ build:
       - target/release/opentalk-controller
     expire_in: 1 week
   before_script:
-    - apt-get update && apt-get install -y libpq-dev musl-tools protobuf-compiler
+    - apt-get --update install -y libpq-dev musl-tools protobuf-compiler
   script:
     - cargo auditable build --release --locked --workspace
 
@@ -325,7 +325,7 @@ check:docs-generated-parts:
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   before_script:
-    - apt-get update && apt-get install -y git
+    - apt-get --update install -y git
   script:
     - ci/docs-update-generated-parts.sh
     - |
