@@ -131,7 +131,7 @@ pub async fn start(
                 breakout room id is invalid, the room doesn't exist, the guest
                 does not have a valid invite for this room or when calling this
                 endpoint on a controller where no roomserver is configured. Guests
-                shall not be able to distinguish between existing rooms and rooms 
+                shall not be able to distinguish between existing rooms and rooms
                 they don't have permission to enter, therefore the response is the
                 same in these cases.",
             body = ErrorBody,
