@@ -9,14 +9,14 @@ use std::{
 };
 
 use async_trait::async_trait;
-use opentalk_db_storage::events::Event;
+use opentalk_inventory::Event;
 use opentalk_types_common::{
     rooms::RoomId, tariffs::TariffResource, time::Timestamp, users::UserInfo,
 };
 use opentalk_types_signaling::{ParticipantId, Role};
 use redis::{AsyncCommands, ErrorKind, FromRedisValue, RedisError, ToRedisArgs};
-use redis_args::ToRedisArgs;
-use serde::{Serialize, de::DeserializeOwned};
+use redis_args::{FromRedisValue, ToRedisArgs};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use snafu::ResultExt;
 
 use super::{
@@ -688,6 +688,11 @@ impl ControlStorageParticipantAttributesRaw for RedisConnection {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToRedisArgs, FromRedisValue)]
+#[to_redis_args(serde)]
+#[from_redis_value(serde)]
+struct RedisEvent(Event);
+
 #[async_trait(?Send)]
 impl ControlStorageEvent for RedisConnection {
     #[tracing::instrument(level = "debug", skip(self))]
@@ -697,9 +702,9 @@ impl ControlStorageEvent for RedisConnection {
         event: Option<Event>,
     ) -> Result<Option<Event>, SignalingModuleError> {
         let event = if let Some(event) = event {
-            let (_, event): (bool, Event) = redis::pipe()
+            let (_, RedisEvent(event)): (bool, RedisEvent) = redis::pipe()
                 .atomic()
-                .set_nx(RoomEvent { room_id }, event)
+                .set_nx(RoomEvent { room_id }, RedisEvent(event))
                 .get(RoomEvent { room_id })
                 .query_async(self)
                 .await
@@ -717,9 +722,11 @@ impl ControlStorageEvent for RedisConnection {
 
     #[tracing::instrument(level = "debug", skip(self))]
     async fn get_event(&mut self, room_id: RoomId) -> Result<Option<Event>, SignalingModuleError> {
-        self.get(RoomEvent { room_id }).await.context(RedisSnafu {
-            message: "Failed to get room event",
-        })
+        let event: Option<RedisEvent> =
+            self.get(RoomEvent { room_id }).await.context(RedisSnafu {
+                message: "Failed to get room event",
+            })?;
+        Ok(event.map(|v| v.0))
     }
 
     #[tracing::instrument(level = "debug", skip(self))]

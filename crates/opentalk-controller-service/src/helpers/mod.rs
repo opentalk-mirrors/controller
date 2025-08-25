@@ -6,8 +6,7 @@
 
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
-use opentalk_db_storage::{assets::Asset, users::User};
-use opentalk_inventory::Inventory;
+use opentalk_inventory::{Asset, Inventory};
 use opentalk_types_api_v1::{
     assets::AssetResource,
     users::{PrivateUserProfile, PublicUserProfile},
@@ -27,7 +26,7 @@ pub trait ToUserProfile {
     -> PrivateUserProfile;
 }
 
-impl ToUserProfile for User {
+impl ToUserProfile for opentalk_inventory::User {
     fn to_public_user_profile(&self, settings: &Settings) -> PublicUserProfile {
         let default_avatar = email_to_libravatar_url(&settings.avatar.libravatar_url, &self.email);
 
@@ -130,7 +129,7 @@ pub fn asset_to_asset_resource(asset: Asset) -> AssetResource {
         id,
         filename,
         namespace,
-        created_at,
+        created_at: created_at.into(),
         kind,
         size,
     }

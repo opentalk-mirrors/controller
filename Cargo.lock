@@ -5054,13 +5054,12 @@ version = "0.31.0"
 dependencies = [
  "actix-web",
  "async-trait",
- "barrel",
  "casbin",
- "diesel",
  "diesel-async",
  "env_logger",
  "futures",
  "itertools 0.14.0",
+ "kustos-db",
  "kustos-shared",
  "lapin",
  "lapin-pool",
@@ -5080,6 +5079,17 @@ dependencies = [
  "tracing-futures",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "kustos-db"
+version = "0.31.0"
+dependencies = [
+ "barrel",
+ "diesel",
+ "diesel-async",
+ "opentalk-database",
+ "tracing",
 ]
 
 [[package]]
@@ -6007,7 +6017,6 @@ dependencies = [
  "opentalk-controller-settings",
  "opentalk-controller-utils",
  "opentalk-database",
- "opentalk-db-storage",
  "opentalk-inventory",
  "opentalk-keycloak-admin",
  "opentalk-mail-worker-protocol",
@@ -6100,7 +6109,6 @@ dependencies = [
  "opentalk-cache",
  "opentalk-controller-settings",
  "opentalk-database",
- "opentalk-db-storage",
  "opentalk-inventory",
  "opentalk-log",
  "opentalk-nextcloud-client",
@@ -6146,10 +6154,11 @@ dependencies = [
  "derive_more 2.0.1",
  "diesel",
  "diesel-async",
- "kustos",
+ "kustos-db",
  "log",
  "opentalk-database",
  "opentalk-diesel-newtype",
+ "opentalk-inventory",
  "opentalk-mail-worker-protocol",
  "opentalk-test-util",
  "opentalk-types-common",
@@ -6214,11 +6223,19 @@ version = "0.31.0"
 dependencies = [
  "async-trait",
  "bigdecimal",
- "opentalk-database",
- "opentalk-db-storage",
+ "bincode 2.0.1",
+ "chrono",
+ "chrono-tz",
+ "clap",
+ "derive_more 2.0.1",
  "opentalk-types-common",
+ "pretty_assertions",
  "scoped-futures",
+ "serde",
+ "serde_json",
  "snafu",
+ "strum 0.27.2",
+ "uuid",
 ]
 
 [[package]]
@@ -6252,7 +6269,6 @@ dependencies = [
  "log",
  "opentalk-controller-settings",
  "opentalk-controller-utils",
- "opentalk-db-storage",
  "opentalk-inventory",
  "opentalk-keycloak-admin",
  "opentalk-log",
@@ -6608,7 +6624,6 @@ dependencies = [
  "lapin-pool",
  "log",
  "opentalk-controller-settings",
- "opentalk-db-storage",
  "opentalk-etherpad-client",
  "opentalk-inventory",
  "opentalk-r3dlock",
@@ -6675,7 +6690,6 @@ dependencies = [
  "chrono",
  "either",
  "log",
- "opentalk-db-storage",
  "opentalk-inventory",
  "opentalk-r3dlock",
  "opentalk-signaling-core",
@@ -6740,7 +6754,6 @@ dependencies = [
  "insta",
  "kustos",
  "log",
- "opentalk-db-storage",
  "opentalk-inventory",
  "opentalk-report-generation",
  "opentalk-signaling-core",
@@ -6828,7 +6841,6 @@ dependencies = [
  "futures",
  "insta",
  "log",
- "opentalk-db-storage",
  "opentalk-inventory",
  "opentalk-report-generation",
  "opentalk-signaling-core",
@@ -6872,6 +6884,7 @@ name = "opentalk-signaling-module-recording"
 version = "0.31.0"
 dependencies = [
  "async-trait",
+ "derive_more 2.0.1",
  "either",
  "futures",
  "lapin-pool",
@@ -6891,6 +6904,7 @@ dependencies = [
  "snafu",
  "tokio",
  "tracing",
+ "url",
 ]
 
 [[package]]
@@ -6901,7 +6915,6 @@ dependencies = [
  "async-trait",
  "either",
  "log",
- "opentalk-db-storage",
  "opentalk-inventory",
  "opentalk-signaling-core",
  "opentalk-test-util",

@@ -7,8 +7,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use kustos::Authz;
 use opentalk_controller_settings::Settings;
-use opentalk_db_storage::assets::UpdateAsset;
-use opentalk_inventory::{Inventory, InventoryProvider};
+use opentalk_inventory::{Inventory, InventoryProvider, UpdateAsset};
 use opentalk_log::{debug, info, warn};
 use opentalk_signaling_core::{ExchangeHandle, ObjectStorage, assets::asset_key};
 use serde::{Deserialize, Serialize};
@@ -183,7 +182,7 @@ mod tests {
     use bytes::Bytes;
     use futures::stream;
     use opentalk_controller_settings::MinIO;
-    use opentalk_db_storage::assets::{NewAsset, UpdateAsset};
+    use opentalk_inventory::{NewAsset, UpdateAsset};
     use opentalk_signaling_core::{
         ChunkFormat, ObjectStorage, ObjectStorageError,
         assets::{NewAssetFileName, save_asset},

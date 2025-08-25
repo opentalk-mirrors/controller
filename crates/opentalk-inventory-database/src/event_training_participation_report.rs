@@ -2,15 +2,15 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::events::{
-    EventTrainingParticipationReportParameterSet,
+use opentalk_db_storage::events as db;
+use opentalk_inventory::{
+    EventTrainingParticipationReportInventory, EventTrainingParticipationReportParameterSet,
     UpdateEventTrainingParticipationReportParameterSet,
 };
-use opentalk_inventory::{EventTrainingParticipationReportInventory, error::StorageBackendSnafu};
 use opentalk_types_common::events::EventId;
 use snafu::ResultExt as _;
 
-use crate::{DatabaseConnection, Result};
+use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl EventTrainingParticipationReportInventory for DatabaseConnection {
@@ -19,9 +19,15 @@ impl EventTrainingParticipationReportInventory for DatabaseConnection {
         &mut self,
         event_id: EventId,
     ) -> Result<Option<EventTrainingParticipationReportParameterSet>> {
-        EventTrainingParticipationReportParameterSet::get_for_event(&mut self.inner, event_id)
+        Ok(
+            db::EventTrainingParticipationReportParameterSet::get_for_event(
+                &mut self.inner,
+                event_id,
+            )
             .await
-            .context(StorageBackendSnafu)
+            .context(DatabaseSnafu)?
+            .map(Into::into),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -30,10 +36,13 @@ impl EventTrainingParticipationReportInventory for DatabaseConnection {
         event_id: EventId,
         parameter_set: UpdateEventTrainingParticipationReportParameterSet,
     ) -> Result<EventTrainingParticipationReportParameterSet> {
-        parameter_set
-            .apply(&mut self.inner, event_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::UpdateEventTrainingParticipationReportParameterSet::from(parameter_set)
+                .apply(&mut self.inner, event_id)
+                .await
+                .context(DatabaseSnafu)?
+                .into(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -41,10 +50,13 @@ impl EventTrainingParticipationReportInventory for DatabaseConnection {
         &mut self,
         parameter_set: EventTrainingParticipationReportParameterSet,
     ) -> Result<Option<EventTrainingParticipationReportParameterSet>> {
-        parameter_set
-            .try_insert(&mut self.inner)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::EventTrainingParticipationReportParameterSet::from(parameter_set)
+                .try_insert(&mut self.inner)
+                .await
+                .context(DatabaseSnafu)?
+                .map(Into::into),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -52,8 +64,13 @@ impl EventTrainingParticipationReportInventory for DatabaseConnection {
         &mut self,
         event_id: EventId,
     ) -> Result<()> {
-        EventTrainingParticipationReportParameterSet::delete_by_id(&mut self.inner, event_id)
+        Ok(
+            db::EventTrainingParticipationReportParameterSet::delete_by_id(
+                &mut self.inner,
+                event_id,
+            )
             .await
-            .context(StorageBackendSnafu)
+            .context(DatabaseSnafu)?,
+        )
     }
 }

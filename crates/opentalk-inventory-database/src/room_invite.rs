@@ -3,8 +3,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use chrono::Utc;
-use opentalk_db_storage::invites::{Invite, InviteWithUsers, NewInvite, UpdateInvite};
-use opentalk_inventory::{RoomInviteInventory, error::StorageBackendSnafu};
+use opentalk_db_storage::invites::{self as db};
+use opentalk_inventory::{
+    NewRoomInvite, RoomInvite, RoomInviteInventory, RoomInviteWithUsers, UpdateRoomInvite,
+};
 use opentalk_types_common::{
     rooms::{RoomId, invite_codes::InviteCode},
     time::Timestamp,
@@ -12,30 +14,44 @@ use opentalk_types_common::{
 };
 use snafu::ResultExt as _;
 
-use crate::{DatabaseConnection, Result};
+use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl RoomInviteInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
-    async fn create_room_invite(&mut self, invite: NewInvite) -> Result<Invite> {
-        invite
+    async fn create_room_invite(&mut self, invite: NewRoomInvite) -> Result<RoomInvite> {
+        Ok(db::NewInvite::from(invite)
             .insert(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)
+            .context(DatabaseSnafu)?
+            .into())
     }
 
     #[tracing::instrument(err, skip_all)]
-    async fn get_room_invite(&mut self, invite_code: InviteCode) -> Result<Invite> {
-        Invite::get(&mut self.inner, invite_code)
+    async fn get_room_invite(&mut self, invite_code: InviteCode) -> Result<RoomInvite> {
+        Ok(db::Invite::get(&mut self.inner, invite_code)
             .await
-            .context(StorageBackendSnafu)
+            .context(DatabaseSnafu)?
+            .into())
+    }
+
+    async fn get_all_room_invites(&mut self) -> Result<Vec<RoomInvite>> {
+        Ok(db::Invite::get_all(&mut self.inner)
+            .await
+            .context(DatabaseSnafu)?
+            .into_iter()
+            .map(Into::into)
+            .collect())
     }
 
     #[tracing::instrument(err, skip_all)]
-    async fn get_valid_invite_for_room(&mut self, room_id: RoomId) -> Result<Option<Invite>> {
-        Invite::get_valid_for_room(&mut self.inner, room_id, Utc::now())
-            .await
-            .context(StorageBackendSnafu)
+    async fn get_valid_invite_for_room(&mut self, room_id: RoomId) -> Result<Option<RoomInvite>> {
+        Ok(
+            db::Invite::get_valid_for_room(&mut self.inner, room_id, Utc::now())
+                .await
+                .context(DatabaseSnafu)?
+                .map(Into::into),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -43,17 +59,23 @@ impl RoomInviteInventory for DatabaseConnection {
         &mut self,
         room_id: RoomId,
         user_id: UserId,
-    ) -> Result<Invite> {
-        Invite::get_valid_or_create_for_room(&mut self.inner, room_id, user_id)
-            .await
-            .context(StorageBackendSnafu)
+    ) -> Result<RoomInvite> {
+        Ok(
+            db::Invite::get_valid_or_create_for_room(&mut self.inner, room_id, user_id)
+                .await
+                .context(DatabaseSnafu)?
+                .into(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
-    async fn get_room_invites_updated_by(&mut self, user_id: UserId) -> Result<Vec<Invite>> {
-        Invite::get_updated_by(&mut self.inner, user_id)
+    async fn get_room_invites_updated_by(&mut self, user_id: UserId) -> Result<Vec<RoomInvite>> {
+        Ok(db::Invite::get_updated_by(&mut self.inner, user_id)
             .await
-            .context(StorageBackendSnafu)
+            .context(DatabaseSnafu)?
+            .into_iter()
+            .map(Into::into)
+            .collect())
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -62,20 +84,40 @@ impl RoomInviteInventory for DatabaseConnection {
         room_id: RoomId,
         limit: i64,
         page: i64,
-    ) -> Result<(Vec<InviteWithUsers>, i64)> {
-        Invite::get_all_for_room_with_users_paginated(&mut self.inner, room_id, limit, page)
-            .await
-            .context(StorageBackendSnafu)
+    ) -> Result<(Vec<RoomInviteWithUsers>, i64)> {
+        let (invites, overall) = db::Invite::get_all_for_room_with_users_paginated(
+            &mut self.inner,
+            room_id,
+            limit,
+            page,
+        )
+        .await
+        .context(DatabaseSnafu)?;
+        Ok((
+            invites
+                .into_iter()
+                .map(|(invite, created_by, updated_by)| {
+                    RoomInviteWithUsers::new(invite.into(), created_by.into(), updated_by.into())
+                })
+                .collect(),
+            overall,
+        ))
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_room_invite_with_creator_and_updater(
         &mut self,
         invite_code: InviteCode,
-    ) -> Result<InviteWithUsers> {
-        Invite::get_with_users(&mut self.inner, invite_code)
-            .await
-            .context(StorageBackendSnafu)
+    ) -> Result<RoomInviteWithUsers> {
+        let (invite, created_by, updated_by) =
+            db::Invite::get_with_users(&mut self.inner, invite_code)
+                .await
+                .context(DatabaseSnafu)?;
+        Ok(RoomInviteWithUsers::new(
+            invite.into(),
+            created_by.into(),
+            updated_by.into(),
+        ))
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -83,12 +125,13 @@ impl RoomInviteInventory for DatabaseConnection {
         &mut self,
         room_id: RoomId,
         invite_code: InviteCode,
-        invite: UpdateInvite,
-    ) -> Result<Invite> {
-        invite
+        invite: UpdateRoomInvite,
+    ) -> Result<RoomInvite> {
+        Ok(db::UpdateInvite::from(invite)
             .apply(&mut self.inner, room_id, invite_code)
             .await
-            .context(StorageBackendSnafu)
+            .context(DatabaseSnafu)?
+            .into())
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -96,8 +139,10 @@ impl RoomInviteInventory for DatabaseConnection {
         &mut self,
         expired_before: Timestamp,
     ) -> Result<Vec<(InviteCode, RoomId)>> {
-        Invite::get_inactive_or_expired_before(&mut self.inner, expired_before.into())
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::Invite::get_inactive_or_expired_before(&mut self.inner, expired_before.into())
+                .await
+                .context(DatabaseSnafu)?,
+        )
     }
 }

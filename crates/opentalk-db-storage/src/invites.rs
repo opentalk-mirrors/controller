@@ -64,6 +64,62 @@ pub struct Invite {
     pub expiration: Option<DateTime<Utc>>,
 }
 
+impl From<Invite> for opentalk_inventory::RoomInvite {
+    fn from(
+        Invite {
+            id,
+            id_serial,
+            created_by,
+            created_at,
+            updated_by,
+            updated_at,
+            room,
+            active,
+            expiration,
+        }: Invite,
+    ) -> Self {
+        Self {
+            invite_code: id,
+            id_serial: id_serial.into(),
+            created_by,
+            created_at: created_at.into(),
+            updated_by,
+            updated_at: updated_at.into(),
+            room,
+            active,
+            expiration: expiration.map(Into::into),
+        }
+    }
+}
+
+impl From<opentalk_inventory::RoomInvite> for Invite {
+    fn from(
+        opentalk_inventory::RoomInvite {
+            invite_code,
+            id_serial,
+            created_by,
+            created_at,
+            updated_by,
+            updated_at,
+            room,
+            active,
+            expiration,
+        }: opentalk_inventory::RoomInvite,
+    ) -> Self {
+        Self {
+            id: invite_code,
+            id_serial: id_serial.into(),
+            created_by,
+            created_at: created_at.into(),
+            updated_by,
+            updated_at: updated_at.into(),
+            room,
+            active,
+            expiration: expiration.map(Into::into),
+        }
+    }
+}
+
 pub type InviteWithUsers = (Invite, User, User);
 
 impl Invite {
@@ -331,6 +387,26 @@ pub struct NewInvite {
     pub expiration: Option<DateTime<Utc>>,
 }
 
+impl From<opentalk_inventory::NewRoomInvite> for NewInvite {
+    fn from(
+        opentalk_inventory::NewRoomInvite {
+            created_by,
+            updated_by,
+            room,
+            active,
+            expiration,
+        }: opentalk_inventory::NewRoomInvite,
+    ) -> Self {
+        Self {
+            created_by,
+            updated_by,
+            room,
+            active,
+            expiration: expiration.map(Into::into),
+        }
+    }
+}
+
 impl NewInvite {
     #[tracing::instrument(err, skip_all)]
     pub async fn insert(self, conn: &mut DbConnection) -> Result<Invite> {
@@ -353,6 +429,26 @@ pub struct UpdateInvite {
     pub room: Option<RoomId>,
     pub active: Option<bool>,
     pub expiration: Option<Option<DateTime<Utc>>>,
+}
+
+impl From<opentalk_inventory::UpdateRoomInvite> for UpdateInvite {
+    fn from(
+        opentalk_inventory::UpdateRoomInvite {
+            updated_by,
+            updated_at,
+            room,
+            active,
+            expiration,
+        }: opentalk_inventory::UpdateRoomInvite,
+    ) -> Self {
+        Self {
+            updated_by,
+            updated_at: updated_at.map(Into::into),
+            room,
+            active,
+            expiration: expiration.map(|e| e.map(Into::into)),
+        }
+    }
 }
 
 impl UpdateInvite {

@@ -16,11 +16,7 @@ use opentalk_controller_utils::{
     CaptureApiError, TariffResourceExt as _,
     deletion::{Deleter, RoomDeleter},
 };
-use opentalk_db_storage::{
-    rooms::{NewRoom, Room, UpdateRoom},
-    sip_configs::NewSipConfig,
-};
-use opentalk_inventory::utils::build_event_info;
+use opentalk_inventory::{NewRoom, NewRoomSipConfig, Room, UpdateRoom, utils::build_event_info};
 use opentalk_signaling_core::Participant;
 use opentalk_types_api_v1::{
     error::{ApiError, ERROR_CODE_INVALID_VALUE, ValidationErrorEntry},
@@ -89,7 +85,7 @@ impl ControllerBackend {
             .map(|(room, user)| RoomResource {
                 id: room.id,
                 created_by: user.to_public_user_profile(&settings),
-                created_at: room.created_at.into(),
+                created_at: room.created_at,
                 password: room.password,
                 waiting_room: room.waiting_room,
             })
@@ -127,7 +123,7 @@ impl ControllerBackend {
 
         if enable_sip {
             _ = inventory
-                .create_room_sip_config(NewSipConfig::new(room.id, false))
+                .create_room_sip_config(NewRoomSipConfig::new(room.id, false))
                 .await?;
         }
 
@@ -136,7 +132,7 @@ impl ControllerBackend {
         let room_resource = RoomResource {
             id: room.id,
             created_by: current_user.to_public_user_profile(&settings),
-            created_at: room.created_at.into(),
+            created_at: room.created_at,
             password: room.password,
             waiting_room: room.waiting_room,
         };
@@ -177,7 +173,7 @@ impl ControllerBackend {
         let room_resource = RoomResource {
             id: room.id,
             created_by: current_user.to_public_user_profile(&settings),
-            created_at: room.created_at.into(),
+            created_at: room.created_at,
             password: room.password,
             waiting_room: room.waiting_room,
         };
@@ -220,7 +216,7 @@ impl ControllerBackend {
         let room_resource = RoomResource {
             id: room.id,
             created_by: created_by.to_public_user_profile(&settings),
-            created_at: room.created_at.into(),
+            created_at: room.created_at,
             password: room.password,
             waiting_room: room.waiting_room,
         };

@@ -272,7 +272,7 @@ impl JobRunner {
         let mut job_list = self.job_queue.current_jobs();
 
         for job in job_schedules {
-            let _ = job_list.remove(&job.id.into());
+            let _ = job_list.remove(&job.id);
 
             self.job_queue
                 .add_or_update(job)

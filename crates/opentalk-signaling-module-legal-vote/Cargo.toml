@@ -21,7 +21,6 @@ either.workspace = true
 futures.workspace = true
 kustos.workspace = true
 log.workspace = true
-opentalk-db-storage.workspace = true
 opentalk-inventory.workspace = true
 opentalk-report-generation.workspace = true
 opentalk-signaling-core.workspace = true

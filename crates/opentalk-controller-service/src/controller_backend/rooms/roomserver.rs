@@ -203,7 +203,7 @@ impl ControllerBackend {
         let invite_code = inventory
             .get_valid_invite_for_room(room.id)
             .await?
-            .map(|invite| invite.id);
+            .map(|invite| invite.invite_code);
 
         let tariff = self.get_tariff_for_room(room.id).await?;
 
@@ -265,8 +265,8 @@ impl ControllerBackend {
             title: event.title,
             description: event.description,
             is_adhoc: event.is_adhoc,
-            starts_at: event.starts_at,
-            ends_at: event.ends_at,
+            starts_at: event.starts_at.map(Into::into),
+            ends_at: event.ends_at.map(Into::into),
             shared_folder,
         };
 

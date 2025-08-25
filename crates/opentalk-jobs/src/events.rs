@@ -7,7 +7,6 @@ use std::{
     sync::Arc,
 };
 
-use chrono::Utc;
 use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::Settings;
@@ -15,8 +14,7 @@ use opentalk_controller_utils::{
     deletion::{Deleter, EventDeleter, RoomDeleter},
     event::EventExt as _,
 };
-use opentalk_db_storage::users::{UpdateUser, User};
-use opentalk_inventory::{Inventory, InventoryProvider};
+use opentalk_inventory::{Inventory, InventoryProvider, UpdateUser, User};
 use opentalk_log::{debug, info, warn};
 use opentalk_signaling_core::{ExchangeHandle, ObjectStorage};
 use opentalk_types_common::{events::EventId, rooms::RoomId, time::Timestamp, users::UserId};
@@ -314,7 +312,7 @@ pub(crate) async fn update_user_accounts(
                     .update_user(
                         user.id,
                         UpdateUser {
-                            disabled_since: Some(Some(Utc::now())),
+                            disabled_since: Some(Some(Timestamp::now())),
                             ..Default::default()
                         },
                     )

@@ -2,20 +2,23 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::tenants::{OidcTenantId, Tenant, get_or_create_tenant_by_oidc_id};
-use opentalk_inventory::{TenantInventory, error::StorageBackendSnafu};
+use opentalk_db_storage::tenants::get_or_create_tenant_by_oidc_id;
+use opentalk_inventory::{OidcTenantId, Tenant, TenantInventory};
 use opentalk_types_common::tenants::TenantId;
 use snafu::ResultExt as _;
 
-use crate::{DatabaseConnection, Result};
+use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl TenantInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn get_tenant(&mut self, tenant_id: TenantId) -> Result<Tenant> {
-        Tenant::get(&mut self.inner, tenant_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            opentalk_db_storage::tenants::Tenant::get(&mut self.inner, tenant_id)
+                .await
+                .context(DatabaseSnafu)?
+                .into(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -23,8 +26,11 @@ impl TenantInventory for DatabaseConnection {
         &mut self,
         oidc_tenant_id: &OidcTenantId,
     ) -> Result<Tenant> {
-        get_or_create_tenant_by_oidc_id(&mut self.inner, oidc_tenant_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            get_or_create_tenant_by_oidc_id(&mut self.inner, &oidc_tenant_id.into())
+                .await
+                .context(DatabaseSnafu)?
+                .into(),
+        )
     }
 }

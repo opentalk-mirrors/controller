@@ -14,6 +14,7 @@ version = "0.31.0"
 
 [workspace.dependencies]
 kustos = { path = "crates/kustos", version = "0.31.0" }
+kustos-db = { path = "crates/kustos-db", version = "0.31.0" }
 opentalk-cache = { path = "crates/opentalk-cache", version = "0.31.0" }
 opentalk-controller-core = { path = "crates/opentalk-controller-core", version = "0.31.0" }
 opentalk-controller-service = { path = "crates/opentalk-controller-service", version = "0.31.0" }

@@ -12,11 +12,7 @@ use aws_sdk_s3::primitives::{ByteStream, ByteStreamError};
 use bigdecimal::BigDecimal;
 use bytes::Bytes;
 use futures::Stream;
-use opentalk_db_storage::{
-    assets::{Asset, NewAsset},
-    rooms::Room,
-};
-use opentalk_inventory::{Inventory, InventoryProvider};
+use opentalk_inventory::{Asset, Inventory, InventoryProvider, NewAsset, Room};
 use opentalk_types_common::{
     assets::{AssetFileKind, AssetId, FileExtension},
     events::EventTitle,
@@ -180,8 +176,8 @@ where
     let kind = filename.kind.clone();
     let filename = filename.to_string();
 
-    // Create a database entry for the uploaded asset
-    let result = insert_asset_into_database(
+    // Create a inventory entry for the uploaded asset
+    let result = insert_asset_into_inventory(
         inventory.as_mut(),
         namespace,
         filename.clone(),
@@ -221,7 +217,7 @@ async fn rollback_object_storage(storage: &ObjectStorage, asset_id: &AssetId) ->
     }
 }
 
-async fn insert_asset_into_database(
+async fn insert_asset_into_inventory(
     inventory: &mut dyn Inventory,
     namespace: Option<ModuleId>,
     filename: String,

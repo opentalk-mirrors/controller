@@ -94,7 +94,6 @@ use tokio::sync::RwLock;
 use crate::actix_web::KustosService;
 
 pub mod actix_web;
-pub mod db;
 mod error;
 mod internal;
 pub mod metrics;
@@ -103,15 +102,13 @@ pub mod policy;
 pub mod prelude;
 
 pub use error::{Error, Result};
+pub use kustos_db::db;
 pub use kustos_shared::{
     access::AccessMethod,
     resource,
     resource::{AccessibleResources, Resource, ResourceId},
     subject,
 };
-
-#[macro_use]
-extern crate diesel;
 
 #[derive(Clone)]
 pub struct Authz {

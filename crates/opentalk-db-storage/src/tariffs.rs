@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use core::fmt::Debug;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use chrono::{DateTime, Utc};
 use derive_more::{AsRef, Display, From, FromStr, Into};
@@ -12,9 +12,9 @@ use diesel_async::RunQueryDsl;
 use opentalk_database::{DbConnection, Result};
 use opentalk_diesel_newtype::DieselNewtype;
 use opentalk_types_common::{
-    features::{FeatureId, ModuleFeatureId},
+    features::ModuleFeatureId,
     modules::ModuleId,
-    tariffs::{QuotaType, TariffId, TariffModuleResource, TariffResource},
+    tariffs::{QuotaType, TariffId},
     users::UserId,
 };
 use redis_args::{FromRedisValue, ToRedisArgs};
@@ -47,6 +47,18 @@ use crate::{
 #[diesel(sql_type = diesel::sql_types::Text)]
 pub struct ExternalTariffId(String);
 
+impl From<ExternalTariffId> for opentalk_inventory::ExternalTariffId {
+    fn from(ExternalTariffId(value): ExternalTariffId) -> Self {
+        Self::from(value)
+    }
+}
+
+impl From<opentalk_inventory::ExternalTariffId> for ExternalTariffId {
+    fn from(value: opentalk_inventory::ExternalTariffId) -> Self {
+        Self(value.into())
+    }
+}
+
 #[derive(
     Debug,
     Clone,
@@ -71,24 +83,31 @@ pub struct Tariff {
     pub disabled_features: Vec<Option<ModuleFeatureId>>,
 }
 
+impl From<Tariff> for opentalk_inventory::Tariff {
+    fn from(
+        Tariff {
+            id,
+            name,
+            created_at,
+            updated_at,
+            quotas,
+            disabled_modules,
+            disabled_features,
+        }: Tariff,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            created_at: created_at.into(),
+            updated_at: updated_at.into(),
+            quotas: quotas.0,
+            disabled_modules,
+            disabled_features,
+        }
+    }
+}
+
 impl Tariff {
-    pub fn quota(&self, quota: &QuotaType) -> Option<u64> {
-        self.quotas.0.get(quota).copied()
-    }
-
-    pub fn disabled_modules(&self) -> BTreeSet<ModuleId> {
-        self.disabled_modules.iter().flatten().cloned().collect()
-    }
-
-    pub fn disabled_features(&self) -> BTreeSet<ModuleFeatureId> {
-        self.disabled_features.iter().flatten().cloned().collect()
-    }
-
-    pub fn is_feature_disabled(&self, module_feature: &ModuleFeatureId) -> bool {
-        self.disabled_features
-            .contains(&Some(module_feature.clone()))
-    }
-
     pub async fn get(conn: &mut DbConnection, id: TariffId) -> Result<Self> {
         let tariff = tariffs::table
             .filter(tariffs::id.eq(id))
@@ -142,45 +161,6 @@ impl Tariff {
 
         Ok(tariff)
     }
-
-    pub fn to_tariff_resource(
-        &self,
-        disabled_features: impl IntoIterator<Item = ModuleFeatureId>,
-        module_features: BTreeMap<ModuleId, impl IntoIterator<Item = FeatureId>>,
-    ) -> TariffResource {
-        let disabled_modules = self.disabled_modules();
-
-        let disabled_features: BTreeSet<_> = BTreeSet::from_iter(
-            self.disabled_features()
-                .into_iter()
-                .chain(disabled_features),
-        );
-
-        let mut modules = BTreeMap::<ModuleId, TariffModuleResource>::new();
-
-        module_features
-            .into_iter()
-            .for_each(|(module_id, feature_id)| {
-                if !disabled_modules.contains(&module_id) {
-                    let features: BTreeSet<FeatureId> =
-                        BTreeSet::from_iter(feature_id.into_iter().filter(|feature| {
-                            !disabled_features.contains(&ModuleFeatureId {
-                                module: module_id.clone(),
-                                feature: feature.clone(),
-                            })
-                        }));
-                    let module_resource = TariffModuleResource { features };
-                    modules.insert(module_id, module_resource);
-                }
-            });
-
-        TariffResource {
-            id: self.id,
-            name: self.name.clone(),
-            quotas: self.quotas.0.clone(),
-            modules,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Insertable)]
@@ -201,6 +181,24 @@ impl NewTariff {
     }
 }
 
+impl From<opentalk_inventory::NewTariff> for NewTariff {
+    fn from(
+        opentalk_inventory::NewTariff {
+            name,
+            quotas,
+            disabled_modules,
+            disabled_features,
+        }: opentalk_inventory::NewTariff,
+    ) -> Self {
+        Self {
+            name,
+            quotas: Jsonb(quotas),
+            disabled_modules: Vec::from_iter(disabled_modules),
+            disabled_features: Vec::from_iter(disabled_features),
+        }
+    }
+}
+
 #[derive(Debug, Clone, AsChangeset)]
 #[diesel(table_name = tariffs)]
 pub struct UpdateTariff {
@@ -209,6 +207,26 @@ pub struct UpdateTariff {
     pub quotas: Option<Jsonb<BTreeMap<QuotaType, u64>>>,
     pub disabled_modules: Option<Vec<ModuleId>>,
     pub disabled_features: Option<Vec<ModuleFeatureId>>,
+}
+
+impl From<opentalk_inventory::UpdateTariff> for UpdateTariff {
+    fn from(
+        opentalk_inventory::UpdateTariff {
+            name,
+            updated_at,
+            quotas,
+            disabled_modules,
+            disabled_features,
+        }: opentalk_inventory::UpdateTariff,
+    ) -> Self {
+        Self {
+            name,
+            updated_at: updated_at.into(),
+            quotas: quotas.map(Jsonb),
+            disabled_modules,
+            disabled_features,
+        }
+    }
 }
 
 impl UpdateTariff {
@@ -224,6 +242,20 @@ impl UpdateTariff {
 pub struct ExternalTariff {
     pub external_id: ExternalTariffId,
     pub tariff_id: TariffId,
+}
+
+impl From<ExternalTariff> for opentalk_inventory::ExternalTariffMapping {
+    fn from(
+        ExternalTariff {
+            external_id,
+            tariff_id,
+        }: ExternalTariff,
+    ) -> Self {
+        Self {
+            external_id: external_id.into(),
+            tariff_id,
+        }
+    }
 }
 
 impl ExternalTariff {
@@ -260,75 +292,11 @@ impl ExternalTariff {
         Ok(())
     }
 
-    pub async fn insert(self, conn: &mut DbConnection) -> Result<()> {
-        let query = self.insert_into(external_tariffs::table);
-        query.execute(conn).await?;
-
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use pretty_assertions::assert_eq;
-    use serde_json::json;
-
-    use super::*;
-
-    #[test]
-    fn tariff_to_tariff_resource() {
-        let tariff = Tariff {
-            id: TariffId::nil(),
-            name: "test".into(),
-            created_at: Default::default(),
-            updated_at: Default::default(),
-            quotas: Default::default(),
-            disabled_modules: vec![
-                Some("whiteboard".parse().expect("valid module id")),
-                Some("timer".parse().expect("valid module id")),
-                Some("media".parse().expect("valid module id")),
-                Some("polls".parse().expect("valid module id")),
-            ],
-            disabled_features: vec![Some(
-                "chat::chat_feature_1"
-                    .parse()
-                    .expect("valid module feature id"),
-            )],
-        };
-
-        let module_features = BTreeMap::from([
-            (
-                "chat".parse().expect("valid module id"),
-                BTreeSet::from([
-                    "chat_feature_1".parse().expect("valid feature id"),
-                    "chat_feature_2".parse().expect("valid feature id"),
-                ]),
-            ),
-            ("media".parse().expect("valid moudle id"), BTreeSet::new()),
-            ("polls".parse().expect("valid module id"), BTreeSet::new()),
-            (
-                "whiteboard".parse().expect("valid module id"),
-                BTreeSet::new(),
-            ),
-            ("timer".parse().expect("valid module id"), BTreeSet::new()),
-        ]);
-
-        let expected = json!({
-            "id": "00000000-0000-0000-0000-000000000000",
-            "name": "test",
-            "quotas": {},
-            "modules": {
-                "chat": {
-                    "features": ["chat_feature_2"]
-                },
-            },
-        });
-
-        let actual = serde_json::to_value(
-            tariff.to_tariff_resource(BTreeSet::<ModuleFeatureId>::new(), module_features),
-        )
-        .unwrap();
-
-        assert_eq!(actual, expected);
+    pub async fn insert(self, conn: &mut DbConnection) -> Result<ExternalTariff> {
+        let external_tariff = self
+            .insert_into(external_tariffs::table)
+            .get_result(conn)
+            .await?;
+        Ok(external_tariff)
     }
 }

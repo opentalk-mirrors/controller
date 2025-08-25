@@ -5,7 +5,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use chrono::{DateTime, TimeZone, Utc};
-use opentalk_db_storage::{module_resources::Filter, users::User};
+use opentalk_inventory::{ModuleResourceFilter, User};
 use opentalk_signaling_core::{
     SignalingModule, SignalingModuleError,
     module_tester::{ModuleTester, WsMessageOutgoing},
@@ -141,7 +141,7 @@ async fn basic_vote_roll_call(storage: TestContextVolatileStorage) {
 
     // Expect a empty legal_vote with `legal_vote_id` to exist in database
     let module_resource = inventory
-        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .get_module_resources(ModuleResourceFilter::new().with_id(*legal_vote_id.inner()))
         .await
         .unwrap()
         .remove(0);
@@ -296,7 +296,7 @@ async fn basic_vote_roll_call(storage: TestContextVolatileStorage) {
 
     // check the vote protocol
     let module_resource = inventory
-        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .get_module_resources(ModuleResourceFilter::new().with_id(*legal_vote_id.inner()))
         .await
         .unwrap()
         .remove(0);
@@ -396,7 +396,7 @@ async fn basic_vote_live_roll_call(storage: TestContextVolatileStorage) {
 
     // Expect a empty legal_vote with `legal_vote_id` to exist in database
     let module_resource = inventory
-        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .get_module_resources(ModuleResourceFilter::new().with_id(*legal_vote_id.inner()))
         .await
         .unwrap()
         .remove(0);
@@ -551,7 +551,7 @@ async fn basic_vote_live_roll_call(storage: TestContextVolatileStorage) {
 
     // check the vote protocol
     let module_resource = inventory
-        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .get_module_resources(ModuleResourceFilter::new().with_id(*legal_vote_id.inner()))
         .await
         .unwrap()
         .remove(0);
@@ -651,7 +651,7 @@ async fn basic_vote_pseudonymous(storage: TestContextVolatileStorage) {
 
     // Expect a empty legal_vote with `legal_vote_id` to exist in database
     let module_resource = inventory
-        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .get_module_resources(ModuleResourceFilter::new().with_id(*legal_vote_id.inner()))
         .await
         .unwrap()
         .remove(0);
@@ -762,7 +762,7 @@ async fn basic_vote_pseudonymous(storage: TestContextVolatileStorage) {
 
     // check the vote protocol
     let module_resource = inventory
-        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .get_module_resources(ModuleResourceFilter::new().with_id(*legal_vote_id.inner()))
         .await
         .unwrap()
         .remove(0);
@@ -862,7 +862,7 @@ async fn hidden_legal_vote(storage: TestContextVolatileStorage) {
 
     // Expect a empty legal_vote with `legal_vote_id` to exist in database
     let module_resource = inventory
-        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .get_module_resources(ModuleResourceFilter::new().with_id(*legal_vote_id.inner()))
         .await
         .unwrap()
         .remove(0);
@@ -973,7 +973,7 @@ async fn hidden_legal_vote(storage: TestContextVolatileStorage) {
 
     // check the vote protocol
     let module_resource = inventory
-        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .get_module_resources(ModuleResourceFilter::new().with_id(*legal_vote_id.inner()))
         .await
         .unwrap()
         .remove(0);
@@ -1074,7 +1074,7 @@ async fn basic_vote_abstain(storage: TestContextVolatileStorage) {
 
     // Expect a empty legal_vote with `legal_vote_id` to exist in database
     let module_resource = inventory
-        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .get_module_resources(ModuleResourceFilter::new().with_id(*legal_vote_id.inner()))
         .await
         .unwrap()
         .remove(0);
@@ -1229,7 +1229,7 @@ async fn basic_vote_abstain(storage: TestContextVolatileStorage) {
 
     // check the vote protocol
     let module_resource = inventory
-        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .get_module_resources(ModuleResourceFilter::new().with_id(*legal_vote_id.inner()))
         .await
         .unwrap()
         .remove(0);
@@ -1324,7 +1324,7 @@ async fn expired_vote(storage: TestContextVolatileStorage) {
 
     // Expect a empty legal_vote with `legal_vote_id` to exist in database
     let module_resource = inventory
-        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .get_module_resources(ModuleResourceFilter::new().with_id(*legal_vote_id.inner()))
         .await
         .unwrap()
         .remove(0);
@@ -1371,7 +1371,7 @@ async fn expired_vote(storage: TestContextVolatileStorage) {
 
     // check the vote protocol
     let module_resource = inventory
-        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .get_module_resources(ModuleResourceFilter::new().with_id(*legal_vote_id.inner()))
         .await
         .unwrap()
         .remove(0);
@@ -1471,7 +1471,7 @@ async fn auto_stop_vote(storage: TestContextVolatileStorage) {
 
     // Expect a empty legal_vote with `legal_vote_id` to exist in database
     let module_resource = inventory
-        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .get_module_resources(ModuleResourceFilter::new().with_id(*legal_vote_id.inner()))
         .await
         .unwrap()
         .remove(0);
@@ -1625,7 +1625,7 @@ async fn auto_stop_vote(storage: TestContextVolatileStorage) {
 
     // check the vote protocol
     let module_resource = inventory
-        .get_module_resources(Filter::new().with_id(*legal_vote_id.inner()))
+        .get_module_resources(ModuleResourceFilter::new().with_id(*legal_vote_id.inner()))
         .await
         .unwrap()
         .remove(0);

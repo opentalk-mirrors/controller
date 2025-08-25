@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_db_storage::tariffs::Tariff;
+use opentalk_inventory::Tariff;
 use opentalk_types_common::{
     rooms::RoomId,
     tariffs::{TariffId, TariffResource},

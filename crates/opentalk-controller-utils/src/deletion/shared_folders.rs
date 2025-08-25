@@ -4,7 +4,7 @@
 
 use log::Log;
 use opentalk_controller_settings::Settings;
-use opentalk_db_storage::events::shared_folders::EventSharedFolder;
+use opentalk_inventory::EventSharedFolder;
 use opentalk_log::{debug, warn};
 use opentalk_nextcloud_client::ShareId;
 use snafu::{Report, whatever};

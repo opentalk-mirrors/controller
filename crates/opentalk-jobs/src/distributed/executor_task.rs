@@ -4,17 +4,17 @@
 
 use std::{borrow::BorrowMut, sync::Arc, time::Duration};
 
-use chrono::Utc;
-use db::jobs::{JobStatus, NewJobExecution, UpdateJobExecution};
 use etcd_client::{
     Client, Compare, CompareOp, EventType, GetOptions, KeyValue, PutOptions, TxnOp, WatchOptions,
 };
 use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::Settings;
-use opentalk_db_storage as db;
-use opentalk_inventory::InventoryProvider;
+use opentalk_inventory::{
+    InventoryProvider, JobId, JobStatus, JobType, NewJobExecution, UpdateJobExecution,
+};
 use opentalk_signaling_core::ExchangeHandle;
+use opentalk_types_common::time::Timestamp;
 use snafu::{ResultExt, Snafu};
 use tokio::{sync::oneshot, task::JoinHandle, time::interval};
 
@@ -30,7 +30,7 @@ use crate::{
     },
     jobs::{
         AdhocEventCleanup, EventCleanup, InviteCleanup, KeycloakAccountSync, RoomCleanup,
-        SelfCheck, SyncStorageFiles,
+        SelfCheck, SyncStorageFiles, UserCleanup,
     },
 };
 
@@ -312,7 +312,7 @@ impl JobExecutor {
         }
     }
 
-    async fn run_job(&mut self, job_id: i64) -> Result<(), ExecutorError> {
+    async fn run_job(&mut self, job_id: JobId) -> Result<(), ExecutorError> {
         log::debug!("running job {job_id}");
         let result = self.run_job_inner(job_id).await;
 
@@ -327,7 +327,7 @@ impl JobExecutor {
         result
     }
 
-    async fn run_job_inner(&mut self, job_id: i64) -> Result<(), ExecutorError> {
+    async fn run_job_inner(&mut self, job_id: JobId) -> Result<(), ExecutorError> {
         self.mark_job_as_running(job_id).await?;
 
         let mut inventory =
@@ -338,17 +338,14 @@ impl JobExecutor {
                     msg: "Failed to get database connection",
                 })?;
 
-        let job = inventory
-            .get_job(job_id.into())
-            .await
-            .context(InventorySnafu {
-                msg: "Failed to get Job from database",
-            })?;
+        let job = inventory.get_job(job_id).await.context(InventorySnafu {
+            msg: "Failed to get Job from database",
+        })?;
 
         let job_execution = inventory
             .create_job_execution(NewJobExecution {
                 job_id: job.id,
-                started_at: Utc::now(),
+                started_at: Timestamp::now(),
                 ended_at: None,
                 job_status: JobStatus::Started,
             })
@@ -372,28 +369,23 @@ impl JobExecutor {
         };
 
         let result = match job.kind {
-            db::jobs::JobType::AdhocEventCleanup => {
-                execution_data.execute::<AdhocEventCleanup>().await
-            }
-            db::jobs::JobType::EventCleanup => execution_data.execute::<EventCleanup>().await,
-            db::jobs::JobType::InviteCleanup => execution_data.execute::<InviteCleanup>().await,
-            db::jobs::JobType::SelfCheck => execution_data.execute::<SelfCheck>().await,
-            db::jobs::JobType::SyncStorageFiles => {
-                execution_data.execute::<SyncStorageFiles>().await
-            }
-            db::jobs::JobType::RoomCleanup => execution_data.execute::<RoomCleanup>().await,
-            db::jobs::JobType::KeycloakAccountSync => {
-                execution_data.execute::<KeycloakAccountSync>().await
-            }
+            JobType::AdhocEventCleanup => execution_data.execute::<AdhocEventCleanup>().await,
+            JobType::EventCleanup => execution_data.execute::<EventCleanup>().await,
+            JobType::UserCleanup => execution_data.execute::<UserCleanup>().await,
+            JobType::InviteCleanup => execution_data.execute::<InviteCleanup>().await,
+            JobType::SelfCheck => execution_data.execute::<SelfCheck>().await,
+            JobType::SyncStorageFiles => execution_data.execute::<SyncStorageFiles>().await,
+            JobType::RoomCleanup => execution_data.execute::<RoomCleanup>().await,
+            JobType::KeycloakAccountSync => execution_data.execute::<KeycloakAccountSync>().await,
         };
 
         let job_execution_update = match result {
             Ok(_) => UpdateJobExecution {
-                ended_at: Some(Utc::now()),
+                ended_at: Some(Timestamp::now()),
                 job_status: Some(JobStatus::Succeeded),
             },
             Err(_) => UpdateJobExecution {
-                ended_at: Some(Utc::now()),
+                ended_at: Some(Timestamp::now()),
                 job_status: Some(JobStatus::Failed),
             },
         };
@@ -416,7 +408,7 @@ impl JobExecutor {
     /// Tags the related job queue key with this executors lease, automatically deleting it when this executor crashes
     ///
     /// Returns `false` if the job is not in the queue or already flagged as running.
-    async fn mark_job_as_running(&mut self, job_id: i64) -> Result<(), ExecutorError> {
+    async fn mark_job_as_running(&mut self, job_id: JobId) -> Result<(), ExecutorError> {
         let queue_key = build_queue_key(job_id);
         let running_key = build_running_key(job_id);
 
@@ -457,7 +449,7 @@ impl JobExecutor {
     }
 
     /// Removes the etcd keys that are related to the given job id
-    async fn clear_job_keys(&mut self, job_id: i64) -> Result<(), ExecutorError> {
+    async fn clear_job_keys(&mut self, job_id: JobId) -> Result<(), ExecutorError> {
         let queue_key = build_queue_key(job_id);
         let running_key = build_running_key(job_id);
 
@@ -542,7 +534,7 @@ impl JobExecutor {
     /// and return [`Ok(None)`], this means that the job should be skipped.
     /// If the key could not be deleted for whatever reason, this function errors and the
     /// [`JobExecutor`] should exit.
-    async fn extract_job_id(&mut self, kv: &KeyValue) -> Result<Option<i64>, ExecutorError> {
+    async fn extract_job_id(&mut self, kv: &KeyValue) -> Result<Option<JobId>, ExecutorError> {
         match parse_job_id(kv) {
             Ok(job_id) => Ok(Some(job_id)),
             Err(e) => {
@@ -564,13 +556,13 @@ impl JobExecutor {
 /// Parse the job id from a key value pair
 ///
 /// Expects the value to be a i64 job id
-fn parse_job_id(kv: &KeyValue) -> Result<i64, ExecutorError> {
+fn parse_job_id(kv: &KeyValue) -> Result<JobId, ExecutorError> {
     let value_str = kv.value_str().context(ParseSnafu {
         key: String::from_utf8_lossy(kv.key()),
     })?;
 
     value_str
-        .parse::<i64>()
+        .parse::<JobId>()
         .context(ParseIntSnafu { val: value_str })
 }
 

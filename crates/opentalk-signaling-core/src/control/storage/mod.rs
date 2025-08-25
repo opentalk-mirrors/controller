@@ -40,7 +40,7 @@ mod test_common {
 
     use chrono::{TimeZone, Utc};
     use control_storage::{GlobalRoomAttributeId, LocalRoomAttributeId, RoomAttributeId};
-    use opentalk_db_storage::events::{Event, EventSerialId};
+    use opentalk_inventory::Event;
     use opentalk_types_common::{
         events::EventId,
         rooms::RoomId,
@@ -413,9 +413,9 @@ mod test_common {
 
         let event_1 = Some(Event {
             id: EventId::generate(),
-            created_at: Utc.with_ymd_and_hms(2024, 5, 16, 1, 2, 3).unwrap(),
-            updated_at: Utc.with_ymd_and_hms(2024, 5, 16, 1, 2, 3).unwrap(),
-            id_serial: EventSerialId::from(55i64),
+            created_at: Utc.with_ymd_and_hms(2024, 5, 16, 1, 2, 3).unwrap().into(),
+            updated_at: Utc.with_ymd_and_hms(2024, 5, 16, 1, 2, 3).unwrap().into(),
+            id_serial: 55i64,
             title: "Event 1".parse().expect("valid event title"),
             description: "Event 1 description"
                 .parse()
@@ -440,9 +440,9 @@ mod test_common {
 
         let event_2 = Some(Event {
             id: EventId::generate(),
-            created_at: Utc.with_ymd_and_hms(2021, 2, 2, 1, 2, 3).unwrap(),
-            updated_at: Utc.with_ymd_and_hms(2021, 2, 2, 1, 2, 3).unwrap(),
-            id_serial: EventSerialId::from(4234i64),
+            created_at: Utc.with_ymd_and_hms(2021, 2, 2, 1, 2, 3).unwrap().into(),
+            updated_at: Utc.with_ymd_and_hms(2021, 2, 2, 1, 2, 3).unwrap().into(),
+            id_serial: 4234i64,
             title: "Event 2".parse().expect("valid event title"),
             description: "Event 2 description"
                 .parse()

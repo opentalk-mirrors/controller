@@ -60,7 +60,7 @@ const MAX_USER_SEARCH_RESULTS: usize = 50;
 /// Diesel user struct
 ///
 /// Is used as a result in various queries. Represents a user column
-#[derive(Clone, Queryable, Identifiable, Serialize, Deserialize, PartialEq, Eq, Encode, Decode)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Eq)]
 pub struct User {
     pub id: UserId,
     pub id_serial: SerialUserId,
@@ -77,14 +77,111 @@ pub struct User {
     pub tenant_id: TenantId,
     pub tariff_id: TariffId,
     pub tariff_status: TariffStatus,
-    #[bincode(with_serde)]
     pub disabled_since: Option<DateTime<Utc>>,
     pub avatar_url: Option<String>,
     pub timezone: Option<TimeZone>,
-    #[bincode(with_serde)]
     pub created_at: DateTime<Utc>,
-    #[bincode(with_serde)]
     pub updated_at: DateTime<Utc>,
+}
+
+impl From<User> for opentalk_inventory::User {
+    fn from(
+        User {
+            id,
+            id_serial,
+            oidc_sub,
+            email,
+            title,
+            firstname,
+            lastname,
+            language,
+            display_name,
+            dashboard_theme,
+            conference_theme,
+            phone,
+            tenant_id,
+            tariff_id,
+            tariff_status,
+            disabled_since,
+            avatar_url,
+            timezone,
+            created_at,
+            updated_at,
+        }: User,
+    ) -> Self {
+        Self {
+            id,
+            id_serial: id_serial.into(),
+            oidc_sub,
+            email,
+            title,
+            firstname,
+            lastname,
+            language,
+            display_name,
+            dashboard_theme,
+            conference_theme,
+            phone,
+            tenant_id,
+            tariff_id,
+            tariff_status,
+            disabled_since: disabled_since.map(Into::into),
+            avatar_url,
+            timezone,
+            created_at: created_at.into(),
+            updated_at: updated_at.into(),
+        }
+    }
+}
+
+impl From<opentalk_inventory::User> for User {
+    fn from(
+        opentalk_inventory::User {
+            id,
+            id_serial,
+            oidc_sub,
+            email,
+            title,
+            firstname,
+            lastname,
+            language,
+            display_name,
+            dashboard_theme,
+            conference_theme,
+            phone,
+            tenant_id,
+            tariff_id,
+            tariff_status,
+            disabled_since,
+            avatar_url,
+            timezone,
+            created_at,
+            updated_at,
+        }: opentalk_inventory::User,
+    ) -> Self {
+        Self {
+            id,
+            id_serial: id_serial.into(),
+            oidc_sub,
+            email,
+            title,
+            firstname,
+            lastname,
+            language,
+            display_name,
+            dashboard_theme,
+            conference_theme,
+            phone,
+            tenant_id,
+            tariff_id,
+            tariff_status,
+            disabled_since: disabled_since.map(Into::into),
+            avatar_url,
+            timezone,
+            created_at: created_at.into(),
+            updated_at: updated_at.into(),
+        }
+    }
 }
 
 impl fmt::Debug for User {
@@ -385,6 +482,42 @@ pub struct NewUser {
     pub timezone: Option<TimeZone>,
 }
 
+impl From<opentalk_inventory::NewUser> for NewUser {
+    fn from(
+        opentalk_inventory::NewUser {
+            oidc_sub,
+            email,
+            title,
+            firstname,
+            lastname,
+            language,
+            display_name,
+            phone,
+            tenant_id,
+            tariff_id,
+            tariff_status,
+            avatar_url,
+            timezone,
+        }: opentalk_inventory::NewUser,
+    ) -> Self {
+        Self {
+            oidc_sub,
+            email,
+            title,
+            firstname,
+            lastname,
+            language,
+            display_name,
+            phone,
+            tenant_id,
+            tariff_id,
+            tariff_status,
+            avatar_url,
+            timezone,
+        }
+    }
+}
+
 impl NewUser {
     pub async fn insert(self, conn: &mut DbConnection) -> Result<User> {
         let query = self.insert_into(users::table);
@@ -462,6 +595,46 @@ pub struct UpdateUser<'a> {
     pub avatar_url: Option<Option<&'a str>>,
     pub timezone: Option<Option<TimeZone>>,
     pub updated_at: DateTime<Utc>,
+}
+
+impl<'a> From<opentalk_inventory::UpdateUser<'a>> for UpdateUser<'a> {
+    fn from(
+        opentalk_inventory::UpdateUser {
+            title,
+            email,
+            firstname,
+            lastname,
+            phone,
+            display_name,
+            language,
+            dashboard_theme,
+            conference_theme,
+            tariff_id,
+            tariff_status,
+            disabled_since,
+            avatar_url,
+            timezone,
+            updated_at,
+        }: opentalk_inventory::UpdateUser<'a>,
+    ) -> UpdateUser<'a> {
+        UpdateUser {
+            title,
+            email,
+            firstname,
+            lastname,
+            phone,
+            display_name,
+            language,
+            dashboard_theme,
+            conference_theme,
+            tariff_id,
+            tariff_status,
+            disabled_since: disabled_since.map(|d| d.map(Into::into)),
+            avatar_url,
+            timezone,
+            updated_at: updated_at.into(),
+        }
+    }
 }
 
 impl UpdateUser<'_> {

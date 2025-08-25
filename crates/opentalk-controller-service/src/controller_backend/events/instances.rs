@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 use kustos::policies_builder::PoliciesBuilder;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_utils::{CaptureApiError, event::EventExt};
-use opentalk_db_storage::events::{
+use opentalk_inventory::{
     Event, EventException, EventExceptionKind, NewEventException, UpdateEventException,
 };
 use opentalk_types_api_v1::{
@@ -34,7 +34,7 @@ use crate::{
     ControllerBackend,
     controller_backend::{
         RoomsPoliciesBuilderExt,
-        events::{DateTimeTzFromDb, EventRoomInfoExt, ONE_HUNDRED_YEARS_IN_DAYS, can_edit},
+        events::{DateTimeTzFromInventory, EventRoomInfoExt, ONE_HUNDRED_YEARS_IN_DAYS},
     },
     events::{
         enrich_invitees_from_optional_user_search, get_invited_mail_recipients_for_event,
@@ -205,7 +205,7 @@ impl ControllerBackend {
 
         let room = EventRoomInfo::from_room(&settings, room, sip_config, &tariff);
 
-        let can_edit = can_edit(&event, &current_user);
+        let can_edit = current_user.can_edit(&event);
 
         let shared_folder =
             shared_folder_for_user(shared_folder, event.created_by, current_user.id);
@@ -215,8 +215,7 @@ impl ControllerBackend {
         let mut instances = vec![];
 
         for datetime in datetimes {
-            let exception =
-                exceptions.next_if(|exception| &exception.exception_date == datetime.as_ref());
+            let exception = exceptions.next_if(|exception| exception.exception_date == datetime);
 
             let instance = create_event_instance(
                 &users,
@@ -328,7 +327,7 @@ impl ControllerBackend {
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
         let current_user = inventory.get_user(current_user.id).await?;
 
-        let can_edit = can_edit(&event, &current_user);
+        let can_edit = current_user.can_edit(&event);
 
         let shared_folder =
             shared_folder_for_user(shared_folder, event.created_by, current_user.id);
@@ -415,12 +414,16 @@ impl ControllerBackend {
             let starts_at = patch
                 .starts_at
                 .or_else(|| DateTimeTz::starts_at_of(&event))
-                .or_else(|| DateTimeTz::maybe_from_db(exception.starts_at, exception.starts_at_tz))
+                .or_else(|| {
+                    DateTimeTz::maybe_from_inventory(exception.starts_at, exception.starts_at_tz)
+                })
                 .unwrap();
             let ends_at = patch
                 .ends_at
                 .or_else(|| DateTimeTz::ends_at_of(&event))
-                .or_else(|| DateTimeTz::maybe_from_db(exception.ends_at, exception.ends_at_tz))
+                .or_else(|| {
+                    DateTimeTz::maybe_from_inventory(exception.ends_at, exception.ends_at_tz)
+                })
                 .unwrap();
 
             super::verify_exception_dt_params(is_all_day, starts_at, ends_at)?;
@@ -497,7 +500,7 @@ impl ControllerBackend {
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
         let current_user = inventory.get_user(current_user.id).await?;
 
-        let can_edit = can_edit(&event, &current_user);
+        let can_edit = current_user.can_edit(&event);
 
         let shared_folder =
             shared_folder_for_user(shared_folder, event.created_by, current_user.id);
@@ -522,7 +525,7 @@ impl ControllerBackend {
             // add the policy, because it has no access to the `RoomsPoliciesBuilderExt` trait.
             let policies = PoliciesBuilder::new()
                 // Grant invitee access
-                .grant_invite_access(invite_for_room.id)
+                .grant_invite_access(invite_for_room.invite_code)
                 .room_guest_read_access(room.id)
                 .finish();
             self.authz.add_policies(policies).await?;
@@ -647,9 +650,9 @@ fn create_event_instance(
         recurring_event_id: event.id,
         instance_id,
         created_by,
-        created_at: event.created_at.into(),
+        created_at: event.created_at,
         updated_by,
-        updated_at: event.updated_at.into(),
+        updated_at: event.updated_at,
         title: event.title,
         description: event.description,
         room,
@@ -657,7 +660,7 @@ fn create_event_instance(
         invitees,
         is_all_day: event.is_all_day.unwrap(),
         starts_at: DateTimeTz {
-            datetime: instance_starts_at,
+            datetime: instance_starts_at.into(),
             timezone: instance_starts_at_tz,
         },
         ends_at: DateTimeTz {

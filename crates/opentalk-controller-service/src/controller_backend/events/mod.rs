@@ -19,18 +19,12 @@ use opentalk_controller_utils::{
     CaptureApiError,
     deletion::{Deleter, EventDeleter},
 };
-use opentalk_db_storage::{
-    events::{
-        Event, EventException, EventExceptionKind, EventInvite,
-        EventTrainingParticipationReportParameterSet, NewEvent, UpdateEvent,
-        UpdateEventTrainingParticipationReportParameterSet, email_invites::EventEmailInvite,
-    },
-    rooms::{NewRoom, Room, UpdateRoom},
-    sip_configs::{NewSipConfig, SipConfig},
-    tenants::Tenant,
-    users::User,
+use opentalk_inventory::{
+    Event, EventEmailInvite, EventException, EventExceptionKind, EventInvite,
+    EventTrainingParticipationReportParameterSet, GetEventsCursor, Inventory, NewEvent, NewRoom,
+    NewRoomSipConfig, Room, RoomSipConfig, Tenant, UpdateEvent,
+    UpdateEventTrainingParticipationReportParameterSet, UpdateRoom, User, transaction,
 };
-use opentalk_inventory::{Inventory, transaction};
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
     Cursor,
@@ -57,7 +51,6 @@ use opentalk_types_common::{
 };
 use rrule::{Frequency, RRuleSet};
 use scoped_futures::ScopedFutureExt as _;
-use serde::Deserialize;
 use snafu::Report;
 
 use crate::{
@@ -280,14 +273,13 @@ impl ControllerBackend {
 
         let mut users = GetUserProfilesBatched::new();
 
-        let get_events_cursor =
-            query
-                .after
-                .map(|cursor| opentalk_db_storage::events::GetEventsCursor {
-                    from_id: cursor.event_id,
-                    from_created_at: cursor.event_created_at.into(),
-                    from_starts_at: cursor.event_starts_at.map(DateTime::from),
-                });
+        let get_events_cursor = query.after.map(|cursor| {
+            GetEventsCursor::new(
+                cursor.event_id,
+                cursor.event_created_at,
+                cursor.event_starts_at,
+            )
+        });
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
@@ -296,7 +288,7 @@ impl ControllerBackend {
 
         let events = inventory
             .get_all_events_for_user_paginated(
-                &current_user,
+                current_user.clone(),
                 query.favorites,
                 BTreeSet::from_iter(query.invite_status),
                 query.time_min,
@@ -317,7 +309,10 @@ impl ControllerBackend {
 
         let users = users.fetch(&settings, inventory.as_mut()).await?;
 
-        let event_refs: Vec<&Event> = events.iter().map(|(event, ..)| event).collect();
+        let event_refs = events
+            .iter()
+            .map(|(event, ..)| event)
+            .collect::<Vec<&Event>>();
 
         // Build list of event invites with user, grouped by events
         let invites_with_users_grouped_by_event = if query.invitees_max == 0 {
@@ -368,8 +363,8 @@ impl ControllerBackend {
         {
             ret_cursor_data = Some(GetEventsCursorData {
                 event_id: event.id,
-                event_created_at: event.created_at.into(),
-                event_starts_at: event.starts_at.map(Timestamp::from),
+                event_created_at: event.created_at,
+                event_starts_at: event.starts_at,
             });
 
             let created_by = users.get(event.created_by);
@@ -401,7 +396,7 @@ impl ControllerBackend {
             let starts_at = DateTimeTz::starts_at_of(&event);
             let ends_at = DateTimeTz::ends_at_of(&event);
 
-            let can_edit = can_edit(&event, &current_user);
+            let can_edit = current_user.can_edit(&event);
 
             let shared_folder =
                 shared_folder_for_user(shared_folder, event.created_by, current_user.id);
@@ -419,9 +414,9 @@ impl ControllerBackend {
             let event_resource = EventResource {
                 id: event.id,
                 created_by,
-                created_at: event.created_at.into(),
+                created_at: event.created_at,
                 updated_by,
-                updated_at: event.updated_at.into(),
+                updated_at: event.updated_at,
                 title: event.title,
                 description: event.description,
                 room: EventRoomInfo::from_room(&settings, room, sip_config, &tariff),
@@ -456,7 +451,7 @@ impl ControllerBackend {
                 for exception in exceptions {
                     let created_by = users.get(exception.created_by);
                     let exception_resource =
-                        EventExceptionResource::from_db(exception, created_by, can_edit);
+                        EventExceptionResource::from_inventory(exception, created_by, can_edit);
 
                     event_exception_resources.push(exception_resource);
                 }
@@ -509,7 +504,7 @@ impl ControllerBackend {
         let starts_at = DateTimeTz::starts_at_of(&event);
         let ends_at = DateTimeTz::ends_at_of(&event);
 
-        let can_edit = can_edit(&event, &current_user);
+        let can_edit = current_user.can_edit(&event);
 
         let shared_folder =
             shared_folder_for_user(shared_folder, event.created_by, current_user.id);
@@ -524,9 +519,9 @@ impl ControllerBackend {
             invitees_truncated,
             invitees,
             created_by: users.get(event.created_by),
-            created_at: event.created_at.into(),
+            created_at: event.created_at,
             updated_by: users.get(event.updated_by),
-            updated_at: event.updated_at.into(),
+            updated_at: event.updated_at,
             is_time_independent: event.is_time_independent,
             is_all_day: event.is_all_day,
             starts_at,
@@ -720,7 +715,7 @@ impl ControllerBackend {
         // add the policy, because it has no access to the `RoomsPoliciesBuilderExt` trait.
         let policies = PoliciesBuilder::new()
             // Grant invitee access
-            .grant_invite_access(invite_for_room.id)
+            .grant_invite_access(invite_for_room.invite_code)
             .room_guest_read_access(room.id)
             .finish();
         self.authz.add_policies(policies).await?;
@@ -745,7 +740,7 @@ impl ControllerBackend {
         let starts_at = DateTimeTz::starts_at_of(&event);
         let ends_at = DateTimeTz::ends_at_of(&event);
 
-        let can_edit = can_edit(&event, &current_user);
+        let can_edit = current_user.can_edit(&event);
 
         let shared_folder =
             shared_folder_for_user(shared_folder, event.created_by, current_user.id);
@@ -755,9 +750,9 @@ impl ControllerBackend {
         let event_resource = EventResource {
             id: event.id,
             created_by: created_by.to_public_user_profile(&settings),
-            created_at: event.created_at.into(),
+            created_at: event.created_at,
             updated_by: current_user.to_public_user_profile(&settings),
-            updated_at: event.updated_at.into(),
+            updated_at: event.updated_at,
             title: event.title,
             description: event.description,
             room: EventRoomInfo::from_room(&settings, room, sip_config, &tariff),
@@ -907,24 +902,24 @@ impl ControllerBackend {
     }
 }
 
-pub(crate) trait DateTimeTzFromDb: Sized {
-    fn maybe_from_db(utc_dt: Option<DateTime<Utc>>, tz: Option<TimeZone>) -> Option<Self>;
+pub(crate) trait DateTimeTzFromInventory: Sized {
+    fn maybe_from_inventory(utc_dt: Option<Timestamp>, tz: Option<TimeZone>) -> Option<Self>;
     fn starts_at_of(event: &Event) -> Option<Self>;
     fn ends_at_of(event: &Event) -> Option<Self>;
     fn to_datetime_tz(self) -> DateTime<Tz>;
 }
 
-impl DateTimeTzFromDb for DateTimeTz {
+impl DateTimeTzFromInventory for DateTimeTz {
     /// Create a [`DateTimeTz`] from the database results
     ///
     /// Returns None if any of them are none.
     ///
     /// Only used to exceptions. To get the correct starts_at/ends_at [`DateTimeTz`] values
     /// [`DateTimeTz::starts_at_of`] and [`DateTimeTz::ends_at_of`] is used
-    fn maybe_from_db(utc_dt: Option<DateTime<Utc>>, tz: Option<TimeZone>) -> Option<Self> {
+    fn maybe_from_inventory(utc_dt: Option<Timestamp>, tz: Option<TimeZone>) -> Option<Self> {
         if let (Some(utc_dt), Some(tz)) = (utc_dt, tz) {
             Some(Self {
-                datetime: utc_dt,
+                datetime: utc_dt.into(),
                 timezone: tz,
             })
         } else {
@@ -936,7 +931,7 @@ impl DateTimeTzFromDb for DateTimeTz {
     fn starts_at_of(event: &Event) -> Option<Self> {
         if let (Some(dt), Some(tz)) = (event.starts_at, event.starts_at_tz) {
             Some(Self {
-                datetime: dt,
+                datetime: dt.into(),
                 timezone: tz,
             })
         } else {
@@ -947,7 +942,7 @@ impl DateTimeTzFromDb for DateTimeTz {
     /// Creates the `ends_at` DateTimeTz from an event
     fn ends_at_of(event: &Event) -> Option<Self> {
         event.ends_at_of_first_occurrence().map(|(dt, tz)| Self {
-            datetime: dt,
+            datetime: dt.into(),
             timezone: tz,
         })
     }
@@ -959,26 +954,37 @@ impl DateTimeTzFromDb for DateTimeTz {
 }
 
 trait EventResourceExt {
-    fn from_db(exception: EventException, created_by: PublicUserProfile, can_edit: bool) -> Self;
+    fn from_inventory(
+        exception: EventException,
+        created_by: PublicUserProfile,
+        can_edit: bool,
+    ) -> Self;
 }
 
 impl EventResourceExt for EventExceptionResource {
-    fn from_db(exception: EventException, created_by: PublicUserProfile, can_edit: bool) -> Self {
+    fn from_inventory(
+        exception: EventException,
+        created_by: PublicUserProfile,
+        can_edit: bool,
+    ) -> Self {
         Self {
             id: EventAndInstanceId(exception.event_id, exception.exception_date.into()),
             recurring_event_id: exception.event_id,
             instance_id: exception.exception_date.into(),
             created_by: created_by.clone(),
-            created_at: exception.created_at.into(),
+            created_at: exception.created_at,
             updated_by: created_by,
-            updated_at: exception.created_at.into(),
+            updated_at: exception.created_at,
             title: exception.title,
             description: exception.description,
             is_all_day: exception.is_all_day,
-            starts_at: DateTimeTz::maybe_from_db(exception.starts_at, exception.starts_at_tz),
-            ends_at: DateTimeTz::maybe_from_db(exception.ends_at, exception.ends_at_tz),
+            starts_at: DateTimeTz::maybe_from_inventory(
+                exception.starts_at,
+                exception.starts_at_tz,
+            ),
+            ends_at: DateTimeTz::maybe_from_inventory(exception.ends_at, exception.ends_at_tz),
             original_starts_at: DateTimeTz {
-                datetime: exception.exception_date,
+                datetime: exception.exception_date.into(),
                 timezone: exception.exception_date_tz,
             },
             type_: EventType::Exception,
@@ -1023,7 +1029,7 @@ trait EventRoomInfoExt {
     fn from_room(
         settings: &Settings,
         room: Room,
-        sip_config: Option<SipConfig>,
+        sip_config: Option<RoomSipConfig>,
         tariff: &TariffResource,
     ) -> Self;
 }
@@ -1038,7 +1044,7 @@ impl EventRoomInfoExt for EventRoomInfo {
     fn from_room(
         settings: &Settings,
         room: Room,
-        sip_config: Option<SipConfig>,
+        sip_config: Option<RoomSipConfig>,
         tariff: &TariffResource,
     ) -> Self {
         let call_in_feature_is_enabled = tariff
@@ -1121,7 +1127,7 @@ struct MailResource {
     pub current_user: User,
     pub event: Event,
     pub room: Room,
-    pub sip_config: Option<SipConfig>,
+    pub sip_config: Option<RoomSipConfig>,
 }
 
 /// Part of `POST /events` endpoint
@@ -1153,7 +1159,7 @@ async fn create_time_independent_event(
         .await?;
 
     let sip_config = inventory
-        .create_room_sip_config(NewSipConfig::new(room.id, false))
+        .create_room_sip_config(NewRoomSipConfig::new(room.id, false))
         .await?;
 
     let event = inventory
@@ -1205,9 +1211,9 @@ async fn create_time_independent_event(
             invitees_truncated: false,
             invitees: vec![],
             created_by: current_user.to_public_user_profile(settings),
-            created_at: event.created_at.into(),
+            created_at: event.created_at,
             updated_by: current_user.to_public_user_profile(settings),
-            updated_at: event.updated_at.into(),
+            updated_at: event.updated_at,
             is_time_independent: true,
             is_all_day: None,
             starts_at: None,
@@ -1265,7 +1271,7 @@ async fn create_time_dependent_event(
         .await?;
 
     let sip_config = inventory
-        .create_room_sip_config(NewSipConfig::new(room.id, false))
+        .create_room_sip_config(NewRoomSipConfig::new(room.id, false))
         .await?;
 
     let event = inventory
@@ -1317,9 +1323,9 @@ async fn create_time_dependent_event(
             invitees_truncated: false,
             invitees: vec![],
             created_by: current_user.to_public_user_profile(settings),
-            created_at: event.created_at.into(),
+            created_at: event.created_at,
             updated_by: current_user.to_public_user_profile(settings),
-            updated_at: event.updated_at.into(),
+            updated_at: event.updated_at,
             is_time_independent: event.is_time_independent,
             is_all_day: event.is_all_day,
             starts_at: Some(starts_at),
@@ -1365,7 +1371,7 @@ fn patch_event_change_to_time_dependent(
             title: patch.title,
             description: patch.description,
             updated_by: current_user.id,
-            updated_at: Utc::now(),
+            updated_at: Timestamp::now(),
             is_time_independent: Some(false),
             is_all_day: Some(Some(is_all_day)),
             starts_at: Some(Some(starts_at.to_datetime_tz())),
@@ -1463,7 +1469,7 @@ async fn patch_time_independent_event(
         title: patch.title,
         description: patch.description,
         updated_by: current_user.id,
-        updated_at: Utc::now(),
+        updated_at: Timestamp::now(),
         is_time_independent: Some(true),
         is_all_day: Some(None),
         starts_at: Some(None),
@@ -1515,7 +1521,7 @@ async fn patch_time_dependent_event(
         title: patch.title,
         description: patch.description,
         updated_by: current_user.id,
-        updated_at: Utc::now(),
+        updated_at: Timestamp::now(),
         is_time_independent: Some(false),
         is_all_day: Some(Some(is_all_day)),
         starts_at: Some(Some(starts_at.to_datetime_tz())),
@@ -1535,7 +1541,7 @@ pub(crate) struct CancellationNotificationValues {
     pub created_by: User,
     pub event: Event,
     pub room: Room,
-    pub sip_config: Option<SipConfig>,
+    pub sip_config: Option<RoomSipConfig>,
     pub users_to_notify: Vec<MailRecipient>,
     pub shared_folder: Option<SharedFolder>,
     pub streaming_targets: Vec<RoomStreamingTarget>,
@@ -1553,7 +1559,7 @@ pub(crate) async fn notify_invitees_about_delete(
 ) {
     // Don't send mails for past events
     match notification_values.event.ends_at {
-        Some(ends_at) if ends_at < Utc::now() => {
+        Some(ends_at) if ends_at < Utc::now().into() => {
             return;
         }
         _ => {}
@@ -1587,16 +1593,6 @@ pub(crate) async fn notify_invitees_about_delete(
             );
         }
     }
-}
-
-/// Currently unused
-#[derive(Debug, Deserialize)]
-pub struct EventRescheduleBody {
-    _from: DateTime<Utc>,
-    _is_all_day: Option<bool>,
-    _starts_at: Option<bool>,
-    _ends_at: Option<bool>,
-    _recurrence_pattern: RecurrencePattern,
 }
 
 async fn get_invitees_for_event(
@@ -1773,13 +1769,6 @@ fn parse_event_dt_params(
     } else {
         Ok((None, ends_at.to_datetime_tz(), ends_at.timezone))
     }
-}
-
-/// calculate if `user` can edit `event`
-fn can_edit(event: &Event, user: &User) -> bool {
-    // Its sufficient to check if the user created the event as here isn't currently a system which allows users to
-    // grant write access to event
-    event.created_by == user.id
 }
 
 /// Helper trait to to reduce boilerplate in the single route handlers

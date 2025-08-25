@@ -100,14 +100,10 @@ mod tests {
     use kustos::Authz;
     use log::logger;
     use opentalk_controller_settings::SettingsProvider;
-    use opentalk_db_storage::{
-        events::{Event, UpdateEvent},
-        users::{UpdateUser, User},
-    };
-    use opentalk_inventory::Inventory;
+    use opentalk_inventory::{Event, Inventory, UpdateEvent, UpdateUser, User};
     use opentalk_signaling_core::ExchangeHandle;
     use opentalk_test_util::database::DatabaseContext;
-    use opentalk_types_common::{events::EventId, users::UserId};
+    use opentalk_types_common::{events::EventId, time::Timestamp, users::UserId};
 
     use super::{UserCleanup, default_days_since_user_has_been_disabled};
     use crate::{
@@ -148,8 +144,8 @@ mod tests {
                     conference_theme: None,
                     tariff_id: None,
                     tariff_status: None,
-                    disabled_since: Some(Some(since)),
-                    updated_at: Utc::now(),
+                    disabled_since: Some(Some(since.into())),
+                    updated_at: Timestamp::now(),
                 },
             )
             .await
@@ -164,7 +160,7 @@ mod tests {
                     title: None,
                     description: None,
                     updated_by: user,
-                    updated_at: Utc::now(),
+                    updated_at: Timestamp::now(),
                     is_time_independent: None,
                     is_all_day: None,
                     starts_at: None,

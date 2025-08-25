@@ -10,15 +10,11 @@
 // TODO: We probably can avoid the conversion to MailTasks if no rabbit_mq_queue is set in all mail fns
 use std::sync::Arc;
 
+use chrono::DateTime;
 use lapin_pool::{RabbitMqChannel, RabbitMqPool};
 use opentalk_controller_settings::Settings;
-use opentalk_db_storage::{
-    events::{Event, EventException, EventExceptionKind},
-    rooms::Room,
-    sip_configs::SipConfig,
-    users::User,
-};
-use opentalk_mail_worker_protocol::*;
+use opentalk_inventory::{Event, EventException, EventExceptionKind, Room, RoomSipConfig, User};
+use opentalk_mail_worker_protocol::{MailTask, v1};
 use opentalk_types_common::{
     features::CALL_IN_FEATURE_ID,
     modules::CORE_MODULE_ID,
@@ -63,6 +59,27 @@ impl From<User> for RegisteredMailRecipient {
     }
 }
 
+impl From<RegisteredMailRecipient> for v1::RegisteredUser {
+    fn from(
+        RegisteredMailRecipient {
+            id: _,
+            email,
+            title,
+            first_name,
+            last_name,
+            language,
+        }: RegisteredMailRecipient,
+    ) -> Self {
+        Self {
+            email: email.into(),
+            title,
+            first_name,
+            last_name,
+            language,
+        }
+    }
+}
+
 /// An unregistered mail recipient
 #[derive(Debug)]
 pub struct UnregisteredMailRecipient {
@@ -97,20 +114,26 @@ fn to_event(
     event: Event,
     room: Room,
     room_tariff: &TariffResource,
-    sip_config: Option<SipConfig>,
+    sip_config: Option<RoomSipConfig>,
     shared_folder: Option<SharedFolder>,
     streaming_targets: Vec<RoomStreamingTarget>,
 ) -> v1::Event {
     const ONE_DAY_IN_SECONDS: u64 = 86400;
 
     let created_at = v1::Time {
-        time: event.created_at,
+        time: event.created_at.into(),
         timezone: event.created_at.timezone().to_string(),
     };
 
-    let start_time: Option<v1::Time> = event.starts_at.zip(event.starts_at_tz).map(Into::into);
+    let start_time: Option<v1::Time> = event
+        .starts_at
+        .map(DateTime::from)
+        .zip(event.starts_at_tz)
+        .map(Into::into);
 
-    let end_time: Option<v1::Time> = event.ends_at_of_first_occurrence().map(Into::into);
+    let end_time: Option<v1::Time> = event
+        .ends_at_of_first_occurrence()
+        .map(|(timestamp, timezone)| v1::Time::from((DateTime::from(timestamp), timezone)));
 
     let mut call_in = None;
 
@@ -153,7 +176,7 @@ fn to_event(
 
 fn to_event_exception(exception: EventException) -> v1::EventException {
     let exception_date = v1::Time {
-        time: exception.exception_date,
+        time: exception.exception_date.into(),
         timezone: exception.exception_date_tz.to_string(),
     };
 
@@ -164,10 +187,15 @@ fn to_event_exception(exception: EventException) -> v1::EventException {
 
     let starts_at: Option<v1::Time> = exception
         .starts_at
+        .map(DateTime::from)
         .zip(exception.starts_at_tz)
         .map(Into::into);
 
-    let ends_at: Option<v1::Time> = exception.ends_at.zip(exception.ends_at_tz).map(Into::into);
+    let ends_at: Option<v1::Time> = exception
+        .ends_at
+        .map(DateTime::from)
+        .zip(exception.ends_at_tz)
+        .map(Into::into);
 
     v1::EventException {
         exception_date,
@@ -256,7 +284,7 @@ impl MailService {
         event: Event,
         room: Room,
         room_tariff: &TariffResource,
-        sip_config: Option<SipConfig>,
+        sip_config: Option<RoomSipConfig>,
         invitee: User,
         shared_folder: Option<SharedFolder>,
         streaming_targets: Vec<RoomStreamingTarget>,
@@ -271,7 +299,7 @@ impl MailService {
 
         // Create MailTask
         let mail_task = MailTask::registered_event_invite(
-            inviter,
+            RegisteredMailRecipient::from(inviter),
             to_event(
                 settings,
                 event,
@@ -281,7 +309,7 @@ impl MailService {
                 shared_folder,
                 streaming_targets,
             ),
-            invitee,
+            RegisteredMailRecipient::from(invitee),
         );
 
         self.send_to_rabbitmq(settings, mail_task).await?;
@@ -297,7 +325,7 @@ impl MailService {
         event: Event,
         room: Room,
         room_tariff: &TariffResource,
-        sip_config: Option<SipConfig>,
+        sip_config: Option<RoomSipConfig>,
         invitee: opentalk_keycloak_admin::users::User,
         shared_folder: Option<SharedFolder>,
         streaming_targets: Vec<RoomStreamingTarget>,
@@ -310,7 +338,7 @@ impl MailService {
 
         // Create MailTask
         let mail_task = MailTask::unregistered_event_invite(
-            inviter,
+            RegisteredMailRecipient::from(inviter),
             to_event(
                 settings,
                 event,
@@ -336,7 +364,7 @@ impl MailService {
         event: Event,
         room: Room,
         room_tariff: &TariffResource,
-        sip_config: Option<SipConfig>,
+        sip_config: Option<RoomSipConfig>,
         invitee: &str,
         invite_code: String,
         shared_folder: Option<SharedFolder>,
@@ -344,7 +372,7 @@ impl MailService {
     ) -> Result<()> {
         // Create MailTask
         let mail_task = MailTask::external_event_invite(
-            inviter,
+            RegisteredMailRecipient::from(inviter),
             to_event(
                 settings,
                 event,
@@ -372,7 +400,7 @@ impl MailService {
         event_exception: Option<EventException>,
         room: Room,
         room_tariff: &TariffResource,
-        sip_config: Option<SipConfig>,
+        sip_config: Option<RoomSipConfig>,
         invitee: MailRecipient,
         invite_code: String,
         shared_folder: Option<SharedFolder>,
@@ -388,7 +416,7 @@ impl MailService {
                     }
                 });
                 MailTask::registered_event_update(
-                    inviter,
+                    RegisteredMailRecipient::from(inviter),
                     to_event(
                         settings,
                         event,
@@ -409,7 +437,7 @@ impl MailService {
                 )
             }
             MailRecipient::Unregistered(invitee) => MailTask::unregistered_event_update(
-                inviter,
+                RegisteredMailRecipient::from(inviter),
                 to_event(
                     settings,
                     event,
@@ -427,7 +455,7 @@ impl MailService {
                 },
             ),
             MailRecipient::External(invitee) => MailTask::external_event_update(
-                inviter,
+                RegisteredMailRecipient::from(inviter),
                 to_event(
                     settings,
                     event,
@@ -459,7 +487,7 @@ impl MailService {
         mut event: Event,
         room: Room,
         room_tariff: &TariffResource,
-        sip_config: Option<SipConfig>,
+        sip_config: Option<RoomSipConfig>,
         invitee: MailRecipient,
         shared_folder: Option<SharedFolder>,
         streaming_targets: Vec<RoomStreamingTarget>,
@@ -477,7 +505,7 @@ impl MailService {
                     }
                 });
                 MailTask::registered_event_cancellation(
-                    inviter,
+                    RegisteredMailRecipient::from(inviter),
                     to_event(
                         settings,
                         event,
@@ -497,7 +525,7 @@ impl MailService {
                 )
             }
             MailRecipient::Unregistered(invitee) => MailTask::unregistered_event_cancellation(
-                inviter,
+                RegisteredMailRecipient::from(inviter),
                 to_event(
                     settings,
                     event,
@@ -514,7 +542,7 @@ impl MailService {
                 },
             ),
             MailRecipient::External(invitee) => MailTask::external_event_cancellation(
-                inviter,
+                RegisteredMailRecipient::from(inviter),
                 to_event(
                     settings,
                     event,
@@ -544,7 +572,7 @@ impl MailService {
         mut event: Event,
         room: Room,
         room_tariff: &TariffResource,
-        sip_config: Option<SipConfig>,
+        sip_config: Option<RoomSipConfig>,
         invitee: MailRecipient,
         shared_folder: Option<SharedFolder>,
         streaming_targets: Vec<RoomStreamingTarget>,
@@ -562,7 +590,7 @@ impl MailService {
                     }
                 });
                 MailTask::registered_event_uninvite(
-                    inviter,
+                    RegisteredMailRecipient::from(inviter),
                     to_event(
                         settings,
                         event,
@@ -582,7 +610,7 @@ impl MailService {
                 )
             }
             MailRecipient::Unregistered(invitee) => MailTask::unregistered_event_uninvite(
-                inviter,
+                RegisteredMailRecipient::from(inviter),
                 to_event(
                     settings,
                     event,
@@ -599,7 +627,7 @@ impl MailService {
                 },
             ),
             MailRecipient::External(invitee) => MailTask::external_event_uninvite(
-                inviter,
+                RegisteredMailRecipient::from(inviter),
                 to_event(
                     settings,
                     event,

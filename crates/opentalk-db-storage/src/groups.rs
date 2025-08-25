@@ -55,6 +55,23 @@ pub struct Group {
     pub tenant_id: TenantId,
 }
 
+impl From<Group> for opentalk_inventory::Group {
+    fn from(
+        Group {
+            id,
+            id_serial: _,
+            name,
+            tenant_id,
+        }: Group,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            tenant_id,
+        }
+    }
+}
+
 impl Group {
     #[tracing::instrument(err, skip_all)]
     pub async fn get_all_for_user(conn: &mut DbConnection, user_id: UserId) -> Result<Vec<Group>> {
@@ -163,15 +180,12 @@ pub async fn get_or_create_groups_by_name(
 #[tracing::instrument(err, skip_all)]
 pub async fn insert_user_into_groups(
     conn: &mut DbConnection,
-    user: &User,
-    groups: &[Group],
+    user_id: UserId,
+    groups: &[GroupId],
 ) -> Result<BTreeSet<GroupId>> {
     let new_user_groups = groups
         .iter()
-        .map(|group| NewUserGroupRelation {
-            user_id: user.id,
-            group_id: group.id,
-        })
+        .map(|&group_id| NewUserGroupRelation { user_id, group_id })
         .collect::<Vec<_>>();
 
     let inserted_groups = diesel::insert_into(user_groups::table)
@@ -192,15 +206,13 @@ pub async fn insert_user_into_groups(
 #[tracing::instrument(err, skip_all)]
 pub async fn remove_user_from_all_groups_except(
     conn: &mut DbConnection,
-    user: &User,
-    groups_to_keep: &[Group],
+    user_id: UserId,
+    group_ids_to_keep: &[GroupId],
 ) -> Result<BTreeSet<GroupId>> {
-    let group_ids_to_keep: Vec<GroupId> = groups_to_keep.iter().map(|group| group.id).collect();
-
     let removed_groups = diesel::delete(user_groups::table)
         .filter(
             user_groups::user_id
-                .eq(user.id)
+                .eq(user_id)
                 .and(user_groups::group_id.ne_all(group_ids_to_keep)),
         )
         .returning(user_groups::group_id)

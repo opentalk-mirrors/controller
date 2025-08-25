@@ -16,17 +16,14 @@ workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+kustos-db.workspace = true
 kustos-shared = { workspace = true, features = ["internal"] }
 opentalk-database.workspace = true
-
-## Database migration
-barrel = { version = "0.7", features = ["pg"] }
 
 ### Error handling
 snafu.workspace = true
 
 ### Database ORM
-diesel = { workspace = true, features = ["chrono", "serde_json", "uuid"] }
 diesel-async.workspace = true
 uuid = { workspace = true, features = ["serde", "v4"] }
 

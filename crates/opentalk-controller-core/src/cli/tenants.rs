@@ -6,7 +6,8 @@ use chrono::Utc;
 use clap::Subcommand;
 use opentalk_controller_settings::Settings;
 use opentalk_database::{DatabaseError, Db};
-use opentalk_db_storage::tenants::{OidcTenantId, Tenant, UpdateTenant};
+use opentalk_db_storage::tenants::{Tenant, UpdateTenant};
+use opentalk_inventory::OidcTenantId;
 use opentalk_types_common::tenants::TenantId;
 use tabled::{Table, Tabled, settings::Style};
 use uuid::Uuid;
@@ -44,7 +45,7 @@ impl TenantTableRow {
     fn from_tenant(tenant: Tenant) -> Self {
         Self {
             id: tenant.id,
-            oidc_id: tenant.oidc_tenant_id,
+            oidc_id: tenant.oidc_tenant_id.into(),
         }
     }
 }
@@ -79,7 +80,7 @@ async fn set_oidc_id(
 
     UpdateTenant {
         updated_at: Utc::now(),
-        oidc_tenant_id: &new_oidc_id,
+        oidc_tenant_id: &new_oidc_id.clone().into(),
     }
     .apply(&mut conn, id)
     .await?;

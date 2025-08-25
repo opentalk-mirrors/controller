@@ -6,18 +6,14 @@ use std::sync::Arc;
 
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use opentalk_database::Db;
-use opentalk_db_storage::{
-    migrations::migrate_from_url,
-    rooms::{NewRoom, Room},
-    users::{NewUser, User},
-};
-use opentalk_inventory::InventoryProvider;
+use opentalk_db_storage::migrations::migrate_from_url;
+use opentalk_inventory::{InventoryProvider, NewRoom, NewUser, Room, User};
 use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_types_common::{
     rooms::RoomId,
     tariffs::TariffStatus,
     tenants::TenantId,
-    users::{GroupName, UserId, UserTitle},
+    users::{GroupId, GroupName, UserId, UserTitle},
 };
 use snafu::{ResultExt, Whatever};
 
@@ -123,9 +119,12 @@ impl DatabaseContext {
         let groups = connection
             .get_or_create_groups_by_name(&groups)
             .await
-            .whatever_context("create group failed")?;
+            .whatever_context("create group failed")?
+            .into_iter()
+            .map(|g| g.id)
+            .collect::<Vec<GroupId>>();
         connection
-            .add_user_to_groups(&user, &groups)
+            .add_user_to_groups(user.id, &groups)
             .await
             .whatever_context("add user to group failed")?;
 

@@ -2,12 +2,12 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::events::shared_folders::{EventSharedFolder, NewEventSharedFolder};
-use opentalk_inventory::{EventSharedFolderInventory, error::StorageBackendSnafu};
+use opentalk_db_storage::events::shared_folders::{self as db};
+use opentalk_inventory::{EventSharedFolder, EventSharedFolderInventory, NewEventSharedFolder};
 use opentalk_types_common::{events::EventId, rooms::RoomId};
 use snafu::ResultExt as _;
 
-use crate::{DatabaseConnection, Result};
+use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl EventSharedFolderInventory for DatabaseConnection {
@@ -16,10 +16,11 @@ impl EventSharedFolderInventory for DatabaseConnection {
         &mut self,
         new_shared_folder: NewEventSharedFolder,
     ) -> Result<Option<EventSharedFolder>> {
-        new_shared_folder
+        Ok(db::NewEventSharedFolder::from(new_shared_folder)
             .try_insert(&mut self.inner)
             .await
-            .context(StorageBackendSnafu)
+            .context(DatabaseSnafu)?
+            .map(Into::into))
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -27,9 +28,12 @@ impl EventSharedFolderInventory for DatabaseConnection {
         &mut self,
         event_id: EventId,
     ) -> Result<Option<EventSharedFolder>> {
-        EventSharedFolder::get_for_event(&mut self.inner, event_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::EventSharedFolder::get_for_event(&mut self.inner, event_id)
+                .await
+                .context(DatabaseSnafu)?
+                .map(Into::into),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -37,22 +41,31 @@ impl EventSharedFolderInventory for DatabaseConnection {
         &mut self,
         room_id: RoomId,
     ) -> Result<Vec<EventSharedFolder>> {
-        EventSharedFolder::get_all_for_room(&mut self.inner, room_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::EventSharedFolder::get_all_for_room(&mut self.inner, room_id)
+                .await
+                .context(DatabaseSnafu)?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn delete_shared_folder_by_event_id(&mut self, event_id: EventId) -> Result<()> {
-        EventSharedFolder::delete_by_event_id(&mut self.inner, event_id)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::EventSharedFolder::delete_by_event_id(&mut self.inner, event_id)
+                .await
+                .context(DatabaseSnafu)?,
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn delete_shared_folders_by_event_ids(&mut self, event_ids: &[EventId]) -> Result<()> {
-        EventSharedFolder::delete_by_event_ids(&mut self.inner, event_ids)
-            .await
-            .context(StorageBackendSnafu)
+        Ok(
+            db::EventSharedFolder::delete_by_event_ids(&mut self.inner, event_ids)
+                .await
+                .context(DatabaseSnafu)?,
+        )
     }
 }

@@ -2,13 +2,12 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use chrono::Utc;
 use kustos::policies_builder::PoliciesBuilder;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_utils::{
     CaptureApiError, TariffResourceExt, deletion::room::associated_resource_ids_for_invite,
 };
-use opentalk_db_storage::invites::{Invite, NewInvite, UpdateInvite};
+use opentalk_inventory::{NewRoomInvite, RoomInvite, RoomInviteWithUsers, UpdateRoomInvite};
 use opentalk_types_api_v1::{
     error::ApiError,
     pagination::PagePaginationQuery,
@@ -22,6 +21,7 @@ use opentalk_types_common::{
     features::{GUESTS_ALLOWED_FEATURE_ID, GUESTS_ALLOWED_MODULE_FEATURE_ID},
     modules::DEFAULT_MODULE_ID,
     rooms::{RoomId, invite_codes::InviteCode},
+    time::Timestamp,
 };
 
 use crate::{ControllerBackend, ToUserProfile, controller_backend::RoomsPoliciesBuilderExt};
@@ -41,18 +41,18 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let invite = inventory
-            .create_room_invite(NewInvite {
+            .create_room_invite(NewRoomInvite {
                 active: true,
                 created_by: current_user.id,
                 updated_by: current_user.id,
                 room: room_id,
-                expiration: new_invite.expiration,
+                expiration: new_invite.expiration.map(Into::into),
             })
             .await?;
 
         let policies = PoliciesBuilder::new()
             // Grant invitee access
-            .grant_invite_access(invite.id)
+            .grant_invite_access(invite.invite_code)
             .room_guest_read_access(room_id)
             .finish();
 
@@ -61,7 +61,7 @@ impl ControllerBackend {
         let created_by = current_user.to_public_user_profile(&settings);
         let updated_by = current_user.to_public_user_profile(&settings);
 
-        let invite = Invite::into_invite_resource(invite, created_by, updated_by);
+        let invite = invite.into_invite_resource(created_by, updated_by);
 
         Ok(invite)
     }
@@ -88,12 +88,18 @@ impl ControllerBackend {
 
         let invites = invites_with_users
             .into_iter()
-            .map(|(db_invite, created_by, updated_by)| {
-                let created_by = created_by.to_public_user_profile(&settings);
-                let updated_by = updated_by.to_public_user_profile(&settings);
+            .map(
+                |RoomInviteWithUsers {
+                     invite,
+                     created_by,
+                     updated_by,
+                 }| {
+                    let created_by = created_by.to_public_user_profile(&settings);
+                    let updated_by = updated_by.to_public_user_profile(&settings);
 
-                Invite::into_invite_resource(db_invite, created_by, updated_by)
-            })
+                    invite.into_invite_resource(created_by, updated_by)
+                },
+            )
             .collect::<Vec<InviteResource>>();
 
         Ok((GetRoomsInvitesResponseBody(invites), total_invites))
@@ -111,7 +117,11 @@ impl ControllerBackend {
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let (invite, created_by, updated_by) = inventory
+        let RoomInviteWithUsers {
+            invite,
+            created_by,
+            updated_by,
+        } = inventory
             .get_room_invite_with_creator_and_updater(invite_code)
             .await?;
 
@@ -122,7 +132,7 @@ impl ControllerBackend {
         let created_by = created_by.to_public_user_profile(&settings);
         let updated_by = updated_by.to_public_user_profile(&settings);
 
-        Ok(Invite::into_invite_resource(invite, created_by, updated_by))
+        Ok(invite.into_invite_resource(created_by, updated_by))
     }
 
     pub(crate) async fn update_invite(
@@ -139,7 +149,11 @@ impl ControllerBackend {
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let (invite, created_by, _updated_by) = inventory
+        let RoomInviteWithUsers {
+            invite,
+            created_by,
+            updated_by: _,
+        } = inventory
             .get_room_invite_with_creator_and_updater(invite_code)
             .await?;
 
@@ -147,15 +161,15 @@ impl ControllerBackend {
             return Err(ApiError::not_found().into());
         }
 
-        let now = Utc::now();
+        let now = Timestamp::now();
         let invite = inventory
             .update_room_invite(
                 room_id,
                 invite_code,
-                UpdateInvite {
+                UpdateRoomInvite {
                     updated_by: Some(current_user.id),
                     updated_at: Some(now),
-                    expiration: Some(body.expiration),
+                    expiration: Some(body.expiration.map(Into::into)),
                     active: None,
                     room: None,
                 },
@@ -165,7 +179,7 @@ impl ControllerBackend {
         let created_by = created_by.to_public_user_profile(&settings);
         let updated_by = current_user.to_public_user_profile(&settings);
 
-        Ok(Invite::into_invite_resource(invite, created_by, updated_by))
+        Ok(invite.into_invite_resource(created_by, updated_by))
     }
 
     pub(crate) async fn delete_invite(
@@ -183,9 +197,9 @@ impl ControllerBackend {
             .update_room_invite(
                 room_id,
                 invite_code,
-                UpdateInvite {
+                UpdateRoomInvite {
                     updated_by: Some(current_user.id),
-                    updated_at: Some(Utc::now()),
+                    updated_at: Some(Timestamp::now()),
                     expiration: None,
                     active: Some(false),
                     room: None,
@@ -215,7 +229,7 @@ impl ControllerBackend {
 
         let expired = invite
             .expiration
-            .map(|expiration| expiration <= Utc::now())
+            .map(|expiration| expiration <= Timestamp::now())
             .unwrap_or_default();
 
         if !invite.active
@@ -235,27 +249,27 @@ impl ControllerBackend {
 
 trait IntoInviteResource {
     fn into_invite_resource(
-        invite: Invite,
+        self,
         created_by: PublicUserProfile,
         updated_by: PublicUserProfile,
     ) -> InviteResource;
 }
 
-impl IntoInviteResource for Invite {
+impl IntoInviteResource for RoomInvite {
     fn into_invite_resource(
-        invite: Invite,
+        self,
         created_by: PublicUserProfile,
         updated_by: PublicUserProfile,
     ) -> InviteResource {
         InviteResource {
-            invite_code: invite.id,
-            created: invite.created_at,
+            invite_code: self.invite_code,
+            created: self.created_at.into(),
             created_by,
-            updated: invite.updated_at,
+            updated: self.updated_at.into(),
             updated_by,
-            room_id: invite.room,
-            active: invite.active,
-            expiration: invite.expiration,
+            room_id: self.room,
+            active: self.active,
+            expiration: self.expiration.map(Into::into),
         }
     }
 }

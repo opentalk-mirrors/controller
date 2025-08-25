@@ -35,14 +35,8 @@ use opentalk_controller_settings::{
     Settings, SettingsProvider, TariffAssignment, TariffStatusMapping, TenantAssignment,
 };
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_db_storage::{
-    groups::Group,
-    tariffs::{ExternalTariffId, Tariff},
-    tenants::{OidcTenantId, Tenant},
-    users::User,
-};
 use opentalk_inventory::{
-    Inventory, InventoryProvider, UpsertOutcome, UserCreateOrUpdateByOidcSub, transaction,
+    Inventory, InventoryProvider, NewUser, Tariff, Tenant, UpsertOutcome, User, transaction,
 };
 use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use opentalk_types_common::{
@@ -395,7 +389,7 @@ async fn check_access_token_inner(
             })?;
 
             let tariff = inventory
-                .get_tariff_by_external_tariff_id(&ExternalTariffId::from(external_tariff_id))
+                .get_tariff_by_external_tariff_id(external_tariff_id.into())
                 .await?
                 .ok_or_else(|| {
                     ApiError::internal()
@@ -440,7 +434,7 @@ async fn check_access_token_inner(
         })?,
     };
     let tenant = inventory
-        .get_or_create_tenant_by_oidc_id(&OidcTenantId::from(tenant_id))
+        .get_or_create_tenant_by_oidc_id(&tenant_id.into())
         .await?;
 
     let groups: Vec<(TenantId, GroupName)> = info
@@ -448,7 +442,12 @@ async fn check_access_token_inner(
         .iter()
         .map(|group| (tenant.id, GroupName::from(group.clone())))
         .collect();
-    let groups = inventory.get_or_create_groups_by_name(&groups).await?;
+    let groups = inventory
+        .get_or_create_groups_by_name(&groups)
+        .await?
+        .into_iter()
+        .map(|g| g.id)
+        .collect::<Vec<GroupId>>();
 
     let login_result = {
         let tenant = tenant.clone();
@@ -459,7 +458,7 @@ async fn check_access_token_inner(
                     tenant,
                     info,
                     settings,
-                    groups,
+                    &groups,
                     tariff,
                     tariff_status,
                     fallback_locale,
@@ -482,7 +481,7 @@ async fn create_or_update_user(
     tenant: Tenant,
     info: OpenIdConnectUserInfo,
     settings: &Settings,
-    groups: Vec<Group>,
+    groups: &[GroupId],
     tariff: Tariff,
     tariff_status: TariffStatus,
     fallback_locale: Language,
@@ -503,7 +502,7 @@ async fn create_or_update_user(
 
     let outcome = inventory
         .create_or_update_user_by_oidc_sub(
-            UserCreateOrUpdateByOidcSub {
+            NewUser {
                 oidc_sub: info.sub,
                 email: info.email,
                 title: UserTitle::new(),
@@ -524,22 +523,22 @@ async fn create_or_update_user(
 
     match outcome {
         UpsertOutcome::Inserted(user) => {
-            let groups_added_to = inventory.add_user_to_groups(&user, &groups).await?;
+            let groups = inventory.add_user_to_groups(user.id, groups).await?;
 
             let event_and_room_ids = inventory
-                .migrate_event_email_invites_to_user_invites(&user)
+                .migrate_event_email_invites_to_user_invites(user.clone())
                 .await?;
 
             Ok(LoginResult::UserCreated {
                 user,
-                groups: groups_added_to,
+                groups,
                 event_and_room_ids,
             })
         }
         UpsertOutcome::Updated(user) => {
-            let groups_added_to = inventory.add_user_to_groups(&user, &groups).await?;
+            let groups_added_to = inventory.add_user_to_groups(user.id, groups).await?;
             let groups_removed_from = inventory
-                .remove_user_from_all_groups_except(&user, &groups)
+                .remove_user_from_all_groups_except(user.id, groups)
                 .await?;
 
             Ok(LoginResult::UserUpdated {

@@ -33,8 +33,7 @@ use opentalk_controller_service::{
 };
 use opentalk_controller_settings::SettingsProvider;
 use opentalk_controller_utils::get_tariff_for_user;
-use opentalk_db_storage::{rooms::Room, users::User};
-use opentalk_inventory::{Inventory, InventoryProvider, utils::build_event_info};
+use opentalk_inventory::{Inventory, InventoryProvider, Room, User, utils::build_event_info};
 use opentalk_signaling_core::{
     AnyStream, ExchangeHandle, LockError, ObjectStorage, Participant, RoomLockingProvider as _,
     RunnerId, SignalingMetrics, SignalingModule, SignalingModuleError, SignalingRoomId,

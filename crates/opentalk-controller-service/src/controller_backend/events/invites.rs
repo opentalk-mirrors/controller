@@ -10,18 +10,11 @@ use kustos::{Authz, policies_builder::PoliciesBuilder};
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_db_storage::{
-    events::{
-        Event, EventInvite, NewEventInvite, UpdateEventInvite,
-        email_invites::{NewEventEmailInvite, UpdateEventEmailInvite},
-    },
-    invites::NewInvite,
-    rooms::Room,
-    sip_configs::SipConfig,
-    tenants::Tenant,
-    users::User,
+use opentalk_inventory::{
+    Event, EventInvite, Inventory, InventoryProvider, NewEventEmailInvite, NewEventInvite,
+    NewRoomInvite, Room, RoomSipConfig, Tenant, UpdateEventEmailInvite, UpdateEventInvite, User,
+    transaction,
 };
-use opentalk_inventory::{Inventory, InventoryProvider, transaction};
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -627,7 +620,7 @@ async fn create_email_event_invite(
             event: Event,
             room: Room,
             invitee: User,
-            sip_config: Option<SipConfig>,
+            sip_config: Option<RoomSipConfig>,
             invite: EventInvite,
             shared_folder: Option<SharedFolder>,
             streaming_targets: Vec<RoomStreamingTarget>,
@@ -635,7 +628,7 @@ async fn create_email_event_invite(
         DoesNotExist {
             event: Event,
             room: Room,
-            sip_config: Option<SipConfig>,
+            sip_config: Option<RoomSipConfig>,
             shared_folder: Option<SharedFolder>,
             streaming_targets: Vec<RoomStreamingTarget>,
         },
@@ -782,7 +775,7 @@ async fn create_invite_to_non_matching_email(
     event: Event,
     room: Room,
     room_tariff: &TariffResource,
-    sip_config: Option<SipConfig>,
+    sip_config: Option<RoomSipConfig>,
     email: EmailAddress,
     role: EmailInviteRole,
     shared_folder: Option<SharedFolder>,
@@ -850,7 +843,7 @@ async fn create_invite_to_non_matching_email(
                         })?;
                 } else {
                     let invite = inventory
-                        .create_room_invite(NewInvite {
+                        .create_room_invite(NewRoomInvite {
                             active: true,
                             created_by: current_user.id,
                             updated_by: current_user.id,
@@ -861,7 +854,7 @@ async fn create_invite_to_non_matching_email(
 
                     let policies = PoliciesBuilder::new()
                         // Grant invitee access
-                        .grant_invite_access(invite.id)
+                        .grant_invite_access(invite.invite_code)
                         .room_guest_read_access(room.id)
                         .finish();
 
@@ -877,7 +870,7 @@ async fn create_invite_to_non_matching_email(
                                 room_tariff,
                                 sip_config,
                                 invitee_email.as_ref(),
-                                invite.id.to_string(),
+                                invite.invite_code.to_string(),
                                 shared_folder,
                                 streaming_targets,
                             )
@@ -911,7 +904,7 @@ struct UninviteNotificationValues {
     pub created_by: User,
     pub event: Event,
     pub room: Room,
-    pub sip_config: Option<SipConfig>,
+    pub sip_config: Option<RoomSipConfig>,
     pub users_to_notify: Vec<MailRecipient>,
 }
 
@@ -961,7 +954,7 @@ async fn notify_invitees_about_uninvite(
 ) {
     // Don't send mails for past events
     match notification_values.event.ends_at {
-        Some(ends_at) if ends_at < Utc::now() => {
+        Some(ends_at) if ends_at < Utc::now().into() => {
             return;
         }
         _ => {}

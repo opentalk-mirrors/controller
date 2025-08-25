@@ -5,7 +5,7 @@
 use std::collections::{HashMap, HashSet};
 
 use etcd_client::{Client, Compare, CompareOp, TxnOp};
-use opentalk_db_storage::jobs::Job;
+use opentalk_inventory::{Job, JobId};
 use snafu::{ResultExt, Snafu};
 use tokio_cron_scheduler::{JobScheduler, JobSchedulerError};
 use uuid::Uuid;
@@ -67,7 +67,7 @@ pub struct JobQueue {
     /// The internal cron scheduler
     scheduler: JobScheduler,
     /// A map of job ids and their related
-    job_table: HashMap<i64, JobInfo>,
+    job_table: HashMap<JobId, JobInfo>,
 }
 
 impl JobQueue {
@@ -88,19 +88,19 @@ impl JobQueue {
         })
     }
 
-    pub(crate) fn current_jobs(&self) -> HashSet<i64> {
+    pub(crate) fn current_jobs(&self) -> HashSet<JobId> {
         self.job_table.keys().copied().collect()
     }
 
     /// Add a new job or update it if it already exists
     pub(crate) async fn add_or_update(&mut self, job: Job) -> Result<(), QueueError> {
-        if let Some(job_info) = self.job_table.get(&job.id.into()) {
+        if let Some(job_info) = self.job_table.get(&job.id) {
             if job_info.job == job {
                 // The same job already exists
                 return Ok(());
             }
 
-            if let Some(job_info) = self.remove(job.id.into()).await? {
+            if let Some(job_info) = self.remove(job.id).await? {
                 log::debug!(
                     "Removed job in preparation for update (id: {}, name: {}, kind: {}, cron schedule: {}",
                     job_info.job.id,
@@ -130,7 +130,7 @@ impl JobQueue {
     pub(crate) async fn add(&mut self, job: Job) -> Result<Option<JobInfo>, QueueError> {
         let job_id = job.id;
 
-        if self.job_table.contains_key(&job_id.into()) {
+        if self.job_table.contains_key(&job_id) {
             log::debug!("Job {job_id} already exists in scheduler");
             return Ok(None);
         }
@@ -143,7 +143,7 @@ impl JobQueue {
 
                 Box::pin(async move {
                     log::debug!("adding job to queue {job_id}");
-                    if let Err(e) = add_job_to_queue(job_id.into(), client).await {
+                    if let Err(e) = add_job_to_queue(job_id, client).await {
                         log::error!("Failed to add job `{e}` to job queue, discarding job:");
                     }
                 })
@@ -161,13 +161,13 @@ impl JobQueue {
             job: job.clone(),
         };
 
-        let job = self.job_table.insert(job.id.into(), job_info);
+        let job = self.job_table.insert(job.id, job_info);
 
         Ok(job)
     }
 
     /// Removes a Job from the scheduler
-    pub(crate) async fn remove(&mut self, job_id: i64) -> Result<Option<JobInfo>, QueueError> {
+    pub(crate) async fn remove(&mut self, job_id: JobId) -> Result<Option<JobInfo>, QueueError> {
         match self.job_table.remove(&job_id) {
             Some(job_info) => {
                 self.scheduler
@@ -212,7 +212,7 @@ impl JobQueue {
 /// The creation fails when the specific job already exists in the queue
 ///
 /// Returns false when the key already exists
-async fn add_job_to_queue(job_id: i64, mut client: Client) -> Result<bool, QueueError> {
+async fn add_job_to_queue(job_id: JobId, mut client: Client) -> Result<bool, QueueError> {
     let key = build_queue_key(job_id);
 
     let txn = etcd_client::Txn::new()

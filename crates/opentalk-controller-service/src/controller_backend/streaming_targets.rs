@@ -4,7 +4,7 @@
 
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_db_storage::streaming_targets::UpdateRoomStreamingTarget;
+use opentalk_inventory::UpdateRoomStreamingTarget;
 use opentalk_types_api_v1::{
     error::ApiError,
     events::StreamingTargetOptionsQuery,
