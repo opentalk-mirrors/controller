@@ -67,7 +67,7 @@ use crate::api::{
 )]
 #[post("/rooms/{room_id}/invites")]
 pub async fn add_invite(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     room_id: Path<RoomId>,
     new_invite: Json<PostInviteRequestBody>,
@@ -121,7 +121,7 @@ pub async fn add_invite(
 )]
 #[get("/rooms/{room_id}/invites")]
 pub async fn get_invites(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     room_id: Path<RoomId>,
     pagination: Query<PagePaginationQuery>,
 ) -> DefaultApiResult<GetRoomsInvitesResponseBody> {
@@ -170,7 +170,7 @@ pub async fn get_invites(
 )]
 #[get("/rooms/{room_id}/invites/{invite_code}")]
 pub async fn get_invite(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     path_params: Path<RoomIdAndInviteCode>,
 ) -> DefaultApiResult<InviteResource> {
     let invite_resoruce = service
@@ -215,7 +215,7 @@ pub async fn get_invite(
 )]
 #[put("/rooms/{room_id}/invites/{invite_code}")]
 pub async fn update_invite(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     path_params: Path<RoomIdAndInviteCode>,
     update_invite: Json<PutInviteRequestBody>,
@@ -267,7 +267,7 @@ pub async fn update_invite(
 )]
 #[delete("/rooms/{room_id}/invites/{invite_code}")]
 pub async fn delete_invite(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     path_params: Path<RoomIdAndInviteCode>,
 ) -> Result<NoContent, ApiError> {
@@ -312,7 +312,7 @@ pub async fn delete_invite(
 )]
 #[post("/invite/verify")]
 pub async fn verify_invite_code(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     verify_request: Json<PostInviteVerifyRequestBody>,
 ) -> DefaultApiResult<PostInviteVerifyResponseBody> {
     let verify_request = verify_request.into_inner();

@@ -90,7 +90,7 @@ use crate::api::v1::rooms::InternalServerError;
 )]
 #[post("/rooms/{room_id}/roomserver/start")]
 pub async fn start(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     room_id: Path<RoomId>,
     request: Json<PostRoomsRoomserverStartRequestBody>,
@@ -208,7 +208,7 @@ pub async fn start(
 )]
 #[post("/rooms/{room_id}/roomserver/start_invited")]
 pub async fn start_invited(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     room_id: Path<RoomId>,
     request: Json<PostRoomsRoomserverStartInvitedRequestBody>,
 ) -> Result<Json<RoomserverStartResponseBody>, ApiError> {

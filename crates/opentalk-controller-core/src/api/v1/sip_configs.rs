@@ -56,7 +56,7 @@ use crate::api::{
 )]
 #[get("/rooms/{room_id}/sip")]
 pub async fn get(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     room_id: Path<RoomId>,
 ) -> Result<Json<SipConfigResource>, ApiError> {
     Ok(Json(service.get_sip_config(room_id.into_inner()).await?))
@@ -105,7 +105,7 @@ pub async fn get(
 )]
 #[put("/rooms/{room_id}/sip")]
 pub async fn put(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     room_id: Path<RoomId>,
     modify_sip_config: Json<PutSipConfigRequestBody>,
 ) -> Result<HttpResponse, ApiError> {
@@ -158,7 +158,7 @@ pub async fn put(
 )]
 #[delete("/rooms/{room_id}/sip")]
 pub async fn delete(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     room_id: Path<RoomId>,
 ) -> Result<NoContent, ApiError> {
     service.delete_sip_config(room_id.into_inner()).await?;

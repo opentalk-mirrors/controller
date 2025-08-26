@@ -70,7 +70,7 @@ pub(crate) mod roomserver;
 )]
 #[get("/rooms")]
 pub async fn accessible(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<User>,
     pagination: web::Query<PagePaginationQuery>,
 ) -> Result<ApiResponse<GetRoomsResponseBody>, ApiError> {
@@ -120,7 +120,7 @@ pub async fn accessible(
 )]
 #[post("/rooms")]
 pub async fn new(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     body: Json<PostRoomsRequestBody>,
 ) -> Result<Json<RoomResource>, ApiError> {
@@ -175,7 +175,7 @@ pub async fn new(
 )]
 #[patch("/rooms/{room_id}")]
 pub async fn patch(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     room_id: Path<RoomId>,
     body: Json<PatchRoomsRequestBody>,
@@ -231,7 +231,7 @@ pub async fn patch(
 )]
 #[delete("/rooms/{room_id}")]
 pub async fn delete(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     room_id: Path<RoomId>,
     query: web::Query<DeleteRoomQuery>,
@@ -281,7 +281,7 @@ pub async fn delete(
 )]
 #[get("/rooms/{room_id}")]
 pub async fn get(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     room_id: Path<RoomId>,
 ) -> Result<Json<RoomResource>, ApiError> {
     Ok(Json(service.get_room(&room_id).await?))
@@ -321,7 +321,7 @@ pub async fn get(
 )]
 #[get("/rooms/{room_id}/tariff")]
 pub async fn get_room_tariff(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     room_id: Path<RoomId>,
     invite_code: ReqData<Option<InviteCode>>,
 ) -> Result<Json<TariffResource>, ApiError> {
@@ -367,7 +367,7 @@ pub async fn get_room_tariff(
 )]
 #[get("/rooms/{room_id}/event")]
 pub async fn get_room_event(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     room_id: Path<RoomId>,
     invite_code: ReqData<Option<InviteCode>>,
 ) -> Result<Json<GetRoomEventResponseBody>, ApiError> {
@@ -443,7 +443,7 @@ pub async fn get_room_event(
 )]
 #[post("/rooms/{room_id}/start")]
 pub async fn start(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     room_id: Path<RoomId>,
     request: Json<PostRoomsStartRequestBody>,
@@ -571,7 +571,7 @@ pub async fn start(
 )]
 #[post("/rooms/{room_id}/start_invited")]
 pub async fn start_invited(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     room_id: Path<RoomId>,
     request: Json<PostRoomsStartInvitedRequestBody>,
 ) -> Result<ApiResponse<RoomsStartResponseBody>, ApiError> {

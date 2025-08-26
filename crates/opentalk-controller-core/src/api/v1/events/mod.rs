@@ -64,7 +64,7 @@ pub mod shared_folder;
 )]
 #[post("/events")]
 pub async fn new_event(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     new_event: Json<PostEventsBody>,
     query: Query<EventOptionsQuery>,
@@ -118,7 +118,7 @@ pub async fn new_event(
 )]
 #[get("/events")]
 pub async fn get_events(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     query: Query<GetEventsQuery>,
 ) -> DefaultApiResult<Vec<EventOrException>> {
@@ -166,7 +166,7 @@ pub async fn get_events(
 )]
 #[get("/events/{event_id}")]
 pub async fn get_event(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     event_id: Path<EventId>,
     query: Query<GetEventQuery>,
@@ -225,7 +225,7 @@ pub async fn get_event(
 )]
 #[patch("/events/{event_id}")]
 pub async fn patch_event(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     event_id: Path<EventId>,
     query: Query<PatchEventQuery>,
@@ -284,7 +284,7 @@ pub async fn patch_event(
 )]
 #[delete("/events/{event_id}")]
 pub async fn delete_event(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     event_id: Path<EventId>,
     query: Query<DeleteEventsQuery>,

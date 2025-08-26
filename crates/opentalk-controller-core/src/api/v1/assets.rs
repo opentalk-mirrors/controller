@@ -60,7 +60,7 @@ use crate::api::responses::{BinaryData, Forbidden, InternalServerError, NotFound
 )]
 #[get("/rooms/{room_id}/assets")]
 pub async fn room_assets(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     room_id: Path<RoomId>,
     pagination: Query<PagePaginationQuery>,
 ) -> Result<ApiResponse<RoomsByRoomIdAssetsGetResponseBody>, ApiError> {
@@ -114,7 +114,7 @@ pub async fn room_assets(
 )]
 #[get("/rooms/{room_id}/assets/{asset_id}")]
 pub async fn room_asset(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     path: Path<(RoomId, AssetId)>,
 ) -> Result<HttpResponse, ApiError> {
     let (room_id, asset_id) = path.into_inner();
@@ -167,7 +167,7 @@ pub async fn room_asset(
 )]
 #[post("/rooms/{room_id}/assets")]
 pub async fn create(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     path: Path<RoomId>,
     query: Query<PostAssetQuery>,
     data: Payload,
@@ -233,7 +233,7 @@ pub async fn create(
 )]
 #[delete("/rooms/{room_id}/assets/{asset_id}")]
 pub async fn delete(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     path: Path<(RoomId, AssetId)>,
 ) -> Result<NoContent, ApiError> {
     let (room_id, asset_id) = path.into_inner();

@@ -60,7 +60,7 @@ pub const REQUIRED_CALL_IN_ROLE: &str = "opentalk-call-in";
 )]
 #[post("/start")]
 pub async fn post_call_in_start(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     request: Json<PostCallInStartRequestBody>,
 ) -> Result<Json<PostServiceStartResponseBody>, ApiError> {
     let response = service.start_call_in(request.into_inner()).await?;

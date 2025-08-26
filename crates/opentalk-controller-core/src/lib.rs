@@ -185,7 +185,7 @@ impl<M: RegisterModules> RegisterModules for ControllerModules<M> {
 
 /// Controller struct representation containing all fields required to extend and drive the controller
 pub struct Controller {
-    pub service: OpenTalkControllerService,
+    pub service: Arc<dyn OpenTalkControllerService>,
 
     /// Settings loaded on [Controller::create]
     pub startup_settings: Arc<Settings>,
@@ -462,7 +462,8 @@ impl Controller {
                 roomserver_client,
             )
         };
-        let service = OpenTalkControllerService::new(backend);
+
+        let service = Arc::new(backend);
 
         let controller = Self {
             service,
@@ -533,7 +534,7 @@ impl Controller {
             let metrics = Data::new(self.metrics);
 
             let caches = Data::new(caches::Caches::create(self.volatile.right().clone()));
-            let service = Data::new(self.service.clone());
+            let service = Data::from(self.service);
 
             HttpServer::new(move || {
                 let cors = setup_cors();

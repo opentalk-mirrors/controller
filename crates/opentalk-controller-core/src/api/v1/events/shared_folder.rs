@@ -55,7 +55,7 @@ use crate::api::{
 )]
 #[get("/events/{event_id}/shared_folder")]
 pub async fn get_shared_folder_for_event(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     event_id: Path<EventId>,
 ) -> Result<Json<SharedFolder>, ApiError> {
@@ -108,7 +108,7 @@ pub async fn get_shared_folder_for_event(
 )]
 #[put("/events/{event_id}/shared_folder")]
 pub async fn put_shared_folder_for_event(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     event_id: Path<EventId>,
     query: Query<PutSharedFolderQuery>,
@@ -164,7 +164,7 @@ pub async fn put_shared_folder_for_event(
 )]
 #[delete("/events/{event_id}/shared_folder")]
 pub async fn delete_shared_folder_for_event(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     event_id: Path<EventId>,
     query: Query<DeleteSharedFolderQuery>,

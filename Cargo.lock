@@ -6062,7 +6062,6 @@ dependencies = [
  "opentalk-signaling-core",
  "opentalk-types-api-v1",
  "opentalk-types-common",
- "tokio",
 ]
 
 [[package]]
