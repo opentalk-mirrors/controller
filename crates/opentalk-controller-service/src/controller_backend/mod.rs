@@ -14,6 +14,7 @@ mod tariff;
 mod services;
 mod streaming_targets;
 mod users;
+mod utils;
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -332,12 +333,14 @@ impl OpenTalkControllerService for ControllerBackend {
         Ok(self.new_event(current_user, event, query).await?)
     }
 
-    async fn get_events(
+    async fn get_events_and_exceptions_interwoven(
         &self,
         current_user: RequestUser,
         query: GetEventsQuery,
     ) -> Result<(Vec<EventOrException>, Option<String>, Option<String>), ApiError> {
-        Ok(self.get_events(current_user, query).await?)
+        Ok(self
+            .get_events_and_exceptions_interwoven(current_user, query)
+            .await?)
     }
 
     async fn get_event(

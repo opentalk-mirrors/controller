@@ -202,7 +202,7 @@ pub trait OpenTalkControllerService: Send + Sync {
     ) -> Result<EventResource, ApiError>;
 
     /// Get a list of events and exceptions
-    async fn get_events(
+    async fn get_events_and_exceptions_interwoven(
         &self,
         current_user: RequestUser,
         query: GetEventsQuery,

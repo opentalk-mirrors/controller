@@ -40,6 +40,7 @@ mod tariff;
 mod tenant;
 mod transaction_manager;
 mod user;
+mod utils;
 
 pub use database_connection::DatabaseConnection;
 pub use database_connection_pool::DatabaseConnectionPool;

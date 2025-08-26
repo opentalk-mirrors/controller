@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, pin::Pin};
 
+use futures_util::Stream;
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
     rooms::RoomId,
@@ -17,8 +18,8 @@ use super::{
     UpdateEvent, UpdateEventException,
 };
 use crate::{
-    EventInvite, EventSharedFolder, EventTrainingParticipationReportParameterSet, Result, Room,
-    RoomSipConfig, Tariff, User,
+    EventInvite, EventSharedFolder, EventTrainingParticipationReportParameterSet,
+    GetEventExceptionsCursor, Result, Room, RoomSipConfig, Tariff, User,
 };
 
 /// A trait for retrieving and storing event entities.
@@ -113,6 +114,55 @@ pub trait EventInventory {
             Option<TrainingParticipationReportParameterSet>,
         )>,
     >;
+
+    /// Get all events to which a user has access.
+    #[allow(clippy::too_many_arguments, clippy::type_complexity)]
+    async fn get_all_events_for_user_paginated_as_stream<'a>(
+        &'a mut self,
+        user: User,
+        only_favorites: bool,
+        invite_status_filter: BTreeSet<EventInviteStatus>,
+        time_min: Option<Timestamp>,
+        time_max: Option<Timestamp>,
+        created_before: Option<Timestamp>,
+        created_after: Option<Timestamp>,
+        adhoc: Option<bool>,
+        time_independent: Option<bool>,
+        cursor: Option<GetEventsCursor>,
+    ) -> Result<
+        Pin<
+            Box<
+                dyn Stream<
+                        Item = Result<(
+                            Event,
+                            Option<EventInvite>,
+                            Room,
+                            Option<RoomSipConfig>,
+                            bool,
+                            Option<EventSharedFolder>,
+                            Tariff,
+                            Option<TrainingParticipationReportParameterSet>,
+                        )>,
+                    > + 'a,
+            >,
+        >,
+    >;
+
+    /// Get all event exceptions to which a user has access.
+    #[allow(clippy::too_many_arguments, clippy::type_complexity)]
+    async fn get_all_event_exceptions_for_user_paginated_as_stream<'a>(
+        &'a mut self,
+        user: User,
+        only_favorites: bool,
+        invite_status_filter: BTreeSet<EventInviteStatus>,
+        time_min: Option<Timestamp>,
+        time_max: Option<Timestamp>,
+        created_before: Option<Timestamp>,
+        created_after: Option<Timestamp>,
+        adhoc: Option<bool>,
+        time_independent: Option<bool>,
+        cursor: Option<GetEventExceptionsCursor>,
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<(EventException, Event)>> + 'a>>>;
 
     /// Get the ids of all events with the ids of their creator.
     async fn get_all_event_ids_with_creator_id(&mut self) -> Result<Vec<(EventId, UserId)>>;
