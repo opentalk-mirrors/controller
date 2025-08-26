@@ -4,7 +4,7 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
-    sync::{Arc, OnceLock},
+    sync::OnceLock,
 };
 
 use async_trait::async_trait;
@@ -27,9 +27,9 @@ use crate::{
     },
 };
 
-static STATE: OnceLock<Arc<RwLock<MemoryControlState>>> = OnceLock::new();
+static STATE: OnceLock<RwLock<MemoryControlState>> = OnceLock::new();
 
-fn state() -> &'static Arc<RwLock<MemoryControlState>> {
+fn state() -> &'static RwLock<MemoryControlState> {
     STATE.get_or_init(Default::default)
 }
 

@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{
-    collections::BTreeSet,
-    sync::{Arc, OnceLock},
-};
+use std::{collections::BTreeSet, sync::OnceLock};
 
 use async_trait::async_trait;
 use opentalk_signaling_core::{SignalingModuleError, VolatileStaticMemoryStorage};
@@ -21,9 +18,9 @@ use parking_lot::RwLock;
 use super::memory::TrainingParticipationReportState;
 use crate::storage::{RoomState, TrainingParticipationReportStorage, TrainingReportState};
 
-static STATE: OnceLock<Arc<RwLock<TrainingParticipationReportState>>> = OnceLock::new();
+static STATE: OnceLock<RwLock<TrainingParticipationReportState>> = OnceLock::new();
 
-fn state() -> &'static Arc<RwLock<TrainingParticipationReportState>> {
+fn state() -> &'static RwLock<TrainingParticipationReportState> {
     STATE.get_or_init(Default::default)
 }
 

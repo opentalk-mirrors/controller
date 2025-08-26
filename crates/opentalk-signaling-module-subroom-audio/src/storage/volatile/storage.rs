@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{
-    collections::BTreeMap,
-    sync::{Arc, OnceLock},
-};
+use std::{collections::BTreeMap, sync::OnceLock};
 
 use async_trait::async_trait;
 use opentalk_signaling_core::{SignalingModuleError, SignalingRoomId, VolatileStaticMemoryStorage};
@@ -16,9 +13,9 @@ use parking_lot::RwLock;
 use super::memory::MemorySubroomAudio;
 use crate::storage::SubroomAudioStorage;
 
-static STATE: OnceLock<Arc<RwLock<MemorySubroomAudio>>> = OnceLock::new();
+static STATE: OnceLock<RwLock<MemorySubroomAudio>> = OnceLock::new();
 
-fn state() -> &'static Arc<RwLock<MemorySubroomAudio>> {
+fn state() -> &'static RwLock<MemorySubroomAudio> {
     STATE.get_or_init(Default::default)
 }
 

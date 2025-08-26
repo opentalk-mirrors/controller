@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::sync::{Arc, OnceLock};
+use std::sync::OnceLock;
 
 use async_trait::async_trait;
 use opentalk_signaling_core::{SignalingModuleError, SignalingRoomId, VolatileStaticMemoryStorage};
@@ -15,9 +15,9 @@ use crate::{
     storage::{InitState, meeting_notes_storage::MeetingNotesStorage},
 };
 
-static STATE: OnceLock<Arc<RwLock<MemoryMeetingNotesState>>> = OnceLock::new();
+static STATE: OnceLock<RwLock<MemoryMeetingNotesState>> = OnceLock::new();
 
-fn state() -> &'static Arc<RwLock<MemoryMeetingNotesState>> {
+fn state() -> &'static RwLock<MemoryMeetingNotesState> {
     STATE.get_or_init(Default::default)
 }
 

@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{
-    sync::{Arc, OnceLock},
-    time::Duration,
-};
+use std::{sync::OnceLock, time::Duration};
 
 use async_trait::async_trait;
 use opentalk_signaling_core::{SignalingModuleError, VolatileStaticMemoryStorage};
@@ -15,9 +12,9 @@ use parking_lot::RwLock;
 use super::memory::MemoryBreakoutState;
 use crate::signaling::ws_modules::breakout::storage::{BreakoutConfig, BreakoutStorage};
 
-static STATE: OnceLock<Arc<RwLock<MemoryBreakoutState>>> = OnceLock::new();
+static STATE: OnceLock<RwLock<MemoryBreakoutState>> = OnceLock::new();
 
-fn state() -> &'static Arc<RwLock<MemoryBreakoutState>> {
+fn state() -> &'static RwLock<MemoryBreakoutState> {
     STATE.get_or_init(Default::default)
 }
 

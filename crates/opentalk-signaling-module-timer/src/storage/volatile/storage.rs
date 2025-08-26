@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::sync::{Arc, OnceLock};
+use std::sync::OnceLock;
 
 use async_trait::async_trait;
 use opentalk_signaling_core::{SignalingModuleError, SignalingRoomId, VolatileStaticMemoryStorage};
@@ -13,9 +13,9 @@ use parking_lot::RwLock;
 use super::memory::MemoryTimerState;
 use crate::storage::{Timer, timer_storage::TimerStorage};
 
-static STATE: OnceLock<Arc<RwLock<MemoryTimerState>>> = OnceLock::new();
+static STATE: OnceLock<RwLock<MemoryTimerState>> = OnceLock::new();
 
-fn state() -> &'static Arc<RwLock<MemoryTimerState>> {
+fn state() -> &'static RwLock<MemoryTimerState> {
     STATE.get_or_init(Default::default)
 }
 
