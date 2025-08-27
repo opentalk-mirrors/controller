@@ -120,6 +120,6 @@ async fn post_login_inner(
     security(),
 )]
 #[get("/auth/login")]
-pub async fn get_login(service: Data<OpenTalkControllerService>) -> Json<GetLoginResponseBody> {
+pub async fn get_login(service: Data<dyn OpenTalkControllerService>) -> Json<GetLoginResponseBody> {
     Json(service.get_login().await)
 }

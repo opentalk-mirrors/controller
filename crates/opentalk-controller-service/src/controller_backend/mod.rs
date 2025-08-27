@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! Provides the default [`OpenTalkControllerServiceBackend`] implementation.
+//! Provides the default [`OpenTalkControllerService`] implementation.
 mod assets;
 mod auth;
 mod events;
@@ -24,7 +24,7 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use futures_core::Stream;
 use kustos::Authz;
-use opentalk_controller_service_facade::{OpenTalkControllerServiceBackend, RequestUser};
+use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_controller_settings::SettingsProvider;
 use opentalk_inventory::InventoryProvider;
 use opentalk_keycloak_admin::KeycloakAdminClient;
@@ -95,7 +95,7 @@ pub use crate::controller_backend::{
 };
 use crate::services::MailService;
 
-/// The default [`OpenTalkControllerServiceBackend`] implementation.
+/// The default [`OpenTalkControllerService`] implementation.
 pub struct ControllerBackend {
     settings_provider: SettingsProvider,
     authz: Authz,
@@ -149,7 +149,7 @@ impl std::fmt::Debug for ControllerBackend {
 }
 
 #[async_trait(?Send)]
-impl OpenTalkControllerServiceBackend for ControllerBackend {
+impl OpenTalkControllerService for ControllerBackend {
     async fn get_login(&self) -> GetLoginResponseBody {
         self.get_login().await
     }

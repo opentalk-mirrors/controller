@@ -66,7 +66,7 @@ use crate::api::{
 )]
 #[get("/events/instances")]
 pub async fn get_events_and_instances(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     query: Query<GetEventsAndInstancesQuery>,
 ) -> DefaultApiResult<Vec<EventOrInstance>> {
@@ -120,7 +120,7 @@ pub async fn get_events_and_instances(
 )]
 #[get("/events/{event_id}/instances")]
 pub async fn get_event_instances(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     event_id: Path<EventId>,
     query: Query<GetEventInstancesQuery>,
@@ -173,7 +173,7 @@ pub async fn get_event_instances(
 )]
 #[get("/events/{event_id}/instances/{instance_id}")]
 pub async fn get_event_instance(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     path: Path<EventInstancePath>,
     query: Query<EventInstanceQuery>,
@@ -233,7 +233,7 @@ pub async fn get_event_instance(
 )]
 #[patch("/events/{event_id}/instances/{instance_id}")]
 pub async fn patch_event_instance(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     path: Path<EventInstancePath>,
     query: Query<EventInstanceQuery>,

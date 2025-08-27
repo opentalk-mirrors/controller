@@ -50,7 +50,7 @@ use crate::api::{
 )]
 #[put("/users/me/event_favorites/{event_id}")]
 pub async fn add_event_to_favorites(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     event_id: Path<EventId>,
 ) -> Result<Either<Created, NoContent>, ApiError> {
@@ -95,7 +95,7 @@ pub async fn add_event_to_favorites(
 )]
 #[delete("/users/me/event_favorites/{event_id}")]
 pub async fn remove_event_from_favorites(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     event_id: Path<EventId>,
 ) -> Result<NoContent, ApiError> {

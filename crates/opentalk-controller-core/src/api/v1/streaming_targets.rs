@@ -64,7 +64,7 @@ use crate::api::{
 )]
 #[get("/rooms/{room_id}/streaming_targets")]
 pub async fn get_streaming_targets(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     room_id: Path<RoomId>,
     pagination: Query<PagePaginationQuery>,
@@ -119,7 +119,7 @@ pub async fn get_streaming_targets(
 )]
 #[post("/rooms/{room_id}/streaming_targets")]
 pub async fn post_streaming_target(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     room_id: Path<RoomId>,
     query: Query<StreamingTargetOptionsQuery>,
@@ -171,7 +171,7 @@ pub async fn post_streaming_target(
 )]
 #[get("/rooms/{room_id}/streaming_targets/{streaming_target_id}")]
 pub async fn get_streaming_target(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     path_params: Path<RoomAndStreamingTargetId>,
 ) -> DefaultApiResult<GetRoomStreamingTargetResponseBody> {
@@ -218,7 +218,7 @@ pub async fn get_streaming_target(
 )]
 #[patch("/rooms/{room_id}/streaming_targets/{streaming_target_id}")]
 pub async fn patch_streaming_target(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     path_params: Path<RoomAndStreamingTargetId>,
     query: Query<StreamingTargetOptionsQuery>,
@@ -272,7 +272,7 @@ pub async fn patch_streaming_target(
 )]
 #[delete("/rooms/{room_id}/streaming_targets/{streaming_target_id}")]
 pub async fn delete_streaming_target(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     path_params: Path<RoomAndStreamingTargetId>,
     query: Query<StreamingTargetOptionsQuery>,

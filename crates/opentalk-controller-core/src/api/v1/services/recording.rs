@@ -75,7 +75,7 @@ const REQUIRED_RECORDING_ROLE: &str = "opentalk-recorder";
 )]
 #[post("/start")]
 pub async fn post_recording_start(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     body: Json<PostRecordingStartRequestBody>,
 ) -> Result<Json<PostServiceStartResponseBody>, ApiError> {
     let response = service.start_recording(body.into_inner()).await?;

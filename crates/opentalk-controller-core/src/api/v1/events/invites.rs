@@ -69,7 +69,7 @@ use crate::api::{
 )]
 #[get("/events/{event_id}/invites")]
 pub async fn get_invites_for_event(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     event_id: Path<EventId>,
     query: Query<GetEventsInvitesQuery>,
@@ -127,7 +127,7 @@ pub async fn get_invites_for_event(
 )]
 #[post("/events/{event_id}/invites")]
 pub async fn create_invite_to_event(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     event_id: Path<EventId>,
     query: Query<PostEventInviteQuery>,
@@ -186,7 +186,7 @@ pub async fn create_invite_to_event(
 )]
 #[patch("/events/{event_id}/invites/{user_id}")]
 pub async fn update_invite_to_event(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     path_parameters: Path<(EventId, UserId)>,
     update_invite: Json<PatchInviteBody>,
@@ -240,7 +240,7 @@ pub async fn update_invite_to_event(
 )]
 #[patch("/events/{event_id}/invites/email")]
 pub async fn update_email_invite_to_event(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     path_parameters: Path<EventId>,
     update_invite: Json<PatchEmailInviteBody>,
@@ -296,7 +296,7 @@ pub struct DeleteEventInviteQuery {
 )]
 #[delete("/events/{event_id}/invites/{user_id}")]
 pub async fn delete_invite_to_event(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     path_params: Path<DeleteEventInvitePath>,
     query: Query<EventOptionsQuery>,
@@ -351,7 +351,7 @@ pub async fn delete_invite_to_event(
 )]
 #[delete("/events/{event_id}/invites/email")]
 pub async fn delete_email_invite_to_event(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     path: Path<EventId>,
     query: Query<EventOptionsQuery>,
@@ -398,7 +398,7 @@ pub async fn delete_email_invite_to_event(
 )]
 #[get("/users/me/pending_invites")]
 pub async fn get_event_invites_pending(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
 ) -> DefaultApiResult<GetEventInvitesPendingResponseBody> {
     let response = service.get_event_invites_pending(current_user.id).await?;
@@ -441,7 +441,7 @@ pub async fn get_event_invites_pending(
 )]
 #[patch("/events/{event_id}/invite")]
 pub async fn accept_event_invite(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     event_id: Path<EventId>,
 ) -> Result<NoContent, ApiError> {
@@ -487,7 +487,7 @@ pub async fn accept_event_invite(
 )]
 #[delete("/events/{event_id}/invite")]
 pub async fn decline_event_invite(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     event_id: Path<EventId>,
 ) -> Result<NoContent, ApiError> {

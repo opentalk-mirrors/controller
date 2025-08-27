@@ -70,7 +70,7 @@ use crate::{
 )]
 #[patch("/users/me")]
 pub async fn patch_me(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     inventory_provider: Data<dyn InventoryProvider>,
     caches: Data<Caches>,
     access_token: ReqData<AccessToken>,
@@ -168,7 +168,7 @@ async fn update_middleware_cache(
 )]
 #[get("/users/me")]
 pub async fn get_me(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
 ) -> Result<Json<PrivateUserProfile>, ApiError> {
     Ok(Json(service.get_me(current_user.into_inner()).await?))
@@ -199,7 +199,7 @@ pub async fn get_me(
 )]
 #[get("/users/me/tariff")]
 pub async fn get_me_tariff(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
 ) -> Result<Json<TariffResource>, ApiError> {
     let resource = service.get_my_tariff(current_user.into_inner()).await?;
@@ -233,7 +233,7 @@ pub async fn get_me_tariff(
 )]
 #[get("/users/me/assets")]
 pub async fn get_me_assets(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     sorting: Query<AssetSortingQuery>,
     pagination: Query<PagePaginationQuery>,
@@ -281,7 +281,7 @@ pub async fn get_me_assets(
 )]
 #[get("/users/{user_id}")]
 pub async fn get_user(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     user_id: Path<UserId>,
 ) -> Result<Json<PublicUserProfile>, ApiError> {
@@ -319,7 +319,7 @@ pub async fn get_user(
 )]
 #[get("/users/find")]
 pub async fn find(
-    service: Data<OpenTalkControllerService>,
+    service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     query: Query<GetFindQuery>,
 ) -> Result<Json<GetFindResponseBody>, ApiError> {
