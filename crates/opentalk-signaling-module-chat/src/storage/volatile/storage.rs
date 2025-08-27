@@ -4,7 +4,7 @@
 
 use std::{
     collections::{BTreeMap, HashSet},
-    sync::{Arc, OnceLock},
+    sync::OnceLock,
 };
 
 use async_trait::async_trait;
@@ -21,9 +21,9 @@ use parking_lot::RwLock;
 use super::memory::MemoryChatState;
 use crate::{ParticipantPair, storage::ChatStorage};
 
-static STATE: OnceLock<Arc<RwLock<MemoryChatState>>> = OnceLock::new();
+static STATE: OnceLock<RwLock<MemoryChatState>> = OnceLock::new();
 
-fn state() -> &'static Arc<RwLock<MemoryChatState>> {
+fn state() -> &'static RwLock<MemoryChatState> {
     STATE.get_or_init(Default::default)
 }
 

@@ -4,7 +4,7 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
-    sync::{Arc, OnceLock},
+    sync::OnceLock,
 };
 
 use async_trait::async_trait;
@@ -18,9 +18,9 @@ use snafu::OptionExt;
 use super::memory::MemoryPollsState;
 use crate::storage::polls_storage::PollsStorage;
 
-static STATE: OnceLock<Arc<RwLock<MemoryPollsState>>> = OnceLock::new();
+static STATE: OnceLock<RwLock<MemoryPollsState>> = OnceLock::new();
 
-fn state() -> &'static Arc<RwLock<MemoryPollsState>> {
+fn state() -> &'static RwLock<MemoryPollsState> {
     STATE.get_or_init(Default::default)
 }
 

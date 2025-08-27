@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{
-    collections::BTreeSet,
-    sync::{Arc, OnceLock},
-};
+use std::{collections::BTreeSet, sync::OnceLock};
 
 use async_trait::async_trait;
 use opentalk_signaling_core::{SignalingModuleError, VolatileStaticMemoryStorage};
@@ -16,9 +13,9 @@ use parking_lot::RwLock;
 use super::memory::MemoryModerationState;
 use crate::signaling::ws_modules::moderation::storage::ModerationStorage;
 
-static STATE: OnceLock<Arc<RwLock<MemoryModerationState>>> = OnceLock::new();
+static STATE: OnceLock<RwLock<MemoryModerationState>> = OnceLock::new();
 
-fn state() -> &'static Arc<RwLock<MemoryModerationState>> {
+fn state() -> &'static RwLock<MemoryModerationState> {
     STATE.get_or_init(Default::default)
 }
 

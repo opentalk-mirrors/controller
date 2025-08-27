@@ -18,7 +18,7 @@ use crate::{LockError, SignalingRoomId, VolatileStaticMemoryStorage};
 
 static ROOM_LOCK_STATE: OnceLock<Arc<RwLock<RoomLocks>>> = OnceLock::new();
 
-fn state() -> &'static Arc<RwLock<RoomLocks>> {
+fn state() -> &'static RwLock<RoomLocks> {
     ROOM_LOCK_STATE.get_or_init(Default::default)
 }
 

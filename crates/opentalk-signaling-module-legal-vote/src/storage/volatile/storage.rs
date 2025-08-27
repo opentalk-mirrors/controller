@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{
-    collections::BTreeSet,
-    sync::{Arc, OnceLock},
-};
+use std::{collections::BTreeSet, sync::OnceLock};
 
 use async_trait::async_trait;
 use opentalk_signaling_core::{SignalingModuleError, SignalingRoomId, VolatileStaticMemoryStorage};
@@ -25,9 +22,9 @@ use crate::{
     },
 };
 
-static STATE: OnceLock<Arc<RwLock<MemoryLegalVoteState>>> = OnceLock::new();
+static STATE: OnceLock<RwLock<MemoryLegalVoteState>> = OnceLock::new();
 
-fn state() -> &'static Arc<RwLock<MemoryLegalVoteState>> {
+fn state() -> &'static RwLock<MemoryLegalVoteState> {
     STATE.get_or_init(Default::default)
 }
 

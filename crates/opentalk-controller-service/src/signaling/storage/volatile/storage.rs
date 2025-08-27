@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::sync::{Arc, OnceLock};
+use std::sync::OnceLock;
 
 use async_trait::async_trait;
 use opentalk_signaling_core::{RunnerId, VolatileStaticMemoryStorage};
@@ -18,9 +18,9 @@ use crate::signaling::{
     ticket::TicketData,
 };
 
-static STATE: OnceLock<Arc<RwLock<MemorySignalingState>>> = OnceLock::new();
+static STATE: OnceLock<RwLock<MemorySignalingState>> = OnceLock::new();
 
-fn state() -> &'static Arc<RwLock<MemorySignalingState>> {
+fn state() -> &'static RwLock<MemorySignalingState> {
     STATE.get_or_init(Default::default)
 }
 

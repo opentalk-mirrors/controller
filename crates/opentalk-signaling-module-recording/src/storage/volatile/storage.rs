@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{
-    collections::BTreeMap,
-    sync::{Arc, OnceLock},
-};
+use std::{collections::BTreeMap, sync::OnceLock};
 
 use async_trait::async_trait;
 use opentalk_signaling_core::{
@@ -19,9 +16,9 @@ use snafu::OptionExt as _;
 use super::memory::MemoryRecordingState;
 use crate::storage::RecordingStorage;
 
-static STATE: OnceLock<Arc<RwLock<MemoryRecordingState>>> = OnceLock::new();
+static STATE: OnceLock<RwLock<MemoryRecordingState>> = OnceLock::new();
 
-fn state() -> &'static Arc<RwLock<MemoryRecordingState>> {
+fn state() -> &'static RwLock<MemoryRecordingState> {
     STATE.get_or_init(Default::default)
 }
 

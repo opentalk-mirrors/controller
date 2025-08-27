@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{
-    collections::BTreeSet,
-    sync::{Arc, OnceLock},
-};
+use std::{collections::BTreeSet, sync::OnceLock};
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -27,9 +24,9 @@ use crate::storage::{
     },
 };
 
-static STATE: OnceLock<Arc<RwLock<MemoryAutomodState>>> = OnceLock::new();
+static STATE: OnceLock<RwLock<MemoryAutomodState>> = OnceLock::new();
 
-fn state() -> &'static Arc<RwLock<MemoryAutomodState>> {
+fn state() -> &'static RwLock<MemoryAutomodState> {
     STATE.get_or_init(Default::default)
 }
 
