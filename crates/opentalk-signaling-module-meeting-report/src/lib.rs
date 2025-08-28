@@ -217,7 +217,9 @@ impl MeetingReport {
         let tz = Tz::from(report_timezone);
         let starts_at = event.starts_at.map(DateTime::from).to_report_date_time(&tz);
         let ends_at = event.ends_at.map(DateTime::from).to_report_date_time(&tz);
-        let timestamp = Local::now().naive_local().format("%Y-%m-%dT%H:%M:%S.%f");
+        let current_time = Local::now();
+        let timestamp = current_time.naive_local().format("%Y-%m-%dT%H:%M:%S.%f");
+        let report_created_at = current_time.to_report_date_time(&tz);
         Self::generate_pdf_report_from_template(
             template,
             &ReportTemplateParameter {
@@ -225,6 +227,7 @@ impl MeetingReport {
                 description: event.description,
                 starts_at,
                 ends_at,
+                report_created_at,
                 report_timezone,
                 participants,
             },
@@ -384,9 +387,11 @@ mod tests {
 
     #[test]
     fn generate_report_small() {
-        assert_snapshot!(generate("small", &crate::template::tests::example_small()), @r#"
+        assert_snapshot!(generate("small", &crate::template::tests::example_small()), @r"
         Attendance Report
          Meeting : Testmeeting
+
+        Report created at : 2025-02-06 09:16
 
         Report timezone : Europe/Berlin
 
@@ -394,7 +399,7 @@ mod tests {
          Nr Name Role
 
         1 Alice Adams Moderator
-        "#);
+        ");
     }
 
     #[test]
@@ -404,15 +409,17 @@ mod tests {
                 "medium",
                 &crate::template::tests::example_medium()
             ),
-            @r#"
+            @r"
         Attendance Report
          Meeting : Testmeeting
 
         Details : A medium sized test meeting
 
-        Start : 2025-02-06 08:18
+        Planned start : 2025-02-06 08:18
 
-        End : 2025-02-06 11:25
+        Planned end : 2025-02-06 11:25
+
+        Report created at : 2025-02-06 09:16
 
         Report timezone : Europe/Berlin
 
@@ -424,21 +431,23 @@ mod tests {
         2 Charlie Cooper User
 
         3 Bob Burton User
-        "#
+        "
         );
     }
 
     #[test]
     fn generate_report_large() {
-        assert_snapshot!(generate("large", &crate::template::tests::example_large()), @r#"
+        assert_snapshot!(generate("large", &crate::template::tests::example_large()), @r"
         Attendance Report
          Meeting : Large Testmeeting
 
         Details : The large test meeting
 
-        Start : 2025-02-06 08:18
+        Planned start : 2025-02-06 08:18
 
-        End : 2025-02-06 11:25
+        Planned end : 2025-02-06 11:25
+
+        Report created at : 2025-02-06 09:16
 
         Report timezone : Europe/Berlin
 
@@ -456,6 +465,6 @@ mod tests {
         5 Erin Guest
 
         6 Dave Dunn Guest
-        "#);
+        ");
     }
 }

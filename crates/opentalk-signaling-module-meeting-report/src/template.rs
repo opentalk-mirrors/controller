@@ -28,6 +28,9 @@ pub struct ReportTemplateParameter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ends_at: Option<ReportDateTime>,
 
+    /// The date and time at which the report was created.
+    pub report_created_at: ReportDateTime,
+
     /// The timezone in which the timestamps in this report are represented.
     pub report_timezone: TimeZone,
 
@@ -73,6 +76,9 @@ pub(crate) mod tests {
                 .expect("value must be parsable as EventDescription"),
             starts_at: None,
             ends_at: None,
+            report_created_at: "2025-02-06T09:16:47"
+                .parse()
+                .expect("value must be parsable as ReportDateTime"),
             report_timezone: "Europe/Berlin"
                 .parse()
                 .expect("value must be parsable as TimeZone"),
@@ -92,6 +98,7 @@ pub(crate) mod tests {
         json!({
             "title": "Testmeeting",
             "description": "",
+            "report_created_at": "2025-02-06T09:16:47",
             "report_timezone": "Europe/Berlin",
             "participants": [
                 {
@@ -122,6 +129,9 @@ pub(crate) mod tests {
                     .parse()
                     .expect("value must be parsable as ReportDateTime"),
             ),
+            report_created_at: "2025-02-06T09:16:47"
+                .parse()
+                .expect("value must be parsable as ReportDateTime"),
             report_timezone: "Europe/Berlin"
                 .parse()
                 .expect("value must be parsable as Timezone"),
@@ -175,6 +185,7 @@ pub(crate) mod tests {
             "description": "A medium sized test meeting",
             "starts_at": "2025-02-06T08:18:23",
             "ends_at": "2025-02-06T11:25:00",
+            "report_created_at": "2025-02-06T09:16:47",
             "report_timezone": "Europe/Berlin",
             "participants": [
                 {
@@ -222,6 +233,9 @@ pub(crate) mod tests {
                     .parse()
                     .expect("value must be parsable as ReportDateTime"),
             ),
+            report_created_at: "2025-02-06T09:16:47"
+                .parse()
+                .expect("value must be parsable as ReportDateTime"),
             report_timezone: "Europe/Berlin"
                 .parse()
                 .expect("value must be parsable as Timezone"),
@@ -324,6 +338,7 @@ pub(crate) mod tests {
             "description": "The large test meeting",
             "starts_at": "2025-02-06T08:18:23",
             "ends_at": "2025-02-06T11:25:00",
+            "report_created_at": "2025-02-06T09:16:47",
             "report_timezone": "Europe/Berlin",
             "participants": [
                 {
