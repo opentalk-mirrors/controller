@@ -18,6 +18,7 @@ async-trait.workspace = true
 derive_more = { workspace = true, features = ["from"] }
 either.workspace = true
 futures.workspace = true
+lapin.workspace = true
 lapin-pool.workspace = true
 log.workspace = true
 opentalk-inventory.workspace = true

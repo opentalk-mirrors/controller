@@ -268,6 +268,16 @@ api_secret = "your-livekit-api-secret"
 # Maximum number of amqp channels per connection
 #max_channels_per_connection = 100
 
+# The time-to-live for messages delivered through the RabbitMQ service, in seconds.
+# Messages will be dropped by RabbitMQ if they have not been processed by the
+# receiver within that time. This helps to avoid unresolvable congestion in
+# the queues.
+#
+# When set to 0, no time-to-live exists and the task will be handled by RabbitMQ
+# and its receivers infinitely if it doesn't finish successfully. This is the
+# same behavior that was implemented in controller 0.30.2 and earlier.
+#message_ttl_seconds = 3600
+
 #[redis]
 # Configuration of a redis server which can be used for synchronizing multiple
 # controllers running in a cluster to provide an OpenTalk web api and meeting

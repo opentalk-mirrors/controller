@@ -26,6 +26,7 @@ futures.workspace = true
 futures-core.workspace = true
 jsonwebtoken.workspace = true
 kustos.workspace = true
+lapin.workspace = true
 lapin-pool.workspace = true
 log = { workspace = true, features = ["serde"] }
 md5.workspace = true

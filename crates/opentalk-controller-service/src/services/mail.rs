@@ -11,6 +11,7 @@
 use std::sync::Arc;
 
 use chrono::DateTime;
+use lapin::BasicProperties;
 use lapin_pool::{RabbitMqChannel, RabbitMqPool};
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{Event, EventException, EventExceptionKind, Room, RoomSipConfig, User};
@@ -237,38 +238,46 @@ impl MailService {
     }
 
     async fn send_to_rabbitmq(&self, settings: &Settings, mail_task: MailTask) -> Result<()> {
-        if let Some(queue_name) = &settings
-            .rabbit_mq
-            .as_ref()
-            .and_then(|c| c.mail_task_queue.as_ref())
+        let Some(rabbitmq_config) = settings.rabbit_mq.as_ref() else {
+            return Ok(());
+        };
+        let Some(queue_name) = rabbitmq_config.mail_task_queue.as_ref() else {
+            return Ok(());
+        };
+
+        let channel = {
+            let mut channel = self.rabbitmq_channel.lock().await;
+
+            if !channel.status().connected() {
+                // Check if channel is healthy - try to reconnect if it isn't
+                *channel = self
+                    .rabbitmq_pool
+                    .create_channel()
+                    .await
+                    .whatever_context("Failed to get a rabbitmq_channel replacement")?;
+            }
+
+            channel.clone()
+        };
+
+        let properties = if let Some(ttl_milliseconds) = rabbitmq_config.message_ttl_milliseconds()
         {
-            let channel = {
-                let mut channel = self.rabbitmq_channel.lock().await;
+            BasicProperties::default().with_expiration(ttl_milliseconds.to_string().into())
+        } else {
+            BasicProperties::default()
+        };
 
-                if !channel.status().connected() {
-                    // Check if channel is healthy - try to reconnect if it isn't
-                    *channel = self
-                        .rabbitmq_pool
-                        .create_channel()
-                        .await
-                        .whatever_context("Failed to get a rabbitmq_channel replacement")?;
-                }
-
-                channel.clone()
-            };
-
-            _ = channel
-                .basic_publish(
-                    "",
-                    queue_name,
-                    Default::default(),
-                    &serde_json::to_vec(&mail_task)
-                        .whatever_context("Failed to serialize mail_task")?,
-                    Default::default(),
-                )
-                .await
-                .whatever_context("Failed to publish to channel")?;
-        }
+        _ = channel
+            .basic_publish(
+                "",
+                queue_name.as_str(),
+                Default::default(),
+                &serde_json::to_vec(&mail_task)
+                    .whatever_context("Failed to serialize mail_task")?,
+                properties,
+            )
+            .await
+            .whatever_context("Failed to publish to channel")?;
 
         self.metrics.increment_issued_email_tasks_count(&mail_task);
 

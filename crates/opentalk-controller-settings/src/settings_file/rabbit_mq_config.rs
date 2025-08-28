@@ -22,4 +22,8 @@ pub(crate) struct RabbitMqConfig {
     /// Recording is disabled if this isn't set
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub recording_task_queue: Option<String>,
+
+    /// Time to live for messages sent through RabbitMQ
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message_ttl_seconds: Option<u64>,
 }

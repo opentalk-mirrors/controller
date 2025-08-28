@@ -42,11 +42,12 @@ pub use settings_file::SettingsRaw;
 pub use settings_provider::SettingsProvider;
 pub use settings_runtime::{
     Avatar, CallIn, DEFAULT_EXTERNAL_TENANT_ID_USER_ATTRIBUTE_NAME, DEFAULT_LIBRAVATAR_URL,
-    DEFAULT_STATIC_TARIFF_NAME, DEFAULT_STATIC_TENANT_ID, Database, Defaults, Endpoints, Etcd,
-    Etherpad, Frontend, Http, HttpTls, LiveKit, Logging, LoggingOltpTracing, Metrics, MinIO,
-    Monitoring, Oidc, OidcController, OidcFrontend, OperatorInformation, Settings, SharedFolder,
-    Spacedeck, SubroomAudio, TariffAssignment, TariffStatusMapping, Tariffs, TenantAssignment,
-    Tenants, UserSearchBackend, UserSearchBackendKeycloak, WebSocketRateLimit,
+    DEFAULT_RABBITMQ_MESSAGE_TTL_SECONDS, DEFAULT_STATIC_TARIFF_NAME, DEFAULT_STATIC_TENANT_ID,
+    Database, Defaults, Endpoints, Etcd, Etherpad, Frontend, Http, HttpTls, LiveKit, Logging,
+    LoggingOltpTracing, Metrics, MinIO, Monitoring, Oidc, OidcController, OidcFrontend,
+    OperatorInformation, Settings, SharedFolder, Spacedeck, SubroomAudio, TariffAssignment,
+    TariffStatusMapping, Tariffs, TenantAssignment, Tenants, UserSearchBackend,
+    UserSearchBackendKeycloak, WebSocketRateLimit,
 };
 
 type Result<T, E = SettingsError> = std::result::Result<T, E>;

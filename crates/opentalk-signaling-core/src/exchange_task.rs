@@ -5,7 +5,7 @@
 //! Controller to controller messaging
 
 use core::{hash::BuildHasherDefault, time::Duration};
-use std::{borrow::Cow, collections::HashMap, sync::Arc};
+use std::{borrow::Cow, collections::HashMap, num::NonZero, sync::Arc};
 
 use bytestring::ByteString;
 use lapin::{
@@ -86,6 +86,7 @@ enum Command {
     DropSubscriber(SubscriberKey),
     Publish {
         routing_key: String,
+        ttl_milliseconds: Option<NonZero<u64>>,
         data: String,
     },
 }
@@ -194,7 +195,11 @@ impl ExchangeTask {
                     }
                 }
             }
-            Command::Publish { routing_key, data } => {
+            Command::Publish {
+                routing_key,
+                ttl_milliseconds,
+                data,
+            } => {
                 self.handle_msg(&routing_key, &data).await;
 
                 let Some(mut rmq) = self.rmq.as_mut() else {
@@ -208,6 +213,12 @@ impl ExchangeTask {
                 })
                 .unwrap();
 
+                let properties = if let Some(ttl_milliseconds) = ttl_milliseconds {
+                    BasicProperties::default().with_expiration(ttl_milliseconds.to_string().into())
+                } else {
+                    BasicProperties::default()
+                };
+
                 // Reconnect while this fails with an error
                 while rmq
                     .channel
@@ -216,7 +227,7 @@ impl ExchangeTask {
                         "",
                         BasicPublishOptions::default(),
                         payload.as_bytes(),
-                        BasicProperties::default(),
+                        properties.clone(),
                     )
                     .await
                     .is_err()
@@ -405,11 +416,13 @@ impl ExchangeHandle {
     pub fn publish(
         &self,
         routing_key: impl Into<String>,
+        ttl_milliseconds: Option<NonZero<u64>>,
         data: impl Into<String>,
     ) -> Result<(), PublishError> {
         self.command_sender
             .send(Command::Publish {
                 routing_key: routing_key.into(),
+                ttl_milliseconds,
                 data: data.into(),
             })
             .map_err(|_| PublishError)

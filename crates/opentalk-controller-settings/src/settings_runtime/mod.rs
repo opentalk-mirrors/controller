@@ -77,7 +77,7 @@ pub use oidc::Oidc;
 pub use oidc_controller::OidcController;
 pub use oidc_frontend::OidcFrontend;
 pub use operator_information::OperatorInformation;
-pub use rabbitmq::RabbitMq;
+pub use rabbitmq::{DEFAULT_RABBITMQ_MESSAGE_TTL_SECONDS, RabbitMq};
 pub use redis::Redis;
 pub use roomserver::RoomServer;
 pub use settings::Settings;
