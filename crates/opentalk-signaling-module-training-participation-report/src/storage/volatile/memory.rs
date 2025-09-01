@@ -117,6 +117,7 @@ impl TrainingParticipationReportState {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub(super) fn get_initial_checkpoint_delay(
         &self,
         room: RoomId,
@@ -188,7 +189,7 @@ impl TrainingParticipationReportState {
         Ok(())
     }
 
-    pub(super) fn get_recorded_presence_state(
+    pub(super) fn get_participation_logging_state(
         &self,
         room: RoomId,
         participant: ParticipantId,

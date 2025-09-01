@@ -5170,18 +5170,24 @@ components:
         - within
       properties:
         after:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/TimeRangeStart"
           description: The earliest number of seconds after which the checkpoint can be created.
-          minimum: 0
         within:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/TimeRangeWindow"
           description: "The number of seconds within which the checkpoint can be created after the `after` value."
-          minimum: 0
       example:
         after: 1200
         within: 600
+    TimeRangeStart:
+      type: integer
+      format: int64
+      description: "The shortest duration after which a checkpoint can be created, in seconds."
+      example: 300
+    TimeRangeWindow:
+      type: integer
+      format: int64
+      description: "The window duration within which a checkpoint can be created after the `after` value, in seconds."
+      example: 300
     TimeZone:
       type: string
       description: A time zone

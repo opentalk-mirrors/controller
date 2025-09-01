@@ -1111,12 +1111,10 @@ async fn store_training_participation_report(
         checkpoint_interval,
     }: TrainingParticipationReportParameterSet,
 ) -> Result<Option<TrainingParticipationReportParameterSet>, CaptureApiError> {
-    let initial_checkpoint_delay_after =
-        i64::try_from(initial_checkpoint_delay.after).unwrap_or(i64::MAX);
-    let initial_checkpoint_delay_within =
-        i64::try_from(initial_checkpoint_delay.within).unwrap_or(i64::MAX);
-    let checkpoint_interval_after = i64::try_from(checkpoint_interval.after).unwrap_or(i64::MAX);
-    let checkpoint_interval_within = i64::try_from(checkpoint_interval.within).unwrap_or(i64::MAX);
+    let initial_checkpoint_delay_after = initial_checkpoint_delay.after.into();
+    let initial_checkpoint_delay_within = initial_checkpoint_delay.within.into();
+    let checkpoint_interval_after = checkpoint_interval.after.into();
+    let checkpoint_interval_within = checkpoint_interval.within.into();
 
     let inserted = inventory
         .try_create_event_training_participation_report_parameter_set(
@@ -1877,7 +1875,7 @@ mod tests {
         events::invites::InviteRole,
         rooms::RoomId,
         time::Timestamp,
-        training_participation_report::TimeRange,
+        training_participation_report::{TimeRange, TimeRangeStart, TimeRangeWindow},
         users::{UserId, UserInfo},
     };
     use serde_json::json;
@@ -1961,12 +1959,12 @@ mod tests {
             show_meeting_details: true,
             training_participation_report: Some(TrainingParticipationReportParameterSet {
                 initial_checkpoint_delay: TimeRange {
-                    after: 100,
-                    within: 200,
+                    after: TimeRangeStart::from_i64_clamped(100),
+                    within: TimeRangeWindow::from_i64_clamped(200),
                 },
                 checkpoint_interval: TimeRange {
-                    after: 300,
-                    within: 400,
+                    after: TimeRangeStart::from_i64_clamped(300),
+                    within: TimeRangeWindow::from_i64_clamped(400),
                 },
             }),
         };
@@ -2111,12 +2109,12 @@ mod tests {
             show_meeting_details: false,
             training_participation_report: Some(TrainingParticipationReportParameterSet {
                 initial_checkpoint_delay: TimeRange {
-                    after: 100,
-                    within: 200,
+                    after: TimeRangeStart::from_i64_clamped(100),
+                    within: TimeRangeWindow::from_i64_clamped(200),
                 },
                 checkpoint_interval: TimeRange {
-                    after: 300,
-                    within: 400,
+                    after: TimeRangeStart::from_i64_clamped(300),
+                    within: TimeRangeWindow::from_i64_clamped(400),
                 },
             }),
         };

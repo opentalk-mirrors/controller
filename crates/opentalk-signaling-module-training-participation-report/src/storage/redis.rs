@@ -330,7 +330,7 @@ impl TrainingParticipationReportStorage for RedisConnection {
         Ok(())
     }
 
-    async fn get_recorded_presence_state(
+    async fn get_participation_logging_state(
         &mut self,
         room: RoomId,
         participant: ParticipantId,

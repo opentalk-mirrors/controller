@@ -51,18 +51,10 @@ impl From<TrainingParticipationReportParameterSet>
         }: TrainingParticipationReportParameterSet,
     ) -> Self {
         Self {
-            initial_checkpoint_delay_after: Some(
-                i64::try_from(initial_checkpoint_delay.after).unwrap_or(i64::MAX),
-            ),
-            initial_checkpoint_delay_within: Some(
-                i64::try_from(initial_checkpoint_delay.within).unwrap_or(i64::MAX),
-            ),
-            checkpoint_interval_after: Some(
-                i64::try_from(checkpoint_interval.after).unwrap_or(i64::MAX),
-            ),
-            checkpoint_interval_within: Some(
-                i64::try_from(checkpoint_interval.within).unwrap_or(i64::MAX),
-            ),
+            initial_checkpoint_delay_after: Some(initial_checkpoint_delay.after.into()),
+            initial_checkpoint_delay_within: Some(initial_checkpoint_delay.within.into()),
+            checkpoint_interval_after: Some(checkpoint_interval.after.into()),
+            checkpoint_interval_within: Some(checkpoint_interval.within.into()),
         }
     }
 }

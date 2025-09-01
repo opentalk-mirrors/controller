@@ -11,9 +11,6 @@ use serde::{Deserialize, Serialize};
 #[from_redis_value(serde)]
 #[to_redis_args(serde)]
 pub(crate) enum TrainingReportState {
-    WaitingForParticipant,
-
     WaitingForInitialTimeout,
-
     TrackingPresence,
 }

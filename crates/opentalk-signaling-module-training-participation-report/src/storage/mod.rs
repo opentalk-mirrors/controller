@@ -21,7 +21,9 @@ mod test_common {
     use opentalk_signaling_core::SignalingModuleError;
     use opentalk_types_common::{
         rooms::RoomId,
-        training_participation_report::{TimeRange, TrainingParticipationReportParameterSet},
+        training_participation_report::{
+            TimeRange, TimeRangeStart, TimeRangeWindow, TrainingParticipationReportParameterSet,
+        },
     };
     use opentalk_types_signaling::ParticipantId;
     use opentalk_types_signaling_training_participation_report::state::ParticipationLoggingState;
@@ -58,12 +60,12 @@ mod test_common {
 
         let parameter_set = TrainingParticipationReportParameterSet {
             initial_checkpoint_delay: TimeRange {
-                after: 100,
-                within: 200,
+                after: TimeRangeStart::from_i64_clamped(100),
+                within: TimeRangeWindow::from_i64_clamped(200),
             },
             checkpoint_interval: TimeRange {
-                after: 300,
-                within: 400,
+                after: TimeRangeStart::from_i64_clamped(300),
+                within: TimeRangeWindow::from_i64_clamped(400),
             },
         };
 
@@ -93,12 +95,12 @@ mod test_common {
             .expect("value must be parsable as Timestamp");
         let report_state = TrainingReportState::WaitingForInitialTimeout;
         let initial_checkpoint_delay = TimeRange {
-            after: 10.try_into().expect("value must be a positive number"),
-            within: 20,
+            after: 60.try_into().expect("value must be a positive number"),
+            within: TimeRangeWindow::from_i64_clamped(20),
         };
         let checkpoint_interval = TimeRange {
-            after: 30.try_into().expect("value must be a positive number"),
-            within: 40,
+            after: 60.try_into().expect("value must be a positive number"),
+            within: TimeRangeWindow::from_i64_clamped(40),
         };
 
         let known_participants = BTreeSet::from_iter([ALICE, BOB]);
@@ -139,12 +141,12 @@ mod test_common {
             .expect("value must be parsable as Timestamp");
         let report_state = TrainingReportState::WaitingForInitialTimeout;
         let initial_checkpoint_delay = TimeRange {
-            after: 10.try_into().expect("value must be a positive number"),
-            within: 20,
+            after: 60.try_into().expect("value must be a positive number"),
+            within: TimeRangeWindow::from_i64_clamped(20),
         };
         let checkpoint_interval = TimeRange {
-            after: 30.try_into().expect("value must be a positive number"),
-            within: 40,
+            after: 60.try_into().expect("value must be a positive number"),
+            within: TimeRangeWindow::from_i64_clamped(40),
         };
         let known_participants = BTreeSet::from_iter([ALICE, BOB]);
 
@@ -210,8 +212,8 @@ mod test_common {
         assert_eq!(
             storage.get_initial_checkpoint_delay(room).await.unwrap(),
             TimeRange {
-                after: 10.try_into().unwrap(),
-                within: 20
+                after: 60.try_into().unwrap(),
+                within: TimeRangeWindow::from_i64_clamped(20)
             }
         );
 
@@ -230,8 +232,8 @@ mod test_common {
         assert_eq!(
             storage.get_checkpoint_interval(room).await.unwrap(),
             TimeRange {
-                after: 30.try_into().unwrap(),
-                within: 40
+                after: 60.try_into().unwrap(),
+                within: TimeRangeWindow::from_i64_clamped(40)
             }
         );
 
@@ -304,7 +306,7 @@ mod test_common {
 
         assert_eq!(
             storage
-                .get_recorded_presence_state(room, ALICE)
+                .get_participation_logging_state(room, ALICE)
                 .await
                 .unwrap(),
             ParticipationLoggingState::Disabled
@@ -323,7 +325,7 @@ mod test_common {
             );
             assert_eq!(
                 storage
-                    .get_recorded_presence_state(room, ALICE)
+                    .get_participation_logging_state(room, ALICE)
                     .await
                     .unwrap(),
                 ParticipationLoggingState::Enabled
@@ -363,7 +365,7 @@ mod test_common {
         {
             assert_eq!(
                 storage
-                    .get_recorded_presence_state(room, ALICE)
+                    .get_participation_logging_state(room, ALICE)
                     .await
                     .unwrap(),
                 ParticipationLoggingState::Enabled
@@ -379,7 +381,7 @@ mod test_common {
 
             assert_eq!(
                 storage
-                    .get_recorded_presence_state(room, ALICE)
+                    .get_participation_logging_state(room, ALICE)
                     .await
                     .unwrap(),
                 ParticipationLoggingState::WaitingForConfirmation
@@ -390,7 +392,7 @@ mod test_common {
                 .unwrap();
             assert_eq!(
                 storage
-                    .get_recorded_presence_state(room, ALICE)
+                    .get_participation_logging_state(room, ALICE)
                     .await
                     .unwrap(),
                 ParticipationLoggingState::Enabled
@@ -406,7 +408,7 @@ mod test_common {
         {
             assert_eq!(
                 storage
-                    .get_recorded_presence_state(room, ALICE)
+                    .get_participation_logging_state(room, ALICE)
                     .await
                     .unwrap(),
                 ParticipationLoggingState::Enabled
@@ -422,7 +424,7 @@ mod test_common {
 
             assert_eq!(
                 storage
-                    .get_recorded_presence_state(room, ALICE)
+                    .get_participation_logging_state(room, ALICE)
                     .await
                     .unwrap(),
                 ParticipationLoggingState::WaitingForConfirmation
@@ -468,7 +470,7 @@ mod test_common {
 
         assert_eq!(
             storage
-                .get_recorded_presence_state(room, ALICE)
+                .get_participation_logging_state(room, ALICE)
                 .await
                 .unwrap(),
             ParticipationLoggingState::Disabled

@@ -4,7 +4,9 @@
 
 use opentalk_types_common::{
     events::EventId,
-    training_participation_report::{TimeRange, TrainingParticipationReportParameterSet},
+    training_participation_report::{
+        TimeRange, TimeRangeStart, TimeRangeWindow, TrainingParticipationReportParameterSet,
+    },
 };
 
 /// The representation of a parameter set for the training participation report in the inventory.
@@ -40,12 +42,13 @@ impl From<EventTrainingParticipationReportParameterSet>
     ) -> Self {
         Self {
             initial_checkpoint_delay: TimeRange {
-                after: u64::try_from(initial_checkpoint_delay_after).unwrap_or_default(),
-                within: u64::try_from(initial_checkpoint_delay_within).unwrap_or_default(),
+                after: TimeRangeStart::try_from(initial_checkpoint_delay_after).unwrap_or_default(),
+                within: TimeRangeWindow::try_from(initial_checkpoint_delay_within)
+                    .unwrap_or_default(),
             },
             checkpoint_interval: TimeRange {
-                after: u64::try_from(checkpoint_interval_after).unwrap_or_default(),
-                within: u64::try_from(checkpoint_interval_within).unwrap_or_default(),
+                after: TimeRangeStart::try_from(checkpoint_interval_after).unwrap_or_default(),
+                within: TimeRangeWindow::try_from(checkpoint_interval_within).unwrap_or_default(),
             },
         }
     }
@@ -65,13 +68,10 @@ impl From<(EventId, TrainingParticipationReportParameterSet)>
     ) -> Self {
         Self {
             event_id,
-            initial_checkpoint_delay_after: i64::try_from(initial_checkpoint_delay.after)
-                .unwrap_or(i64::MAX),
-            initial_checkpoint_delay_within: i64::try_from(initial_checkpoint_delay.within)
-                .unwrap_or(i64::MAX),
-            checkpoint_interval_after: i64::try_from(checkpoint_interval.after).unwrap_or(i64::MAX),
-            checkpoint_interval_within: i64::try_from(checkpoint_interval.within)
-                .unwrap_or(i64::MAX),
+            initial_checkpoint_delay_after: initial_checkpoint_delay.after.into(),
+            initial_checkpoint_delay_within: initial_checkpoint_delay.within.into(),
+            checkpoint_interval_after: checkpoint_interval.after.into(),
+            checkpoint_interval_within: checkpoint_interval.within.into(),
         }
     }
 }
