@@ -6,6 +6,7 @@ use std::{
     collections::BTreeSet,
     future,
     mem::replace,
+    num::NonZero,
     ops::ControlFlow,
     pin::Pin,
     sync::Arc,
@@ -248,6 +249,11 @@ impl Builder {
         let settings = settings_provider.get();
 
         let timezone = get_user_timezone(self.room.created_by, inventory.as_mut(), &settings).await;
+        let rabbitmq_ttl_milliseconds = settings
+            .rabbit_mq
+            .as_ref()
+            .map(|s| s.message_ttl_seconds)
+            .unwrap_or_default();
 
         Ok(Runner {
             runner_id: self.runner_id,
@@ -277,6 +283,7 @@ impl Builder {
             settings_provider,
             time_limit_future: Box::pin(future::pending()),
             timezone,
+            rabbitmq_ttl_milliseconds,
         })
     }
 }
@@ -352,6 +359,9 @@ pub struct Runner {
 
     /// The effective timezone for this runner
     pub timezone: TimeZone,
+
+    /// An optional time-to-live for messages sent to RabbitMQ, in milliseconds
+    rabbitmq_ttl_milliseconds: Option<NonZero<u64>>,
 }
 
 /// Current state of the runner
@@ -2295,7 +2305,10 @@ impl Runner {
     }
 
     fn exchange_publish(&mut self, routing_key: String, message: String) {
-        if let Err(e) = self.exchange_handle.publish(routing_key, message) {
+        if let Err(e) =
+            self.exchange_handle
+                .publish(routing_key, self.rabbitmq_ttl_milliseconds, message)
+        {
             log::warn!(
                 "Failed to publish message to exchange, {}",
                 Report::from_error(e)

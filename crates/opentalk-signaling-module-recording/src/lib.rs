@@ -9,6 +9,7 @@ use std::{
 
 use either::Either;
 use futures::{FutureExt, stream::once};
+use lapin::BasicProperties;
 use lapin_pool::{RabbitMqChannel, RabbitMqPool};
 use opentalk_inventory::InventoryProvider;
 use opentalk_signaling_core::{
@@ -100,6 +101,7 @@ impl std::fmt::Debug for Recording {
 #[derive(Clone)]
 pub struct RecordingParams {
     pub queue: String,
+    pub rabbitmq_ttl: Option<String>,
 }
 
 impl std::fmt::Debug for RecordingParams {
@@ -307,16 +309,23 @@ impl SignalingModule for Recording {
             return Ok(None);
         };
 
-        let Some(queue) = init
-            .settings_provider
-            .get()
-            .rabbit_mq
-            .as_ref()
-            .and_then(|c| c.recording_task_queue.clone())
-        else {
+        let settings = init.settings_provider.get();
+        let Some(rabbitmq_config) = settings.rabbit_mq.as_ref() else {
             return Ok(None);
         };
-        Ok(Some((rabbitmq_pool.clone(), RecordingParams { queue })))
+        let Some(queue) = rabbitmq_config.recording_task_queue.clone() else {
+            return Ok(None);
+        };
+        let rabbitmq_ttl = rabbitmq_config
+            .message_ttl_seconds
+            .map(|s| s.get().saturating_mul(1000).to_string());
+        Ok(Some((
+            rabbitmq_pool.clone(),
+            RecordingParams {
+                queue,
+                rabbitmq_ttl,
+            },
+        )))
     }
 }
 
@@ -440,6 +449,12 @@ impl Recording {
             .update_streams_status(self.room, &target_ids, StreamStatus::Starting)
             .await?;
 
+        let properties = if let Some(ttl_milliseconds) = self.params.rabbitmq_ttl.as_ref() {
+            BasicProperties::default().with_expiration(ttl_milliseconds.to_string().into())
+        } else {
+            BasicProperties::default()
+        };
+
         if !is_recorder_running {
             _ = self
                 .rabbitmq_channel
@@ -454,7 +469,7 @@ impl Recording {
                     .with_whatever_context::<_, _, SignalingModuleError>(
                         |_| "failed to serialize InitializeRecorder struct".to_string(),
                     )?,
-                    Default::default(),
+                    properties,
                 )
                 .await
                 .with_whatever_context::<_, _, SignalingModuleError>(|err| format!("{err}"))?;

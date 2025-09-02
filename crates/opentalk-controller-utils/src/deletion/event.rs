@@ -144,8 +144,15 @@ impl Deleter for EventDeleter {
             payload: control::exchange::Message::RoomDeleted,
         };
 
+        let message_ttl_milliseconds = settings
+            .rabbit_mq
+            .as_ref()
+            .map(|v| v.message_ttl_milliseconds())
+            .unwrap_or_default();
+
         if let Err(e) = exchange_handle.publish(
             control::exchange::global_room_all_participants(room_id),
+            message_ttl_milliseconds,
             serde_json::to_string(&message).expect("Failed to convert namespaced to json"),
         ) {
             warn!(log: logger, "Failed to publish message to exchange, {}", e);
