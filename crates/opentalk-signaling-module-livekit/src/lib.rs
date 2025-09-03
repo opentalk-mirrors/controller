@@ -20,7 +20,8 @@ use livekit_protocol::{ParticipantPermission, TrackSource};
 use opentalk_controller_settings::{LiveKit, SettingsProvider};
 use opentalk_signaling_core::{
     CleanupScope, DestroyContext, Event, InitContext, ModuleContext, SignalingModule,
-    SignalingModuleError, SignalingModuleInitData, SignalingRoomId, VolatileStorage, control,
+    SignalingModuleDescription, SignalingModuleError, SignalingModuleFeatureDescription,
+    SignalingModuleInitData, SignalingRoomId, VolatileStorage, control,
 };
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ParticipantId, ParticipationKind, ParticipationVisibility, Role};
@@ -71,6 +72,12 @@ impl LivekitStorageProvider for VolatileStorage {
             Either::Right(v) => v,
         }
     }
+}
+
+impl SignalingModuleDescription for Livekit {
+    const MODULE_ID: ModuleId = opentalk_types_signaling_livekit::MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles Livekit media streams coordination and integration";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 #[async_trait::async_trait(?Send)]

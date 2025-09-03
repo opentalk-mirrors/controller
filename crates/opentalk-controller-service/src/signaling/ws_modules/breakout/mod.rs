@@ -12,8 +12,9 @@ use std::{
 use either::Either;
 use futures::FutureExt;
 use opentalk_signaling_core::{
-    DestroyContext, Event, InitContext, ModuleContext, SignalingModule, SignalingModuleError,
-    SignalingModuleInitData, SignalingRoomId, VolatileStorage,
+    DestroyContext, Event, InitContext, ModuleContext, SignalingModule, SignalingModuleDescription,
+    SignalingModuleError, SignalingModuleFeatureDescription, SignalingModuleInitData,
+    SignalingRoomId, VolatileStorage,
     control::{
         self,
         storage::{
@@ -66,6 +67,12 @@ impl BreakoutStorageProvider for VolatileStorage {
             Either::Right(v) => v,
         }
     }
+}
+
+impl SignalingModuleDescription for BreakoutRooms {
+    const MODULE_ID: ModuleId = MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles breakout room functionality";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 #[async_trait::async_trait(?Send)]

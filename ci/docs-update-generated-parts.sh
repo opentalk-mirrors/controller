@@ -28,6 +28,8 @@ CLI_DIR="$DOCS_TEMP_DIR"/cli-usage
 JOBS_DIR="$DOCS_TEMP_DIR"/jobs
 CONFIG_DIR="$DOCS_TEMP_DIR"/config
 DB_DIR="$DOCS_TEMP_DIR"/database
+MODULES_DIR="$DOCS_TEMP_DIR"/modules
+
 CMDNAME=opentalk-controller
 ER_DIAGRAM_MERMAID="$DB_DIR/er-diagram.mermaid"
 
@@ -46,7 +48,7 @@ to a valid controller binary or the controller needs to be build using \
   exit 1
 fi
 
-mkdir -p "$CLI_DIR" "$JOBS_DIR" "$CONFIG_DIR" "$DB_DIR"
+mkdir -p "$CLI_DIR" "$JOBS_DIR" "$CONFIG_DIR" "$DB_DIR" "$MODULES_DIR"
 
 # Generate mermaid diagrams only if sqlant is available. Otherwise use already provided mermaid
 # sources (e.g. provided by other ci jobs).
@@ -92,6 +94,8 @@ $OPENTALK_CONTROLLER_CMD --config example/controller.toml jobs default-parameter
 $OPENTALK_CONTROLLER_CMD --config example/controller.toml jobs default-parameters keycloak-account-sync | codify json > "$JOBS_DIR"/parameters-keycloak-account-sync.json.md
 
 $OPENTALK_CONTROLLER_CMD --config example/controller.toml modules list | codify text > "$CLI_DIR"/"$CMDNAME"-modules-list.md
+
+$OPENTALK_CONTROLLER_CMD --config example/controller.toml modules print-documentation > "$MODULES_DIR"/module-features-documentation.md
 
 # Remove trailing spaces to prevent markdownlint from triggering *MD009 - Trailing spaces*
 # https://github.com/markdownlint/markdownlint/blob/main/docs/RULES.md#md009---trailing-spaces

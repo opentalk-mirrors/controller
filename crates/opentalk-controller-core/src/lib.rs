@@ -176,10 +176,11 @@ impl<M: RegisterModules> RegisterModules for ControllerModules<M> {
     async fn register<E>(
         registrar: &mut impl ModulesRegistrar<Error = E>,
     ) -> std::result::Result<(), E> {
+        M::register(registrar).await?;
         registrar.register::<Echo>().await?;
         registrar.register::<BreakoutRooms>().await?;
         registrar.register::<ModerationModule>().await?;
-        M::register(registrar).await
+        Ok(())
     }
 }
 

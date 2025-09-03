@@ -6,7 +6,8 @@ use std::collections::BTreeMap;
 
 use opentalk_signaling_core::{
     DestroyContext, Event, InitContext, ModuleContext, Participant, SignalingModule,
-    SignalingModuleError, SignalingModuleInitData, SignalingRoomId, control,
+    SignalingModuleDescription, SignalingModuleError, SignalingModuleFeatureDescription,
+    SignalingModuleInitData, SignalingRoomId, control,
 };
 use opentalk_types_common::{modules::ModuleId, streaming::StreamingTargetId};
 use opentalk_types_signaling_recording::{StreamStatus, StreamTargetSecret, StreamUpdated};
@@ -26,6 +27,13 @@ pub struct RecordingService {
     room: SignalingRoomId,
     /// Whether or not the current participant is the recorder
     is_recorder: bool,
+}
+
+impl SignalingModuleDescription for RecordingService {
+    const MODULE_ID: ModuleId = MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles communication between the meeting room and the recorder. This is required if the `recording` module is enabled.";
+
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 #[async_trait::async_trait(?Send)]

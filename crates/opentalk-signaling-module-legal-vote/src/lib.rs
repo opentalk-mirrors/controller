@@ -26,8 +26,8 @@ use opentalk_inventory::{
 };
 use opentalk_signaling_core::{
     ChunkFormat, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage, Participant,
-    SerdeJsonSnafu, SignalingModule, SignalingModuleError, SignalingModuleInitData,
-    SignalingRoomId, VolatileStorage,
+    SerdeJsonSnafu, SignalingModule, SignalingModuleDescription, SignalingModuleError,
+    SignalingModuleFeatureDescription, SignalingModuleInitData, SignalingRoomId, VolatileStorage,
     assets::{NewAssetFileName, save_asset},
     control::{
         self,
@@ -105,6 +105,12 @@ pub struct LegalVote {
     user_id: UserId,
     tenant_id: TenantId,
     room_id: SignalingRoomId,
+}
+
+impl SignalingModuleDescription for LegalVote {
+    const MODULE_ID: ModuleId = MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles the legal-vote functionality";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 #[async_trait::async_trait(?Send)]

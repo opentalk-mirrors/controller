@@ -13,8 +13,8 @@ use opentalk_inventory::{Event as InventoryEvent, InventoryProvider};
 use opentalk_report_generation::ToReportDateTime;
 use opentalk_signaling_core::{
     ChunkFormat, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage,
-    ObjectStorageError, SignalingModule, SignalingModuleError, SignalingModuleInitData,
-    SignalingRoomId, VolatileStorage,
+    ObjectStorageError, SignalingModule, SignalingModuleDescription, SignalingModuleError,
+    SignalingModuleFeatureDescription, SignalingModuleInitData, SignalingRoomId, VolatileStorage,
     assets::{AssetError, NewAssetFileName, save_asset},
     control::{
         self,
@@ -63,6 +63,13 @@ pub struct MeetingReport {
     room_id: SignalingRoomId,
     inventory_provider: Arc<dyn InventoryProvider>,
     storage: Arc<ObjectStorage>,
+}
+
+impl SignalingModuleDescription for MeetingReport {
+    const MODULE_ID: ModuleId = MODULE_ID;
+    const DESCRIPTION: &'static str =
+        "Handles generation of meeting reports, e.g. participant list export";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 #[async_trait::async_trait(?Send)]

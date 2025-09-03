@@ -14,7 +14,8 @@ use lapin_pool::{RabbitMqChannel, RabbitMqPool};
 use opentalk_inventory::InventoryProvider;
 use opentalk_signaling_core::{
     CleanupScope, DestroyContext, Event, InitContext, ModuleContext, SignalingModule,
-    SignalingModuleError, SignalingModuleInitData, SignalingRoomId, VolatileStorage,
+    SignalingModuleDescription, SignalingModuleError, SignalingModuleFeatureDescription,
+    SignalingModuleInitData, SignalingRoomId, VolatileStorage,
     control::{
         self,
         storage::{ControlStorageParticipantAttributes as _, RECORDING_CONSENT},
@@ -129,6 +130,21 @@ impl RecordingStorageProvider for VolatileStorage {
     }
 }
 
+impl SignalingModuleDescription for Recording {
+    const MODULE_ID: ModuleId = MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles recording functionality. The `recording_service` must be enabled as well for recording to work properly, it performs communication with the [recordings service](https://docs.opentalk.eu/admin/recorder/).";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[
+        SignalingModuleFeatureDescription {
+            feature_id: RECORD_FEATURE_ID,
+            description: "Allows creation of recordings for meetings",
+        },
+        SignalingModuleFeatureDescription {
+            feature_id: STREAM_FEATURE_ID,
+            description: "Allows streaming meetings to streaming services",
+        },
+    ];
+}
+
 #[async_trait::async_trait(?Send)]
 impl SignalingModule for Recording {
     const NAMESPACE: ModuleId = MODULE_ID;
@@ -171,10 +187,6 @@ impl SignalingModule for Recording {
             rabbitmq_channel,
             recorder_started: false,
         }))
-    }
-
-    fn get_provided_features() -> BTreeSet<FeatureId> {
-        BTreeSet::from_iter([RECORD_FEATURE_ID, STREAM_FEATURE_ID])
     }
 
     async fn on_event(

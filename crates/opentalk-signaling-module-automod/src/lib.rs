@@ -77,7 +77,8 @@ use either::Either;
 use futures::{FutureExt, stream::once};
 use opentalk_signaling_core::{
     DestroyContext, Event, InitContext, ModuleContext, RoomLockingProvider, SignalingModule,
-    SignalingModuleError, SignalingModuleInitData, SignalingRoomId, VolatileStorage, control,
+    SignalingModuleDescription, SignalingModuleError, SignalingModuleFeatureDescription,
+    SignalingModuleInitData, SignalingRoomId, VolatileStorage, control,
 };
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ParticipantId, Role};
@@ -126,6 +127,13 @@ impl AutomodStorageProvider for VolatileStorage {
             Either::Right(v) => v,
         }
     }
+}
+
+impl SignalingModuleDescription for Automod {
+    const MODULE_ID: ModuleId = MODULE_ID;
+    const DESCRIPTION: &'static str =
+        "Handles auto-moderation functionality such as the talking stick";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 #[async_trait::async_trait(?Send)]

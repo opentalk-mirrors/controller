@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_signaling_core::{
-    DestroyContext, Event, InitContext, ModuleContext, SignalingModule, SignalingModuleError,
-    SignalingModuleInitData,
+    DestroyContext, Event, InitContext, ModuleContext, SignalingModule, SignalingModuleDescription,
+    SignalingModuleError, SignalingModuleFeatureDescription, SignalingModuleInitData,
 };
 use opentalk_types_common::modules::{ModuleId, module_id};
 use serde_json::Value;
@@ -15,6 +15,12 @@ pub const MODULE_ID: ModuleId = module_id!("echo");
 /// A sample echo websocket module
 #[derive(Debug)]
 pub struct Echo;
+
+impl SignalingModuleDescription for Echo {
+    const MODULE_ID: ModuleId = MODULE_ID;
+    const DESCRIPTION: &'static str = "Used for internal connection checking and development";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+}
 
 #[async_trait::async_trait(?Send)]
 impl SignalingModule for Echo {
