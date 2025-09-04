@@ -36,7 +36,6 @@
 use std::{
     fs::File,
     io::BufReader,
-    marker::PhantomData,
     net::{Ipv4Addr, Ipv6Addr, SocketAddr, TcpListener, ToSocketAddrs as _},
     sync::Arc,
     time::Duration,
@@ -166,18 +165,6 @@ where
     }
 }
 
-struct ControllerModules<M: RegisterModules>(PhantomData<M>);
-
-#[async_trait(?Send)]
-impl<M: RegisterModules> RegisterModules for ControllerModules<M> {
-    async fn register<E>(
-        registrar: &mut impl ModulesRegistrar<Error = E>,
-    ) -> std::result::Result<(), E> {
-        M::register(registrar).await?;
-        Ok(())
-    }
-}
-
 /// Controller struct representation containing all fields required to extend and drive the controller
 pub struct Controller {
     pub service: Arc<dyn OpenTalkControllerService>,
@@ -243,7 +230,7 @@ impl Controller {
     ///
     /// Otherwise it will return itself which can be modified and then run using [`Controller::run`]
     pub async fn create<M: RegisterModules>(program_name: &str) -> Result<Option<Self>> {
-        let args = cli::parse_args::<ControllerModules<M>>()
+        let args = cli::parse_args::<M>()
             .await
             .whatever_context("Failed to parse cli arguments")?;
 
@@ -263,7 +250,7 @@ impl Controller {
 
         log::info!("Global timezone is {}", settings.defaults.timezone);
 
-        let controller = Self::init::<ControllerModules<M>>(settings_provider, args)
+        let controller = Self::init::<M>(settings_provider, args)
             .await
             .whatever_context("Failed to init controller")?;
 
