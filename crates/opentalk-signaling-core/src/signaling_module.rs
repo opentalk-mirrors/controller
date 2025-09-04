@@ -168,7 +168,7 @@ pub trait SignalingModule: SignalingModuleDescription + Send + Sized + 'static {
     /// Build the parameters for instantiating the signaling module.
     ///
     /// If `None` is returned, the module is not initialized.
-    async fn build_params(init: SignalingModuleInitData) -> Result<Option<Self::Params>>;
+    fn build_params(init: SignalingModuleInitData) -> Result<Option<Self::Params>>;
 }
 
 pub struct SignalingModuleFeatureDescription {

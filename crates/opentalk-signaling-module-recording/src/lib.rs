@@ -314,7 +314,7 @@ impl SignalingModule for Recording {
         }
     }
 
-    async fn build_params(
+    fn build_params(
         init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
         let Some(rabbitmq_pool) = init.rabbitmq_pool.as_ref() else {

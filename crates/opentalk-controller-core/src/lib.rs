@@ -14,7 +14,7 @@
 //! # struct Modules;
 //! # #[async_trait::async_trait(?Send)]
 //! # impl RegisterModules for Modules {
-//! #     async fn register<E>(registrar: &mut impl ModulesRegistrar<Error=E>) -> Result<(), E> {
+//! #     fn register<E>(registrar: &mut impl ModulesRegistrar<Error=E>) -> Result<(), E> {
 //! #         unimplemented!();
 //! #     }
 //! # }
@@ -44,7 +44,6 @@ use std::{
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, Scope, web, web::Data};
 use api::signaling::SignalingModules;
-use async_trait::async_trait;
 use kustos::Authz;
 use lapin_pool::RabbitMqPool;
 use opentalk_controller_service::{
@@ -407,9 +406,7 @@ impl Controller {
             signaling_modules: SignalingModules::default(),
         };
 
-        M::register(&mut initializer)
-            .await
-            .whatever_context("Failed to register modules")?;
+        M::register(&mut initializer).whatever_context("Failed to register modules")?;
 
         let roomserver_client = if let Some(roomserver_config) = &settings.roomserver {
             Some(
@@ -665,11 +662,10 @@ impl Controller {
     }
 }
 
-#[async_trait(?Send)]
 impl ModulesRegistrar for Controller {
     type Error = Whatever;
 
-    async fn register<M: SignalingModule>(&mut self) -> Result<()> {
+    fn register<M: SignalingModule>(&mut self) -> Result<()> {
         let init = SignalingModuleInitData {
             startup_settings: self.startup_settings.clone(),
             settings_provider: self.settings_provider.clone(),
@@ -680,7 +676,6 @@ impl ModulesRegistrar for Controller {
         };
 
         let params = M::build_params(init)
-            .await
             .with_whatever_context(|_| format!("Failed to initialize module '{}'", M::NAMESPACE))?;
 
         if let Some(params) = params {
@@ -1145,13 +1140,11 @@ struct ModuleInitializer {
     signaling_modules: SignalingModules,
 }
 
-#[async_trait(?Send)]
 impl ModulesRegistrar for ModuleInitializer {
     type Error = Whatever;
 
-    async fn register<M: SignalingModule>(&mut self) -> Result<()> {
+    fn register<M: SignalingModule>(&mut self) -> Result<()> {
         let params = M::build_params(self.init_data.clone())
-            .await
             .with_whatever_context(|_| format!("Failed to initialize module '{}'", M::NAMESPACE))?;
 
         if let Some(params) = params {

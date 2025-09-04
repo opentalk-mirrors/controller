@@ -4,7 +4,6 @@
 
 use std::convert::Infallible;
 
-use async_trait::async_trait;
 use clap::Subcommand;
 use itertools::Itertools as _;
 use opentalk_signaling_core::{
@@ -25,11 +24,10 @@ pub enum Command {
 
 struct ModuleConsolePrinter;
 
-#[async_trait(?Send)]
 impl ModulesRegistrar for ModuleConsolePrinter {
     type Error = Infallible;
 
-    async fn register<M: SignalingModuleDescription>(&mut self) -> Result<(), Infallible> {
+    fn register<M: SignalingModuleDescription>(&mut self) -> Result<(), Infallible> {
         println!(
             "{}: [{}]",
             M::MODULE_ID,
@@ -44,11 +42,10 @@ impl ModulesRegistrar for ModuleConsolePrinter {
 
 struct ModulesMarkdownPrinter;
 
-#[async_trait(?Send)]
 impl ModulesRegistrar for ModulesMarkdownPrinter {
     type Error = Infallible;
 
-    async fn register<M: SignalingModule>(&mut self) -> Result<(), Infallible> {
+    fn register<M: SignalingModule>(&mut self) -> Result<(), Infallible> {
         println!("{}", M::generate_markdown());
         Ok(())
     }
@@ -98,7 +95,7 @@ fn generate_feature_documentation(
 
 pub async fn handle_command<M: RegisterModules>(command: Command) -> Result<(), Infallible> {
     match command {
-        Command::List => M::register(&mut ModuleConsolePrinter).await,
-        Command::PrintDocumentation => M::register(&mut ModulesMarkdownPrinter).await,
+        Command::List => M::register(&mut ModuleConsolePrinter),
+        Command::PrintDocumentation => M::register(&mut ModulesMarkdownPrinter),
     }
 }

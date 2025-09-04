@@ -141,7 +141,7 @@ impl SignalingModule for SubroomAudio {
         }
     }
 
-    async fn build_params(
+    fn build_params(
         init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
         if !init.startup_settings.subroom_audio.enable_whisper {

@@ -203,7 +203,7 @@ impl SignalingModule for Livekit {
         }
     }
 
-    async fn build_params(
+    fn build_params(
         init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
         let LiveKit {

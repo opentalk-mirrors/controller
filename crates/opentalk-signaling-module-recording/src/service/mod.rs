@@ -112,7 +112,7 @@ impl SignalingModule for RecordingService {
 
     async fn on_destroy(self, mut _ctx: DestroyContext<'_>) {}
 
-    async fn build_params(
+    fn build_params(
         _init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
         Ok(Some(()))

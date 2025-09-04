@@ -26,24 +26,24 @@ pub struct Modules;
 
 #[async_trait(?Send)]
 impl RegisterModules for Modules {
-    async fn register<E>(registrar: &mut impl ModulesRegistrar<Error = E>) -> Result<(), E> {
-        registrar.register::<Core>().await?;
-        registrar.register::<Breakout>().await?;
-        registrar.register::<Moderation>().await?;
-        registrar.register::<Echo>().await?;
-        registrar.register::<Recording>().await?;
-        registrar.register::<RecordingService>().await?;
-        registrar.register::<Chat>().await?;
-        registrar.register::<LegalVote>().await?;
-        registrar.register::<Automod>().await?;
-        registrar.register::<Livekit>().await?;
-        registrar.register::<Polls>().await?;
-        registrar.register::<MeetingNotes>().await?;
-        registrar.register::<SharedFolder>().await?;
-        registrar.register::<Timer>().await?;
-        registrar.register::<Whiteboard>().await?;
-        registrar.register::<MeetingReport>().await?;
-        registrar.register::<SubroomAudio>().await?;
-        registrar.register::<TrainingParticipationReport>().await
+    fn register<E>(registrar: &mut impl ModulesRegistrar<Error = E>) -> Result<(), E> {
+        registrar.register::<Core>()?;
+        registrar.register::<Breakout>()?;
+        registrar.register::<Moderation>()?;
+        registrar.register::<Echo>()?;
+        registrar.register::<Recording>()?;
+        registrar.register::<RecordingService>()?;
+        registrar.register::<Chat>()?;
+        registrar.register::<LegalVote>()?;
+        registrar.register::<Automod>()?;
+        registrar.register::<Livekit>()?;
+        registrar.register::<Polls>()?;
+        registrar.register::<MeetingNotes>()?;
+        registrar.register::<SharedFolder>()?;
+        registrar.register::<Timer>()?;
+        registrar.register::<Whiteboard>()?;
+        registrar.register::<MeetingReport>()?;
+        registrar.register::<SubroomAudio>()?;
+        registrar.register::<TrainingParticipationReport>()
     }
 }

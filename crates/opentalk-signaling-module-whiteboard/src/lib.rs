@@ -275,7 +275,7 @@ impl SignalingModule for Whiteboard {
         }
     }
 
-    async fn build_params(
+    fn build_params(
         init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
         let spacedeck = init.settings_provider.get().spacedeck.clone();

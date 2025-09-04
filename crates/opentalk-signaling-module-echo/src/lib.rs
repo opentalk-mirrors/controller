@@ -68,7 +68,7 @@ impl SignalingModule for Echo {
 
     async fn on_destroy(self, _: DestroyContext<'_>) {}
 
-    async fn build_params(
+    fn build_params(
         _init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
         Ok(Some(()))

@@ -128,7 +128,7 @@ impl SignalingModule for MeetingReport {
 
     async fn on_destroy(self, _ctx: DestroyContext<'_>) {}
 
-    async fn build_params(
+    fn build_params(
         _init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
         Ok(Some(()))
