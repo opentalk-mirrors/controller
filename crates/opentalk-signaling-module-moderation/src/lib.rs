@@ -35,13 +35,12 @@ use opentalk_types_signaling_moderation::{
 use snafu::{Report, ResultExt};
 
 use self::storage::ModerationStorage;
-use crate::signaling::ws_modules::ModuleContextExt;
 
 pub mod exchange;
 pub mod storage;
 
 #[derive(Debug)]
-pub struct ModerationModule {
+pub struct Moderation {
     room: SignalingRoomId,
     id: ParticipantId,
 }
@@ -78,7 +77,7 @@ async fn build_waiting_room_participants(
 }
 
 async fn set_waiting_room_enabled(
-    ctx: &mut ModuleContext<'_, ModerationModule>,
+    ctx: &mut ModuleContext<'_, Moderation>,
     room_id: RoomId,
     enabled: bool,
 ) -> Result<(), SignalingModuleError> {
@@ -108,14 +107,14 @@ impl ModerationStorageProvider for VolatileStorage {
     }
 }
 
-impl SignalingModuleDescription for ModerationModule {
+impl SignalingModuleDescription for Moderation {
     const MODULE_ID: ModuleId = MODULE_ID;
     const DESCRIPTION: &'static str = "Handles moderation functionality";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 #[async_trait::async_trait(?Send)]
-impl SignalingModule for ModerationModule {
+impl SignalingModule for Moderation {
     const NAMESPACE: ModuleId = MODULE_ID;
 
     type Params = ();
@@ -466,8 +465,9 @@ impl SignalingModule for ModerationModule {
                     .waiting_room_remove_participant(self.room.room_id(), target)
                     .await?;
 
-                ctx.exchange_publish_control(
+                ctx.exchange_publish_to_namespace(
                     control::exchange::global_room_by_participant_id(self.room.room_id(), target),
+                    opentalk_signaling_core::control::MODULE_ID,
                     control::exchange::Message::Accepted(target),
                 );
             }
@@ -479,14 +479,16 @@ impl SignalingModule for ModerationModule {
 
                 if let Some(targets) = target {
                     for target in targets {
-                        ctx.exchange_publish_control(
+                        ctx.exchange_publish_to_namespace(
                             control::exchange::current_room_by_participant_id(self.room, target),
+                            opentalk_signaling_core::control::MODULE_ID,
                             control::exchange::Message::ResetRaisedHands { issued_by: self.id },
                         );
                     }
                 } else {
-                    ctx.exchange_publish_control(
+                    ctx.exchange_publish_to_namespace(
                         control::exchange::current_room_all_participants(self.room),
+                        opentalk_signaling_core::control::MODULE_ID,
                         control::exchange::Message::ResetRaisedHands { issued_by: self.id },
                     );
                 }
@@ -503,8 +505,9 @@ impl SignalingModule for ModerationModule {
                     .set_raise_hands_enabled(self.room.room_id(), true)
                     .await?;
 
-                ctx.exchange_publish_control(
+                ctx.exchange_publish_to_namespace(
                     control::exchange::current_room_all_participants(self.room),
+                    opentalk_signaling_core::control::MODULE_ID,
                     control::exchange::Message::EnableRaiseHands { issued_by: self.id },
                 );
             }
@@ -520,8 +523,9 @@ impl SignalingModule for ModerationModule {
                     .set_raise_hands_enabled(self.room.room_id(), false)
                     .await?;
 
-                ctx.exchange_publish_control(
+                ctx.exchange_publish_to_namespace(
                     control::exchange::current_room_all_participants(self.room),
+                    opentalk_signaling_core::control::MODULE_ID,
                     control::exchange::Message::DisableRaiseHands { issued_by: self.id },
                 );
             }
@@ -542,8 +546,9 @@ impl SignalingModule for ModerationModule {
                 if self.id == participant {
                     ctx.ws_send(ModerationEvent::SentToWaitingRoom);
 
-                    ctx.exchange_publish_control(
+                    ctx.exchange_publish_to_namespace(
                         control::exchange::current_room_all_participants(self.room),
+                        opentalk_signaling_core::control::MODULE_ID,
                         control::exchange::Message::Left {
                             id: self.id,
                             reason: LeaveReason::SentToWaitingRoom,

@@ -13,6 +13,7 @@ use opentalk_signaling_module_legal_vote::LegalVote;
 use opentalk_signaling_module_livekit::Livekit;
 use opentalk_signaling_module_meeting_notes::MeetingNotes;
 use opentalk_signaling_module_meeting_report::MeetingReport;
+use opentalk_signaling_module_moderation::Moderation;
 use opentalk_signaling_module_polls::Polls;
 use opentalk_signaling_module_recording::{Recording, RecordingService};
 use opentalk_signaling_module_shared_folder::SharedFolder;
@@ -28,6 +29,7 @@ impl RegisterModules for Modules {
     async fn register<E>(registrar: &mut impl ModulesRegistrar<Error = E>) -> Result<(), E> {
         registrar.register::<Core>().await?;
         registrar.register::<Breakout>().await?;
+        registrar.register::<Moderation>().await?;
         registrar.register::<Echo>().await?;
         registrar.register::<Recording>().await?;
         registrar.register::<RecordingService>().await?;

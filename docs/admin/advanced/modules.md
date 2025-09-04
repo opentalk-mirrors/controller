@@ -32,6 +32,14 @@ Handles breakout room functionality
 
 This module does not provide any configurable features.
 
+## Module `moderation`
+
+Handles moderation functionality
+
+### Features
+
+This module does not provide any configurable features.
+
 ## Module `echo`
 
 Used for internal connection checking and development
@@ -160,14 +168,6 @@ Handles training participation report functionality. Participants are asked to c
 
 This module does not provide any configurable features.
 
-## Module `moderation`
-
-Handles moderation functionality
-
-### Features
-
-This module does not provide any configurable features.
-
 <!-- end:fromfile:modules/module-features-documentation.md -->
 
 ## `opentalk-controller modules` subcommand
@@ -186,6 +186,7 @@ Example output:
 ```text
 core: ["call_in", "guests_allowed", "storage_upgradable"]
 breakout: []
+moderation: []
 echo: []
 recording: ["record", "stream"]
 recording_service: []
@@ -201,7 +202,6 @@ whiteboard: []
 meeting_report: []
 subroom_audio: []
 training_participation_report: []
-moderation: []
 ```
 
 <!-- end:fromfile:cli-usage/opentalk-controller-modules-list.md -->

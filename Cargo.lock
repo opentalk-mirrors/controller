@@ -5952,6 +5952,7 @@ dependencies = [
  "opentalk-roomserver-client",
  "opentalk-signaling-core",
  "opentalk-signaling-module-breakout",
+ "opentalk-signaling-module-moderation",
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -6026,11 +6027,10 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-signaling-core",
  "opentalk-signaling-module-breakout",
+ "opentalk-signaling-module-moderation",
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "opentalk-types-signaling-control",
- "opentalk-types-signaling-moderation",
  "opentelemetry",
  "opentelemetry_sdk",
  "parking_lot",
@@ -6879,6 +6879,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-signaling-module-moderation"
+version = "0.31.0"
+dependencies = [
+ "async-trait",
+ "either",
+ "log",
+ "opentalk-signaling-core",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "opentalk-types-signaling-control",
+ "opentalk-types-signaling-moderation",
+ "parking_lot",
+ "pretty_assertions",
+ "redis",
+ "redis-args",
+ "serde",
+ "serde_json",
+ "serial_test",
+ "snafu",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "opentalk-signaling-module-polls"
 version = "0.31.0"
 dependencies = [
@@ -7085,6 +7109,7 @@ dependencies = [
  "opentalk-signaling-module-livekit",
  "opentalk-signaling-module-meeting-notes",
  "opentalk-signaling-module-meeting-report",
+ "opentalk-signaling-module-moderation",
  "opentalk-signaling-module-polls",
  "opentalk-signaling-module-recording",
  "opentalk-signaling-module-shared-folder",

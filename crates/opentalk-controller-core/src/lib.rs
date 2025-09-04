@@ -50,7 +50,6 @@ use kustos::Authz;
 use lapin_pool::RabbitMqPool;
 use opentalk_controller_service::{
     ControllerBackend, Whatever, oidc::OidcContext, services::MailService,
-    signaling::ws_modules::moderation::ModerationModule,
 };
 use opentalk_controller_service_facade::OpenTalkControllerService;
 use opentalk_controller_settings::{
@@ -175,7 +174,6 @@ impl<M: RegisterModules> RegisterModules for ControllerModules<M> {
         registrar: &mut impl ModulesRegistrar<Error = E>,
     ) -> std::result::Result<(), E> {
         M::register(registrar).await?;
-        registrar.register::<ModerationModule>().await?;
         Ok(())
     }
 }

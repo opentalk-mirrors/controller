@@ -43,6 +43,7 @@ opentalk-roomserver-client.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-signaling-core.workspace = true
 opentalk-signaling-module-breakout.workspace = true
+opentalk-signaling-module-moderation.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["backend"] }
 opentalk-types-common = { workspace = true, features = [
   "backend",
@@ -50,10 +51,6 @@ opentalk-types-common = { workspace = true, features = [
   "kustos",
 ] }
 opentalk-types-signaling = { workspace = true, features = ["backend"] }
-opentalk-types-signaling-control = { workspace = true, features = ["backend"] }
-opentalk-types-signaling-moderation = { workspace = true, features = [
-  "backend",
-] }
 opentelemetry = { workspace = true, features = ["metrics", "trace"] }
 opentelemetry_sdk.workspace = true
 parking_lot.workspace = true
