@@ -7,7 +7,6 @@ use opentalk_signaling_core::{ModulesRegistrar, RegisterModules};
 use opentalk_signaling_module_automod::Automod;
 use opentalk_signaling_module_chat::Chat;
 use opentalk_signaling_module_core::Core;
-use opentalk_signaling_module_integration::Integration;
 use opentalk_signaling_module_legal_vote::LegalVote;
 use opentalk_signaling_module_livekit::Livekit;
 use opentalk_signaling_module_meeting_notes::MeetingNotes;
@@ -31,7 +30,6 @@ impl RegisterModules for Modules {
         registrar.register::<Chat>().await?;
         registrar.register::<LegalVote>().await?;
         registrar.register::<Automod>().await?;
-        registrar.register::<Integration>().await?;
         registrar.register::<Livekit>().await?;
         registrar.register::<Polls>().await?;
         registrar.register::<MeetingNotes>().await?;

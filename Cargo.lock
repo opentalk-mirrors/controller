@@ -6731,15 +6731,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "opentalk-signaling-module-integration"
-version = "0.31.0"
-dependencies = [
- "async-trait",
- "opentalk-signaling-core",
- "opentalk-types-common",
-]
-
-[[package]]
 name = "opentalk-signaling-module-legal-vote"
 version = "0.31.0"
 dependencies = [
@@ -7054,7 +7045,6 @@ dependencies = [
  "opentalk-signaling-module-automod",
  "opentalk-signaling-module-chat",
  "opentalk-signaling-module-core",
- "opentalk-signaling-module-integration",
  "opentalk-signaling-module-legal-vote",
  "opentalk-signaling-module-livekit",
  "opentalk-signaling-module-meeting-notes",
