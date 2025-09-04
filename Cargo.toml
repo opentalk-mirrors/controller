@@ -34,6 +34,7 @@ opentalk-signaling-module-automod = { path = "crates/opentalk-signaling-module-a
 opentalk-signaling-module-chat = { path = "crates/opentalk-signaling-module-chat", version = "0.31.0" }
 opentalk-signaling-module-core = { path = "crates/opentalk-signaling-module-core", version = "0.31.0" }
 opentalk-signaling-module-e2ee = { path = "crates/opentalk-signaling-module-e2ee", version = "0.31.0" }
+opentalk-signaling-module-echo = { path = "crates/opentalk-signaling-module-echo", version = "0.31.0" }
 opentalk-signaling-module-legal-vote = { path = "crates/opentalk-signaling-module-legal-vote", version = "0.31.0" }
 opentalk-signaling-module-livekit = { path = "crates/opentalk-signaling-module-livekit", version = "0.31.0" }
 opentalk-signaling-module-meeting-notes = { path = "crates/opentalk-signaling-module-meeting-notes", version = "0.31.0" }

@@ -7,6 +7,7 @@ use opentalk_signaling_core::{ModulesRegistrar, RegisterModules};
 use opentalk_signaling_module_automod::Automod;
 use opentalk_signaling_module_chat::Chat;
 use opentalk_signaling_module_core::Core;
+use opentalk_signaling_module_echo::Echo;
 use opentalk_signaling_module_legal_vote::LegalVote;
 use opentalk_signaling_module_livekit::Livekit;
 use opentalk_signaling_module_meeting_notes::MeetingNotes;
@@ -25,6 +26,7 @@ pub struct Modules;
 impl RegisterModules for Modules {
     async fn register<E>(registrar: &mut impl ModulesRegistrar<Error = E>) -> Result<(), E> {
         registrar.register::<Core>().await?;
+        registrar.register::<Echo>().await?;
         registrar.register::<Recording>().await?;
         registrar.register::<RecordingService>().await?;
         registrar.register::<Chat>().await?;

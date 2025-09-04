@@ -6,7 +6,6 @@ use opentalk_signaling_core::{ModuleContext, SignalingModule, control};
 use opentalk_types_signaling::NamespacedEvent;
 
 pub mod breakout;
-pub mod echo;
 pub mod moderation;
 
 pub trait ModuleContextExt {

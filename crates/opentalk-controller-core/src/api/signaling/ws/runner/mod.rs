@@ -27,7 +27,6 @@ use opentalk_controller_service::{
         storage::{SignalingStorageError, SignalingStorageProvider},
         ws_modules::{
             breakout,
-            echo::Echo,
             moderation::{self, ModerationStorageProvider},
         },
     },
@@ -37,8 +36,8 @@ use opentalk_controller_utils::get_tariff_for_user;
 use opentalk_inventory::{Inventory, InventoryProvider, Room, User, utils::build_event_info};
 use opentalk_signaling_core::{
     AnyStream, ExchangeHandle, LockError, ObjectStorage, Participant, RoomLockingProvider as _,
-    RunnerId, SignalingMetrics, SignalingModule, SignalingModuleError, SignalingRoomId,
-    SubscriberHandle, VolatileStorage,
+    RunnerId, SignalingMetrics, SignalingModuleError, SignalingRoomId, SubscriberHandle,
+    VolatileStorage,
     control::{
         self, ControlStateExt as _, ControlStorageProvider, MODULE_ID, exchange,
         storage::{
@@ -49,7 +48,7 @@ use opentalk_signaling_core::{
     },
 };
 use opentalk_types_common::{
-    modules::ModuleId,
+    modules::{ModuleId, module_id},
     rooms::{BreakoutRoomId, RoomId},
     tariffs::{QuotaType, TariffResource},
     time::{TimeZone, Timestamp},
@@ -1167,7 +1166,10 @@ impl Runner {
                 }
             }
             // Do not handle any other messages than control-join or echo before joined
-        } else if matches!(&self.state, RunnerState::Joined) || namespaced.module == Echo::NAMESPACE
+        } else if matches!(&self.state, RunnerState::Joined)
+            ||
+            // TODO: replace module_id(…), maybe add a `ECHO_MODULE_ID` into `opentalk-types-common`?
+            namespaced.module == module_id!("echo")
         {
             match self
                 .handle_module_targeted_event(
