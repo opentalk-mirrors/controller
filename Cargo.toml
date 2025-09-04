@@ -31,6 +31,7 @@ opentalk-r3dlock = { path = "crates/opentalk-r3dlock", version = "0.31.0" }
 opentalk-report-generation = { path = "crates/opentalk-report-generation", version = "0.31.0" }
 opentalk-signaling-core = { path = "crates/opentalk-signaling-core", version = "0.31.0" }
 opentalk-signaling-module-automod = { path = "crates/opentalk-signaling-module-automod", version = "0.31.0" }
+opentalk-signaling-module-breakout = { path = "crates/opentalk-signaling-module-breakout", version = "0.31.0" }
 opentalk-signaling-module-chat = { path = "crates/opentalk-signaling-module-chat", version = "0.31.0" }
 opentalk-signaling-module-core = { path = "crates/opentalk-signaling-module-core", version = "0.31.0" }
 opentalk-signaling-module-e2ee = { path = "crates/opentalk-signaling-module-e2ee", version = "0.31.0" }

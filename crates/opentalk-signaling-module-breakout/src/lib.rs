@@ -43,7 +43,7 @@ pub mod exchange;
 pub mod storage;
 
 #[derive(Debug)]
-pub struct BreakoutRooms {
+pub struct Breakout {
     id: ParticipantId,
     parent: RoomId,
     room: SignalingRoomId,
@@ -69,14 +69,14 @@ impl BreakoutStorageProvider for VolatileStorage {
     }
 }
 
-impl SignalingModuleDescription for BreakoutRooms {
+impl SignalingModuleDescription for Breakout {
     const MODULE_ID: ModuleId = MODULE_ID;
     const DESCRIPTION: &'static str = "Handles breakout room functionality";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 #[async_trait::async_trait(?Send)]
-impl SignalingModule for BreakoutRooms {
+impl SignalingModule for Breakout {
     const NAMESPACE: ModuleId = MODULE_ID;
 
     type Params = ();
@@ -265,7 +265,7 @@ impl SignalingModule for BreakoutRooms {
     }
 }
 
-impl BreakoutRooms {
+impl Breakout {
     async fn add_room_to_participants_list(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,

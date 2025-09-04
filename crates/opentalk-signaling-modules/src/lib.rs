@@ -5,6 +5,7 @@
 use async_trait::async_trait;
 use opentalk_signaling_core::{ModulesRegistrar, RegisterModules};
 use opentalk_signaling_module_automod::Automod;
+use opentalk_signaling_module_breakout::Breakout;
 use opentalk_signaling_module_chat::Chat;
 use opentalk_signaling_module_core::Core;
 use opentalk_signaling_module_echo::Echo;
@@ -26,6 +27,7 @@ pub struct Modules;
 impl RegisterModules for Modules {
     async fn register<E>(registrar: &mut impl ModulesRegistrar<Error = E>) -> Result<(), E> {
         registrar.register::<Core>().await?;
+        registrar.register::<Breakout>().await?;
         registrar.register::<Echo>().await?;
         registrar.register::<Recording>().await?;
         registrar.register::<RecordingService>().await?;

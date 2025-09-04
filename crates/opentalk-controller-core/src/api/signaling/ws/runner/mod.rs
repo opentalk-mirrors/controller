@@ -25,10 +25,7 @@ use opentalk_controller_service::{
     signaling::{
         resumption::ResumptionTokenKeepAlive,
         storage::{SignalingStorageError, SignalingStorageProvider},
-        ws_modules::{
-            breakout,
-            moderation::{self, ModerationStorageProvider},
-        },
+        ws_modules::moderation::{self, ModerationStorageProvider},
     },
 };
 use opentalk_controller_settings::SettingsProvider;
@@ -2581,8 +2578,11 @@ impl Runner {
                 return Some(JoinEvent::WaitingRoom);
             }
         } else if namespaced.module == opentalk_types_signaling_breakout::MODULE_ID
-            && let Ok(breakout::exchange::Message::Joined(participant_joined_other_room)) =
-                serde_json::from_value::<breakout::exchange::Message>(namespaced.payload)
+            && let Ok(opentalk_signaling_module_breakout::exchange::Message::Joined(
+                participant_joined_other_room,
+            )) = serde_json::from_value::<opentalk_signaling_module_breakout::exchange::Message>(
+                namespaced.payload,
+            )
         {
             return Some(JoinEvent::Room(SignalingRoomId::new(
                 self.room_id.room_id(),

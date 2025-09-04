@@ -57,6 +57,7 @@ opentalk-keycloak-admin.workspace = true
 opentalk-r3dlock.workspace = true
 opentalk-roomserver-client.workspace = true
 opentalk-signaling-core.workspace = true
+opentalk-signaling-module-breakout.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["backend", "bincode"] }
 opentalk-types-common = { workspace = true, features = [
   "actix",

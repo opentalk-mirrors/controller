@@ -7,7 +7,7 @@ use std::{collections::HashMap, time::Duration};
 use opentalk_signaling_core::ExpiringData;
 use opentalk_types_common::rooms::RoomId;
 
-use crate::signaling::ws_modules::breakout::storage::BreakoutConfig;
+use crate::storage::BreakoutConfig;
 
 #[derive(Debug, Clone, Default)]
 pub(super) struct MemoryBreakoutState {

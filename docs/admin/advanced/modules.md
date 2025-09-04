@@ -24,6 +24,14 @@ Allow guest access. With this feature enabled, guests are allowed to join meetin
 
 Communicates to the frontend that the user's storage can be upgraded. Frontend will then show the corresponding link to the account management if the user's storage is close to the limit. This feature is usually configured differently the tariffs. If a user has a tariff which already provides the maximum available storage space, then that feature should be disabled. For all other tariffs it should be on.
 
+## Module `breakout`
+
+Handles breakout room functionality
+
+### Features
+
+This module does not provide any configurable features.
+
 ## Module `echo`
 
 Used for internal connection checking and development
@@ -152,14 +160,6 @@ Handles training participation report functionality. Participants are asked to c
 
 This module does not provide any configurable features.
 
-## Module `breakout`
-
-Handles breakout room functionality
-
-### Features
-
-This module does not provide any configurable features.
-
 ## Module `moderation`
 
 Handles moderation functionality
@@ -185,6 +185,7 @@ Example output:
 
 ```text
 core: ["call_in", "guests_allowed", "storage_upgradable"]
+breakout: []
 echo: []
 recording: ["record", "stream"]
 recording_service: []
@@ -200,7 +201,6 @@ whiteboard: []
 meeting_report: []
 subroom_audio: []
 training_participation_report: []
-breakout: []
 moderation: []
 ```
 
