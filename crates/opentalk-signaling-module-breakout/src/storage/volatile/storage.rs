@@ -10,7 +10,7 @@ use opentalk_types_common::rooms::RoomId;
 use parking_lot::RwLock;
 
 use super::memory::MemoryBreakoutState;
-use crate::signaling::ws_modules::breakout::storage::{BreakoutConfig, BreakoutStorage};
+use crate::storage::{BreakoutConfig, BreakoutStorage};
 
 static STATE: OnceLock<RwLock<MemoryBreakoutState>> = OnceLock::new();
 

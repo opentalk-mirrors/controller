@@ -5951,6 +5951,8 @@ dependencies = [
  "opentalk-r3dlock",
  "opentalk-roomserver-client",
  "opentalk-signaling-core",
+ "opentalk-signaling-module-breakout",
+ "opentalk-signaling-module-moderation",
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -6024,12 +6026,11 @@ dependencies = [
  "opentalk-roomserver-client",
  "opentalk-roomserver-types",
  "opentalk-signaling-core",
+ "opentalk-signaling-module-breakout",
+ "opentalk-signaling-module-moderation",
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "opentalk-types-signaling-breakout",
- "opentalk-types-signaling-control",
- "opentalk-types-signaling-moderation",
  "opentelemetry",
  "opentelemetry_sdk",
  "parking_lot",
@@ -6681,6 +6682,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-signaling-module-breakout"
+version = "0.31.0"
+dependencies = [
+ "async-trait",
+ "either",
+ "futures",
+ "log",
+ "opentalk-signaling-core",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "opentalk-types-signaling-breakout",
+ "parking_lot",
+ "pretty_assertions",
+ "redis",
+ "redis-args",
+ "serde",
+ "serial_test",
+ "snafu",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "opentalk-signaling-module-chat"
 version = "0.31.0"
 dependencies = [
@@ -6731,12 +6755,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "opentalk-signaling-module-integration"
+name = "opentalk-signaling-module-echo"
 version = "0.31.0"
 dependencies = [
  "async-trait",
  "opentalk-signaling-core",
  "opentalk-types-common",
+ "serde_json",
 ]
 
 [[package]]
@@ -6851,6 +6876,30 @@ dependencies = [
  "serde",
  "serde_json",
  "snafu",
+]
+
+[[package]]
+name = "opentalk-signaling-module-moderation"
+version = "0.31.0"
+dependencies = [
+ "async-trait",
+ "either",
+ "log",
+ "opentalk-signaling-core",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "opentalk-types-signaling-control",
+ "opentalk-types-signaling-moderation",
+ "parking_lot",
+ "pretty_assertions",
+ "redis",
+ "redis-args",
+ "serde",
+ "serde_json",
+ "serial_test",
+ "snafu",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -7052,13 +7101,15 @@ dependencies = [
  "async-trait",
  "opentalk-signaling-core",
  "opentalk-signaling-module-automod",
+ "opentalk-signaling-module-breakout",
  "opentalk-signaling-module-chat",
  "opentalk-signaling-module-core",
- "opentalk-signaling-module-integration",
+ "opentalk-signaling-module-echo",
  "opentalk-signaling-module-legal-vote",
  "opentalk-signaling-module-livekit",
  "opentalk-signaling-module-meeting-notes",
  "opentalk-signaling-module-meeting-report",
+ "opentalk-signaling-module-moderation",
  "opentalk-signaling-module-polls",
  "opentalk-signaling-module-recording",
  "opentalk-signaling-module-shared-folder",

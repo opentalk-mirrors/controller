@@ -46,7 +46,7 @@ mod test_common {
     use pretty_assertions::assert_eq;
 
     use super::BreakoutStorage;
-    use crate::signaling::ws_modules::breakout::storage::BreakoutConfig;
+    use crate::storage::BreakoutConfig;
 
     pub const ROOM: RoomId = RoomId::nil();
 

@@ -17,8 +17,9 @@ use livekit_protocol::TrackSource;
 use opentalk_controller_settings::LiveKit;
 use opentalk_signaling_core::{
     CleanupScope, DestroyContext, Event as SignalingEvent, InitContext, ModuleContext,
-    SignalingModule, SignalingModuleError, SignalingModuleInitData, SignalingRoomId,
-    VolatileStorage, control,
+    SignalingModule, SignalingModuleDescription, SignalingModuleError,
+    SignalingModuleFeatureDescription, SignalingModuleInitData, SignalingRoomId, VolatileStorage,
+    control,
 };
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
@@ -62,6 +63,12 @@ impl SubroomAudioStorageProvider for VolatileStorage {
             Either::Right(v) => v,
         }
     }
+}
+
+impl SignalingModuleDescription for SubroomAudio {
+    const MODULE_ID: ModuleId = MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles sub-room audio, allowing participants to talk to each other in a separate audio group.";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 #[async_trait::async_trait(?Send)]
@@ -134,7 +141,7 @@ impl SignalingModule for SubroomAudio {
         }
     }
 
-    async fn build_params(
+    fn build_params(
         init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
         if !init.startup_settings.subroom_audio.enable_whisper {

@@ -11,7 +11,7 @@ use opentalk_types_signaling::ParticipantId;
 use parking_lot::RwLock;
 
 use super::memory::MemoryModerationState;
-use crate::signaling::ws_modules::moderation::storage::ModerationStorage;
+use crate::storage::ModerationStorage;
 
 static STATE: OnceLock<RwLock<MemoryModerationState>> = OnceLock::new();
 

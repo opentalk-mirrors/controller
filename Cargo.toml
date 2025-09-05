@@ -31,14 +31,16 @@ opentalk-r3dlock = { path = "crates/opentalk-r3dlock", version = "0.31.0" }
 opentalk-report-generation = { path = "crates/opentalk-report-generation", version = "0.31.0" }
 opentalk-signaling-core = { path = "crates/opentalk-signaling-core", version = "0.31.0" }
 opentalk-signaling-module-automod = { path = "crates/opentalk-signaling-module-automod", version = "0.31.0" }
+opentalk-signaling-module-breakout = { path = "crates/opentalk-signaling-module-breakout", version = "0.31.0" }
 opentalk-signaling-module-chat = { path = "crates/opentalk-signaling-module-chat", version = "0.31.0" }
 opentalk-signaling-module-core = { path = "crates/opentalk-signaling-module-core", version = "0.31.0" }
 opentalk-signaling-module-e2ee = { path = "crates/opentalk-signaling-module-e2ee", version = "0.31.0" }
-opentalk-signaling-module-integration = { path = "crates/opentalk-signaling-module-integration", version = "0.31.0" }
+opentalk-signaling-module-echo = { path = "crates/opentalk-signaling-module-echo", version = "0.31.0" }
 opentalk-signaling-module-legal-vote = { path = "crates/opentalk-signaling-module-legal-vote", version = "0.31.0" }
 opentalk-signaling-module-livekit = { path = "crates/opentalk-signaling-module-livekit", version = "0.31.0" }
 opentalk-signaling-module-meeting-notes = { path = "crates/opentalk-signaling-module-meeting-notes", version = "0.31.0" }
 opentalk-signaling-module-meeting-report = { path = "crates/opentalk-signaling-module-meeting-report", version = "0.31.0" }
+opentalk-signaling-module-moderation = { path = "crates/opentalk-signaling-module-moderation", version = "0.31.0" }
 opentalk-signaling-module-polls = { path = "crates/opentalk-signaling-module-polls", version = "0.31.0" }
 opentalk-signaling-module-recording = { path = "crates/opentalk-signaling-module-recording", version = "0.31.0" }
 opentalk-signaling-module-shared-folder = { path = "crates/opentalk-signaling-module-shared-folder", version = "0.31.0" }

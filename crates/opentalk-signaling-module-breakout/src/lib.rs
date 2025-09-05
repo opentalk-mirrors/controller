@@ -12,8 +12,9 @@ use std::{
 use either::Either;
 use futures::FutureExt;
 use opentalk_signaling_core::{
-    DestroyContext, Event, InitContext, ModuleContext, SignalingModule, SignalingModuleError,
-    SignalingModuleInitData, SignalingRoomId, VolatileStorage,
+    DestroyContext, Event, InitContext, ModuleContext, SignalingModule, SignalingModuleDescription,
+    SignalingModuleError, SignalingModuleFeatureDescription, SignalingModuleInitData,
+    SignalingRoomId, VolatileStorage,
     control::{
         self,
         storage::{
@@ -42,7 +43,7 @@ pub mod exchange;
 pub mod storage;
 
 #[derive(Debug)]
-pub struct BreakoutRooms {
+pub struct Breakout {
     id: ParticipantId,
     parent: RoomId,
     room: SignalingRoomId,
@@ -68,8 +69,14 @@ impl BreakoutStorageProvider for VolatileStorage {
     }
 }
 
+impl SignalingModuleDescription for Breakout {
+    const MODULE_ID: ModuleId = MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles breakout room functionality";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+}
+
 #[async_trait::async_trait(?Send)]
-impl SignalingModule for BreakoutRooms {
+impl SignalingModule for Breakout {
     const NAMESPACE: ModuleId = MODULE_ID;
 
     type Params = ();
@@ -251,14 +258,14 @@ impl SignalingModule for BreakoutRooms {
 
     async fn on_destroy(self, _ctx: DestroyContext<'_>) {}
 
-    async fn build_params(
+    fn build_params(
         _init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
         Ok(Some(()))
     }
 }
 
-impl BreakoutRooms {
+impl Breakout {
     async fn add_room_to_participants_list(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,

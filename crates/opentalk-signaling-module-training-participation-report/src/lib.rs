@@ -34,8 +34,8 @@ use futures::{FutureExt as _, stream::once};
 use opentalk_inventory::InventoryProvider;
 use opentalk_signaling_core::{
     ChunkFormat, CleanupScope, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage,
-    ObjectStorageError, SignalingModule, SignalingModuleError, SignalingModuleInitData,
-    VolatileStorage,
+    ObjectStorageError, SignalingModule, SignalingModuleDescription, SignalingModuleError,
+    SignalingModuleFeatureDescription, SignalingModuleInitData, VolatileStorage,
     assets::{AssetError, NewAssetFileName, save_asset},
     control::{
         self, ControlStorageProvider,
@@ -122,6 +122,12 @@ impl TrainingParticipationReportStorageProvider for VolatileStorage {
     }
 }
 
+impl SignalingModuleDescription for TrainingParticipationReport {
+    const MODULE_ID: ModuleId = MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles training participation report functionality. Participants are asked to confirm their presence repeatedly at pre-configured time intervals. These confirmations are documented in the training participation report which is created automatically at the end of the meeting.";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+}
+
 #[async_trait::async_trait(?Send)]
 impl SignalingModule for TrainingParticipationReport {
     const NAMESPACE: ModuleId = MODULE_ID;
@@ -203,7 +209,7 @@ impl SignalingModule for TrainingParticipationReport {
         }
     }
 
-    async fn build_params(
+    fn build_params(
         _init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
         Ok(Some(()))

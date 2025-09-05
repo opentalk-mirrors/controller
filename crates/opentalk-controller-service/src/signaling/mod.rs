@@ -9,4 +9,3 @@
 pub mod resumption;
 pub mod storage;
 pub mod ticket;
-pub mod ws_modules;

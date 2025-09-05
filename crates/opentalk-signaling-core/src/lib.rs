@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use async_trait::async_trait;
-
 mod any_stream;
 mod destroy_context;
 mod event;
@@ -46,14 +44,12 @@ pub use signaling_module::*;
 pub use signaling_room_id::SignalingRoomId;
 pub use volatile_storage::{VolatileStaticMemoryStorage, VolatileStorage};
 
-#[async_trait(?Send)]
 pub trait RegisterModules {
-    async fn register<E>(registrar: &mut impl ModulesRegistrar<Error = E>) -> Result<(), E>;
+    fn register<E>(registrar: &mut impl ModulesRegistrar<Error = E>) -> Result<(), E>;
 }
 
-#[async_trait(?Send)]
 pub trait ModulesRegistrar {
-    type Error: Send + Sync;
+    type Error;
 
-    async fn register<M: SignalingModule>(&mut self) -> Result<(), Self::Error>;
+    fn register<M: SignalingModule>(&mut self) -> Result<(), Self::Error>;
 }

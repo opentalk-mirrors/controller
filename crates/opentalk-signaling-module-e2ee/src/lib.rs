@@ -6,9 +6,10 @@ use std::collections::BTreeSet;
 
 use async_trait::async_trait;
 use opentalk_signaling_core::{
-    DestroyContext, Event, InitContext, ModuleContext, SignalingModule, SignalingModuleError,
-    SignalingModuleInitData, SignalingRoomId,
-    control::{ControlStorageProvider, exchange},
+    DestroyContext, Event, InitContext, ModuleContext, SignalingModule, SignalingModuleDescription,
+    SignalingModuleError, SignalingModuleFeatureDescription, SignalingModuleInitData,
+    SignalingRoomId,
+    control::{ControlStorageProvider, MODULE_ID, exchange},
 };
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
@@ -20,6 +21,12 @@ use serde::{Deserialize, Serialize};
 pub struct E2ee {
     room_id: SignalingRoomId,
     participant_id: ParticipantId,
+}
+
+impl SignalingModuleDescription for E2ee {
+    const MODULE_ID: ModuleId = MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles end-to-end encryption functionality";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 #[async_trait(? Send)]
@@ -63,7 +70,7 @@ impl SignalingModule for E2ee {
 
     async fn on_destroy(self, mut _ctx: DestroyContext<'_>) {}
 
-    async fn build_params(
+    fn build_params(
         _init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
         Ok(Some(()))

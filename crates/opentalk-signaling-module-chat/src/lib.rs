@@ -17,8 +17,8 @@ use either::Either;
 use opentalk_inventory::{Group, InventoryProvider};
 use opentalk_signaling_core::{
     CleanupScope, DestroyContext, Event, InitContext, LockError, ModuleContext, Participant,
-    RoomLockingProvider as _, SignalingModule, SignalingModuleError, SignalingModuleInitData,
-    SignalingRoomId, VolatileStorage,
+    RoomLockingProvider as _, SignalingModule, SignalingModuleDescription, SignalingModuleError,
+    SignalingModuleFeatureDescription, SignalingModuleInitData, SignalingRoomId, VolatileStorage,
     control::{
         exchange,
         storage::{ControlStorageParticipantAttributes as _, USER_ID},
@@ -260,6 +260,12 @@ impl ChatStorageProvider for VolatileStorage {
             Either::Right(v) => v,
         }
     }
+}
+
+impl SignalingModuleDescription for Chat {
+    const MODULE_ID: ModuleId = MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles room chat functionality";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 #[async_trait::async_trait(? Send)]
@@ -838,7 +844,7 @@ impl SignalingModule for Chat {
         }
     }
 
-    async fn build_params(
+    fn build_params(
         _init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
         Ok(Some(()))

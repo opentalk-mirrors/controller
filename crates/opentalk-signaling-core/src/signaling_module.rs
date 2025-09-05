@@ -104,7 +104,7 @@ pub struct SignalingModuleInitData {
 
 /// Extension to a the signaling websocket
 #[async_trait::async_trait(?Send)]
-pub trait SignalingModule: Send + Sized + 'static {
+pub trait SignalingModule: SignalingModuleDescription + Send + Sized + 'static {
     /// Defines the websocket message namespace
     ///
     /// Must be unique between all registered modules.
@@ -148,7 +148,10 @@ pub trait SignalingModule: Send + Sized + 'static {
 
     /// Returns the features provided by a particular module.
     fn get_provided_features() -> BTreeSet<FeatureId> {
-        BTreeSet::default()
+        Self::FEATURES
+            .iter()
+            .map(|f| f.feature_id.clone())
+            .collect()
     }
 
     /// Events related to this module will be passed into this function together with [`ModuleContext`]
@@ -165,5 +168,16 @@ pub trait SignalingModule: Send + Sized + 'static {
     /// Build the parameters for instantiating the signaling module.
     ///
     /// If `None` is returned, the module is not initialized.
-    async fn build_params(init: SignalingModuleInitData) -> Result<Option<Self::Params>>;
+    fn build_params(init: SignalingModuleInitData) -> Result<Option<Self::Params>>;
+}
+
+pub struct SignalingModuleFeatureDescription {
+    pub feature_id: FeatureId,
+    pub description: &'static str,
+}
+
+pub trait SignalingModuleDescription {
+    const MODULE_ID: ModuleId;
+    const DESCRIPTION: &'static str;
+    const FEATURES: &[SignalingModuleFeatureDescription];
 }

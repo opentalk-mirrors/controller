@@ -18,6 +18,8 @@ use opentalk_controller_utils::{
 };
 use opentalk_inventory::{NewRoom, NewRoomSipConfig, Room, UpdateRoom, utils::build_event_info};
 use opentalk_signaling_core::Participant;
+use opentalk_signaling_module_breakout::BreakoutStorageProvider as _;
+use opentalk_signaling_module_moderation::ModerationStorageProvider as _;
 use opentalk_types_api_v1::{
     error::{ApiError, ERROR_CODE_INVALID_VALUE, ValidationErrorEntry},
     pagination::PagePaginationQuery,
@@ -38,12 +40,8 @@ use opentalk_types_common::{
 };
 
 use crate::{
-    ControllerBackend, ToUserProfile,
-    controller_backend::rooms::start_room_error::StartRoomError,
-    signaling::{
-        ticket::start_or_continue_signaling_session,
-        ws_modules::{breakout::BreakoutStorageProvider, moderation::ModerationStorageProvider},
-    },
+    ControllerBackend, ToUserProfile, controller_backend::rooms::start_room_error::StartRoomError,
+    signaling::ticket::start_or_continue_signaling_session,
 };
 
 pub mod roomserver;

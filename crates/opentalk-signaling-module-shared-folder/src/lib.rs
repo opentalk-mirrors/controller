@@ -14,7 +14,8 @@ use either::Either;
 use opentalk_inventory::InventoryProvider;
 use opentalk_signaling_core::{
     CleanupScope, DestroyContext, Event, InitContext, ModuleContext, SignalingModule,
-    SignalingModuleError, SignalingModuleInitData, SignalingRoomId, VolatileStorage,
+    SignalingModuleDescription, SignalingModuleError, SignalingModuleFeatureDescription,
+    SignalingModuleInitData, SignalingRoomId, VolatileStorage,
 };
 use opentalk_types_common::{
     modules::ModuleId,
@@ -62,6 +63,12 @@ impl SharedFolderStorageProvider for VolatileStorage {
             Either::Right(v) => v,
         }
     }
+}
+
+impl SignalingModuleDescription for SharedFolder {
+    const MODULE_ID: ModuleId = MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles shared folder integration. This allows automatic creation of shares on a NextCloud instance using the [OCS API](https://docs.nextcloud.com/server/latest/developer_manual/client_apis/OCS/ocs-api-overview.html).";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 #[async_trait::async_trait(? Send)]
@@ -177,7 +184,7 @@ impl SignalingModule for SharedFolder {
         }
     }
 
-    async fn build_params(
+    fn build_params(
         init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
         Ok(init
