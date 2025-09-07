@@ -24,7 +24,7 @@ pub struct DatabaseContext {
     pub db: Arc<Db>,
     /// DatabaseContext will DROP the database inside postgres when dropped
     pub drop_db_on_drop: bool,
-    pub inventory_provider: Arc<dyn InventoryProvider>,
+    pub inventory_provider: Arc<DatabaseConnectionPool>,
 }
 
 impl DatabaseContext {

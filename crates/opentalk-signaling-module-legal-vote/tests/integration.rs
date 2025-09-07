@@ -5,7 +5,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use chrono::{DateTime, TimeZone, Utc};
-use opentalk_inventory::{ModuleResourceFilter, User};
+use opentalk_inventory::{InventoryProvider as _, ModuleResourceFilter, User};
 use opentalk_signaling_core::{
     SignalingModule, SignalingModuleError,
     module_tester::{ModuleTester, WsMessageOutgoing},

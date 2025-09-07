@@ -43,14 +43,16 @@
 //! # use tokio::runtime::Runtime;
 //! # use tokio::task;
 //! # use std::time::Duration;
+//! # use opentalk_inventory_database::DatabaseConnectionPool;
 //! # let rt  = Runtime::new().unwrap();
 //! # let local = task::LocalSet::new();
 //! # local.block_on(&rt, async {
 //! let db = Arc::new(
 //! Db::connect_url("postgres://postgres:postgres@localhost/kustos", 10).unwrap(),
 //! );
+//! let inventory_provider = Arc::new(DatabaseConnectionPool::new(db.clone()));
 //!
-//! let authz = Authz::new(db)
+//! let authz = Authz::new(inventory_provider)
 //!     .await
 //!     .unwrap();
 //! authz
@@ -85,7 +87,7 @@ use kustos_shared::{
 };
 use lapin_pool::RabbitMqPool;
 use metrics::KustosMetrics;
-use opentalk_database::Db;
+use opentalk_kustos_inventory::KustosInventoryProvider;
 use policy::{
     GroupPolicies, InvitePolicies, InvitePolicy, Policy, RolePolicies, UserPolicies, UserPolicy,
 };
@@ -102,7 +104,6 @@ pub mod policy;
 pub mod prelude;
 
 pub use error::{Error, Result};
-pub use kustos_db::db;
 pub use kustos_shared::{
     access::AccessMethod,
     resource,
@@ -116,9 +117,9 @@ pub struct Authz {
 }
 
 impl Authz {
-    pub async fn new(db: Arc<Db>) -> Result<Self> {
+    pub async fn new(inventory_provider: Arc<dyn KustosInventoryProvider>) -> Result<Self> {
         let acl_model = internal::default_acl_model().await;
-        let adapter = internal::diesel_adapter::CasbinAdapter::new(db.clone());
+        let adapter = internal::inventory_adapter::CasbinAdapter::new(inventory_provider);
         let enforcer = Arc::new(tokio::sync::RwLock::new(
             SyncedEnforcer::new(acl_model, adapter).await?,
         ));
@@ -126,9 +127,12 @@ impl Authz {
         Ok(Self { inner: enforcer })
     }
 
-    pub async fn new_with_autoload(db: Arc<Db>, rabbitmq_pool: Arc<RabbitMqPool>) -> Result<Self> {
+    pub async fn new_with_autoload(
+        inventory_provider: Arc<dyn KustosInventoryProvider>,
+        rabbitmq_pool: Arc<RabbitMqPool>,
+    ) -> Result<Self> {
         let acl_model = internal::default_acl_model().await;
-        let adapter = internal::diesel_adapter::CasbinAdapter::new(db.clone());
+        let adapter = internal::inventory_adapter::CasbinAdapter::new(inventory_provider);
         let enforcer = Arc::new(tokio::sync::RwLock::new(
             SyncedEnforcer::new(acl_model, adapter).await?,
         ));
@@ -139,12 +143,12 @@ impl Authz {
     }
 
     pub async fn new_with_autoload_and_metrics(
-        db: Arc<Db>,
+        inventory_provider: Arc<dyn KustosInventoryProvider>,
         rabbitmq_pool: Arc<RabbitMqPool>,
         metrics: Arc<KustosMetrics>,
     ) -> Result<Self> {
         let acl_model = internal::default_acl_model().await;
-        let adapter = internal::diesel_adapter::CasbinAdapter::new(db.clone());
+        let adapter = internal::inventory_adapter::CasbinAdapter::new(inventory_provider);
         let mut enforcer = SyncedEnforcer::new(acl_model, adapter).await?;
         enforcer.set_metrics(metrics);
 

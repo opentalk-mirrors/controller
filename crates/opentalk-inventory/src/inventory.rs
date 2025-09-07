@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use opentalk_kustos_inventory::KustosInventory;
+
 use crate::{
     AssetInventory, EventInventory, EventInviteInventory, EventSharedFolderInventory,
     EventTrainingParticipationReportInventory, GroupInventory, JobExecutionInventory,
@@ -29,5 +31,6 @@ pub trait Inventory:
     + TenantInventory
     + UserInventory
     + TransactionManager
+    + KustosInventory
 {
 }

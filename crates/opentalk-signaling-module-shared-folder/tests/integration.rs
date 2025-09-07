@@ -2,7 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_inventory::{Event, EventSharedFolder, Inventory, NewEvent, NewEventSharedFolder};
+use opentalk_inventory::{
+    Event, EventSharedFolder, Inventory, InventoryProvider as _, NewEvent, NewEventSharedFolder,
+};
 use opentalk_signaling_core::{
     VolatileStorage,
     control::ControlStorageProvider as _,

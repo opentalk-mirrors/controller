@@ -4,7 +4,7 @@
 
 use opentalk_database::DatabaseError;
 use opentalk_db_storage::module_resources::JsonOperationError;
-use opentalk_inventory::error::InventoryBackendError;
+use opentalk_inventory_common::error::InventoryBackendError;
 use snafu::Snafu;
 
 #[derive(Debug, Snafu)]

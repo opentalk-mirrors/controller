@@ -6,6 +6,8 @@ use std::sync::Arc;
 
 use kustos::prelude::*;
 use opentalk_database::Db;
+use opentalk_inventory_database::DatabaseConnectionPool;
+use opentalk_kustos_inventory::KustosInventoryProvider;
 
 fn init_log() {
     let _ = env_logger::try_init();
@@ -24,8 +26,10 @@ async fn grant_revoke_grant_two_resources() -> Result<(), Box<dyn std::error::Er
     let url = std::env::var("KUSTOS_TESTS_DATABASE_URL")
         .unwrap_or_else(|_| "postgres://postgres:password123@localhost:5432/kustos".to_string());
     let db = Arc::new(Db::connect_url(&url, 10).unwrap());
+    let inventory_provider: Arc<dyn KustosInventoryProvider> =
+        Arc::new(DatabaseConnectionPool::new(db.clone()));
 
-    let authz = Authz::new(db).await.unwrap();
+    let authz = Authz::new(inventory_provider).await.unwrap();
 
     let invitee = uuid::Uuid::from_u128(0xfa4e2ab5_2223_429f_9201_5a1e3b889714);
 

@@ -100,7 +100,9 @@ mod tests {
     use kustos::Authz;
     use log::logger;
     use opentalk_controller_settings::SettingsProvider;
-    use opentalk_inventory::{Event, Inventory, UpdateEvent, UpdateUser, User};
+    use opentalk_inventory::{
+        Event, Inventory, InventoryProvider as _, UpdateEvent, UpdateUser, User,
+    };
     use opentalk_signaling_core::ExchangeHandle;
     use opentalk_test_util::database::DatabaseContext;
     use opentalk_types_common::{events::EventId, time::Timestamp, users::UserId};
@@ -218,7 +220,7 @@ mod tests {
             .any(|u| u.id == updated_by.id);
         assert!(user_exists);
 
-        let authz = Authz::new(db_ctx.db.clone()).await.unwrap();
+        let authz = Authz::new(db_ctx.inventory_provider.clone()).await.unwrap();
 
         UserCleanup::execute(
             logger(),
@@ -272,7 +274,7 @@ mod tests {
             .any(|u| u.id == inviter.id);
         assert!(user_exists);
 
-        let authz = Authz::new(db_ctx.db.clone()).await.unwrap();
+        let authz = Authz::new(db_ctx.inventory_provider.clone()).await.unwrap();
 
         UserCleanup::execute(
             logger(),

@@ -54,6 +54,7 @@ opentalk-inventory.workspace = true
 opentalk-inventory-database.workspace = true
 opentalk-jobs.workspace = true
 opentalk-keycloak-admin.workspace = true
+opentalk-kustos-inventory.workspace = true
 opentalk-r3dlock.workspace = true
 opentalk-roomserver-client.workspace = true
 opentalk-signaling-core.workspace = true

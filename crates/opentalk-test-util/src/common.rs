@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use kustos::Authz;
 use opentalk_inventory::User;
+use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_signaling_core::{
     SignalingModule, VolatileStaticMemoryStorage, VolatileStorage,
     module_tester::{ModuleTester, WsMessageOutgoing},
@@ -68,10 +69,11 @@ impl TestContext {
         let _ = setup_logging();
 
         let db_ctx = DatabaseContext::new(true).await;
+        let inventory_provider = Arc::new(DatabaseConnectionPool::new(db_ctx.db.clone()));
 
         let (shutdown, _) = tokio::sync::broadcast::channel(10);
 
-        let enforcer = kustos::Authz::new(db_ctx.db.clone()).await.unwrap();
+        let enforcer = kustos::Authz::new(inventory_provider).await.unwrap();
 
         let volatile = match storage {
             TestContextVolatileStorage::Redis => VolatileStorage::Right(redis::setup().await),
