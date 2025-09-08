@@ -370,6 +370,7 @@ skip = [
   { name = "phf", version = "0.11" },
   { name = "phf_shared", version = "0.11" },
   { name = "pkcs8", version = "0.9" },
+  { name = "png", version = "0.17" },
   { name = "polling", version = "2" },
   { name = "prost", version = "0.12" },
   { name = "prost-build", version = "0.12" },
