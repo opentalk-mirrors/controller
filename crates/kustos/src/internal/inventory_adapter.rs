@@ -8,12 +8,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use casbin::{Adapter, Error as CasbinError, Filter, Model, Result, error::AdapterError};
-use opentalk_database::Db;
-
-use crate::db::{
-    self,
-    casbin::{CasbinRule, NewCasbinRule},
-};
+use opentalk_kustos_inventory::{CasbinRule, KustosInventoryProvider, NewCasbinRule};
 
 impl From<crate::Error> for CasbinError {
     fn from(e: crate::Error) -> Self {
@@ -22,14 +17,14 @@ impl From<crate::Error> for CasbinError {
 }
 
 pub struct CasbinAdapter {
-    db: Arc<Db>,
+    inventory_provider: Arc<dyn KustosInventoryProvider>,
     is_filtered: bool,
 }
 
 impl CasbinAdapter {
-    pub fn new(db: Arc<Db>) -> Self {
+    pub fn new(inventory_provider: Arc<dyn KustosInventoryProvider>) -> Self {
         Self {
-            db,
+            inventory_provider,
             is_filtered: false,
         }
     }
@@ -43,11 +38,14 @@ fn adapter(e: impl std::error::Error + Send + Sync + 'static) -> AdapterError {
 impl Adapter for CasbinAdapter {
     #[tracing::instrument(level = "trace", skip(self, m))]
     async fn load_policy(&self, m: &mut dyn Model) -> Result<()> {
-        let db = self.db.clone();
-
-        let mut conn = db.get_conn().await.map_err(adapter)?;
-        let rules = db::load_policy(&mut conn).await.map_err(adapter)?;
-        drop(conn);
+        let rules = {
+            let mut inventory = self
+                .inventory_provider
+                .get_inventory()
+                .await
+                .map_err(adapter)?;
+            inventory.load_casbin_policy().await.map_err(adapter)?
+        };
 
         for casbin_rule in &rules {
             let rule = load_policy_line(casbin_rule);
@@ -65,22 +63,26 @@ impl Adapter for CasbinAdapter {
     }
 
     async fn clear_policy(&mut self) -> Result<()> {
-        let db = self.db.clone();
-
-        let mut conn = db.get_conn().await.map_err(adapter)?;
-
-        db::clear_policy(&mut conn).await.map_err(adapter)?;
+        let mut inventory = self
+            .inventory_provider
+            .get_inventory()
+            .await
+            .map_err(adapter)?;
+        inventory.clear_casbin_policy().await.map_err(adapter)?;
 
         Ok(())
     }
 
     #[tracing::instrument(level = "trace", skip(self, m, f), fields(filter_p = ?f.p, filter_g = ?f.g))]
     async fn load_filtered_policy<'a>(&mut self, m: &mut dyn Model, f: Filter<'a>) -> Result<()> {
-        let db = self.db.clone();
-
-        let mut conn = db.get_conn().await.map_err(adapter)?;
-        let rules = db::load_policy(&mut conn).await.map_err(adapter)?;
-        drop(conn);
+        let rules = {
+            let mut inventory = self
+                .inventory_provider
+                .get_inventory()
+                .await
+                .map_err(adapter)?;
+            inventory.load_casbin_policy().await.map_err(adapter)?
+        };
 
         for casbin_rule in &rules {
             let rule = load_filtered_policy_row(casbin_rule, &f);
@@ -104,8 +106,6 @@ impl Adapter for CasbinAdapter {
 
     #[tracing::instrument(level = "trace", skip(self, m))]
     async fn save_policy(&mut self, m: &mut dyn Model) -> Result<()> {
-        let db = self.db.clone();
-
         let mut rules = vec![];
 
         if let Some(ast_map) = m.get_model().get("p") {
@@ -130,9 +130,12 @@ impl Adapter for CasbinAdapter {
             }
         }
 
-        let mut conn = db.get_conn().await.map_err(adapter)?;
-
-        db::save_policy(&mut conn, rules).await.map_err(adapter)?;
+        let mut inventory = self
+            .inventory_provider
+            .get_inventory()
+            .await
+            .map_err(adapter)?;
+        inventory.save_casbin_policy(rules).await.map_err(adapter)?;
 
         Ok(())
     }
@@ -144,14 +147,19 @@ impl Adapter for CasbinAdapter {
     // there is not much sense, as you either get an error or a success.
     #[tracing::instrument(level = "trace", skip(self, rule))]
     async fn add_policy(&mut self, _sec: &str, ptype: &str, rule: Vec<String>) -> Result<bool> {
-        let db = self.db.clone();
         let ptype_c = ptype.to_string();
 
         match save_policy_line(&ptype_c, &rule) {
             Some(new_rule) => {
-                let mut conn = db.get_conn().await.map_err(adapter)?;
-
-                db::add_policy(&mut conn, new_rule).await.map_err(adapter)?;
+                let mut inventory = self
+                    .inventory_provider
+                    .get_inventory()
+                    .await
+                    .map_err(adapter)?;
+                inventory
+                    .add_casbin_policy(new_rule)
+                    .await
+                    .map_err(adapter)?;
                 Ok(true)
             }
             None => Err(crate::Error::Custom {
@@ -173,7 +181,6 @@ impl Adapter for CasbinAdapter {
         ptype: &str,
         rules: Vec<Vec<String>>,
     ) -> Result<bool> {
-        let db = self.db.clone();
         let ptype_c = ptype.to_string();
 
         let new_rules = rules
@@ -181,9 +188,14 @@ impl Adapter for CasbinAdapter {
             .filter_map(|x: &Vec<String>| save_policy_line(&ptype_c, x))
             .collect::<Vec<NewCasbinRule>>();
 
-        let mut conn = db.get_conn().await.map_err(adapter)?;
+        let mut inventory = self
+            .inventory_provider
+            .get_inventory()
+            .await
+            .map_err(adapter)?;
 
-        db::add_policies(&mut conn, new_rules)
+        inventory
+            .add_casbin_policies(new_rules)
             .await
             .map_err(adapter)?;
 
@@ -192,12 +204,15 @@ impl Adapter for CasbinAdapter {
 
     #[tracing::instrument(level = "trace", skip(self, rule))]
     async fn remove_policy(&mut self, _sec: &str, pt: &str, rule: Vec<String>) -> Result<bool> {
-        let db = self.db.clone();
         let ptype_c = pt.to_string();
 
-        let mut conn = db.get_conn().await.map_err(adapter)?;
-
-        let b = db::remove_policy(&mut conn, &ptype_c, rule)
+        let mut inventory = self
+            .inventory_provider
+            .get_inventory()
+            .await
+            .map_err(adapter)?;
+        let b = inventory
+            .remove_casbin_policy(&ptype_c, rule)
             .await
             .map_err(adapter)?;
 
@@ -211,12 +226,16 @@ impl Adapter for CasbinAdapter {
         pt: &str,
         rules: Vec<Vec<String>>,
     ) -> Result<bool> {
-        let db = self.db.clone();
         let ptype_c = pt.to_string();
 
-        let mut conn = db.get_conn().await.map_err(adapter)?;
+        let mut inventory = self
+            .inventory_provider
+            .get_inventory()
+            .await
+            .map_err(adapter)?;
 
-        let b = db::remove_policies(&mut conn, &ptype_c, rules)
+        let b = inventory
+            .remove_casbin_policies(&ptype_c, rules)
             .await
             .map_err(adapter)?;
 
@@ -232,12 +251,16 @@ impl Adapter for CasbinAdapter {
         field_values: Vec<String>,
     ) -> Result<bool> {
         if field_index <= 5 && !field_values.is_empty() {
-            let db = self.db.clone();
+            let mut inventory = self
+                .inventory_provider
+                .get_inventory()
+                .await
+                .map_err(adapter)?;
+
             let ptype_c = pt.to_string();
 
-            let mut conn = db.get_conn().await.map_err(adapter)?;
-
-            let b = db::remove_filtered_policy(&mut conn, &ptype_c, field_index, field_values)
+            let b = inventory
+                .remove_casbin_policy_filtered(&ptype_c, field_index, field_values)
                 .await
                 .map_err(adapter)?;
 
@@ -351,6 +374,7 @@ fn normalize_policy(casbin_rule: &CasbinRule) -> Option<Vec<String>> {
 mod tests {
     use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
     use opentalk_database::{Db, query_helper};
+    use opentalk_inventory_database::DatabaseConnectionPool;
     use pretty_assertions::assert_eq;
     use serial_test::serial;
     use snafu::{ResultExt, Whatever};
@@ -433,13 +457,15 @@ mod tests {
 
         let db =
             Arc::new(Db::connect_url(&url, 10).whatever_context("Failed to connect to database")?);
+        let inventory_provider = Arc::new(DatabaseConnectionPool::new(db.clone()));
 
-        let mut conn = db
-            .get_conn()
+        let mut inventory = inventory_provider
+            .get_inventory()
             .await
-            .with_whatever_context(|e| format!("Connection failed {e}"))?;
+            .with_whatever_context(|e| format!("Connection failed: {e}"))?;
 
-        db::clear_policy(&mut conn)
+        inventory
+            .clear_casbin_policy()
             .await
             .with_whatever_context(|e| format!("Clear policy failed: {e}"))?;
 
@@ -467,7 +493,8 @@ mod tests {
             .await
             .unwrap();
         let db = setup().await.unwrap();
-        let mut adapter = { CasbinAdapter::new(db) };
+        let inventory_provider = Arc::new(DatabaseConnectionPool::new(db.clone()));
+        let mut adapter = { CasbinAdapter::new(inventory_provider) };
 
         assert!(adapter.save_policy(e.get_mut_model()).await.is_ok());
 

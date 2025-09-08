@@ -8,7 +8,7 @@ use casbin::DefaultModel;
 use crate::error::Error;
 
 pub(crate) mod custom_matcher;
-pub(crate) mod diesel_adapter;
+pub(crate) mod inventory_adapter;
 pub(crate) mod rbac_api_ex;
 pub(crate) mod synced_enforcer;
 

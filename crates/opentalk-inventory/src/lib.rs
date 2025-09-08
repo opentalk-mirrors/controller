@@ -25,7 +25,6 @@
 )]
 
 mod asset;
-pub mod error;
 mod event;
 mod event_invite;
 mod event_shared_folder;
@@ -50,7 +49,6 @@ mod user;
 pub mod utils;
 
 pub use asset::{Asset, AssetInventory, NewAsset, UpdateAsset};
-pub use error::{Error, InventoryBackendError};
 pub use event::{
     Event, EventException, EventExceptionId, EventExceptionKind, EventInventory, GetEventsCursor,
     NewEvent, NewEventException, UpdateEvent, UpdateEventException,
@@ -78,6 +76,11 @@ pub use module_resource::{
     ModuleResource, ModuleResourceFilter, ModuleResourceInventory, ModuleResourceOperation,
     NewModuleResource,
 };
+/// The result type typically used for functions in this crate.
+pub use opentalk_inventory_common::{
+    Result,
+    error::{Error, InventoryBackendError},
+};
 pub use room::{NewRoom, Room, RoomInventory, UpdateRoom};
 pub use room_invite::{
     NewRoomInvite, RoomInvite, RoomInviteInventory, RoomInviteWithUsers, UpdateRoomInvite,
@@ -96,6 +99,3 @@ pub use transaction::transaction;
 pub use transaction_manager::TransactionManager;
 pub use upsert::UpsertOutcome;
 pub use user::{NewUser, UpdateUser, User, UserInventory};
-
-/// The result type typically used for functions in this crate.
-pub type Result<T, E = Error> = std::result::Result<T, E>;

@@ -16,9 +16,8 @@ workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-kustos-db.workspace = true
 kustos-shared = { workspace = true, features = ["internal"] }
-opentalk-database.workspace = true
+opentalk-kustos-inventory.workspace = true
 
 ### Error handling
 snafu.workspace = true
@@ -39,7 +38,7 @@ tracing.workspace = true
 tracing-futures = "0.2"
 
 ### QoL
-async-trait = "0.1"
+async-trait.workspace = true
 futures.workspace = true
 itertools.workspace = true
 
@@ -59,6 +58,8 @@ workspace = true
 
 [dev-dependencies]
 env_logger.workspace = true
+opentalk-database.workspace = true
+opentalk-inventory-database.workspace = true
 pretty_assertions.workspace = true
 serial_test.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }

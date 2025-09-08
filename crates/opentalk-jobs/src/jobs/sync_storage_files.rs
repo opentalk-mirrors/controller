@@ -182,7 +182,7 @@ mod tests {
     use bytes::Bytes;
     use futures::stream;
     use opentalk_controller_settings::MinIO;
-    use opentalk_inventory::{NewAsset, UpdateAsset};
+    use opentalk_inventory::{InventoryProvider as _, NewAsset, UpdateAsset};
     use opentalk_signaling_core::{
         ChunkFormat, ObjectStorage, ObjectStorageError,
         assets::{NewAssetFileName, save_asset},

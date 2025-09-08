@@ -12,7 +12,7 @@ use opentalk_controller_service::controller_backend::RoomsPoliciesBuilderExt;
 use opentalk_controller_settings::Settings;
 use opentalk_database::Db;
 use opentalk_inventory::{Inventory, RoomInvite};
-use opentalk_inventory_database::DatabaseConnection;
+use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_types_common::time::Timestamp;
 use snafu::{ResultExt, whatever};
 
@@ -54,13 +54,13 @@ pub(super) async fn fix_acl(settings: &Settings, args: Args) -> Result<()> {
     let db = Arc::new(
         Db::connect(&settings.database).whatever_context("Failed to connect to database")?,
     );
-    let conn = db
-        .get_conn()
+    let inventory_provider = Arc::new(DatabaseConnectionPool::new(db));
+    let mut inventory = inventory_provider
+        .get_connection()
         .await
-        .whatever_context("Failed to get connection from connection pool")?;
-    let mut inventory = DatabaseConnection::new(conn);
+        .whatever_context("hello")?;
 
-    let authz = kustos::Authz::new(db.clone())
+    let authz = kustos::Authz::new(inventory_provider)
         .await
         .whatever_context("Failed to initialize kustos/authz")?;
 

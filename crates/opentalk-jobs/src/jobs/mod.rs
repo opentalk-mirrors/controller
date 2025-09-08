@@ -25,7 +25,8 @@ pub use user_cleanup::UserCleanup;
 #[cfg(test)]
 mod test_utils {
     use opentalk_inventory::{
-        Event, Inventory, NewEvent, NewRoom, NewRoomInvite, Room, RoomInvite, User,
+        Event, Inventory, InventoryProvider as _, NewEvent, NewRoom, NewRoomInvite, Room,
+        RoomInvite, User,
     };
     use opentalk_test_util::database::DatabaseContext;
 

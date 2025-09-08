@@ -109,9 +109,9 @@ async fn execute_job(
             .await
             .whatever_context("Failed to spawn exchange task")?,
     };
-    let inventory_provider = Arc::new(DatabaseConnectionPool::new(db.clone()));
+    let inventory_provider = Arc::new(DatabaseConnectionPool::new(db));
 
-    let authz = Authz::new(db.clone())
+    let authz = Authz::new(inventory_provider.clone())
         .await
         .whatever_context("Falied to create authz instance")?;
 

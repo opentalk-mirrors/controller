@@ -9,6 +9,8 @@ use std::sync::Arc;
 use kustos::prelude::AccessMethod;
 use opentalk_controller_settings::Settings;
 use opentalk_database::Db;
+use opentalk_inventory_database::DatabaseConnectionPool;
+use opentalk_kustos_inventory::KustosInventoryProvider;
 use snafu::ResultExt;
 
 use super::AclSubCommand;
@@ -31,7 +33,8 @@ async fn enable_user_access_to_all_rooms(settings: &Settings) -> Result<()> {
     let db = Arc::new(
         Db::connect(&settings.database).whatever_context("Failed to connect to database")?,
     );
-    let authz = kustos::Authz::new(db.clone())
+    let inventory: Arc<dyn KustosInventoryProvider> = Arc::new(DatabaseConnectionPool::new(db));
+    let authz = kustos::Authz::new(inventory)
         .await
         .whatever_context("Failed to initialize kustos/authz")?;
 
@@ -46,7 +49,8 @@ async fn disable_user_access_to_all_rooms(settings: &Settings) -> Result<()> {
     let db = Arc::new(
         Db::connect(&settings.database).whatever_context("Failed to connect to database")?,
     );
-    let authz = kustos::Authz::new(db.clone())
+    let inventory: Arc<dyn KustosInventoryProvider> = Arc::new(DatabaseConnectionPool::new(db));
+    let authz = kustos::Authz::new(inventory)
         .await
         .whatever_context("Failed to initialize kustos/authz")?;
 

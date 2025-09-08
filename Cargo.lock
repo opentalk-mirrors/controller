@@ -5068,13 +5068,14 @@ dependencies = [
  "env_logger",
  "futures",
  "itertools 0.14.0",
- "kustos-db",
  "kustos-shared",
  "lapin",
  "lapin-pool",
  "log",
  "opentalk-database",
  "opentalk-db-storage",
+ "opentalk-inventory-database",
+ "opentalk-kustos-inventory",
  "opentelemetry",
  "opentelemetry_sdk",
  "parking_lot",
@@ -5967,6 +5968,7 @@ dependencies = [
  "opentalk-inventory-database",
  "opentalk-jobs",
  "opentalk-keycloak-admin",
+ "opentalk-kustos-inventory",
  "opentalk-r3dlock",
  "opentalk-roomserver-client",
  "opentalk-signaling-core",
@@ -6247,14 +6249,22 @@ dependencies = [
  "chrono-tz",
  "clap",
  "derive_more 2.0.1",
+ "opentalk-inventory-common",
+ "opentalk-kustos-inventory",
  "opentalk-types-common",
  "pretty_assertions",
  "scoped-futures",
  "serde",
  "serde_json",
- "snafu",
  "strum 0.27.2",
  "uuid",
+]
+
+[[package]]
+name = "opentalk-inventory-common"
+version = "0.31.0"
+dependencies = [
+ "snafu",
 ]
 
 [[package]]
@@ -6265,9 +6275,12 @@ dependencies = [
  "bigdecimal",
  "chrono",
  "diesel-async",
+ "kustos-db",
  "opentalk-database",
  "opentalk-db-storage",
  "opentalk-inventory",
+ "opentalk-inventory-common",
+ "opentalk-kustos-inventory",
  "opentalk-types-common",
  "snafu",
  "tracing",
@@ -6318,6 +6331,14 @@ dependencies = [
  "snafu",
  "tokio",
  "url",
+]
+
+[[package]]
+name = "opentalk-kustos-inventory"
+version = "0.31.0"
+dependencies = [
+ "async-trait",
+ "opentalk-inventory-common",
 ]
 
 [[package]]

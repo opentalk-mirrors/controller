@@ -27,11 +27,12 @@ derive_more = { workspace = true, features = [
   "from_str",
   "into",
 ] }
+opentalk-inventory-common.workspace = true
+opentalk-kustos-inventory.workspace = true
 opentalk-types-common.workspace = true
 scoped-futures.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
-snafu.workspace = true
 strum.workspace = true
 uuid.workspace = true
 

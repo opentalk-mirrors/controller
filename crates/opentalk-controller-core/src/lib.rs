@@ -177,8 +177,6 @@ pub struct Controller {
     /// CLI arguments
     args: cli::Args,
 
-    db: Arc<Db>,
-
     inventory_provider: Arc<dyn InventoryProvider>,
 
     storage: Arc<ObjectStorage>,
@@ -366,21 +364,23 @@ impl Controller {
         let (shutdown, _) = broadcast::channel::<()>(1);
         let (reload, _) = broadcast::channel::<()>(4);
 
+        let inventory_provider = Arc::new(DatabaseConnectionPool::new(db));
         let authz = match (
             settings.authz.synchronize_controllers,
             rabbitmq_pool.as_ref(),
         ) {
             (true, Some(rabbitmq_pool)) => kustos::Authz::new_with_autoload_and_metrics(
-                db.clone(),
+                inventory_provider.clone(),
                 rabbitmq_pool.clone(),
                 metrics.kustos.clone(),
             )
             .await
             .whatever_context("Failed to initialize kustos/authz")?,
-            _ => kustos::Authz::new(db.clone())
+            _ => kustos::Authz::new(inventory_provider.clone())
                 .await
                 .whatever_context("Failed to initialize kustos/authz")?,
         };
+        let inventory_provider: Arc<dyn InventoryProvider> = inventory_provider;
 
         let mail_service = Arc::new(match rabbitmq_pool.as_ref() {
             Some(rabbitmq_pool) => Some(MailService::new(
@@ -420,7 +420,6 @@ impl Controller {
             None
         };
 
-        let inventory_provider = Arc::new(DatabaseConnectionPool::new(db.clone()));
         let backend = {
             let oidc_provider = OidcProvider {
                 name: oidc_frontend.client_id.to_string(),
@@ -449,7 +448,6 @@ impl Controller {
             startup_settings: settings,
             settings_provider,
             args,
-            db,
             inventory_provider,
             storage,
             oidc,
@@ -495,8 +493,8 @@ impl Controller {
             let exchange_handle = Data::new(self.exchange_handle);
             let signaling_modules = Arc::downgrade(&signaling_modules);
             let signaling_metrics = Data::from(self.metrics.signaling.clone());
-            let db = Arc::downgrade(&self.db);
             let storage = Arc::downgrade(&self.storage);
+            let inventory_provider = Arc::downgrade(&self.inventory_provider);
 
             let oidc_ctx = Arc::downgrade(&self.oidc);
             let shutdown = self.shutdown.clone();
@@ -519,10 +517,7 @@ impl Controller {
                 let cors = setup_cors();
 
                 // Unwraps cannot panic. Server gets stopped before dropping the Arc.
-                let db = db.upgrade().unwrap();
-                let inventory_provider: Arc<dyn InventoryProvider> =
-                    Arc::new(DatabaseConnectionPool::new(db.clone()));
-                let inventory_provider = Data::from(inventory_provider);
+                let inventory_provider = Data::from(inventory_provider.upgrade().unwrap());
                 let storage = Data::from(storage.upgrade().unwrap());
 
                 let oidc_ctx = Data::from(oidc_ctx.upgrade().unwrap());

@@ -24,8 +24,10 @@ opentalk-controller-utils = { path = "crates/opentalk-controller-utils", version
 opentalk-database = { path = "crates/opentalk-database", version = "0.31.0" }
 opentalk-db-storage = { path = "crates/opentalk-db-storage", version = "0.31.0" }
 opentalk-inventory = { path = "crates/opentalk-inventory", version = "0.31.0" }
+opentalk-inventory-common = { path = "crates/opentalk-inventory-common", version = "0.31.0" }
 opentalk-inventory-database = { path = "crates/opentalk-inventory-database", version = "0.31.0" }
 opentalk-jobs = { path = "crates/opentalk-jobs", version = "0.31.0" }
+opentalk-kustos-inventory = { path = "crates/opentalk-kustos-inventory", version = "0.31.0" }
 opentalk-log = { path = "crates/opentalk-log", version = "0.31.0" }
 opentalk-r3dlock = { path = "crates/opentalk-r3dlock", version = "0.31.0" }
 opentalk-report-generation = { path = "crates/opentalk-report-generation", version = "0.31.0" }
