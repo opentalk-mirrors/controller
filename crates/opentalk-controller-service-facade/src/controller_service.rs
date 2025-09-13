@@ -481,6 +481,7 @@ pub trait OpenTalkControllerService: Send + Sync {
         &self,
         current_user: RequestUser,
         patch: PatchMeRequestBody,
+        access_token: &str,
     ) -> Result<Option<PrivateUserProfile>, ApiError>;
 
     /// Get the current user's profile.

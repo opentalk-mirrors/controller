@@ -24,8 +24,8 @@ use chrono::{DateTime, Utc};
 use diesel_async::scoped_futures::ScopedFutureExt as _;
 use kustos::prelude::PoliciesBuilder;
 use openidconnect::AccessToken;
-use opentalk_cache::Cache;
 use opentalk_controller_service::{
+    caching::{CacheableApiError, Caches, UserAccessTokenCache},
     controller_backend::RoomsPoliciesBuilderExt,
     oidc::{OidcContext, OnlyExpiryClaim, OpenIdConnectUserInfo},
     phone_numbers::parse_phone_number,
@@ -50,20 +50,14 @@ use snafu::Report;
 use tracing_futures::Instrument;
 use uuid::Uuid;
 
-use crate::{
-    api::v1::{
-        events::EventPoliciesBuilderExt,
-        middleware::{
-            locale::get_request_locale, user_auth::bearer_or_invite_code::BearerOrInviteCode,
-        },
-        response::error::CacheableApiError,
+use crate::api::v1::{
+    events::EventPoliciesBuilderExt,
+    middleware::{
+        locale::get_request_locale, user_auth::bearer_or_invite_code::BearerOrInviteCode,
     },
-    caches::Caches,
 };
 
 mod bearer_or_invite_code;
-
-pub type UserAccessTokenCache = Cache<String, Result<(Tenant, User), CacheableApiError>>;
 
 /// Middleware factory
 ///

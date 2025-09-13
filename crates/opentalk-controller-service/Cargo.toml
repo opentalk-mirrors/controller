@@ -17,6 +17,7 @@ version.workspace = true
 [dependencies]
 async-trait.workspace = true
 base64.workspace = true
+bincode.workspace = true
 bytes.workspace = true
 chrono.workspace = true
 chrono-tz = { workspace = true, features = ["serde"] }
@@ -24,6 +25,7 @@ diesel-async.workspace = true
 either.workspace = true
 futures.workspace = true
 futures-core.workspace = true
+http.workspace = true
 jsonwebtoken.workspace = true
 kustos.workspace = true
 lapin.workspace = true
@@ -31,6 +33,7 @@ lapin-pool.workspace = true
 log = { workspace = true, features = ["serde"] }
 md5.workspace = true
 openidconnect.workspace = true
+opentalk-cache.workspace = true
 opentalk-controller-service-facade.workspace = true
 opentalk-controller-settings.workspace = true
 opentalk-controller-utils.workspace = true
