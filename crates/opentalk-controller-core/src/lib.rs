@@ -514,7 +514,7 @@ impl Controller {
 
             let metrics = Data::new(self.metrics);
 
-            let caches = Data::new(self.caches.clone());
+            let caches = Data::from(self.caches.clone());
             let service = Data::from(self.service);
 
             HttpServer::new(move || {
