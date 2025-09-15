@@ -93,13 +93,14 @@ pub use crate::controller_backend::{
     events::shared_folder::{delete_shared_folders, put_shared_folder},
     rooms::RoomsPoliciesBuilderExt,
 };
-use crate::services::MailService;
+use crate::{caching::Caches, services::MailService};
 
 /// The default [`OpenTalkControllerService`] implementation.
 pub struct ControllerBackend {
     settings_provider: SettingsProvider,
     authz: Authz,
     inventory_provider: Arc<dyn InventoryProvider>,
+    caches: Arc<Caches>,
     frontend_oidc_provider: OidcProvider,
     storage: Arc<ObjectStorage>,
     volatile: VolatileStorage,
@@ -117,6 +118,7 @@ impl ControllerBackend {
         settings_provider: SettingsProvider,
         authz: Authz,
         inventory_provider: Arc<dyn InventoryProvider>,
+        caches: Arc<Caches>,
         frontend_oidc_provider: OidcProvider,
         storage: Arc<ObjectStorage>,
         volatile: VolatileStorage,
@@ -130,6 +132,7 @@ impl ControllerBackend {
             settings_provider,
             authz,
             inventory_provider,
+            caches,
             frontend_oidc_provider,
             storage,
             volatile,
@@ -686,8 +689,9 @@ impl OpenTalkControllerService for ControllerBackend {
         &self,
         current_user: RequestUser,
         patch: PatchMeRequestBody,
+        access_token: &str,
     ) -> Result<Option<PrivateUserProfile>, ApiError> {
-        Ok(self.patch_me(current_user, patch).await?)
+        Ok(self.patch_me(current_user, patch, access_token).await?)
     }
 
     async fn get_me(&self, current_user: RequestUser) -> Result<PrivateUserProfile, ApiError> {

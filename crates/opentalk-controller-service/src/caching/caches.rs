@@ -6,7 +6,7 @@ use core::time::Duration;
 
 use opentalk_signaling_core::RedisConnection;
 
-use crate::api::v1::middleware::user_auth::UserAccessTokenCache;
+use super::UserAccessTokenCache;
 
 /// Holds all application level caches
 pub struct Caches {
@@ -15,6 +15,7 @@ pub struct Caches {
 }
 
 impl Caches {
+    /// Create a new [`Caches`] instance with an optional [`RedisConnection`].
     pub fn create(redis: Option<RedisConnection>) -> Self {
         let mut user_access_tokens = UserAccessTokenCache::new(Duration::from_secs(300));
 
@@ -30,5 +31,11 @@ impl Caches {
         };
 
         Self { user_access_tokens }
+    }
+}
+
+impl std::fmt::Debug for Caches {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Caches")
     }
 }

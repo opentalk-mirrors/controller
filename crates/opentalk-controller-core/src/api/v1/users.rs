@@ -11,12 +11,8 @@ use actix_web::{
     Either, get, patch,
     web::{Data, Json, Path, Query, ReqData},
 };
-use chrono::Utc;
 use openidconnect::AccessToken;
-use opentalk_controller_service::oidc::{OnlyExpiryClaim, decode_token};
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
-use opentalk_controller_utils::CaptureApiError;
-use opentalk_inventory::InventoryProvider;
 use opentalk_types_api_v1::{
     assets::AssetSortingQuery,
     error::ApiError,
@@ -26,16 +22,12 @@ use opentalk_types_api_v1::{
         PublicUserProfile, me::PatchMeRequestBody,
     },
 };
-use opentalk_types_common::{tariffs::TariffResource, tenants::TenantId, users::UserId};
-use snafu::{Report, ResultExt, Whatever};
+use opentalk_types_common::{tariffs::TariffResource, users::UserId};
 
 use super::response::NoContent;
-use crate::{
-    api::{
-        responses::{Forbidden, InternalServerError, Unauthorized},
-        v1::ApiResponse,
-    },
-    caches::Caches,
+use crate::api::{
+    responses::{Forbidden, InternalServerError, Unauthorized},
+    v1::ApiResponse,
 };
 
 /// Patch the current user's profile
@@ -71,8 +63,6 @@ use crate::{
 #[patch("/users/me")]
 pub async fn patch_me(
     service: Data<dyn OpenTalkControllerService>,
-    inventory_provider: Data<dyn InventoryProvider>,
-    caches: Data<Caches>,
     access_token: ReqData<AccessToken>,
     current_user: ReqData<RequestUser>,
     patch: Json<PatchMeRequestBody>,
@@ -80,64 +70,17 @@ pub async fn patch_me(
     let current_user = current_user.into_inner();
 
     let user_profile = service
-        .patch_me(current_user.clone(), patch.into_inner())
+        .patch_me(
+            current_user.clone(),
+            patch.into_inner(),
+            access_token.secret(),
+        )
         .await?;
-
-    // Update the middleware's cached items as well to reflect the changes immediately.
-    update_middleware_cache(
-        inventory_provider.as_ref(),
-        &caches,
-        current_user.id,
-        current_user.tenant_id,
-        access_token.into_inner(),
-    )
-    .await?;
 
     match user_profile {
         Some(user_profile) => Ok(Either::Left(Json(user_profile))),
         _ => Ok(Either::Right(NoContent)),
     }
-}
-
-async fn update_middleware_cache(
-    inventory_provider: &dyn InventoryProvider,
-    caches: &Caches,
-    user_id: UserId,
-    tenant_id: TenantId,
-    access_token: AccessToken,
-) -> Result<(), CaptureApiError> {
-    let mut inventory = inventory_provider.get_inventory().await?;
-
-    let user = inventory.get_user(user_id).await?;
-    let tenant = inventory.get_tenant(tenant_id).await?;
-
-    let claim = decode_token::<OnlyExpiryClaim>(access_token.secret())
-        .whatever_context::<&str, Whatever>(
-            "failed to decode access token for user profile update",
-        )?;
-
-    let token_ttl = claim.exp - Utc::now();
-    if token_ttl > chrono::Duration::seconds(10) {
-        match token_ttl.to_std() {
-            Ok(token_ttl_std) => {
-                caches
-                    .user_access_tokens
-                    .insert_with_ttl(
-                        access_token.secret().clone(),
-                        Ok((tenant, user)),
-                        token_ttl_std,
-                    )
-                    .await?;
-            }
-            Err(e) => {
-                log::debug!(
-                    "abort user profile cache update due to invalid token TTL, {}",
-                    Report::from_error(e)
-                );
-            }
-        }
-    }
-    Ok(())
 }
 
 /// Get the current user's profile
