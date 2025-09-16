@@ -595,7 +595,7 @@ impl Livekit {
             available_sources.retain(|s| s != &TrackSource::Microphone);
         }
 
-        if !allow_screenshare {
+        if !allow_screenshare && !self.role.is_moderator() {
             available_sources
                 .retain(|s| s != &TrackSource::ScreenShare && s != &TrackSource::ScreenShareAudio);
         };
