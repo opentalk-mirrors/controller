@@ -162,13 +162,22 @@ exceptions = [
   ], name = "opentalk-roomserver-types" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-automod" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-types-chat" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types-e2ee" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-echo" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-types-livekit" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-meeting-notes" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types-meeting-report" },
@@ -177,13 +186,19 @@ exceptions = [
   ], name = "opentalk-roomserver-types-moderation" },
   { allow = [
     "EUPL-1.2",
-  ], name = "opentalk-roomserver-types-ping" },
-  { allow = [
-    "EUPL-1.2",
   ], name = "opentalk-roomserver-types-polls" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-raise-hands" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-types-shared-folder" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-subroom-audio" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-timer" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types-timer" },
