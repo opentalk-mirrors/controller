@@ -14,7 +14,7 @@ use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
     module_settings::ModuleSettings,
     public_user_profile::PublicUserProfile,
-    room_parameters::{AssetStorageConfig, EventContext, RoomParameters},
+    room_parameters::{EventContext, RoomParameters},
 };
 use opentalk_roomserver_types_training_participation_report::settings::TrainingParticipationReportSettings;
 use opentalk_types_api_v1::{
@@ -41,6 +41,7 @@ use crate::{
 };
 
 impl ControllerBackend {
+    #[tracing::instrument(level = "debug", skip(self, user, request), fields(user_id = %user.id))]
     pub(crate) async fn roomserver_start_room(
         &self,
         user: RequestUser,
@@ -95,6 +96,7 @@ impl ControllerBackend {
         })
     }
 
+    #[tracing::instrument(level = "debug", skip(self, request))]
     pub(crate) async fn roomserver_start_room_invited(
         &self,
         room_id: RoomId,
@@ -156,7 +158,8 @@ impl ControllerBackend {
                     .request_token(room_id, client_parameters, Some(room_parameters))
                     .await
                     .map_err(|e| {
-                        log::error!("failed to request token from roomserver: {e}");
+                        log::error!("failed to request token from roomserver: {e:?}");
+
                         ApiError::internal().with_message("failed to request token from roomserver")
                     })?;
 
@@ -183,6 +186,9 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let settings = self.settings_provider.get();
+        let room_server_settings = settings.roomserver.as_ref().ok_or_else(|| {
+            ApiError::internal().with_message("roomserver settings are not configured")
+        })?;
 
         let call_in = Self::get_call_in_info(inventory.as_mut(), &settings, room.id).await?;
 
@@ -197,11 +203,7 @@ impl ControllerBackend {
 
         let tariff = self.get_tariff_for_room(room.id).await?;
 
-        let mut module_settings = settings
-            .roomserver
-            .as_ref()
-            .map(|r| r.modules.clone())
-            .unwrap_or_default();
+        let mut module_settings = room_server_settings.modules.clone();
 
         Self::override_module_settings(inventory.as_mut(), room.id, &mut module_settings).await?;
         module_settings.retain(|module_id, _| tariff.modules.contains_key(module_id));
@@ -224,7 +226,7 @@ impl ControllerBackend {
             streaming_links,
             e2e_encryption: false,
             module_settings,
-            asset_storage: AssetStorageConfig::InMemory,
+            asset_storage: room_server_settings.asset_storage.clone(),
         };
 
         Ok(parameters)

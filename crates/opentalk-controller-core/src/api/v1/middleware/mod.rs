@@ -7,5 +7,6 @@
 pub mod headers;
 mod locale;
 pub mod metrics;
+pub mod roomserver_auth;
 pub mod service_auth;
 pub mod user_auth;

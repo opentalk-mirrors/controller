@@ -115,9 +115,7 @@ impl From<AssetError> for CaptureApiError {
                 CaptureApiError(ApiError::internal())
             }
 
-            AssetError::AssetStorageExceeded => CaptureApiError(
-                ApiError::bad_request().with_message("Storage quota has been exceeded"),
-            ),
+            AssetError::AssetStorageExceeded => CaptureApiError(ApiError::storage_quota_exceeded()),
         }
     }
 }

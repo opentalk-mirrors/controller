@@ -5164,6 +5164,7 @@ dependencies = [
  "opentalk-keycloak-admin",
  "opentalk-r3dlock",
  "opentalk-roomserver-client",
+ "opentalk-roomserver-types",
  "opentalk-signaling-core",
  "opentalk-signaling-module-breakout",
  "opentalk-signaling-module-moderation",

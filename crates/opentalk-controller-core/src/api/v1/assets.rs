@@ -149,6 +149,10 @@ pub async fn room_asset(
             description = "Storage quota has been exceeded",
         ),
         (
+            status = StatusCode::NOT_FOUND,
+            description = "The associated room was not found",
+        ),
+        (
             status = StatusCode::UNAUTHORIZED,
             response = Unauthorized,
         ),

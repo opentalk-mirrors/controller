@@ -2,7 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_roomserver_types::module_settings::ModuleSettings;
+use opentalk_roomserver_types::{
+    module_settings::ModuleSettings, room_parameters::AssetStorageConfig,
+};
 use url::Url;
 
 use crate::settings_file;
@@ -13,6 +15,8 @@ pub struct RoomServer {
 
     pub api_token: String,
 
+    pub asset_storage: AssetStorageConfig,
+
     pub modules: ModuleSettings,
 }
 
@@ -22,12 +26,14 @@ impl From<settings_file::RoomServer> for RoomServer {
             url,
             api_token,
             modules,
+            asset_storage,
         }: settings_file::RoomServer,
     ) -> Self {
         Self {
             url,
             api_token,
             modules,
+            asset_storage,
         }
     }
 }
