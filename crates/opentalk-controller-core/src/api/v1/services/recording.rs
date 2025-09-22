@@ -111,7 +111,7 @@ pub(crate) struct RecordingUploadWebSocketHeaders {
     responses(
         (
             status = StatusCode::OK,
-            description = "WebSocket connection succcessfully established",
+            description = "WebSocket connection successfully established",
         ),
         (
             status = StatusCode::UNAUTHORIZED,
