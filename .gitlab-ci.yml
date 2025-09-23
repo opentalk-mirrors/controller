@@ -20,7 +20,7 @@ variables:
   # Will be set to the same namespace as the source project for a MR,
   # or the same namespace as the current project for the `main` branch.
   # Can be overridden entirely from project settings.
-  KANIKO_IMAGE: gcr.io/kaniko-project/executor:debug
+  KANIKO_IMAGE: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/kaniko:debug-1.25.2
   SKOPEO_IMAGE: quay.io/skopeo/stable:v1
   DEFAULT_FLAVOR: trixie
 
@@ -377,6 +377,7 @@ package:container-controller-mr:
   image:
     name: $KANIKO_IMAGE
     entrypoint: ['']
+    pull_policy: if-not-present
   script:
     - mkdir -p /kaniko/.docker
     - >
@@ -431,6 +432,7 @@ package:controller-container-build:
   image:
     name: $KANIKO_IMAGE
     entrypoint: ['']
+    pull_policy: if-not-present
   script:
     - mkdir -p /kaniko/.docker
     - >
@@ -498,7 +500,7 @@ container-scanning:
     - if: $CI_PIPELINE_SOURCE == 'schedule'
   stage: package
   variables:
-    PIPELINE_FULL_IMAGE_NAME: $CI_REGISTRY_IMAGE:latest-$FLAVOR
+    PIPELINE_FULL_IMAGE_NAME: $CI_REGISTRY_IMAGE:dev-$FLAVOR
     PIPELINE_PROJECT_WITH_NAMESPACE: $CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME
     PIPELINE_ADDITIONAL_LABELS: team::conference management
     PIPELINE_TRIVY_IGNORE_FILE_STR_VAR: TRIVY_IGNORE_STR_${FLAVOR}
