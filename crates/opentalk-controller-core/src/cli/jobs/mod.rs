@@ -14,17 +14,10 @@ use opentalk_inventory::{InventoryProvider, JobType};
 use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_jobs::Job;
 use opentalk_signaling_core::{ExchangeHandle, ExchangeTask};
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use snafu::{ResultExt, ensure_whatever};
 
 use crate::Result;
-
-#[derive(Debug, Serialize, Deserialize)]
-struct RawParameters {
-    #[serde(flatten)]
-    entries: serde_json::Map<String, serde_json::Value>,
-}
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
