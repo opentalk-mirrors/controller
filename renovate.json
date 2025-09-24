@@ -9,7 +9,6 @@
   "packageRules": [
     {
       "matchPackagePatterns": [
-        "opentelemetry",
         "opentelemetry*"
       ],
       "groupName": "opentelemetry-rs",
@@ -17,11 +16,17 @@
     },
     {
       "matchPackagePatterns": [
-        "opentalk-types",
         "opentalk-types*"
       ],
       "groupName": "opentalk-types",
       "groupSlug": "opentalk-types"
+    },
+    {
+      "matchPackagePatterns": [
+        "opentalk-roomserver*"
+      ],
+      "groupName": "opentalk-roomserver",
+      "groupSlug": "opentalk-roomserver"
     }
   ],
   "ignoreDeps": ["actix-web-actors"]
