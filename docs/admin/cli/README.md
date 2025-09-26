@@ -1,5 +1,4 @@
 ---
-sidebar_position: 103
 title: Command-Line usage
 ---
 
@@ -20,10 +19,10 @@ These subcommands are available:
 - [`migrate-db`](../core/database.md#opentalk-controller-migrate-db-subcommand) for explicit migration of database without starting the controller service
 - [`tenants`](../advanced/tenants.md#opentalk-controller-tenants-subcommand) for managing tenants.
 - [`tariffs`](../advanced/tariffs.md#opentalk-controller-tariffs-subcommand) for managing tariffs.
-- [`jobs`](./jobs.md#opentalk-controller-jobs-subcommand) for configuring and running maintenance jobs.
+- [`jobs`](jobs.md#opentalk-controller-jobs-subcommand) for configuring and running maintenance jobs.
 - [`modules`](../advanced/modules.md#opentalk-controller-modules-subcommand) for managing modules.
-- [`health`](./health.md#opentalk-controller-health-subcommand) for fetching the current readiness state.
-- [`openapi`](./openapi.md#opentalk-controller-openapi-subcommand) for exporting the OpenAPI specification.
+- [`health`](health.md#opentalk-controller-health-subcommand) for fetching the current readiness state.
+- [`openapi`](openapi.md#opentalk-controller-openapi-subcommand) for exporting the OpenAPI specification.
 - `help` for showing the help output.
 
 ## Raw help output

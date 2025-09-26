@@ -5,13 +5,11 @@ Generic information for Keycloak and its configuration can be found in the [Keyc
 
 ## Deprecated Keycloak configuration
 
-:::warning
+!!! warning
 
-In the past, the OIDC and user search section in the [configuration file](./configuration.md) was called [`keycloak`](#deprecated-keycloak-configuration).
-Support will be removed in the future, use the separate [`oidc`](./oidc.md#configuration) and [`user_search`](./user_search.md#user-search-configuration)
-sections instead.
-
-:::
+    In the past, the OIDC and user search section in the [configuration file](./configuration.md) was called [`keycloak`](#deprecated-keycloak-configuration).
+    Support will be removed in the future, use the separate [`oidc`](./oidc.md#configuration) and [`user_search`](./user_search.md#user-search-configuration)
+    sections instead.
 
 The section in the [configuration file](configuration.md) was called `keycloak`.
 
@@ -19,9 +17,9 @@ The section in the [configuration file](configuration.md) was called `keycloak`.
 | ----------------------------------- | -------- | -------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `base_url`                          | `string` | yes      | -             | The URL where the Keycloak server can be reached                                                                                       |
 | `realm`                             | `string` | yes      | -             | The name of the default Keycloak realm, read more on [Keycloak](https://www.keycloak.org/docs/latest/server_admin/#configuring-realms) |
-| `client_id`                         | `string` | yes      | -             | The unique identifier for the OpenTalk client                                                                                          |
+| `client_id`                         | `string` | yes      | -             | The unique identifier for the {{ product_name }} client                                                                                |
 | `client_secret`                     | `string` | yes      | -             | The secret corresponding to the specified client ID                                                                                    |
-| `external_id_user_attribute_name`   | `string` | no       | See below     | The attribute by which Keycloak and OpenTalk users are assigned to each other. See below for more details.                             |
+| `external_id_user_attribute_name`   | `string` | no       | See below     | The attribute by which Keycloak and {{ product_name }} users are assigned to each other. See below for more details.                   |
 
 For configuring user search, see the [User search section](./user_search.md).
 

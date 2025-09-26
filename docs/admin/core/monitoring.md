@@ -1,6 +1,6 @@
 # Monitoring
 
-The OpenTalk controller provides a simple built-in HTTP service for monitoring purposes. This HTTP service is only provided when configured.
+The {{ product_name }} controller provides a simple built-in HTTP service for monitoring purposes. This HTTP service is only provided when configured.
 
 The [health command](../cli/health.md) can be used to determine the readiness state.
 

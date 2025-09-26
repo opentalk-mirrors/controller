@@ -50,7 +50,7 @@ client_secret = "v3rys3cr3t"
 
 ## OIDC and User Info
 
-The following fields returned by the OIDC provider's `userinfo` endpoint are used by the OpenTalk Controller. These fields differ for authentication of normal users and services.
+The following fields returned by the OIDC provider's `userinfo` endpoint are used by the {{ product_name }} Controller. These fields differ for authentication of normal users and services.
 
 > Note: Previously these fields were required to be in the ID Token's claims, but the ID Token is no longer required.
 

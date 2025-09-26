@@ -180,7 +180,7 @@ This module does not provide any configurable features.
 
 ## `opentalk-controller modules` subcommand
 
-This command outputs all modules available in the OpenTalk controller, including
+This command outputs all modules available in the {{ product_name }} controller, including
 the features that can be enabled or disabled:
 
 ```text

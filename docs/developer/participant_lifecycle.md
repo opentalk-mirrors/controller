@@ -1,7 +1,7 @@
 # Participant Lifecycle and States
 
 This document provides a technical overview of the participant lifecycle,
-complementing the [admin documentation](/admin/controller/under_the_hood/participant_states/).
+complementing the [admin documentation](https://docs.opentalk.eu/admin/controller/under_the_hood/participant_states/).
 
 The state of a participant is influenced by several factors. Primarily, whether
 a user or guest can access the meeting depends on their invitation status. When
@@ -56,11 +56,9 @@ meeting.
 
 ### ModerationCommand::Ban
 
-:::info Guests cannot be banned
+!!! info Guests cannot be banned
 
-Since guest have no persistent participant id or user id, they cannot be banned only kicked.
-
-:::
+    Since guest have no persistent participant id or user id, they cannot be banned only kicked.
 
 When a participant is banned from a meeting, the same actions as a kick are applied.
 However, an entry is also added to volatile storage, marking the user ID as banned.

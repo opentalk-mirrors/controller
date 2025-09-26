@@ -1,5 +1,4 @@
 ---
-sidebar_position: 107
 title: Execution of maintenance jobs
 ---
 
@@ -228,10 +227,10 @@ The default parameters for the job look like this:
 
 ### Job: `keycloak-account-sync`
 
-This job synchronizes user account states between the OIDC provider and the OpenTalk database to ensure consistency.
+This job synchronizes user account states between the OIDC provider and the {{ product_name }} database to ensure consistency.
 
-- if an account is removed from the OIDC provider, it will be marked as disabled in the OpenTalk database
-- if an account exists in the OIDC provider but not in the OpenTalk database, any existing disabled entry will be reset
+- if an account is removed from the OIDC provider, it will be marked as disabled in the {{ product_name }} database
+- if an account exists in the OIDC provider but not in the {{ product_name }} database, any existing disabled entry will be reset
 
 ## `opentalk-controller jobs` subcommand
 

@@ -1,10 +1,6 @@
----
-sidebar_position: 303
----
-
 # Whiteboard (Spacedeck)
 
-The OpenTalk Controller uses a [Spacedeck](https://github.com/spacedeck) server to provide a collaborative whiteboard for the `whiteboard` module.
+The {{ product_name }} Controller uses a [Spacedeck](https://github.com/spacedeck) server to provide a collaborative whiteboard for the `whiteboard` module.
 
 When no Spacedeck is configured, the `whiteboard` module is disabled.
 

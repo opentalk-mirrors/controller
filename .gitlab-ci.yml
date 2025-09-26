@@ -121,7 +121,7 @@ lint:openapi:
     name: redocly/cli:1.34.5
     entrypoint: ['']
   script:
-    - /usr/local/bin/openapi lint api/controller/frontend_api.yaml
+    - /usr/local/bin/openapi lint docs/developer/api.yaml
 
 lint:openapi-spectral:
   stage: lint
@@ -130,14 +130,14 @@ lint:openapi-spectral:
     name: stoplight/spectral
     entrypoint: ['']
   script:
-    - spectral lint --ruleset ci/spectral/openapi.yml lint api/controller/frontend_api.yaml
+    - spectral lint --ruleset ci/spectral/openapi.yml lint docs/developer/api.yaml
 
 lint:markdown:
   stage: lint
   <<: *default_job_condition
   image: registry.gitlab.com/pipeline-components/markdownlint:latest
   script:
-    - mdl --style .markdown_style.rb  --warnings .
+    - mdl --warnings .
 
 lint:licensing:
   stage: lint
@@ -323,6 +323,20 @@ check:openapi:
         echo "Generated parts of documentation changed, run ci/update-openapi-spec.sh and commit the result"
         exit 1
       fi
+
+build:docs:
+  stage: build
+  image:
+    name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
+    entrypoint: ['']
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  artifacts:
+    paths:
+      - site/
+  script:
+    - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
 
 package:read-tags:
   stage: package

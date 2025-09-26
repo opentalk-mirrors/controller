@@ -1,10 +1,6 @@
----
-sidebar_position: 302
----
-
 # Meeting Minutes (EtherPad)
 
-The OpenTalk Controller uses an [Etherpad](https://etherpad.org/) server to provide a collaborative text editor for the `meeting_notes` module.
+The {{ product_name }} Controller uses an [Etherpad](https://etherpad.org/) server to provide a collaborative text editor for the `meeting_notes` module.
 
 When no Etherpad is configured, the `meeting_notes` module is disabled.
 

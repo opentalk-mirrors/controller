@@ -1,17 +1,17 @@
 # LiveKit
 
-OpenTalk organizes video and audio streams through [LiveKit](https://livekit.io/).
+{{ product_name }} organizes video and audio streams through [LiveKit](https://livekit.io/).
 
 ## Configuration
 
 The section in the [configuration file](configuration.md) is called `livekit`.
 
-| Field         | Type     | Required | Default value | Description                                                                                                                                                                |
-| ------------- | -------- | -------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `api_key`     | `string` | yes      | -             | The name of the API key used by the OpenTalk controller to communicate with the LiveKit API.                                                                               |
-| `api_secret`  | `string` | yes      | -             | The API secret used by the OpenTalk controller to communicate with the LiveKit API.                                                                                        |
-| `public_url`  | `string` | yes      | -             | The URL under which the LiveKit server can be reached by the OpenTalk frontend. The OpenTalk controller itself will not use this URL, but just pass it on to the frontend. |
-| `service_url` | `string` | yes      | -             | The URL under which the OpenTalk controller communicates with the LiveKit server.                                                                                          |
+| Field         | Type     | Required | Default value | Description                                                                                                                                                                                    |
+| ------------- | -------- | -------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api_key`     | `string` | yes      | -             | The name of the API key used by the {{ product_name }} controller to communicate with the LiveKit API.                                                                                         |
+| `api_secret`  | `string` | yes      | -             | The API secret used by the {{ product_name }} controller to communicate with the LiveKit API.                                                                                                  |
+| `public_url`  | `string` | yes      | -             | The URL under which the LiveKit server can be reached by the {{ product_name }} frontend. The {{ product_name }} controller itself will not use this URL, but just pass it on to the frontend. |
+| `service_url` | `string` | yes      | -             | The URL under which the {{ product_name }} controller communicates with the LiveKit server.                                                                                                    |
 
 Example:
 

@@ -1,6 +1,6 @@
 # Session Data (Redis)
 
-The OpenTalk controller can be run in *standalone* mode, where a single
+The {{ product_name }} controller can be run in *standalone* mode, where a single
 `opentalk-controller` provides the web api and signaling service, or it can run
 in a *clustered* mode, where multiple `opentalk-controller` nodes provide
 the service in parallel and synchronize through [Redis](https://redis.com/)
@@ -34,7 +34,7 @@ therefore operating the `opentalk-controller` in *standalone* mode.
 
 Using the default redis url requires the `[redis]` section to be present. If the
 `url` field is absent, then the default redis URL will be used. This was the
-default configuration up until `v0.14` of the OpenTalk controller.
+default configuration up until `v0.14` of the {{ product_name }} controller.
 
 ```toml
 [redis]

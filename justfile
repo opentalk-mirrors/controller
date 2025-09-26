@@ -32,7 +32,7 @@ _check_git_cliff:
     fi
 
 # Prepare a release
-prepare-release VERSION: (set-version VERSION) update-frontend-api (update-changelog VERSION)
+prepare-release VERSION: (set-version VERSION) update-openapi (update-changelog VERSION)
 
 # Sets the version in the Cargo.toml and updates the Cargo.lock
 set-version VERSION: _check_cargo_set_version
@@ -42,9 +42,9 @@ set-version VERSION: _check_cargo_set_version
     cargo check
 
 # Update the version in the OpenAPI spec
-update-frontend-api:
+update-openapi:
     # Update OpenAPI specification (which contains the version number)
-    cargo run -- -c example/controller.toml openapi dump > api/controller/frontend_api.yaml
+    cargo run -- -c example/controller.toml openapi dump > docs/developer/api.yaml
 
 # Update the changelog
 update-changelog VERSION: _check_git_cliff

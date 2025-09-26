@@ -1,6 +1,6 @@
 # Meeting Reports
 
-The OpenTalk Controller uses the [typst](https://typst.app/) format
+The {{ product_name }} Controller uses the [typst](https://typst.app/) format
 to generate reports in meetings.
 
 Each module can define its own set of reports that it can generate. Modules that

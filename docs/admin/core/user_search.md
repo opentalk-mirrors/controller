@@ -1,6 +1,6 @@
 # User Search
 
-OpenTalk can search for users and display suggestions when attempting to
+{{ product_name }} can search for users and display suggestions when attempting to
 invite users into meetings. User search can be configured to behave differently
 depending on the use case.
 
@@ -31,13 +31,13 @@ Available values:
   endpoint will return a `404 NOT FOUND` HTTP status code.
   This is equivalent to what used to be `disable_users_find = true` in the
   [`[endpoints]` section](./endpoints.md).
-- `"from_database"`: Use the OpenTalk database to search for user accounts,
+- `"from_database"`: Use the {{ product_name }} database to search for user accounts,
   but don't request any information from the user search backend, even if it is
   configured in the `backend` field.
-- `"from_user_search_backend"`: Use the OpenTalk database to search for user
+- `"from_user_search_backend"`: Use the {{ product_name }} database to search for user
   accounts first, and request information from the user search backend configured
   in the `backend` field in addition. Search results may include users that were
-  never registered on the OpenTalk Controller.
+  never registered on the {{ product_name }} Controller.
 
 #### Default value
 
@@ -50,7 +50,7 @@ has been configured will behave as if the value was `"disabled"`.
 
 #### Event invite endpoint
 
-OpenTalk can be configured to allow inviting guests through external email
+{{ product_name }} can be configured to allow inviting guests through external email
 addresses, even if they can not register, e.g. because the instance is limited
 to accounts of an organization. These guests will then receive an email with an
 invite link they can use to join a meeting.
@@ -59,7 +59,7 @@ This behavior can be enabled by setting
 `endpoints.event_invite_external_email_address` to `true` in the
 [HTTP endpoints configuration](./endpoints.md).
 
-Because not all potential users might have logged in to OpenTalk, these cannot
+Because not all potential users might have logged in to {{ product_name }}, these cannot
 be found in its database. So if invitation of external E-Mail addresses
 is disabled, a method is necessary to determine whether these users can be
 considered as known, and therefore invited by E-Mail. The user search backend
@@ -102,19 +102,19 @@ users_find_behavior = "disabled"
 
 ### Keycloak user search backend
 
-The OpenTalk Controller can search on a Keycloak instance if configured
+The {{ product_name }} Controller can search on a Keycloak instance if configured
 correctly. This does not happen through OIDC, but instead uses the Keycloak web
 api to call endpoints there.
 
 When setting `backend = "keycloak_webapi"`, these additional fields can be configured
 in the `[user_search]` section:
 
-| Field                             | Type     | Required | Default value                        | Description                                                                                                |
-| --------------------------------- | -------- | -------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `api_base_url`                    | `string` | yes      | -                                    | Base URL of the Keycloak web api                                                                           |
-| `client_id`                       | `string` | no       | From `oidc.controller.client_id`     | Client id that is used to authenticate against the user search API                                         |
-| `client_secret`                   | `string` | no       | From `oidc.controller.client_secret` | Client secret that is used to authenticate against the user search API                                     |
-| `external_id_user_attribute_name` | `string` | no       | See below                            | The attribute by which Keycloak and OpenTalk users are assigned to each other. See below for more details. |
+| Field                             | Type     | Required | Default value                        | Description                                                                                                          |
+| --------------------------------- | -------- | -------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `api_base_url`                    | `string` | yes      | -                                    | Base URL of the Keycloak web api                                                                                     |
+| `client_id`                       | `string` | no       | From `oidc.controller.client_id`     | Client id that is used to authenticate against the user search API                                                   |
+| `client_secret`                   | `string` | no       | From `oidc.controller.client_secret` | Client secret that is used to authenticate against the user search API                                               |
+| `external_id_user_attribute_name` | `string` | no       | See below                            | The attribute by which Keycloak and {{ product_name }} users are assigned to each other. See below for more details. |
 
 The `external_id_user_attribute_name` setting is used to configure how Keycloak users resulting from a search and registered
 Opentalk users are assigned to each other.
@@ -128,16 +128,14 @@ The following assignment strategies are available:
 
 #### Configuring Keycloak for user search
 
-:::note
+!!! note
 
-The Keycloak user interface changed in the past and because of that it's safe to assume
-that it will continue to change moving forward. Instead of screenshots we describe what needs to be
-done, and link to the Keycloak documentation where needed. These links
-reference a specific version of Keycloak. If those settings are outdated, please refer to the
-[Keycloak documentation archive](https://www.keycloak.org/documentation-archive.html)
-and find the corresponding section there.
-
-:::
+    The Keycloak user interface changed in the past and because of that it's safe to assume
+    that it will continue to change moving forward. Instead of screenshots we describe what needs to be
+    done, and link to the Keycloak documentation where needed. These links
+    reference a specific version of Keycloak. If those settings are outdated, please refer to the
+    [Keycloak documentation archive](https://www.keycloak.org/documentation-archive.html)
+    and find the corresponding section there.
 
 1. Configure a client which will be used to access the Keycloak web api. Details
     about that can be found in the [Keycloak section](keycloak.md).

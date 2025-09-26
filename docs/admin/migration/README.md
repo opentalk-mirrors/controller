@@ -1,5 +1,4 @@
 ---
-sidebar_position: 104
 title: Update Migration Guide
 ---
 
@@ -19,13 +18,13 @@ endpoints were added, simply running the command does no harm.
 
 The OpenID Connect integration has been changed to support more authentication
 flows for clients. Previously, ID tokens were used to synchronize user information
-from the OpenID Provider with the OpenTalk database. Now, the `userinfo` endpoint
+from the OpenID Provider with the {{ product_name }} database. Now, the `userinfo` endpoint
 is used to fetch user information directly from the OpenID Provider, removing the
 need for the ID token.
 
 OpenID Providers (e.g. Keycloak) must be updated to include the [documented fields](../core/oidc.md#oidc-and-user-info) in the `userinfo` endpoint instead of the ID token.
 
-## Updating to OpenTalk Controller `v0.29.0`
+## Updating to {{ product_name }} Controller `v0.29.0`
 
 ### Removal of the reports configuration and the `terdoc` service
 
@@ -41,7 +40,7 @@ For the time being, the style and format of these reports is baked in and
 requires no further configuration. Therefore the `[report]`  section in the
 configuration is currently deprecated and might be reintroduced in the future.
 If a `[report]` section is present in the configuration file, a warning will be
-shown when the OpenTalk Controller is started.
+shown when the {{ product_name }} Controller is started.
 
 Further details about the current state of report creation are available in the
 [Meeting Reports documentation](../core/meeting_reports.md).
@@ -53,7 +52,7 @@ the [`[turn]` section in the configuration file](../core/stun_turn.md) and the
 `/turn` endpoint of the controller are deprecated and will be removed in the
 future. TURN servers are managed and configured directly in LiveKit.
 
-## Updating to OpenTalk Controller `v0.26.0`
+## Updating to {{ product_name }} Controller `v0.26.0`
 
 ### Janus support removed entirely
 
@@ -109,33 +108,33 @@ api_base_url = "https://accounts.example.com/auth/admin/realms/MyRealm"
 users_find_behavior = "from_user_search_backend"
 ```
 
-## Updating to OpenTalk Controller `v0.25.0`
+## Updating to {{ product_name }} Controller `v0.25.0`
 
 This controller version introduces support for [LiveKit](../core/livekit.md).
 Support for the Janus Media Server [has been deprecated](../core/room_server.md).
 
 See [the LiveKit migration documentation](./livekit.md).
 
-## Updating to OpenTalk Controller `v0.16.0`
+## Updating to {{ product_name }} Controller `v0.16.0`
 
 ### Janus can now be connected to via websocket
 
-The OpenTalk controller now can be configured to connect to Janus directly
+The {{ product_name }} controller now can be configured to connect to Janus directly
 via a websocket connection instead of using rabbitmq in-between.
 
 See [the configuration documentation](../core/room_server.md).
 
-## Updating to OpenTalk Controller `v0.15.0`
+## Updating to {{ product_name }} Controller `v0.15.0`
 
 ### Redis is only required for *clustered* operation
 
-Since `v0.15.0` of the OpenTalk controller, the usage of a [Redis](../core/
+Since `v0.15.0` of the {{ product_name }} controller, the usage of a [Redis](../core/
 redis.md) service is only required for synchronizing between nodes when the
 controller should run in *clustered* mode. If the service should only be
 provided by a single node, then the controller can run in *standalone* mode now
 by removing the `[redis]` section from the configuration entirely.
 
-## Updating to OpenTalk Controller `v0.9.0`
+## Updating to {{ product_name }} Controller `v0.9.0`
 
 ### Removal of server-side speaker detection
 

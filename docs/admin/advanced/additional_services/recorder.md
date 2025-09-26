@@ -1,12 +1,8 @@
----
-sidebar_position: 401
----
-
 # Meeting Recorder
 
-The OpenTalk Controller has the ability to establish communication with the
-OpenTalk Recorder and initiate recording sessions. This interaction between the
-OpenTalk Recorder and the OpenTalk Controller is facilitated through RabbitMQ.
+The {{ product_name }} Controller has the ability to establish communication with the
+{{ product_name }} Recorder and initiate recording sessions. This interaction between the
+{{ product_name }} Recorder and the {{ product_name }} Controller is facilitated through RabbitMQ.
 
 ## Configuration
 
@@ -21,26 +17,22 @@ In addition to the configuration file, Keycloak needs to be configured to allow 
 
 ### Keycloak configuration
 
-:::note
+!!! note
 
-The Keycloak user interface changed in the past and because of that it's safe to assume
-that it will continue to change moving forward. Instead of screenshots we describe what needs to be
-done, and link to the Keycloak documentation where needed. These links
-reference a specific version of Keycloak. If those settings are outdated, please refer to the
-[Keycloak documentation archive](https://www.keycloak.org/documentation-archive.html)
-and find the corresponding section there.
-
-:::
+    The Keycloak user interface changed in the past and because of that it's safe to assume
+    that it will continue to change moving forward. Instead of screenshots we describe what needs to be
+    done, and link to the Keycloak documentation where needed. These links
+    reference a specific version of Keycloak. If those settings are outdated, please refer to the
+    [Keycloak documentation archive](https://www.keycloak.org/documentation-archive.html)
+    and find the corresponding section there.
 
 The recorder requires access to the controller API. For that we need to create a
 client inside Keycloak and configure the recorder with the client secret. The client
 has to be assigned to the `opentalk-recorder` role to gain access to the controller API.
 
-:::warning
+!!! warning
 
-The following configuration needs to be changed in the configuration file of the __recording service__.
-
-:::
+    The following configuration needs to be changed in the configuration file of the __recording service__.
 
 ```toml
 [auth]
@@ -56,18 +48,16 @@ client_secret = "the-client-secret"
    - Use the Client Authenticator **Client Id and Secret** .
    - The **Client secret** will be used in the field `auth.client_secret` of the configuration field.
 3. Set the correct issuer URL in `auth.issuer`
-   - Replace the domain and realm placeholders with your specific values: `http://<Keycloak domain>/auth/realms/<OpenTalk realm>`
+   - Replace the domain and realm placeholders with your specific values: `http://<Keycloak domain>/auth/realms/<{{ product_name }} realm>`
 4. Grant the Recorder-Client access to the Controller API
    - [Create a realm role](https://www.keycloak.org/docs/latest/server_admin/index.html#proc-creating-realm-roles_server_administration_guide) with the id `opentalk-recorder`
    - Assign the role to the service account of the recorder client
 
 ### Controller configuration
 
-:::warning
+!!! warning
 
-The following configurations needs to be changed in the configuration file of the __controller__.
-
-:::
+    The following configurations needs to be changed in the configuration file of the __controller__.
 
 #### Disabling recording capability
 

@@ -7,6 +7,7 @@ by the opentalk controller.
 
 ```mermaid
 erDiagram
+direction RL
 assets {
     uuid id PK
     uuid tenant_id FK
