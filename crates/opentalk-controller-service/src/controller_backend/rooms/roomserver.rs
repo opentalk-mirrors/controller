@@ -9,9 +9,10 @@ use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::Inventory;
 use opentalk_roomserver_types::{
+    api::RoomServerAccess,
     client_parameters::{ClientKind, ClientParameters, Role},
     public_user_profile::PublicUserProfile,
-    room_parameters::{EventContext, RoomParameters},
+    room_parameters::{AssetStorageConfig, EventContext, RoomParameters},
 };
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -26,7 +27,6 @@ use opentalk_types_api_v1::{
 use opentalk_types_common::{
     call_in::CallInInfo,
     rooms::RoomId,
-    roomserver::Token as RoomserverToken,
     shared_folders::{SharedFolder, SharedFolderAccess},
     streaming::StreamingLink,
     users::UserInfo,
@@ -44,16 +44,12 @@ impl ControllerBackend {
         room_id: RoomId,
         request: PostRoomsRoomserverStartRequestBody,
     ) -> Result<RoomserverStartResponseBody, CaptureApiError> {
-        let mut inventory = self.inventory_provider.get_inventory().await?;
-        let settings = self.settings_provider.get();
-
-        let Some(roomserver_address) = settings
-            .roomserver
-            .as_ref()
-            .map(|config| config.url.to_string())
-        else {
+        if self.roomserver_client.is_none() {
             return Err(StartRoomError::RoomserverSignalingDisabled.into());
         };
+
+        let mut inventory = self.inventory_provider.get_inventory().await?;
+        let settings = self.settings_provider.get();
 
         let room = self.get_room(&room_id).await?;
 
@@ -86,13 +82,13 @@ impl ControllerBackend {
             role,
         };
 
-        let token = self
-            .request_roomserver_token(room, client_parameters)
+        let access = self
+            .request_roomserver_access(room, client_parameters)
             .await?;
 
         Ok(RoomserverStartResponseBody {
-            token,
-            roomserver_address,
+            token: access.token,
+            roomserver_address: access.public_url.to_string(),
         })
     }
 
@@ -101,13 +97,7 @@ impl ControllerBackend {
         room_id: RoomId,
         request: PostRoomsRoomserverStartInvitedRequestBody,
     ) -> Result<RoomserverStartResponseBody, CaptureApiError> {
-        let Some(roomserver_address) = self
-            .settings_provider
-            .get()
-            .roomserver
-            .as_ref()
-            .map(|config| config.url.to_string())
-        else {
+        if self.roomserver_client.is_none() {
             return Err(StartRoomError::RoomserverSignalingDisabled.into());
         };
 
@@ -125,21 +115,21 @@ impl ControllerBackend {
             role: Role::User,
         };
 
-        let token = self
-            .request_roomserver_token(room_resource, client_parameters)
+        let access = self
+            .request_roomserver_access(room_resource, client_parameters)
             .await?;
 
         Ok(RoomserverStartResponseBody {
-            token,
-            roomserver_address,
+            token: access.token,
+            roomserver_address: access.public_url.to_string(),
         })
     }
 
-    async fn request_roomserver_token(
+    async fn request_roomserver_access(
         &self,
         room: RoomResource,
         client_parameters: ClientParameters,
-    ) -> Result<RoomserverToken, ApiError> {
+    ) -> Result<RoomServerAccess, ApiError> {
         let room_id = room.id;
 
         let Some(client) = &self.roomserver_client else {
@@ -156,8 +146,8 @@ impl ControllerBackend {
                 ApiError::internal().with_message("failed to request token from roomserver")
             })?;
 
-        let token = match maybe_token {
-            Some(token) => token,
+        let access = match maybe_token {
+            Some(access) => access,
             None => {
                 // The room is unknown to the roomserver,- resubmit the token request but include the room parameter
                 let room_parameters = self.build_room_parameters(room).await?;
@@ -171,7 +161,7 @@ impl ControllerBackend {
                         ApiError::internal().with_message("failed to request token from roomserver")
                     })?;
 
-                let Some(token) = final_response else {
+                let Some(access) = final_response else {
                     log::error!(
                         "Roomserver responded with 'unknown room' despite the request containing room information"
                     );
@@ -179,11 +169,11 @@ impl ControllerBackend {
                         .with_message("unable to request token from roomserver"));
                 };
 
-                token
+                access
             }
         };
 
-        Ok(token)
+        Ok(access)
     }
 
     async fn build_room_parameters(
@@ -207,13 +197,13 @@ impl ControllerBackend {
 
         let tariff = self.get_tariff_for_room(room.id).await?;
 
-        let mut module_data = settings
+        let mut module_settings = settings
             .roomserver
             .as_ref()
             .map(|r| r.modules.clone())
             .unwrap_or_default();
 
-        module_data.retain(|module_id, _| tariff.modules.contains_key(module_id));
+        module_settings.retain(|module_id, _| tariff.modules.contains_key(module_id));
 
         let timezone = get_user_timezone(room.created_by.id, inventory.as_mut(), &settings).await;
         let created_by = PublicUserProfile {
@@ -232,7 +222,8 @@ impl ControllerBackend {
             tariff,
             streaming_links,
             e2e_encryption: false,
-            module_data,
+            module_settings,
+            asset_storage: AssetStorageConfig::InMemory,
         };
 
         Ok(parameters)

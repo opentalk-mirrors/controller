@@ -412,11 +412,8 @@ impl Controller {
 
         let roomserver_client = if let Some(roomserver_config) = &settings.roomserver {
             Some(
-                RoomServerClient::new(
-                    roomserver_config.url.clone(),
-                    roomserver_config.api_token.clone(),
-                )
-                .whatever_context("Failed to create roomserver client")?,
+                RoomServerClient::new(roomserver_config.url.clone(), &roomserver_config.api_token)
+                    .whatever_context("Failed to create roomserver client")?,
             )
         } else {
             None
