@@ -28,8 +28,8 @@ iana-time-zone.workspace = true
 itertools.workspace = true
 log = { workspace = true, features = ["serde"] }
 openidconnect.workspace = true
+opentalk-roomserver-types.workspace = true
 opentalk-types-common = { workspace = true, features = ["serde"] }
-opentalk-types-signaling = { workspace = true, features = ["serde"] }
 owo-colors.workspace = true
 phonenumber.workspace = true
 serde.workspace = true

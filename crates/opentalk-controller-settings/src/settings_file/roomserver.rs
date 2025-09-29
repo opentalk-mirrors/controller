@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_types_signaling::ModuleData;
+use opentalk_roomserver_types::module_settings::ModuleSettings;
 use serde::Deserialize;
 use url::Url;
 
@@ -12,5 +12,5 @@ pub struct RoomServer {
 
     pub api_token: String,
 
-    pub modules: ModuleData,
+    pub modules: ModuleSettings,
 }
