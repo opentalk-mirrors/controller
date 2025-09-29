@@ -6232,9 +6232,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-etherpad-client"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04a0d7bde223a7dfc27393d0ddff0c74552e76a7743189e88c5e5453a0467551"
+checksum = "9efaa7dc9640de55d4b4339ccb3b2981212a14772ec7e677287e881f49948685"
 dependencies = [
  "bytes",
  "futures",
