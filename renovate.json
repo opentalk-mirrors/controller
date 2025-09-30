@@ -27,7 +27,16 @@
       ],
       "groupName": "opentalk-roomserver",
       "groupSlug": "opentalk-roomserver"
+    },
+    {
+      "matchPackagePatterns": [
+        "livekit*"
+      ],
+      "groupName": "livekit",
+      "groupSlug": "livekit"
     }
   ],
-  "ignoreDeps": ["actix-web-actors"]
+  "ignoreDeps": [
+    "actix-web-actors"
+  ]
 }
