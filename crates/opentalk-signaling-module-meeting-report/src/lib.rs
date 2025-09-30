@@ -5,7 +5,7 @@
 use std::{collections::BTreeMap, path::Path, sync::Arc};
 
 use bytes::Bytes;
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Datelike, Local, Utc};
 use chrono_tz::Tz;
 use either::Either;
 use futures::{StreamExt as _, TryStreamExt, stream};
@@ -223,7 +223,20 @@ impl MeetingReport {
     ) -> Result<Vec<u8>, SignalingModuleError> {
         let tz = Tz::from(report_timezone);
         let starts_at = event.starts_at.map(DateTime::from).to_report_date_time(&tz);
-        let ends_at = event.ends_at.map(DateTime::from).to_report_date_time(&tz);
+        let ends_at = event
+            .ends_at
+            .map(|timestamp| {
+                let dt: DateTime<Utc> = timestamp.into();
+                if let (Some(starts_at), Some(ends_at)) = (event.starts_at, event.ends_at)
+                    && ends_at.year() - starts_at.year() == 100
+                {
+                    // The `ends_at` date for recurring events defaults to 100
+                    // years in the future.
+                    return dt.with_year(dt.year() - 100).unwrap_or(dt);
+                }
+                dt
+            })
+            .to_report_date_time(&tz);
         let current_time = Local::now();
         let timestamp = current_time.naive_local().format("%Y-%m-%dT%H:%M:%S.%f");
         let report_created_at = current_time.to_report_date_time(&tz);
