@@ -30,7 +30,6 @@ opentalk-jobs = { path = "crates/opentalk-jobs", version = "0.31.0" }
 opentalk-kustos-inventory = { path = "crates/opentalk-kustos-inventory", version = "0.31.0" }
 opentalk-log = { path = "crates/opentalk-log", version = "0.31.0" }
 opentalk-r3dlock = { path = "crates/opentalk-r3dlock", version = "0.31.0" }
-opentalk-report-generation = { path = "crates/opentalk-report-generation", version = "0.31.0" }
 opentalk-signaling-core = { path = "crates/opentalk-signaling-core", version = "0.31.0" }
 opentalk-signaling-module-automod = { path = "crates/opentalk-signaling-module-automod", version = "0.31.0" }
 opentalk-signaling-module-breakout = { path = "crates/opentalk-signaling-module-breakout", version = "0.31.0" }
@@ -110,6 +109,7 @@ opentalk-mail-worker-protocol = "0.37.0"
 opentalk-nextcloud-client = { version = "0.2.0", default-features = false, features = [
   "rustls-tls-native-roots",
 ] }
+opentalk-report-generation = "0.1.0"
 opentalk-roomserver-client = "0.0.9"
 opentalk-roomserver-types = "0.0.9"
 opentalk-roomserver-types-livekit = "0.0.9"

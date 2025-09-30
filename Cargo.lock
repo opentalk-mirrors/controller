@@ -6422,7 +6422,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-report-generation"
-version = "0.31.0"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8fdd812ca25837760c7cff3505684233f1074f5f0ba856f69f11ddf574f82d49"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -6430,7 +6432,6 @@ dependencies = [
  "log",
  "pretty_assertions",
  "serde",
- "serde_json",
  "snafu",
  "typst",
  "typst-kit",
