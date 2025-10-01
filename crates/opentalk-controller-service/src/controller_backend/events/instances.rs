@@ -12,7 +12,6 @@ use opentalk_inventory::{
     Event, EventException, EventExceptionKind, NewEventException, UpdateEventException,
 };
 use opentalk_types_api_v1::{
-    Cursor,
     error::ApiError,
     events::{
         EventAndInstanceId, EventInstance, EventInstancePath, EventInstanceQuery, EventInvitee,
@@ -21,9 +20,11 @@ use opentalk_types_api_v1::{
         GetEventsAndInstancesQuery, GetEventsCursorData, GetEventsQuery, InstanceId,
         PatchEventInstanceBody,
     },
+    pagination::Cursor,
 };
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
+    pagination::{Page, PageSize},
     shared_folders::SharedFolder,
     time::{DateTimeTz, Timestamp},
     training_participation_report::TrainingParticipationReportParameterSet,
@@ -82,14 +83,14 @@ impl ControllerBackend {
         for (event_resource, _event_exception_resources) in event_resources {
             // Return either the event itself (if it's non-recurring or no instances were requested)
             // or its instances (up to the specified limit).
-            if event_resource.recurrence_pattern.is_empty() || query.instances_max == 0 {
+            if event_resource.recurrence_pattern.is_empty() || query.instances_max.is_zero() {
                 event_or_instance_resources.push(EventOrInstance::Event(event_resource));
             } else {
                 let instances_query = GetEventInstancesQuery {
-                    invitees_max: query.invitees_max as i64,
+                    invitees_max: query.invitees_max,
                     time_min: query.time_min,
                     time_max: query.time_max,
-                    per_page: Some(query.instances_max),
+                    per_page: Some(PageSize::from_i64_clamped(query.instances_max.into())),
                     after: None,
                 };
 
@@ -127,11 +128,13 @@ impl ControllerBackend {
     > {
         let settings = self.settings_provider.get();
 
-        let per_page = per_page.unwrap_or(30).clamp(1, 100);
-        let page = after.map(|c| c.page).unwrap_or(1).max(1);
+        let per_page = per_page
+            .unwrap_or(PageSize::from_i64_clamped(30))
+            .clamp(PageSize::ONE, PageSize::from_i64_clamped(100));
+        let page = after.map(|c| c.page).unwrap_or(Page::ONE).max(Page::ONE);
 
-        let skip = per_page as usize;
-        let offset = (page - 1) as usize;
+        let skip = per_page.into();
+        let offset: usize = page.saturating_previous().into();
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
@@ -148,9 +151,13 @@ impl ControllerBackend {
             .get_event_with_related_items(current_user.id, event_id)
             .await?;
 
-        let (invitees, invitees_truncated) =
-            super::get_invitees_for_event(&settings, inventory.as_mut(), event.id, invitees_max)
-                .await?;
+        let (invitees, invitees_truncated) = super::get_invitees_for_event(
+            &settings,
+            inventory.as_mut(),
+            event.id,
+            invitees_max.into(),
+        )
+        .await?;
 
         let invite_status = invite
             .map(|inv| inv.status)
@@ -236,7 +243,12 @@ impl ControllerBackend {
         }
 
         let next_cursor = if !instances.is_empty() {
-            Some(Cursor(GetEventInstancesCursorData { page: page + 1 }).to_base64())
+            Some(
+                Cursor(GetEventInstancesCursorData {
+                    page: page.saturating_next(),
+                })
+                .to_base64(),
+            )
         } else {
             None
         };
@@ -306,7 +318,7 @@ impl ControllerBackend {
             &settings,
             inventory.as_mut(),
             event_id,
-            query.invitees_max,
+            query.invitees_max.into(),
         )
         .await?;
 
@@ -482,9 +494,13 @@ impl ControllerBackend {
                 .await?
         };
 
-        let (invitees, invitees_truncated) =
-            super::get_invitees_for_event(&settings, inventory.as_mut(), event_id, invitees_max)
-                .await?;
+        let (invitees, invitees_truncated) = super::get_invitees_for_event(
+            &settings,
+            inventory.as_mut(),
+            event_id,
+            invitees_max.into(),
+        )
+        .await?;
 
         let users = GetUserProfilesBatched::new()
             .add(&event)

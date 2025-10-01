@@ -98,11 +98,12 @@ impl ControllerBackend {
             EventInvitee::from_email_invite(event_email_invite, &settings)
         });
 
-        let invitees_to_skip_count = (page - 1) * per_page;
+        let invitees_to_skip_count: usize =
+            Into::<usize>::into(page.saturating_previous()) * Into::<usize>::into(per_page);
         let invitees = event_invitees_iter
             .chain(event_email_invitees_iter)
-            .skip(invitees_to_skip_count as usize)
-            .take(per_page as usize)
+            .skip(invitees_to_skip_count)
+            .take(per_page.into())
             .collect();
 
         let invitees = enrich_invitees_from_optional_user_search(
@@ -115,8 +116,8 @@ impl ControllerBackend {
 
         Ok((
             invitees,
-            per_page,
-            page,
+            per_page.into(),
+            page.into(),
             event_invites_total + event_email_invites_total,
         ))
     }

@@ -3,7 +3,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_types_common::{
-    assets::AssetId, modules::ModuleId, tenants::TenantId, time::Timestamp,
+    assets::{AssetId, FileSize},
+    modules::ModuleId,
+    tenants::TenantId,
+    time::Timestamp,
 };
 
 /// Information about an asset stored in the inventory.
@@ -31,5 +34,5 @@ pub struct Asset {
     pub tenant_id: TenantId,
 
     /// The size of the asset, in bytes.
-    pub size: i64,
+    pub size: FileSize,
 }

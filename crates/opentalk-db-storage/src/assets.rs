@@ -10,7 +10,7 @@ use diesel::{
 use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
 use opentalk_database::{DbConnection, Paginate, Result};
 use opentalk_types_common::{
-    assets::{AssetId, AssetSorting},
+    assets::{AssetId, AssetSorting, FileSize},
     events::EventId,
     modules::ModuleId,
     order::Ordering,
@@ -31,7 +31,7 @@ pub struct Asset {
     pub kind: String,
     pub filename: String,
     pub tenant_id: TenantId,
-    pub size: i64,
+    pub size: FileSize,
 }
 
 impl From<Asset> for opentalk_inventory::Asset {

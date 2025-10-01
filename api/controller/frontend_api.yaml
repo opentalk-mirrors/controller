@@ -132,9 +132,7 @@ paths:
             Default value is 0
           required: false
           schema:
-            type: integer
-            format: int32
-            minimum: 0
+            $ref: "#/components/schemas/ItemCount"
         - name: favorites
           in: query
           description: Return only favorite events
@@ -154,10 +152,9 @@ paths:
           description: How many events to return per page
           required: false
           schema:
-            type:
-              - integer
-              - "null"
-            format: int64
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/PageSize"
         - name: after
           in: query
           description: |-
@@ -303,9 +300,7 @@ paths:
             Default value is 0
           required: false
           schema:
-            type: integer
-            format: int32
-            minimum: 0
+            $ref: "#/components/schemas/ItemCount"
         - name: instances_max
           in: query
           description: |-
@@ -314,8 +309,7 @@ paths:
             Default value is 0
           required: false
           schema:
-            type: integer
-            format: int64
+            $ref: "#/components/schemas/ItemCount"
         - name: favorites
           in: query
           description: Return only favorite events
@@ -335,10 +329,9 @@ paths:
           description: How many events and instances to return per page
           required: false
           schema:
-            type:
-              - integer
-              - "null"
-            format: int64
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/PageSize"
         - name: after
           in: query
           description: |-
@@ -414,8 +407,7 @@ paths:
             Default value is 0
           required: false
           schema:
-            type: integer
-            format: int64
+            $ref: "#/components/schemas/ItemCount"
         - name: event_id
           in: path
           description: The id of the event
@@ -492,8 +484,7 @@ paths:
           description: Maximum number of invitees to include inside the event
           required: false
           schema:
-            type: integer
-            format: int64
+            $ref: "#/components/schemas/ItemCount"
         - name: suppress_email_notification
           in: query
           description: Flag to disable email notification
@@ -550,8 +541,7 @@ paths:
           description: Maximum number of invitees to include inside the event
           required: false
           schema:
-            type: integer
-            format: int64
+            $ref: "#/components/schemas/ItemCount"
         - name: time_min
           in: query
           description: Minimum time of the event instances
@@ -573,10 +563,9 @@ paths:
           description: How many events to return per page
           required: false
           schema:
-            type:
-              - integer
-              - "null"
-            format: int64
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/PageSize"
         - name: after
           in: query
           required: false
@@ -642,8 +631,7 @@ paths:
             Default: 0
           required: false
           schema:
-            type: integer
-            format: int64
+            $ref: "#/components/schemas/ItemCount"
         - name: suppress_email_notification
           in: query
           description: Flag to suppress email notification
@@ -697,8 +685,7 @@ paths:
             Default: 0
           required: false
           schema:
-            type: integer
-            format: int64
+            $ref: "#/components/schemas/ItemCount"
         - name: suppress_email_notification
           in: query
           description: Flag to suppress email notification
@@ -800,12 +787,10 @@ paths:
             description: Page-based pagination query
             properties:
               page:
-                type: integer
-                format: int64
+                $ref: "#/components/schemas/Page"
                 description: The number of the page
               per_page:
-                type: integer
-                format: int64
+                $ref: "#/components/schemas/PageSize"
                 description: The number of entries per page
         - name: status
           in: query
@@ -1199,15 +1184,13 @@ paths:
           description: The number of entries per page
           required: false
           schema:
-            type: integer
-            format: int64
+            $ref: "#/components/schemas/PageSize"
         - name: page
           in: query
           description: The number of the page
           required: false
           schema:
-            type: integer
-            format: int64
+            $ref: "#/components/schemas/Page"
       responses:
         "200":
           description: List of accessible rooms successfully returned
@@ -1380,15 +1363,13 @@ paths:
           description: The number of entries per page
           required: false
           schema:
-            type: integer
-            format: int64
+            $ref: "#/components/schemas/PageSize"
         - name: page
           in: query
           description: The number of the page
           required: false
           schema:
-            type: integer
-            format: int64
+            $ref: "#/components/schemas/Page"
       responses:
         "200":
           description: The assets have been returned successfully
@@ -1592,15 +1573,13 @@ paths:
           description: The number of entries per page
           required: false
           schema:
-            type: integer
-            format: int64
+            $ref: "#/components/schemas/PageSize"
         - name: page
           in: query
           description: The number of the page
           required: false
           schema:
-            type: integer
-            format: int64
+            $ref: "#/components/schemas/Page"
       responses:
         "200":
           description: The invites could be loaded successfully
@@ -2093,15 +2072,13 @@ paths:
           description: The number of entries per page
           required: false
           schema:
-            type: integer
-            format: int64
+            $ref: "#/components/schemas/PageSize"
         - name: page
           in: query
           description: The number of the page
           required: false
           schema:
-            type: integer
-            format: int64
+            $ref: "#/components/schemas/Page"
         - name: room_id
           in: path
           description: The id of the room
@@ -2596,15 +2573,13 @@ paths:
           description: The number of entries per page
           required: false
           schema:
-            type: integer
-            format: int64
+            $ref: "#/components/schemas/PageSize"
         - name: page
           in: query
           description: The number of the page
           required: false
           schema:
-            type: integer
-            format: int64
+            $ref: "#/components/schemas/Page"
         - name: sort
           in: query
           description: The optional sorting query parameter
@@ -2794,8 +2769,7 @@ components:
           $ref: "#/components/schemas/ModuleId"
           description: The namespace of the asset
         size:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/FileSize"
           description: The size of the asset in bytes
       example:
         created_at: "2024-06-18T11:22:33Z"
@@ -3778,6 +3752,11 @@ components:
         - pdf
       maxLength: 10
       pattern: "^[0-9a-zA-Z]*$"
+    FileSize:
+      type: integer
+      format: int64
+      description: The size of a file.
+      example: 17
     GetEventInstanceResponseBody:
       $ref: "#/components/schemas/EventInstance"
       description: "Response for *GET /events/{event_id}/instances/{instance_id}*"
@@ -4073,6 +4052,11 @@ components:
         - user
         - moderator
       example: user
+    ItemCount:
+      type: integer
+      format: int64
+      description: "The number of items, e.g. ."
+      example: 17
     Language:
       type: string
       description: A language identifier
@@ -4141,9 +4125,22 @@ components:
       enum:
         - ascending
         - descending
+    Page:
+      type: integer
+      format: int64
+      description: |-
+        A page number used for paging in requests.
+
+        This is `1`-based, so a `Page` with a value of `0` can not be created.
+      example: 5
     PageLink:
       type: string
       example: "<https://api.example.org/resource?page=2>; rel='next', <https://api.example.org/resource?page=5>; rel='last'"
+    PageSize:
+      type: integer
+      format: int64
+      description: A page number used for paging in requests.
+      example: 30
     PatchEmailInviteBody:
       type: object
       description: "Request body for the `PATCH /events/{event_id}/invites/email` endpoint"

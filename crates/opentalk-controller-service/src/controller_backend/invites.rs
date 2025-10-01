@@ -81,8 +81,8 @@ impl ControllerBackend {
         let (invites_with_users, total_invites) = inventory
             .get_room_invites_paginated_with_creator_and_updater(
                 room_id,
-                pagination.per_page,
-                pagination.page,
+                pagination.per_page.into(),
+                pagination.page.into(),
             )
             .await?;
 

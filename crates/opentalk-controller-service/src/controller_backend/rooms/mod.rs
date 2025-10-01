@@ -64,15 +64,18 @@ impl ControllerBackend {
         let (rooms, room_count) = match accessible_rooms {
             kustos::AccessibleResources::All => {
                 inventory
-                    .get_all_rooms_paginated_with_creator(pagination.per_page, pagination.page)
+                    .get_all_rooms_paginated_with_creator(
+                        pagination.per_page.into(),
+                        pagination.page.into(),
+                    )
                     .await?
             }
             kustos::AccessibleResources::List(list) => {
                 inventory
                     .get_rooms_paginated_by_id_with_creator(
                         &list,
-                        pagination.per_page,
-                        pagination.page,
+                        pagination.per_page.into(),
+                        pagination.page.into(),
                     )
                     .await?
             }
