@@ -5971,7 +5971,6 @@ dependencies = [
  "opentalk-types-signaling-control",
  "opentalk-types-signaling-moderation",
  "opentalk-types-signaling-recording",
- "opentalk-types-signaling-recording-service",
  "opentalk-version",
  "opentelemetry",
  "opentelemetry-otlp",
