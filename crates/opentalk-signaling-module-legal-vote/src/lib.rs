@@ -102,7 +102,7 @@ pub struct LegalVote {
     storage: Arc<ObjectStorage>,
     authz: Arc<Authz>,
     participant_id: ParticipantId,
-    user_id: UserId,
+    user_id: Option<UserId>,
     tenant_id: TenantId,
     room_id: SignalingRoomId,
 }
@@ -132,19 +132,19 @@ impl SignalingModule for LegalVote {
         _params: &Self::Params,
         _protocol: &'static str,
     ) -> Result<Option<Self>, SignalingModuleError> {
-        if let Participant::User(user) = ctx.participant() {
-            Ok(Some(Self {
-                inventory_provider: ctx.inventory_provider().clone(),
-                storage: ctx.storage().clone(),
-                authz: ctx.authz().clone(),
-                participant_id: ctx.participant_id(),
-                user_id: user.id,
-                tenant_id: user.tenant_id,
-                room_id: ctx.room_id(),
-            }))
-        } else {
-            Ok(None)
-        }
+        let user_id = match ctx.participant() {
+            Participant::User(user) => Some(user.id),
+            Participant::Guest | Participant::Sip | Participant::Recorder => None,
+        };
+        Ok(Some(Self {
+            inventory_provider: ctx.inventory_provider().clone(),
+            storage: ctx.storage().clone(),
+            authz: ctx.authz().clone(),
+            participant_id: ctx.participant_id(),
+            user_id,
+            tenant_id: ctx.room().tenant_id,
+            room_id: ctx.room_id(),
+        }))
     }
 
     async fn on_event(
@@ -152,6 +152,9 @@ impl SignalingModule for LegalVote {
         mut ctx: ModuleContext<'_, Self>,
         event: Event<'_, Self>,
     ) -> Result<(), SignalingModuleError> {
+        let Some(current_user) = self.user_id else {
+            return Ok(());
+        };
         match event {
             Event::Joined { frontend_data, .. } => {
                 let current_vote = ctx
@@ -180,7 +183,7 @@ impl SignalingModule for LegalVote {
 
                 if parameters
                     .allowed_users
-                    .is_some_and(|users| users.contains(&self.user_id))
+                    .is_some_and(|users| users.contains(&current_user))
                 {
                     let entry = if parameters.inner.kind.is_hidden() {
                         db_protocol::v1::ProtocolEntry::new(db_protocol::v1::VoteEvent::UserJoined(
@@ -189,7 +192,7 @@ impl SignalingModule for LegalVote {
                     } else {
                         db_protocol::v1::ProtocolEntry::new(db_protocol::v1::VoteEvent::UserJoined(
                             Some(db_protocol::v1::UserInfo {
-                                issuer: self.user_id,
+                                issuer: current_user,
                                 participant_id: self.participant_id,
                             })
                             .into(),
@@ -203,7 +206,7 @@ impl SignalingModule for LegalVote {
                 }
             }
             Event::Leaving => {
-                if let Err(error) = self.handle_leaving(&mut ctx).await {
+                if let Err(error) = self.handle_leaving(&mut ctx, current_user).await {
                     self.handle_error(&mut ctx, error)?;
                 }
             }
@@ -237,6 +240,7 @@ impl SignalingModule for LegalVote {
                             .end_vote(
                                 &mut ctx,
                                 timer_event.legal_vote_id,
+                                current_user,
                                 expired_entry,
                                 stop_kind,
                             )
@@ -278,32 +282,37 @@ impl SignalingModule for LegalVote {
         let storage = volatile.storage();
 
         if ctx.destroy_room() {
-            match storage.current_vote_get(self.room_id).await {
-                Ok(current_vote_id) => {
-                    if let Some(current_vote_id) = current_vote_id {
-                        match self
-                            .cancel_vote_unchecked(
-                                storage,
-                                current_vote_id,
-                                CancelReason::RoomDestroyed,
-                            )
-                            .await
-                        {
-                            Ok(_) => {
-                                if let Err(e) = self
-                                    .save_protocol_in_database(storage, current_vote_id)
-                                    .await
-                                {
-                                    log::error!("failed to save protocol to db {e:?}")
-                                }
+            match (storage.current_vote_get(self.room_id).await, self.user_id) {
+                (Ok(Some(current_vote_id)), Some(current_user)) => {
+                    match self
+                        .cancel_vote_unchecked(
+                            storage,
+                            current_vote_id,
+                            current_user,
+                            CancelReason::RoomDestroyed,
+                        )
+                        .await
+                    {
+                        Ok(_) => {
+                            if let Err(e) = self
+                                .save_protocol_in_database(storage, current_vote_id)
+                                .await
+                            {
+                                log::error!("failed to save protocol to db {e:?}")
                             }
-                            Err(e) => log::error!(
-                                "Failed to cancel active vote while destroying vote module {e:?}"
-                            ),
                         }
+                        Err(e) => log::error!(
+                            "Failed to cancel active vote while destroying vote module {e:?}"
+                        ),
                     }
                 }
-                Err(e) => {
+                (Ok(Some(current_vote_id)), None) => {
+                    log::error!(
+                        "Last user leaving is not a registered user, but a legal vote with id {current_vote_id} is still running. This is probably a bug, because the vote should have been cancelled when its initiator left."
+                    );
+                }
+                (Ok(None), _) => {}
+                (Err(e), _) => {
                     log::error!(
                         "Failed to get current vote id while destroying vote module, {e:?}"
                     );
@@ -330,6 +339,9 @@ impl LegalVote {
         ctx: &mut ModuleContext<'_, Self>,
         msg: LegalVoteCommand,
     ) -> Result<(), LegalVoteError> {
+        let Some(current_user) = self.user_id else {
+            return Ok(());
+        };
         let mut volatile = ctx.volatile.clone();
         let storage = volatile.storage();
 
@@ -339,14 +351,16 @@ impl LegalVote {
                     return Err(error::ErrorKind::InsufficientPermissions.into());
                 }
 
-                self.handle_start_message(ctx, incoming_parameters).await?;
+                self.handle_start_message(ctx, incoming_parameters, current_user)
+                    .await?;
             }
             LegalVoteCommand::Stop(Stop { legal_vote_id }) => {
                 if !matches!(ctx.role(), Role::Moderator) {
                     return Err(error::ErrorKind::InsufficientPermissions.into());
                 }
 
-                self.stop_vote_routine(ctx, legal_vote_id).await?;
+                self.stop_vote_routine(ctx, legal_vote_id, current_user)
+                    .await?;
             }
             LegalVoteCommand::Cancel(Cancel {
                 legal_vote_id,
@@ -357,7 +371,7 @@ impl LegalVote {
                 }
 
                 let entry = self
-                    .cancel_vote(storage, legal_vote_id, reason.clone())
+                    .cancel_vote(storage, legal_vote_id, current_user, reason.clone())
                     .await?;
 
                 self.save_protocol_in_database(storage, legal_vote_id)
@@ -382,12 +396,13 @@ impl LegalVote {
                     .ok_or(error::ErrorKind::InvalidVoteId)?;
 
                 if parameters.inner.create_pdf {
-                    self.save_pdf(ctx, legal_vote_id, self.user_id, parameters.inner.timezone)
+                    self.save_pdf(ctx, legal_vote_id, current_user, parameters.inner.timezone)
                         .await?
                 }
             }
             LegalVoteCommand::Vote(vote_message) => {
-                let (vote_response, auto_close) = self.cast_vote(ctx, vote_message).await?;
+                let (vote_response, auto_close) =
+                    self.cast_vote(ctx, vote_message, current_user).await?;
 
                 if let Response::Success(VoteSuccess {
                     issuer,
@@ -397,7 +412,7 @@ impl LegalVote {
                 {
                     // Send a vote success message to all participants that have the same user id
                     ctx.exchange_publish(
-                        control::exchange::current_room_by_user_id(self.room_id, self.user_id),
+                        control::exchange::current_room_by_user_id(self.room_id, current_user),
                         exchange::Event::Voted(exchange::VoteSuccess {
                             legal_vote_id: vote_message.legal_vote_id,
                             vote_option,
@@ -430,8 +445,14 @@ impl LegalVote {
                             db_protocol::v1::VoteEvent::Stop(db_protocol::v1::StopKind::Auto),
                         );
 
-                        self.end_vote(ctx, vote_message.legal_vote_id, auto_close_entry, stop_kind)
-                            .await?;
+                        self.end_vote(
+                            ctx,
+                            vote_message.legal_vote_id,
+                            current_user,
+                            auto_close_entry,
+                            stop_kind,
+                        )
+                        .await?;
                     }
                 } else {
                     ctx.ws_send(LegalVoteEvent::Voted(vote_response));
@@ -447,7 +468,7 @@ impl LegalVote {
 
                 if !parameters
                     .allowed_users
-                    .is_some_and(|users| users.contains(&self.user_id))
+                    .is_some_and(|users| users.contains(&current_user))
                 {
                     return Err(error::ErrorKind::InsufficientPermissions.into());
                 }
@@ -456,7 +477,7 @@ impl LegalVote {
                     None
                 } else {
                     Some(db_protocol::v1::UserInfo {
-                        issuer: self.user_id,
+                        issuer: current_user,
                         participant_id: self.participant_id,
                     })
                 };
@@ -503,7 +524,7 @@ impl LegalVote {
                     return Err(error::ErrorKind::InvalidVoteId.into());
                 }
 
-                self.save_pdf(ctx, generate.legal_vote_id, self.user_id, generate.timezone)
+                self.save_pdf(ctx, generate.legal_vote_id, current_user, generate.timezone)
                     .await?;
             }
         }
@@ -563,17 +584,23 @@ impl LegalVote {
         &mut self,
         ctx: &mut ModuleContext<'_, LegalVote>,
         incoming_parameters: UserParameters,
+        current_user: UserId,
     ) -> Result<(), LegalVoteError> {
         let legal_vote_id = self
-            .new_vote_in_database()
+            .new_vote_in_database(current_user)
             .await
             .whatever_context::<_, LegalVoteError>("Failed to create new vote in database")?;
         match self
-            .start_vote_routine(ctx.volatile.storage(), legal_vote_id, incoming_parameters)
+            .start_vote_routine(
+                ctx.volatile.storage(),
+                legal_vote_id,
+                current_user,
+                incoming_parameters,
+            )
             .await
         {
             Ok((exchange_parameters, tokens)) => {
-                self.grant_user_access(ctx, exchange_parameters.legal_vote_id)
+                self.grant_user_access(ctx, exchange_parameters.legal_vote_id, current_user)
                     .await?;
 
                 if let Some(duration) = exchange_parameters.inner.duration {
@@ -619,6 +646,7 @@ impl LegalVote {
         &self,
         storage: &mut dyn LegalVoteStorage,
         legal_vote_id: LegalVoteId,
+        user_id: UserId,
         incoming_parameters: UserParameters,
     ) -> Result<(Parameters, HashMap<ParticipantId, Token>), LegalVoteError> {
         let start_time = Utc::now();
@@ -645,8 +673,14 @@ impl LegalVote {
             .parameter_set(self.room_id, legal_vote_id, &parameters)
             .await?;
 
-        self.init_vote_protocol(storage, legal_vote_id, start_time, parameters.clone())
-            .await?;
+        self.init_vote_protocol(
+            storage,
+            legal_vote_id,
+            user_id,
+            start_time,
+            parameters.clone(),
+        )
+        .await?;
 
         if !storage
             .current_vote_set(self.room_id, legal_vote_id)
@@ -663,16 +697,17 @@ impl LegalVote {
         &self,
         ctx: &mut ModuleContext<'_, LegalVote>,
         legal_vote_id: LegalVoteId,
+        current_user_id: UserId,
     ) -> Result<(), LegalVoteError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let room_owner = inventory.get_room(self.room_id.room_id()).await?.created_by;
 
-        self.grant_module_resource_access(ctx, self.user_id, legal_vote_id)
+        self.grant_module_resource_access(ctx, legal_vote_id, current_user_id)
             .await?;
 
-        if self.user_id != room_owner {
-            self.grant_module_resource_access(ctx, room_owner, legal_vote_id)
+        if current_user_id != room_owner {
+            self.grant_module_resource_access(ctx, legal_vote_id, room_owner)
                 .await?;
         }
 
@@ -683,13 +718,13 @@ impl LegalVote {
     async fn grant_module_resource_access(
         &self,
         ctx: &mut ModuleContext<'_, LegalVote>,
-        user_id: UserId,
         legal_vote_id: LegalVoteId,
+        current_user_id: UserId,
     ) -> Result<(), LegalVoteError> {
         if let Err(e) = self
             .authz
             .grant_user_access(
-                user_id,
+                current_user_id,
                 &[(
                     &legal_vote_id.inner().resource_id(),
                     &[AccessMethod::Get, AccessMethod::Put, AccessMethod::Delete],
@@ -714,13 +749,14 @@ impl LegalVote {
         &self,
         storage: &mut dyn LegalVoteStorage,
         legal_vote_id: LegalVoteId,
+        current_user_id: UserId,
         start_time: DateTime<Utc>,
         parameters: Parameters,
     ) -> Result<(), SignalingModuleError> {
         let start_entry = db_protocol::v1::ProtocolEntry::new_with_time(
             start_time,
             db_protocol::v1::VoteEvent::Start(db_protocol::v1::Start {
-                issuer: self.user_id,
+                issuer: current_user_id,
                 parameters,
             }),
         );
@@ -798,6 +834,7 @@ impl LegalVote {
         &self,
         ctx: &mut ModuleContext<'_, LegalVote>,
         legal_vote_id: LegalVoteId,
+        current_user: UserId,
     ) -> Result<(), LegalVoteError> {
         if !self
             .is_current_vote_id(ctx.volatile.storage(), legal_vote_id)
@@ -809,10 +846,10 @@ impl LegalVote {
         let stop_kind = StopKind::ByParticipant(self.participant_id);
 
         let stop_entry = db_protocol::v1::ProtocolEntry::new(db_protocol::v1::VoteEvent::Stop(
-            db_protocol::v1::StopKind::ByUser(self.user_id),
+            db_protocol::v1::StopKind::ByUser(current_user),
         ));
 
-        self.end_vote(ctx, legal_vote_id, stop_entry, stop_kind)
+        self.end_vote(ctx, legal_vote_id, current_user, stop_entry, stop_kind)
             .await?;
 
         Ok(())
@@ -832,6 +869,7 @@ impl LegalVote {
         &self,
         ctx: &mut ModuleContext<'_, Self>,
         vote_message: Vote,
+        current_user: UserId,
     ) -> Result<(VoteResponse, bool), LegalVoteError> {
         let storage = ctx.volatile.storage();
 
@@ -894,7 +932,7 @@ impl LegalVote {
         let user_info = match parameters.inner.kind {
             VoteKind::Pseudonymous => None,
             VoteKind::RollCall | VoteKind::LiveRollCall => Some(db_protocol::v1::UserInfo {
-                issuer: self.user_id,
+                issuer: current_user,
                 participant_id: self.participant_id,
             }),
         };
@@ -958,6 +996,7 @@ impl LegalVote {
     async fn handle_leaving(
         &self,
         ctx: &mut ModuleContext<'_, Self>,
+        current_user: UserId,
     ) -> Result<(), LegalVoteError> {
         let storage = ctx.volatile.storage();
 
@@ -973,7 +1012,7 @@ impl LegalVote {
 
         if parameters
             .allowed_users
-            .is_some_and(|users| users.contains(&self.user_id))
+            .is_some_and(|users| users.contains(&current_user))
         {
             let entry = if parameters.inner.kind.is_hidden() {
                 db_protocol::v1::ProtocolEntry::new(db_protocol::v1::VoteEvent::UserLeft(
@@ -982,7 +1021,7 @@ impl LegalVote {
             } else {
                 db_protocol::v1::ProtocolEntry::new(db_protocol::v1::VoteEvent::UserLeft(
                     Some(db_protocol::v1::UserInfo {
-                        issuer: self.user_id,
+                        issuer: current_user,
                         participant_id: self.participant_id,
                     })
                     .into(),
@@ -998,7 +1037,7 @@ impl LegalVote {
             let reason = CancelReason::InitiatorLeft;
 
             let entry = self
-                .cancel_vote_unchecked(storage, current_vote_id, reason.clone())
+                .cancel_vote_unchecked(storage, current_vote_id, current_user, reason.clone())
                 .await?;
 
             self.save_protocol_in_database(storage, current_vote_id)
@@ -1019,7 +1058,7 @@ impl LegalVote {
                 self.save_pdf(
                     ctx,
                     current_vote_id,
-                    self.user_id,
+                    current_user,
                     parameters.inner.timezone,
                 )
                 .await?;
@@ -1067,14 +1106,20 @@ impl LegalVote {
         &self,
         storage: &mut dyn LegalVoteStorage,
         legal_vote_id: LegalVoteId,
+        current_user: UserId,
         reason: CustomCancelReason,
     ) -> Result<db_protocol::v1::ProtocolEntry, LegalVoteError> {
         if !self.is_current_vote_id(storage, legal_vote_id).await? {
             return Err(error::ErrorKind::InvalidVoteId.into());
         }
 
-        self.cancel_vote_unchecked(storage, legal_vote_id, CancelReason::Custom(reason))
-            .await
+        self.cancel_vote_unchecked(
+            storage,
+            legal_vote_id,
+            current_user,
+            CancelReason::Custom(reason),
+        )
+        .await
     }
 
     /// Cancel a vote without checking permissions
@@ -1085,11 +1130,12 @@ impl LegalVote {
         &self,
         storage: &mut dyn LegalVoteStorage,
         legal_vote_id: LegalVoteId,
+        current_user: UserId,
         reason: CancelReason,
     ) -> Result<db_protocol::v1::ProtocolEntry, LegalVoteError> {
         let cancel_entry = db_protocol::v1::ProtocolEntry::new(db_protocol::v1::VoteEvent::Cancel(
             db_protocol::v1::Cancel {
-                issuer: self.user_id,
+                issuer: current_user,
                 reason,
             },
         ));
@@ -1109,6 +1155,7 @@ impl LegalVote {
         &self,
         ctx: &mut ModuleContext<'_, Self>,
         legal_vote_id: LegalVoteId,
+        current_user: UserId,
         end_entry: db_protocol::v1::ProtocolEntry,
         stop_kind: StopKind,
     ) -> Result<(), LegalVoteError> {
@@ -1181,7 +1228,7 @@ impl LegalVote {
                     );
                 }
                 _ => {
-                    self.save_pdf(ctx, legal_vote_id, self.user_id, timezone)
+                    self.save_pdf(ctx, legal_vote_id, current_user, timezone)
                         .await?;
                 }
             }
@@ -1290,7 +1337,10 @@ impl LegalVote {
     /// Creates a new vote in the database
     ///
     /// Adds a new vote with an empty protocol to the database. Returns the [`VoteId`] of the new vote.
-    async fn new_vote_in_database(&self) -> Result<LegalVoteId, SignalingModuleError> {
+    async fn new_vote_in_database(
+        &self,
+        current_user: UserId,
+    ) -> Result<LegalVoteId, SignalingModuleError> {
         let room_id = self.room_id.room_id();
         let tenant_id = self.tenant_id;
 
@@ -1301,7 +1351,7 @@ impl LegalVote {
             .create_module_resource(NewModuleResource {
                 tenant_id,
                 room_id,
-                created_by: self.user_id,
+                created_by: current_user,
                 namespace: Self::NAMESPACE.to_string(),
                 tag: Some("protocol".into()),
                 data: serde_json::to_value(db_protocol::NewProtocol::new(vec![])).unwrap(),
