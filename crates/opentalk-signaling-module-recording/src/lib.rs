@@ -165,6 +165,9 @@ impl SignalingModule for Recording {
         params: &Self::Params,
         _protocol: &'static str,
     ) -> Result<Option<Self>, SignalingModuleError> {
+        if ctx.room().e2e_encryption {
+            return Ok(None);
+        }
         let (rabbitmq_pool, params) = params;
 
         let rabbitmq_channel = rabbitmq_pool.create_channel().await?;

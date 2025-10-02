@@ -57,6 +57,9 @@ impl SignalingModule for RecordingService {
         _params: &Self::Params,
         _protocol: &'static str,
     ) -> Result<Option<Self>, SignalingModuleError> {
+        if ctx.room().e2e_encryption {
+            return Ok(None);
+        }
         let is_recorder = matches!(ctx.participant(), Participant::Recorder);
         Ok(Some(Self {
             room: ctx.room_id(),
