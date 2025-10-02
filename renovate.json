@@ -16,21 +16,21 @@
     },
     {
       "matchPackagePatterns": [
-        "opentalk-types*"
+        "/^opentalk-types/"
       ],
       "groupName": "opentalk-types",
       "groupSlug": "opentalk-types"
     },
     {
       "matchPackagePatterns": [
-        "opentalk-roomserver*"
+        "/^opentalk-roomserver/"
       ],
       "groupName": "opentalk-roomserver",
       "groupSlug": "opentalk-roomserver"
     },
     {
       "matchPackagePatterns": [
-        "livekit*"
+        "/^livekit/"
       ],
       "groupName": "livekit",
       "groupSlug": "livekit"
