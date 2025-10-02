@@ -158,8 +158,8 @@ impl ControllerBackend {
         let (owned_assets, asset_count) = get_all_assets_for_room_owner_paginated_ordered(
             inventory.as_mut(),
             current_user.id,
-            pagination.per_page,
-            pagination.page,
+            pagination.per_page.into(),
+            pagination.page.into(),
             sorting,
         )
         .await?;

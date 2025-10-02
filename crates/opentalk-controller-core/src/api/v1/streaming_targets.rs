@@ -75,8 +75,8 @@ pub async fn get_streaming_targets(
     let length = response.0.len();
 
     Ok(ApiResponse::new(response).with_page_pagination(
-        pagination.per_page,
-        pagination.page,
+        pagination.per_page.into(),
+        pagination.page.into(),
         length as i64,
     ))
 }

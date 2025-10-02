@@ -27,7 +27,6 @@ use opentalk_inventory::{
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
-    Cursor,
     error::{ApiError, ERROR_CODE_IGNORED_VALUE, ERROR_CODE_VALUE_REQUIRED, ValidationErrorEntry},
     events::{
         CallInInfo, DeleteEventsQuery, EmailOnlyUser, EventAndInstanceId, EventExceptionResource,
@@ -35,13 +34,14 @@ use opentalk_types_api_v1::{
         EventRoomInfo, EventStatus, EventType, GetEventQuery, GetEventsCursorData, GetEventsQuery,
         PatchEventBody, PatchEventQuery, PostEventsBody, PublicInviteUserProfile,
     },
-    pagination::default_pagination_per_page,
+    pagination::Cursor,
     users::PublicUserProfile,
 };
 use opentalk_types_common::{
     events::{EventDescription, EventId, EventTitle, invites::EventInviteStatus},
     features::CALL_IN_FEATURE_ID,
     modules::DEFAULT_MODULE_ID,
+    pagination::PageSize,
     rooms::RoomPassword,
     shared_folders::SharedFolder,
     streaming::{RoomStreamingTarget, StreamingTarget},
@@ -268,8 +268,8 @@ impl ControllerBackend {
 
         let per_page = query
             .per_page
-            .unwrap_or_else(default_pagination_per_page)
-            .clamp(1, 100);
+            .unwrap_or(PageSize::DEFAULT)
+            .clamp(PageSize::ONE, PageSize::from_i64_clamped(100));
 
         let mut users = GetUserProfilesBatched::new();
 
@@ -298,7 +298,7 @@ impl ControllerBackend {
                 query.adhoc,
                 query.time_independent,
                 get_events_cursor,
-                per_page,
+                per_page.into(),
             )
             .await?;
 
@@ -315,7 +315,7 @@ impl ControllerBackend {
             .collect::<Vec<&Event>>();
 
         // Build list of event invites with user, grouped by events
-        let invites_with_users_grouped_by_event = if query.invitees_max == 0 {
+        let invites_with_users_grouped_by_event = if query.invitees_max.is_zero() {
             // Do not query event invites if invitees_max is zero, instead create dummy value
             (0..events.len()).map(|_| Vec::new()).collect()
         } else {
@@ -325,7 +325,7 @@ impl ControllerBackend {
         };
 
         // Build list of additional email event invites, grouped by events
-        let email_invites_grouped_by_event = if query.invitees_max == 0 {
+        let email_invites_grouped_by_event = if query.invitees_max.is_zero() {
             // Do not query email event invites if invitees_max is zero, instead create dummy value
             (0..events.len()).map(|_| Vec::new()).collect()
         } else {
@@ -374,12 +374,14 @@ impl ControllerBackend {
                 .map(|invite| invite.status)
                 .unwrap_or(EventInviteStatus::Accepted);
 
-            let invitees_truncated = query.invitees_max == 0
-                || (invites_with_user.len() + email_invites.len()) > query.invitees_max as usize;
+            let invitees_truncated = query.invitees_max.is_zero()
+                || (invites_with_user.len() + email_invites.len())
+                    > Into::<usize>::into(query.invitees_max);
 
-            invites_with_user.truncate(query.invitees_max as usize);
-            let email_invitees_max = query.invitees_max - invites_with_user.len().max(0) as u32;
-            email_invites.truncate(email_invitees_max as usize);
+            invites_with_user.truncate(query.invitees_max.into());
+            let email_invitees_max =
+                Into::<usize>::into(query.invitees_max) - invites_with_user.len().max(0);
+            email_invites.truncate(email_invitees_max);
 
             let registered_invitees_iter = invites_with_user
                 .into_iter()
@@ -488,9 +490,13 @@ impl ControllerBackend {
             .get_event_with_related_items(current_user.id, event_id)
             .await?;
         let room_streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
-        let (invitees, invitees_truncated) =
-            get_invitees_for_event(&settings, inventory.as_mut(), event_id, query.invitees_max)
-                .await?;
+        let (invitees, invitees_truncated) = get_invitees_for_event(
+            &settings,
+            inventory.as_mut(),
+            event_id,
+            query.invitees_max.into(),
+        )
+        .await?;
 
         let users = GetUserProfilesBatched::new()
             .add(&event)
@@ -731,9 +737,13 @@ impl ControllerBackend {
             invite_for_room,
         };
 
-        let (invitees, invitees_truncated) =
-            get_invitees_for_event(&settings, inventory.as_mut(), event_id, query.invitees_max)
-                .await?;
+        let (invitees, invitees_truncated) = get_invitees_for_event(
+            &settings,
+            inventory.as_mut(),
+            event_id,
+            query.invitees_max.into(),
+        )
+        .await?;
 
         drop(inventory);
 

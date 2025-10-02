@@ -26,7 +26,11 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let (assets, asset_count) = inventory
-            .get_all_assets_for_room_paginated(room_id, pagination.per_page, pagination.page)
+            .get_all_assets_for_room_paginated(
+                room_id,
+                pagination.per_page.into(),
+                pagination.page.into(),
+            )
             .await?;
 
         let assets = assets.into_iter().map(asset_to_asset_resource).collect();

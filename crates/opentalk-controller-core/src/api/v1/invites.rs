@@ -130,8 +130,8 @@ pub async fn get_invites(
     let (invite_resources, invite_count) = service.get_invites(room_id, &pagination).await?;
 
     Ok(ApiResponse::new(invite_resources).with_page_pagination(
-        pagination.per_page,
-        pagination.page,
+        pagination.per_page.into(),
+        pagination.page.into(),
         invite_count,
     ))
 }

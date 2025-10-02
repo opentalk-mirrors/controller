@@ -71,8 +71,8 @@ pub async fn room_assets(
         .await?;
 
     Ok(ApiResponse::new(assets).with_page_pagination(
-        pagination.per_page,
-        pagination.page,
+        pagination.per_page.into(),
+        pagination.page.into(),
         asset_count,
     ))
 }
