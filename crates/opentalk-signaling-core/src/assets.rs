@@ -60,6 +60,7 @@ type Result<T, E = AssetError> = std::result::Result<T, E>;
 
 const ASSET_FILE_NAME_MAX_LENGTH: usize = 100;
 
+#[derive(Debug, Clone)]
 pub struct NewAssetFileName {
     event_title: Option<EventTitle>,
     kind: AssetFileKind,
@@ -272,6 +273,7 @@ async fn prepare_storage(
     Ok(room)
 }
 
+#[derive(Debug)]
 pub struct ByStreamExt(ByteStream);
 
 impl futures::stream::Stream for ByStreamExt {
