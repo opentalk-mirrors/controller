@@ -118,6 +118,16 @@ impl Display for NewAssetFileName {
     }
 }
 
+/// The result of a successful asset save operation
+#[derive(Debug, Clone)]
+pub struct AssetSaved {
+    /// The id of the saved asset
+    pub asset_id: AssetId,
+
+    /// The filename of the saved asset
+    pub filename: String,
+}
+
 /// Save an asset in the long term storage
 ///
 /// Creates a new database entry before after the asset in the configured S3 bucket.
@@ -136,7 +146,7 @@ pub async fn save_asset<E>(
     mut filename: NewAssetFileName,
     data: impl Stream<Item = Result<Bytes, E>> + Unpin,
     chunk_format: ChunkFormat,
-) -> Result<(AssetId, String)>
+) -> Result<AssetSaved>
 where
     ObjectStorageError: From<E>,
 {
@@ -193,7 +203,10 @@ where
             size,
         )
         .await
-        .map(|asset| (asset.id, filename))
+        .map(|asset| AssetSaved {
+            asset_id: asset.id,
+            filename: filename,
+        })
         .context(InventoryQuerySnafu)
     };
 

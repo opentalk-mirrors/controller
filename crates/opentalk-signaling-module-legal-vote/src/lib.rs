@@ -29,7 +29,7 @@ use opentalk_signaling_core::{
     ChunkFormat, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage, Participant,
     SerdeJsonSnafu, SignalingModule, SignalingModuleDescription, SignalingModuleError,
     SignalingModuleFeatureDescription, SignalingModuleInitData, SignalingRoomId, VolatileStorage,
-    assets::{NewAssetFileName, save_asset},
+    assets::{AssetSaved, NewAssetFileName, save_asset},
     control::{
         self,
         storage::{ControlStorageParticipantAttributes, LocalRoomAttributeId, USER_ID},
@@ -1516,7 +1516,9 @@ impl LegalVote {
             .expect("Must be parseable as AssetFileKind");
         let filename = NewAssetFileName::new(kind, timestamp, FileExtension::pdf());
 
-        let (asset_id, filename) = save_asset(
+        let AssetSaved {
+            asset_id, filename, ..
+        } = save_asset(
             &self.storage,
             self.inventory_provider.as_ref(),
             self.room_id.room_id(),

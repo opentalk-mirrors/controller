@@ -7,7 +7,7 @@ use futures_core::Stream;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_signaling_core::{
     ChunkFormat, ObjectStorageError,
-    assets::{ByStreamExt, NewAssetFileName, delete_asset, get_asset, save_asset},
+    assets::{AssetSaved, ByStreamExt, NewAssetFileName, delete_asset, get_asset, save_asset},
 };
 use opentalk_types_api_v1::{
     assets::AssetResource, pagination::PagePaginationQuery,
@@ -58,7 +58,7 @@ impl ControllerBackend {
         namespace: Option<ModuleId>,
         data: Box<dyn Stream<Item = Result<Bytes, ObjectStorageError>> + Unpin>,
     ) -> Result<AssetResource, CaptureApiError> {
-        let (asset_id, _filename) = save_asset(
+        let AssetSaved { asset_id, .. } = save_asset(
             &self.storage.clone(),
             self.inventory_provider.as_ref(),
             room_id,

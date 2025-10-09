@@ -185,7 +185,7 @@ mod tests {
     use opentalk_inventory::{InventoryProvider as _, NewAsset, UpdateAsset};
     use opentalk_signaling_core::{
         ChunkFormat, ObjectStorage, ObjectStorageError,
-        assets::{NewAssetFileName, save_asset},
+        assets::{AssetSaved, NewAssetFileName, save_asset},
     };
     use opentalk_test_util::common::TestContext;
     use opentalk_types_common::{
@@ -336,7 +336,7 @@ mod tests {
             let kind = "test".parse().unwrap();
             let filename = NewAssetFileName::new(kind, Timestamp::now(), FileExtension::pdf());
 
-            let (asset_id, _filename) = save_asset(
+            let AssetSaved { asset_id, .. } = save_asset(
                 object_storage,
                 db_ctx.inventory_provider.as_ref(),
                 room.id,
