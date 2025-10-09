@@ -2972,7 +2972,7 @@ dependencies = [
  "memmap2",
  "slotmap",
  "tinyvec",
- "ttf-parser",
+ "ttf-parser 0.24.1",
 ]
 
 [[package]]
@@ -5336,9 +5336,9 @@ dependencies = [
 
 [[package]]
 name = "lopdf"
-version = "0.36.0"
+version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59fa2559e99ba0f26a12458aabc754432c805bbb8cba516c427825a997af1fb7"
+checksum = "c7184fdea2bc3cd272a1acec4030c321a8f9875e877b3f92a53f2f6033fdc289"
 dependencies = [
  "aes",
  "bitflags 2.9.4",
@@ -5346,6 +5346,7 @@ dependencies = [
  "ecb",
  "encoding_rs",
  "flate2",
+ "getrandom 0.3.3",
  "indexmap 2.11.4",
  "itoa",
  "log",
@@ -5357,6 +5358,7 @@ dependencies = [
  "sha2",
  "stringprep",
  "thiserror 2.0.17",
+ "ttf-parser 0.25.1",
  "weezl",
 ]
 
@@ -7849,9 +7851,9 @@ dependencies = [
 
 [[package]]
 name = "pdf-extract"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c2f44c6c642e359e2fe7f662bf5438db3811b6b4be60afc6de04b619ce51e1a"
+checksum = "1e28ba1758a3d3f361459645780e09570b573fc3c82637449e9963174c813a98"
 dependencies = [
  "adobe-cmap-parser",
  "cff-parser",
@@ -9438,7 +9440,7 @@ dependencies = [
  "core_maths",
  "log",
  "smallvec",
- "ttf-parser",
+ "ttf-parser 0.24.1",
  "unicode-bidi-mirroring",
  "unicode-ccc",
  "unicode-properties",
@@ -10247,7 +10249,7 @@ dependencies = [
  "siphasher",
  "subsetter",
  "tiny-skia",
- "ttf-parser",
+ "ttf-parser 0.24.1",
  "usvg",
 ]
 
@@ -11081,6 +11083,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ttf-parser"
+version = "0.25.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2df906b07856748fa3f6e0ad0cbaa047052d4a7dd609e231c4f72cee8c36f31"
+
+[[package]]
 name = "tungstenite"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11227,7 +11235,7 @@ dependencies = [
  "kurbo 0.11.3",
  "rustybuzz",
  "smallvec",
- "ttf-parser",
+ "ttf-parser 0.24.1",
  "typst-assets",
  "typst-library",
  "typst-macros",
@@ -11285,7 +11293,7 @@ dependencies = [
  "syntect",
  "time",
  "toml 0.8.23",
- "ttf-parser",
+ "ttf-parser 0.24.1",
  "two-face",
  "typed-arena",
  "typst-assets",
@@ -11331,7 +11339,7 @@ dependencies = [
  "serde",
  "subsetter",
  "svg2pdf",
- "ttf-parser",
+ "ttf-parser 0.24.1",
  "typst-assets",
  "typst-library",
  "typst-macros",
@@ -11370,7 +11378,7 @@ dependencies = [
  "ecow",
  "flate2",
  "image",
- "ttf-parser",
+ "ttf-parser 0.24.1",
  "typst-library",
  "typst-macros",
  "typst-timing",
