@@ -5961,7 +5961,6 @@ dependencies = [
  "actix-rt",
  "async-trait",
  "aws-sdk-s3",
- "bigdecimal",
  "bytes",
  "bytestring",
  "chrono",

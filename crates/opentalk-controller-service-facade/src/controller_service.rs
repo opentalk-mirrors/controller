@@ -7,7 +7,7 @@ use bytes::Bytes;
 use futures_core::Stream;
 use opentalk_signaling_core::{
     ObjectStorageError,
-    assets::{ByStreamExt, NewAssetFileName},
+    assets::{AssetSaved, ByStreamExt, NewAssetFileName},
 };
 use opentalk_types_api_v1::{
     assets::{AssetResource, AssetSortingQuery},
@@ -188,7 +188,7 @@ pub trait OpenTalkControllerService: Send + Sync {
         filename: NewAssetFileName,
         namespace: Option<ModuleId>,
         data: Box<dyn Stream<Item = Result<Bytes, ObjectStorageError>> + Unpin>,
-    ) -> Result<AssetResource, ApiError>;
+    ) -> Result<(AssetResource, AssetSaved), ApiError>;
 
     /// Delete an asset from a room.
     async fn delete_room_asset(&self, room_id: RoomId, asset_id: AssetId) -> Result<(), ApiError>;

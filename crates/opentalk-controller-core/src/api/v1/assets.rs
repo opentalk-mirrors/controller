@@ -183,7 +183,7 @@ pub async fn create(
         source: Some(e.into()),
     });
 
-    let resource = service
+    let (resource, _) = service
         .create_room_asset(room_id, filename, query.namespace, Box::new(data))
         .await?;
 
