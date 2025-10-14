@@ -145,16 +145,12 @@ pub async fn room_asset(
             body = PostAssetResponseBody,
         ),
         (
+            status = StatusCode::BAD_REQUEST,
+            description = "Storage quota has been exceeded",
+        ),
+        (
             status = StatusCode::UNAUTHORIZED,
             response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
         ),
         (
             status = StatusCode::INTERNAL_SERVER_ERROR,
