@@ -154,7 +154,7 @@ impl RecordingService {
     ) -> Result<(), SignalingModuleError> {
         // notify recording module that the recorder is leaving
         ctx.exchange_publish_to_namespace(
-            control::exchange::current_room_all_recorders(self.room),
+            control::exchange::current_room_all_participants(self.room),
             Recording::NAMESPACE,
             crate::exchange::Message::RecorderStopping,
         );
@@ -199,7 +199,7 @@ impl RecordingService {
     ) -> Result<(), SignalingModuleError> {
         // Signal recording module that the recorder is started
         ctx.exchange_publish_to_namespace(
-            control::exchange::current_room_all_recorders(self.room),
+            control::exchange::current_room_all_participants(self.room),
             Recording::NAMESPACE,
             crate::exchange::Message::RecorderStarting,
         );

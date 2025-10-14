@@ -8,7 +8,7 @@ use std::{
 };
 
 use either::Either;
-use futures::{FutureExt, stream::once};
+use futures::stream::once;
 use lapin::BasicProperties;
 use lapin_pool::{RabbitMqChannel, RabbitMqPool};
 use opentalk_inventory::InventoryProvider;
@@ -31,7 +31,7 @@ use opentalk_types_signaling_recording::{
     state::RecordingState,
 };
 use snafu::{Report, ResultExt, Snafu};
-use tokio::time::Duration;
+use tokio::{select, sync::oneshot, time::Duration};
 
 use self::{
     room_streaming_target_record_wrapper::RoomStreamingTargetRecordWrapper,
@@ -91,6 +91,8 @@ pub struct Recording {
 
     /// RabbitMQ channel used to send the recording start command over
     rabbitmq_channel: RabbitMqChannel,
+
+    stream_start_tx: Option<oneshot::Sender<()>>,
 }
 
 impl std::fmt::Debug for Recording {
@@ -189,6 +191,7 @@ impl SignalingModule for Recording {
             inventory_provider: ctx.inventory_provider().clone(),
             rabbitmq_channel,
             recorder_started: false,
+            stream_start_tx: None,
         }))
     }
 
@@ -256,6 +259,9 @@ impl SignalingModule for Recording {
                 }
                 exchange::Message::RecorderStarting => {
                     self.recorder_started = true;
+                    if let Some(stream_start_tx) = self.stream_start_tx.take() {
+                        let _ = stream_start_tx.send(());
+                    }
                 }
                 exchange::Message::RecorderStopping => {
                     self.recorder_started = false;
@@ -489,9 +495,16 @@ impl Recording {
                 .await
                 .with_whatever_context::<_, _, SignalingModuleError>(|err| format!("{err}"))?;
 
+            let (stream_start_tx, stream_start_rx) = oneshot::channel::<()>();
+            self.stream_start_tx = Some(stream_start_tx);
+
             ctx.add_event_stream(once(
-                tokio::time::sleep(Duration::from_secs(5u64))
-                    .map(move |_| RecorderExtEvent::Timeout(target_ids)),
+                async move {
+                    select! {
+                        _ = tokio::time::sleep(Duration::from_secs(5u64)) => RecorderExtEvent::Timeout(target_ids),
+                        _ = stream_start_rx => RecorderExtEvent::Timeout(target_ids),
+                    }
+                }
             ));
 
             return Ok(());
