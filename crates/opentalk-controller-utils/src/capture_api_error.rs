@@ -99,8 +99,20 @@ impl From<Whatever> for CaptureApiError {
 
 impl From<AssetError> for CaptureApiError {
     fn from(value: AssetError) -> Self {
-        log::error!("REST API threw internal error: {value:?}");
-        CaptureApiError(ApiError::internal())
+        match value {
+            err @ AssetError::InventoryConnection { .. }
+            | err @ AssetError::InventoryQuery { .. }
+            | err @ AssetError::ObjectStorage { .. }
+            | err @ AssetError::FileSize { .. }
+            | err @ AssetError::Rollback { .. } => {
+                log::error!("REST API threw internal error: {err:?}");
+                CaptureApiError(ApiError::internal())
+            }
+
+            AssetError::AssetStorageExceeded => CaptureApiError(
+                ApiError::bad_request().with_message("Storage quota has been exceeded"),
+            ),
+        }
     }
 }
 
