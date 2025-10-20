@@ -151,13 +151,9 @@ impl ControllerBackend {
             .get_event_with_related_items(current_user.id, event_id)
             .await?;
 
-        let (invitees, invitees_truncated) = super::get_invitees_for_event(
-            &settings,
-            inventory.as_mut(),
-            event.id,
-            invitees_max.into(),
-        )
-        .await?;
+        let (invitees, invitees_truncated) =
+            super::get_invitees_for_event(&settings, inventory.as_mut(), event.id, invitees_max)
+                .await?;
 
         let invite_status = invite
             .map(|inv| inv.status)
@@ -318,7 +314,7 @@ impl ControllerBackend {
             &settings,
             inventory.as_mut(),
             event_id,
-            query.invitees_max.into(),
+            query.invitees_max,
         )
         .await?;
 
@@ -494,13 +490,9 @@ impl ControllerBackend {
                 .await?
         };
 
-        let (invitees, invitees_truncated) = super::get_invitees_for_event(
-            &settings,
-            inventory.as_mut(),
-            event_id,
-            invitees_max.into(),
-        )
-        .await?;
+        let (invitees, invitees_truncated) =
+            super::get_invitees_for_event(&settings, inventory.as_mut(), event_id, invitees_max)
+                .await?;
 
         let users = GetUserProfilesBatched::new()
             .add(&event)

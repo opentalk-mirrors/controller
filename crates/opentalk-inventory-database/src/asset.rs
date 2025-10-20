@@ -9,6 +9,7 @@ use opentalk_types_common::{
     assets::{AssetId, AssetSorting},
     events::EventId,
     order::Ordering,
+    pagination::{ItemCount, Page, PageSize},
     rooms::RoomId,
     users::UserId,
 };
@@ -53,9 +54,9 @@ impl AssetInventory for DatabaseConnection {
     async fn get_all_assets_for_room_paginated(
         &mut self,
         room_id: RoomId,
-        per_page: i64,
-        page: i64,
-    ) -> Result<(Vec<Asset>, i64)> {
+        per_page: PageSize,
+        page: Page,
+    ) -> Result<(Vec<Asset>, ItemCount)> {
         let (assets, overall) =
             db::Asset::get_all_for_room_paginated(&mut self.inner, room_id, per_page, page)
                 .await
@@ -74,11 +75,11 @@ impl AssetInventory for DatabaseConnection {
     async fn get_all_assets_for_room_owner_paginated_ordered(
         &mut self,
         user_id: UserId,
-        limit: i64,
-        page: i64,
+        limit: PageSize,
+        page: Page,
         sort: AssetSorting,
         order: Ordering,
-    ) -> Result<(Vec<(Asset, RoomId, Option<EventId>)>, i64)> {
+    ) -> Result<(Vec<(Asset, RoomId, Option<EventId>)>, ItemCount)> {
         let (items, overall) = db::get_all_for_room_owner_paginated_ordered(
             &mut self.inner,
             user_id,

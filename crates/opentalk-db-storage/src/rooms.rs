@@ -8,9 +8,10 @@ use chrono::{DateTime, Utc};
 use derive_more::{AsRef, Display, From, FromStr, Into};
 use diesel::{ExpressionMethods, Identifiable, QueryDsl, Queryable, dsl::not, prelude::*};
 use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Paginate, Result};
+use opentalk_database::{DbConnection, Result};
 use opentalk_diesel_newtype::DieselNewtype;
 use opentalk_types_common::{
+    pagination::{ItemCount, Page, PageSize},
     rooms::{RoomId, RoomPassword},
     tenants::TenantId,
     users::UserId,
@@ -18,6 +19,7 @@ use opentalk_types_common::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    paginate::Paginate as _,
     schema::{events, rooms, users},
     tariffs::Tariff,
     users::User,
@@ -152,9 +154,9 @@ impl Room {
     #[tracing::instrument(err, skip_all)]
     pub async fn get_all_with_creator_paginated(
         conn: &mut DbConnection,
-        limit: i64,
-        page: i64,
-    ) -> Result<(Vec<(Room, User)>, i64)> {
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<(Room, User)>, ItemCount)> {
         let query = rooms::table
             .inner_join(users::table)
             .select((rooms::all_columns, users::all_columns))
@@ -171,9 +173,9 @@ impl Room {
     pub async fn get_by_ids_with_creator_paginated(
         conn: &mut DbConnection,
         ids: &[RoomId],
-        limit: i64,
-        page: i64,
-    ) -> Result<(Vec<(Room, User)>, i64)> {
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<(Room, User)>, ItemCount)> {
         let query = rooms::table
             .inner_join(users::table)
             .select((rooms::all_columns, users::all_columns))

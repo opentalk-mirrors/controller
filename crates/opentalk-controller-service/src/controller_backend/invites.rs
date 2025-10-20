@@ -20,6 +20,7 @@ use opentalk_types_api_v1::{
 use opentalk_types_common::{
     features::{GUESTS_ALLOWED_FEATURE_ID, GUESTS_ALLOWED_MODULE_FEATURE_ID},
     modules::DEFAULT_MODULE_ID,
+    pagination::ItemCount,
     rooms::{RoomId, invite_codes::InviteCode},
     time::Timestamp,
 };
@@ -70,7 +71,7 @@ impl ControllerBackend {
         &self,
         room_id: RoomId,
         pagination: &PagePaginationQuery,
-    ) -> Result<(GetRoomsInvitesResponseBody, i64), CaptureApiError> {
+    ) -> Result<(GetRoomsInvitesResponseBody, ItemCount), CaptureApiError> {
         let settings = self.settings_provider.get();
 
         let tariff = self.get_tariff_for_room(room_id).await?;
@@ -81,8 +82,8 @@ impl ControllerBackend {
         let (invites_with_users, total_invites) = inventory
             .get_room_invites_paginated_with_creator_and_updater(
                 room_id,
-                pagination.per_page.into(),
-                pagination.page.into(),
+                pagination.per_page,
+                pagination.page,
             )
             .await?;
 

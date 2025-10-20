@@ -132,7 +132,9 @@ paths:
             Default value is 0
           required: false
           schema:
-            $ref: "#/components/schemas/ItemCount"
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/PageSize"
         - name: favorites
           in: query
           description: Return only favorite events
@@ -300,7 +302,9 @@ paths:
             Default value is 0
           required: false
           schema:
-            $ref: "#/components/schemas/ItemCount"
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/PageSize"
         - name: instances_max
           in: query
           description: |-
@@ -407,7 +411,9 @@ paths:
             Default value is 0
           required: false
           schema:
-            $ref: "#/components/schemas/ItemCount"
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/PageSize"
         - name: event_id
           in: path
           description: The id of the event
@@ -484,7 +490,9 @@ paths:
           description: Maximum number of invitees to include inside the event
           required: false
           schema:
-            $ref: "#/components/schemas/ItemCount"
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/PageSize"
         - name: suppress_email_notification
           in: query
           description: Flag to disable email notification
@@ -541,7 +549,9 @@ paths:
           description: Maximum number of invitees to include inside the event
           required: false
           schema:
-            $ref: "#/components/schemas/ItemCount"
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/PageSize"
         - name: time_min
           in: query
           description: Minimum time of the event instances
@@ -631,7 +641,9 @@ paths:
             Default: 0
           required: false
           schema:
-            $ref: "#/components/schemas/ItemCount"
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/PageSize"
         - name: suppress_email_notification
           in: query
           description: Flag to suppress email notification
@@ -685,7 +697,9 @@ paths:
             Default: 0
           required: false
           schema:
-            $ref: "#/components/schemas/ItemCount"
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/PageSize"
         - name: suppress_email_notification
           in: query
           description: Flag to suppress email notification

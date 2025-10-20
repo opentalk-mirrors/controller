@@ -4,7 +4,10 @@
 
 use opentalk_db_storage::rooms as db;
 use opentalk_inventory::{NewRoom, Room, RoomInventory, UpdateRoom, User};
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::{
+    pagination::{ItemCount, Page, PageSize},
+    rooms::RoomId,
+};
 use snafu::ResultExt as _;
 
 use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
@@ -73,9 +76,9 @@ impl RoomInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn get_all_rooms_paginated_with_creator(
         &mut self,
-        limit: i64,
-        page: i64,
-    ) -> Result<(Vec<(Room, User)>, i64)> {
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<(Room, User)>, ItemCount)> {
         let (rooms, overall) =
             db::Room::get_all_with_creator_paginated(&mut self.inner, limit, page)
                 .await
@@ -93,9 +96,9 @@ impl RoomInventory for DatabaseConnection {
     async fn get_rooms_paginated_by_id_with_creator(
         &mut self,
         room_ids: &[RoomId],
-        limit: i64,
-        page: i64,
-    ) -> Result<(Vec<(Room, User)>, i64)> {
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<(Room, User)>, ItemCount)> {
         let (rooms, overall) =
             db::Room::get_by_ids_with_creator_paginated(&mut self.inner, room_ids, limit, page)
                 .await

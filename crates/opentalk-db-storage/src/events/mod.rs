@@ -16,13 +16,14 @@ use diesel::{
     sql_types::{Nullable, Record, Timestamptz, Uuid},
 };
 use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
-use opentalk_database::{DatabaseError, DbConnection, Paginate, Result};
+use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_diesel_newtype::DieselNewtype;
 use opentalk_types_common::{
     events::{
         EventDescription, EventId, EventTitle,
         invites::{EventInviteStatus, InviteRole},
     },
+    pagination::{ItemCount, Page, PageSize},
     rooms::RoomId,
     sql_enum,
     tenants::TenantId,
@@ -35,6 +36,7 @@ use serde::{Deserialize, Serialize};
 
 use self::shared_folders::EventSharedFolder;
 use crate::{
+    paginate::Paginate as _,
     rooms::Room,
     schema::{
         event_exceptions, event_favorites, event_invites, event_shared_folders,
@@ -1425,10 +1427,10 @@ impl EventInvite {
     pub async fn get_for_event_paginated(
         conn: &mut DbConnection,
         event_id: EventId,
-        per_page: i64,
-        page: i64,
+        per_page: PageSize,
+        page: Page,
         filter_by_status: Option<EventInviteStatus>,
-    ) -> Result<(Vec<(EventInvite, User)>, i64)> {
+    ) -> Result<(Vec<(EventInvite, User)>, ItemCount)> {
         let allowed_states = filter_by_status
             .map(|s| BTreeSet::from([s]))
             .unwrap_or_else(EventInviteStatus::all_enum_values);

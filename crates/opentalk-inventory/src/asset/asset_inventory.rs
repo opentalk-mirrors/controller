@@ -6,6 +6,7 @@ use opentalk_types_common::{
     assets::{AssetId, AssetSorting},
     events::EventId,
     order::Ordering,
+    pagination::{ItemCount, Page, PageSize},
     rooms::RoomId,
     users::UserId,
 };
@@ -34,9 +35,9 @@ pub trait AssetInventory {
     async fn get_all_assets_for_room_paginated(
         &mut self,
         room: RoomId,
-        per_page: i64,
-        page: i64,
-    ) -> Result<(Vec<Asset>, i64)>;
+        per_page: PageSize,
+        page: Page,
+    ) -> Result<(Vec<Asset>, ItemCount)>;
 
     /// Get all asset ids for a room.
     async fn get_all_asset_ids_for_room(&mut self, room_id: RoomId) -> Result<Vec<AssetId>>;
@@ -47,11 +48,11 @@ pub trait AssetInventory {
     async fn get_all_assets_for_room_owner_paginated_ordered(
         &mut self,
         user_id: UserId,
-        limit: i64,
-        page: i64,
+        limit: PageSize,
+        page: Page,
         sort: AssetSorting,
         order: Ordering,
-    ) -> Result<(Vec<(Asset, RoomId, Option<EventId>)>, i64)>;
+    ) -> Result<(Vec<(Asset, RoomId, Option<EventId>)>, ItemCount)>;
 
     /// Update an asset.
     ///

@@ -34,6 +34,7 @@ use opentalk_types_api_v1::{
 use opentalk_types_common::{
     features::{self, GUESTS_ALLOWED_FEATURE_ID},
     modules::CORE_MODULE_ID,
+    pagination::ItemCount,
     rooms::{RoomId, RoomPassword, invite_codes::InviteCode},
     tariffs::TariffResource,
     users::UserId,
@@ -52,7 +53,7 @@ impl ControllerBackend {
         &self,
         current_user_id: UserId,
         pagination: &PagePaginationQuery,
-    ) -> Result<(GetRoomsResponseBody, i64), CaptureApiError> {
+    ) -> Result<(GetRoomsResponseBody, ItemCount), CaptureApiError> {
         let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
@@ -64,18 +65,15 @@ impl ControllerBackend {
         let (rooms, room_count) = match accessible_rooms {
             kustos::AccessibleResources::All => {
                 inventory
-                    .get_all_rooms_paginated_with_creator(
-                        pagination.per_page.into(),
-                        pagination.page.into(),
-                    )
+                    .get_all_rooms_paginated_with_creator(pagination.per_page, pagination.page)
                     .await?
             }
             kustos::AccessibleResources::List(list) => {
                 inventory
                     .get_rooms_paginated_by_id_with_creator(
                         &list,
-                        pagination.per_page.into(),
-                        pagination.page.into(),
+                        pagination.per_page,
+                        pagination.page,
                     )
                     .await?
             }

@@ -11,15 +11,17 @@ use diesel::{
     QueryDsl, Queryable,
 };
 use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Paginate, Result};
+use opentalk_database::{DbConnection, Result};
 use opentalk_diesel_newtype::DieselNewtype;
 use opentalk_types_common::{
+    pagination::{ItemCount, Page, PageSize},
     rooms::{RoomId, invite_codes::InviteCode},
     users::UserId,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    paginate::Paginate as _,
     schema::{invites, users},
     users::User,
 };
@@ -170,9 +172,9 @@ impl Invite {
     pub async fn get_all_for_room_paginated(
         conn: &mut DbConnection,
         room_id: RoomId,
-        limit: i64,
-        page: i64,
-    ) -> Result<(Vec<Invite>, i64)> {
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<Invite>, ItemCount)> {
         let query = invites::table
             .filter(invites::room.eq(room_id))
             .order(invites::updated_at.desc())
@@ -212,9 +214,9 @@ impl Invite {
     pub async fn get_all_for_room_with_users_paginated(
         conn: &mut DbConnection,
         room_id: RoomId,
-        limit: i64,
-        page: i64,
-    ) -> Result<(Vec<InviteWithUsers>, i64)> {
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<InviteWithUsers>, ItemCount)> {
         let query = invites::table
             .filter(invites::room.eq(room_id))
             .inner_join(users::table.on(invites::created_by.eq(users::id)))
@@ -300,9 +302,9 @@ impl Invite {
         conn: &mut DbConnection,
         room_id: RoomId,
         ids: &[InviteCode],
-        limit: i64,
-        page: i64,
-    ) -> Result<(Vec<InviteWithUsers>, i64)> {
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<InviteWithUsers>, ItemCount)> {
         let query = invites::table
             .filter(invites::room.eq(room_id))
             .filter(invites::id.eq_any(ids))

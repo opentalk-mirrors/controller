@@ -14,9 +14,10 @@ use diesel::{
     OptionalExtension, QueryDsl, Queryable, TextExpressionMethods, dsl::sum, pg::Pg,
 };
 use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Paginate, Result};
+use opentalk_database::{DbConnection, Result};
 use opentalk_diesel_newtype::DieselNewtype;
 use opentalk_types_common::{
+    pagination::{ItemCount, Page, PageSize},
     tariffs::{TariffId, TariffStatus},
     tenants::TenantId,
     time::TimeZone,
@@ -28,7 +29,7 @@ use super::{
     groups::{Group, UserGroupRelation},
     schema::{assets, groups, room_assets, rooms, users},
 };
-use crate::{levenshtein, lower, soundex};
+use crate::{levenshtein, lower, paginate::Paginate as _, soundex};
 
 #[derive(
     AsRef,
@@ -293,9 +294,9 @@ impl User {
     #[tracing::instrument(err, skip_all, fields(%limit, %page))]
     pub async fn get_all_paginated(
         conn: &mut DbConnection,
-        limit: i64,
-        page: i64,
-    ) -> Result<(Vec<Self>, i64)> {
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<Self>, ItemCount)> {
         let query = Self::active_users_query()
             .order_by(users::id.desc())
             .paginate_by(limit, page);
@@ -318,9 +319,9 @@ impl User {
     pub async fn get_by_ids_paginated(
         conn: &mut DbConnection,
         ids: &[UserId],
-        limit: i64,
-        page: i64,
-    ) -> Result<(Vec<Self>, i64)> {
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<Self>, ItemCount)> {
         let query = Self::active_users_query()
             .filter(users::id.eq_any(ids))
             .order_by(users::id.desc())

@@ -82,6 +82,7 @@ use opentalk_types_common::{
     events::EventId,
     features::FeatureId,
     modules::ModuleId,
+    pagination::{ItemCount, Page, PageSize},
     rooms::{RoomId, RoomPassword, invite_codes::InviteCode},
     shared_folders::SharedFolder,
     streaming::StreamingTarget,
@@ -161,7 +162,7 @@ impl OpenTalkControllerService for ControllerBackend {
         &self,
         current_user_id: UserId,
         pagination: &PagePaginationQuery,
-    ) -> Result<(GetRoomsResponseBody, i64), ApiError> {
+    ) -> Result<(GetRoomsResponseBody, ItemCount), ApiError> {
         Ok(self.get_rooms(current_user_id, pagination).await?)
     }
 
@@ -294,7 +295,7 @@ impl OpenTalkControllerService for ControllerBackend {
         &self,
         room_id: RoomId,
         pagination: &PagePaginationQuery,
-    ) -> Result<(RoomsByRoomIdAssetsGetResponseBody, i64), ApiError> {
+    ) -> Result<(RoomsByRoomIdAssetsGetResponseBody, ItemCount), ApiError> {
         Ok(self.get_room_assets(room_id, pagination).await?)
     }
 
@@ -421,7 +422,7 @@ impl OpenTalkControllerService for ControllerBackend {
         current_user: RequestUser,
         event_id: EventId,
         query: GetEventsInvitesQuery,
-    ) -> Result<(Vec<EventInvitee>, i64, i64, i64), ApiError> {
+    ) -> Result<(Vec<EventInvitee>, PageSize, Page, ItemCount), ApiError> {
         Ok(self
             .get_invites_for_event(current_user, event_id, query)
             .await?)
@@ -523,7 +524,7 @@ impl OpenTalkControllerService for ControllerBackend {
         &self,
         room_id: RoomId,
         pagination: &PagePaginationQuery,
-    ) -> Result<(GetRoomsInvitesResponseBody, i64), ApiError> {
+    ) -> Result<(GetRoomsInvitesResponseBody, ItemCount), ApiError> {
         Ok(self.get_invites(room_id, pagination).await?)
     }
 
@@ -707,7 +708,7 @@ impl OpenTalkControllerService for ControllerBackend {
         current_user: RequestUser,
         sorting: AssetSortingQuery,
         pagination: &PagePaginationQuery,
-    ) -> Result<(GetUserAssetsResponseBody, i64), ApiError> {
+    ) -> Result<(GetUserAssetsResponseBody, ItemCount), ApiError> {
         Ok(self
             .get_my_assets(current_user, sorting, pagination)
             .await?)

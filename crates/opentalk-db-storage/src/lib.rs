@@ -26,6 +26,8 @@ pub mod invites;
 pub mod jobs;
 pub mod migrations;
 pub mod module_resources;
+pub mod paginate;
+pub mod paginated;
 pub mod rooms;
 pub mod sip_configs;
 pub mod streaming_targets;

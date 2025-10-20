@@ -8,18 +8,22 @@ use diesel::{
     NullableExpressionMethods as _, QueryDsl, Queryable,
 };
 use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
-use opentalk_database::{DbConnection, Paginate, Result};
+use opentalk_database::{DbConnection, Result};
 use opentalk_types_common::{
     assets::{AssetId, AssetSorting, FileSize},
     events::EventId,
     modules::ModuleId,
     order::Ordering,
+    pagination::{ItemCount, Page, PageSize},
     rooms::RoomId,
     tenants::TenantId,
     users::UserId,
 };
 
-use crate::schema::{assets, events, room_assets, rooms};
+use crate::{
+    paginate::Paginate as _,
+    schema::{assets, events, room_assets, rooms},
+};
 
 /// Diesel resource struct
 #[derive(Debug, Clone, Queryable, Identifiable)]
@@ -103,9 +107,9 @@ impl Asset {
     pub async fn get_all_for_room_paginated(
         conn: &mut DbConnection,
         room_id: RoomId,
-        limit: i64,
-        page: i64,
-    ) -> Result<(Vec<Self>, i64)> {
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<Self>, ItemCount)> {
         let query = assets::table
             .inner_join(room_assets::table.on(room_assets::asset_id.eq(assets::id)))
             .filter(room_assets::room_id.eq(room_id))
@@ -121,9 +125,9 @@ impl Asset {
     pub async fn get_all_for_rooms_paginated(
         conn: &mut DbConnection,
         room_ids: &[RoomId],
-        limit: i64,
-        page: i64,
-    ) -> Result<(Vec<Self>, i64)> {
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<Self>, ItemCount)> {
         let query = assets::table
             .inner_join(room_assets::table.on(room_assets::asset_id.eq(assets::id)))
             .filter(room_assets::room_id.eq_any(room_ids))
@@ -268,11 +272,11 @@ pub type AssetRoomIdEventIdTuple = (Asset, RoomId, Option<EventId>);
 pub async fn get_all_for_room_owner_paginated_ordered(
     conn: &mut DbConnection,
     user_id: UserId,
-    limit: i64,
-    page: i64,
+    limit: PageSize,
+    page: Page,
     sorting: AssetSorting,
     order: Ordering,
-) -> Result<(Vec<AssetRoomIdEventIdTuple>, i64)> {
+) -> Result<(Vec<AssetRoomIdEventIdTuple>, ItemCount)> {
     let mut query = room_assets::table
         .inner_join(assets::table)
         .inner_join(rooms::table.left_join(events::table))

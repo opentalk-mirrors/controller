@@ -80,8 +80,8 @@ pub async fn accessible(
     let (rooms, room_count) = service.get_rooms(current_user.id, &pagination).await?;
 
     Ok(ApiResponse::new(rooms).with_page_pagination(
-        pagination.per_page.into(),
-        pagination.page.into(),
+        pagination.per_page,
+        pagination.page,
         room_count,
     ))
 }
