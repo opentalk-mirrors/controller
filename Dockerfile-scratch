@@ -2,13 +2,13 @@
 #
 # SPDX-License-Identifier: EUPL-1.2
 
-FROM rust:slim-trixie AS builder
+FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.90.0-trixie AS builder
 RUN mkdir /controller
 WORKDIR /controller
 
 ADD . /controller
 
-RUN apt-get --update -y full-upgrade && apt-get install --no-install-recommends -y protobuf-compiler curl wget build-essential libreadline-dev bison flex upx 
+RUN apt-get --update -y full-upgrade && apt-get install --no-install-recommends -y protobuf-compiler curl wget build-essential libreadline-dev bison flex 
 RUN cargo install cargo-auditable
 
 RUN wget https://ftp.postgresql.org/pub/source/v17.0/postgresql-17.0.tar.gz
@@ -32,7 +32,6 @@ ENV RUSTFLAGS='-C target-feature=+crt-static -L /usr/lib -C link-arg=-l:libpq.a'
 RUN cargo auditable build --release --locked --target x86_64-unknown-linux-gnu
 
 RUN chmod +x /controller/target/x86_64-unknown-linux-gnu/release/opentalk-controller
-RUN upx /controller/target/x86_64-unknown-linux-gnu/release/opentalk-controller
 
 FROM scratch
 
