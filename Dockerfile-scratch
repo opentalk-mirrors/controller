@@ -1,0 +1,49 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+FROM rust:slim-trixie AS builder
+RUN mkdir /controller
+WORKDIR /controller
+
+ADD . /controller
+
+RUN apt-get --update -y full-upgrade && apt-get install --no-install-recommends -y protobuf-compiler curl wget build-essential libreadline-dev bison flex upx 
+RUN cargo install cargo-auditable
+
+RUN wget https://ftp.postgresql.org/pub/source/v17.0/postgresql-17.0.tar.gz
+RUN tar xf postgresql-17.0.tar.gz
+
+WORKDIR /controller/postgresql-17.0
+
+RUN ./configure --enable-static --disable-shared --without-readline --without-zlib --without-icu
+RUN make -C src/interfaces/libpq
+RUN cp src/interfaces/libpq/libpq.a /usr/lib/
+RUN cp -r src/include/libpq /usr/include/
+
+WORKDIR /controller
+
+ENV LD_LIBRARY_PATH=/usr/lib
+ENV LIBPQ_LIB_DIR=/usr/lib
+ENV LIBPQ_INCLUDE_DIR=/usr/include
+ENV PQ_LIB_STATIC=1
+ENV RUSTFLAGS='-C target-feature=+crt-static -L /usr/lib -C link-arg=-l:libpq.a'
+
+RUN cargo auditable build --release --locked --target x86_64-unknown-linux-gnu
+
+RUN chmod +x /controller/target/x86_64-unknown-linux-gnu/release/opentalk-controller
+RUN upx /controller/target/x86_64-unknown-linux-gnu/release/opentalk-controller
+
+FROM scratch
+
+ENV USERID=1000
+ENV GROUPID=1000
+
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+COPY --from=builder /controller/target/x86_64-unknown-linux-gnu/release/opentalk-controller ./opentalk-controller
+ADD example/controller.toml /etc/opentalk/controller.toml
+
+
+EXPOSE 11311
+CMD [ "./opentalk-controller" ]
