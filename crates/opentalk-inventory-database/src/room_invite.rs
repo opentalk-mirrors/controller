@@ -8,6 +8,7 @@ use opentalk_inventory::{
     NewRoomInvite, RoomInvite, RoomInviteInventory, RoomInviteWithUsers, UpdateRoomInvite,
 };
 use opentalk_types_common::{
+    pagination::{ItemCount, Page, PageSize},
     rooms::{RoomId, invite_codes::InviteCode},
     time::Timestamp,
     users::UserId,
@@ -82,9 +83,9 @@ impl RoomInviteInventory for DatabaseConnection {
     async fn get_room_invites_paginated_with_creator_and_updater(
         &mut self,
         room_id: RoomId,
-        limit: i64,
-        page: i64,
-    ) -> Result<(Vec<RoomInviteWithUsers>, i64)> {
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<RoomInviteWithUsers>, ItemCount)> {
         let (invites, overall) = db::Invite::get_all_for_room_with_users_paginated(
             &mut self.inner,
             room_id,

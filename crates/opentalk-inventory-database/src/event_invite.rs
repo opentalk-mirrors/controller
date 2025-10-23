@@ -9,6 +9,7 @@ use opentalk_inventory::{
 };
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
+    pagination::{ItemCount, Page, PageSize},
     rooms::RoomId,
     users::UserId,
 };
@@ -46,10 +47,10 @@ impl EventInviteInventory for DatabaseConnection {
     async fn get_event_invites_paginated(
         &mut self,
         event_id: EventId,
-        per_page: i64,
-        page: i64,
+        per_page: PageSize,
+        page: Page,
         filter_by_status: Option<EventInviteStatus>,
-    ) -> Result<(Vec<(EventInvite, User)>, i64)> {
+    ) -> Result<(Vec<(EventInvite, User)>, ItemCount)> {
         let (items, overall) = db::EventInvite::get_for_event_paginated(
             &mut self.inner,
             event_id,
@@ -72,9 +73,9 @@ impl EventInviteInventory for DatabaseConnection {
     async fn get_event_email_invites_paginated(
         &mut self,
         event_id: EventId,
-        per_page: i64,
-        page: i64,
-    ) -> Result<(Vec<EventEmailInvite>, i64)> {
+        per_page: PageSize,
+        page: Page,
+    ) -> Result<(Vec<EventEmailInvite>, ItemCount)> {
         let (invites, overall) = db::email_invites::EventEmailInvite::get_for_event_paginated(
             &mut self.inner,
             event_id,

@@ -186,8 +186,8 @@ pub async fn get_me_assets(
         .await?;
 
     Ok(ApiResponse::new(assets_response).with_page_pagination(
-        pagination.per_page.into(),
-        pagination.page.into(),
+        pagination.per_page,
+        pagination.page,
         asset_count,
     ))
 }

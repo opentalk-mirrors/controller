@@ -57,6 +57,7 @@ use opentalk_types_common::{
     email::EmailAddress,
     events::EventId,
     modules::ModuleId,
+    pagination::{ItemCount, Page, PageSize},
     rooms::{RoomId, RoomPassword, invite_codes::InviteCode},
     shared_folders::SharedFolder,
     streaming::StreamingTarget,
@@ -77,7 +78,7 @@ pub trait OpenTalkControllerService: Send + Sync {
         &self,
         current_user_id: UserId,
         pagination: &PagePaginationQuery,
-    ) -> Result<(GetRoomsResponseBody, i64), ApiError>;
+    ) -> Result<(GetRoomsResponseBody, ItemCount), ApiError>;
 
     /// Create a new room
     async fn create_room(
@@ -171,7 +172,7 @@ pub trait OpenTalkControllerService: Send + Sync {
         &self,
         room_id: RoomId,
         pagination: &PagePaginationQuery,
-    ) -> Result<(RoomsByRoomIdAssetsGetResponseBody, i64), ApiError>;
+    ) -> Result<(RoomsByRoomIdAssetsGetResponseBody, ItemCount), ApiError>;
 
     /// Get a specific asset inside a room.
     async fn get_room_asset(
@@ -277,7 +278,7 @@ pub trait OpenTalkControllerService: Send + Sync {
         current_user: RequestUser,
         event_id: EventId,
         query: GetEventsInvitesQuery,
-    ) -> Result<(Vec<EventInvitee>, i64, i64, i64), ApiError>;
+    ) -> Result<(Vec<EventInvitee>, PageSize, Page, ItemCount), ApiError>;
 
     /// Create a new invite to an event
     async fn create_invite_to_event(
@@ -352,7 +353,7 @@ pub trait OpenTalkControllerService: Send + Sync {
         &self,
         room_id: RoomId,
         pagination: &PagePaginationQuery,
-    ) -> Result<(GetRoomsInvitesResponseBody, i64), ApiError>;
+    ) -> Result<(GetRoomsInvitesResponseBody, ItemCount), ApiError>;
 
     /// Get a room invite
     async fn get_invite(
@@ -496,7 +497,7 @@ pub trait OpenTalkControllerService: Send + Sync {
         current_user: RequestUser,
         sorting: AssetSortingQuery,
         pagination: &PagePaginationQuery,
-    ) -> Result<(GetUserAssetsResponseBody, i64), ApiError>;
+    ) -> Result<(GetUserAssetsResponseBody, ItemCount), ApiError>;
 
     /// Get a user's public profile.
     async fn get_user(

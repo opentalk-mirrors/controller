@@ -4,15 +4,8 @@
 
 //! OpenTalk Database connector, interface and connection handling
 
-use diesel::{
-    QueryResult,
-    pg::Pg,
-    query_builder::{AstPass, Query, QueryFragment, QueryId},
-    sql_types::BigInt,
-};
 use diesel_async::{
-    AsyncConnection, AsyncPgConnection,
-    methods::LoadQuery,
+    AsyncPgConnection,
     pooled_connection::deadpool::{BuildError, Object, PoolError},
 };
 use snafu::Snafu;
@@ -82,93 +75,6 @@ impl<T> OptionalExt<T, DatabaseError> for Result<T, DatabaseError> {
             Err(DatabaseError::NotFound) => Ok(None),
             Err(e) => Err(e),
         }
-    }
-}
-
-/// Pagination trait for diesel
-pub trait Paginate: Sized {
-    fn paginate(self, page: i64) -> Paginated<Self>;
-    fn paginate_by(self, per_page: i64, page: i64) -> Paginated<Self>;
-}
-
-impl<T> Paginate for T {
-    fn paginate(self, page: i64) -> Paginated<Self> {
-        Paginated {
-            query: self,
-            per_page: DEFAULT_PER_PAGE,
-            offset: (page - 1) * DEFAULT_PER_PAGE,
-        }
-    }
-    fn paginate_by(self, per_page: i64, page: i64) -> Paginated<Self> {
-        Paginated {
-            query: self,
-            per_page,
-            offset: (page - 1) * per_page,
-        }
-    }
-}
-
-const DEFAULT_PER_PAGE: i64 = 10;
-
-/// Paginated diesel database response
-#[derive(Debug, Clone, Copy, QueryId)]
-pub struct Paginated<T> {
-    query: T,
-    per_page: i64,
-    // We need to store the offset instead of the page due to
-    // lifetime requirements in `QueryFragment::walk_ast(...)`.
-    offset: i64,
-}
-
-impl<T: Query> Paginated<T> {
-    pub fn per_page(self, per_page: i64) -> Self {
-        Paginated { per_page, ..self }
-    }
-
-    pub fn load_and_count<'query, U, Conn>(
-        self,
-        conn: &'query mut Conn,
-    ) -> impl std::future::Future<Output = QueryResult<(Vec<U>, i64)>> + Send + 'query
-    where
-        Self: LoadQuery<'query, Conn, (U, i64)>,
-        Conn: AsyncConnection + 'static,
-        U: Send + 'query,
-        T: 'query,
-    {
-        let results = {
-            // When `diesel_async::RunQueryDsl` is imported globally, the call
-            // to `results.first()` below will cause compiler errors because the
-            // compiler mistakes it for `diesel_async::RunQueryDsl::first(…)`
-            // and fails finding a trait implementation of `results` that
-            // matches, so we restrict the import scope.
-            use diesel_async::RunQueryDsl;
-            self.load::<(U, i64)>(conn)
-        };
-        async move {
-            let results = results.await?;
-            let total = results.first().map(|x: &(U, i64)| x.1).unwrap_or(0);
-            let records = results.into_iter().map(|x| x.0).collect();
-            Ok((records, total))
-        }
-    }
-}
-
-impl<T: Query> Query for Paginated<T> {
-    type SqlType = (T::SqlType, BigInt);
-}
-
-impl<T> QueryFragment<Pg> for Paginated<T>
-where
-    T: QueryFragment<Pg>,
-{
-    fn walk_ast<'b>(&'b self, mut out: AstPass<'_, 'b, Pg>) -> QueryResult<()> {
-        out.push_sql("SELECT *, COUNT(*) OVER () FROM (");
-        self.query.walk_ast(out.reborrow())?;
-        out.push_sql(") t LIMIT ");
-        out.push_bind_param::<BigInt, _>(&self.per_page)?;
-        out.push_sql(" OFFSET ");
-        out.push_bind_param::<BigInt, _>(&self.offset)?;
-        Ok(())
     }
 }
 

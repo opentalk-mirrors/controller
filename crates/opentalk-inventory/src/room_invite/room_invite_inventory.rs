@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_types_common::{
+    pagination::{ItemCount, Page, PageSize},
     rooms::{RoomId, invite_codes::InviteCode},
     time::Timestamp,
     users::UserId,
@@ -48,9 +49,9 @@ pub trait RoomInviteInventory {
     async fn get_room_invites_paginated_with_creator_and_updater(
         &mut self,
         room_id: RoomId,
-        limit: i64,
-        page: i64,
-    ) -> Result<(Vec<RoomInviteWithUsers>, i64)>;
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<RoomInviteWithUsers>, ItemCount)>;
 
     /// Get a room invite with the creator and updater user.
     async fn get_room_invite_with_creator_and_updater(

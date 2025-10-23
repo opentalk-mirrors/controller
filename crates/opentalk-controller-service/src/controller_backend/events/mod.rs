@@ -41,7 +41,7 @@ use opentalk_types_common::{
     events::{EventDescription, EventId, EventTitle, invites::EventInviteStatus},
     features::CALL_IN_FEATURE_ID,
     modules::DEFAULT_MODULE_ID,
-    pagination::PageSize,
+    pagination::{ItemCount, Page, PageSize},
     rooms::RoomPassword,
     shared_folders::SharedFolder,
     streaming::{RoomStreamingTarget, StreamingTarget},
@@ -315,7 +315,7 @@ impl ControllerBackend {
             .collect::<Vec<&Event>>();
 
         // Build list of event invites with user, grouped by events
-        let invites_with_users_grouped_by_event = if query.invitees_max.is_zero() {
+        let invites_with_users_grouped_by_event = if query.invitees_max.is_none() {
             // Do not query event invites if invitees_max is zero, instead create dummy value
             (0..events.len()).map(|_| Vec::new()).collect()
         } else {
@@ -325,7 +325,7 @@ impl ControllerBackend {
         };
 
         // Build list of additional email event invites, grouped by events
-        let email_invites_grouped_by_event = if query.invitees_max.is_zero() {
+        let email_invites_grouped_by_event = if query.invitees_max.is_none() {
             // Do not query email event invites if invitees_max is zero, instead create dummy value
             (0..events.len()).map(|_| Vec::new()).collect()
         } else {
@@ -374,14 +374,19 @@ impl ControllerBackend {
                 .map(|invite| invite.status)
                 .unwrap_or(EventInviteStatus::Accepted);
 
-            let invitees_truncated = query.invitees_max.is_zero()
-                || (invites_with_user.len() + email_invites.len())
-                    > Into::<usize>::into(query.invitees_max);
+            let invitees_truncated = if let Some(invitees_max) = query.invitees_max {
+                let email_invites_max =
+                    usize::from(invitees_max).saturating_sub(invites_with_user.len());
 
-            invites_with_user.truncate(query.invitees_max.into());
-            let email_invitees_max =
-                Into::<usize>::into(query.invitees_max) - invites_with_user.len().max(0);
-            email_invites.truncate(email_invitees_max);
+                invites_with_user.truncate(invitees_max.into());
+                email_invites.truncate(email_invites_max);
+
+                (invites_with_user.len() + email_invites.len()) > usize::from(invitees_max)
+            } else {
+                invites_with_user.clear();
+                email_invites.clear();
+                false
+            };
 
             let registered_invitees_iter = invites_with_user
                 .into_iter()
@@ -490,13 +495,9 @@ impl ControllerBackend {
             .get_event_with_related_items(current_user.id, event_id)
             .await?;
         let room_streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
-        let (invitees, invitees_truncated) = get_invitees_for_event(
-            &settings,
-            inventory.as_mut(),
-            event_id,
-            query.invitees_max.into(),
-        )
-        .await?;
+        let (invitees, invitees_truncated) =
+            get_invitees_for_event(&settings, inventory.as_mut(), event_id, query.invitees_max)
+                .await?;
 
         let users = GetUserProfilesBatched::new()
             .add(&event)
@@ -737,13 +738,9 @@ impl ControllerBackend {
             invite_for_room,
         };
 
-        let (invitees, invitees_truncated) = get_invitees_for_event(
-            &settings,
-            inventory.as_mut(),
-            event_id,
-            query.invitees_max.into(),
-        )
-        .await?;
+        let (invitees, invitees_truncated) =
+            get_invitees_for_event(&settings, inventory.as_mut(), event_id, query.invitees_max)
+                .await?;
 
         drop(inventory);
 
@@ -1609,47 +1606,56 @@ async fn get_invitees_for_event(
     settings: &Settings,
     inventory: &mut dyn Inventory,
     event_id: EventId,
-    invitees_max: i64,
+    invitees_max: Option<PageSize>,
 ) -> opentalk_inventory::Result<(Vec<EventInvitee>, bool)> {
-    if invitees_max > 0 {
-        // Get regular invitees up to the maximum invitee count specified.
+    let Some(invitees_max) = invitees_max else {
+        return Ok((vec![], true));
+    };
 
-        let (invites_with_user, total_invites_count) = inventory
-            .get_event_invites_paginated(event_id, invitees_max, 1, None)
-            .await?;
+    // Get regular invitees up to the maximum invitee count specified.
+    let (invites_with_user, total_invites_count) = inventory
+        .get_event_invites_paginated(event_id, invitees_max, Page::DEFAULT, None)
+        .await?;
 
-        let mut invitees: Vec<EventInvitee> = invites_with_user
-            .into_iter()
-            .map(|(invite, user)| EventInvitee::from_invite_with_user(invite, user, settings))
-            .collect();
+    let mut invitees: Vec<EventInvitee> = invites_with_user
+        .into_iter()
+        .map(|(invite, user)| EventInvitee::from_invite_with_user(invite, user, settings))
+        .collect();
 
-        let loaded_invites_count = invitees.len() as i64;
-        let mut invitees_truncated = total_invites_count > loaded_invites_count;
+    let loaded_invites_count = ItemCount::try_from(invitees.len())
+        .expect("looks like we got more items than can be represented in the ItemCount type");
+    let mut invitees_truncated = total_invites_count > loaded_invites_count;
 
-        // Now add email invitees until the maximum total invitee count specified is reached.
-
-        let invitees_max = invitees_max - loaded_invites_count;
-        if invitees_max > 0 {
-            let (email_invites, total_email_invites_count) = inventory
-                .get_event_email_invites_paginated(event_id, invitees_max, 1)
-                .await?;
-
-            let email_invitees: Vec<EventInvitee> = email_invites
-                .into_iter()
-                .map(|invite| EventInvitee::from_email_invite(invite, settings))
-                .collect();
-
-            let loaded_email_invites_count = email_invitees.len() as i64;
-            invitees_truncated =
-                invitees_truncated || (total_email_invites_count > loaded_email_invites_count);
-
-            invitees.extend(email_invitees);
-        }
-
-        Ok((invitees, invitees_truncated))
-    } else {
-        Ok((vec![], true))
+    if loaded_invites_count == invitees_max {
+        return Ok((invitees, invitees_truncated));
     }
+
+    // Now add email invitees until the maximum total invitee count specified is reached.
+    let invitees_max = if loaded_invites_count.is_zero() {
+        invitees_max
+    } else {
+        let loaded_invites_page_size = PageSize::try_from(i64::from(loaded_invites_count))
+            .expect("Attempted to load a PageSize from an invalid value, this is likely a bug");
+        invitees_max.saturating_sub(loaded_invites_page_size)
+    };
+
+    let (email_invites, total_email_invites_count) = inventory
+        .get_event_email_invites_paginated(event_id, invitees_max, Page::DEFAULT)
+        .await?;
+
+    let email_invitees: Vec<EventInvitee> = email_invites
+        .into_iter()
+        .map(|invite| EventInvitee::from_email_invite(invite, settings))
+        .collect();
+
+    let loaded_email_invites_count = ItemCount::try_from(email_invitees.len())
+        .expect("looks like we got more items than can be represented in the ItemCount type");
+    invitees_truncated =
+        invitees_truncated || (total_email_invites_count > loaded_email_invites_count);
+
+    invitees.extend(email_invitees);
+
+    Ok((invitees, invitees_truncated))
 }
 
 fn verify_exception_dt_params(

@@ -5,15 +5,17 @@
 use chrono::{DateTime, Utc};
 use diesel::{ExpressionMethods, QueryDsl, Queryable, prelude::*};
 use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
-use opentalk_database::{DbConnection, Paginate, Result};
+use opentalk_database::{DbConnection, Result};
 use opentalk_types_common::{
     events::{EventId, invites::EmailInviteRole},
+    pagination::{ItemCount, Page, PageSize},
     rooms::RoomId,
     users::UserId,
 };
 
 use super::{Event, NewEventInvite};
 use crate::{
+    paginate::Paginate as _,
     schema::{event_email_invites, event_invites, events},
     users::User,
 };
@@ -216,9 +218,9 @@ impl EventEmailInvite {
     pub async fn get_for_event_paginated(
         conn: &mut DbConnection,
         event_id: EventId,
-        limit: i64,
-        page: i64,
-    ) -> Result<(Vec<EventEmailInvite>, i64)> {
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<EventEmailInvite>, ItemCount)> {
         let query = event_email_invites::table
             .filter(event_email_invites::columns::event_id.eq(event_id))
             .order(event_email_invites::created_at.desc())
@@ -226,7 +228,7 @@ impl EventEmailInvite {
             .then_order_by(event_email_invites::email.desc())
             .paginate_by(limit, page);
 
-        let invites: (Vec<EventEmailInvite>, i64) = query.load_and_count(conn).await?;
+        let invites: (Vec<EventEmailInvite>, ItemCount) = query.load_and_count(conn).await?;
 
         Ok(invites)
     }

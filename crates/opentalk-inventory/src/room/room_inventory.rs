@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::{
+    pagination::{ItemCount, Page, PageSize},
+    rooms::RoomId,
+};
 
 use super::{NewRoom, Room, UpdateRoom};
 use crate::{Result, User};
@@ -36,9 +39,9 @@ pub trait RoomInventory {
     /// The returned tuple contains a `Vec` with the data, and the total number of available rooms.
     async fn get_all_rooms_paginated_with_creator(
         &mut self,
-        limit: i64,
-        page: i64,
-    ) -> Result<(Vec<(Room, User)>, i64)>;
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<(Room, User)>, ItemCount)>;
 
     /// Get a set of rooms by their id, paginated and with the creator user.
     ///
@@ -46,7 +49,7 @@ pub trait RoomInventory {
     async fn get_rooms_paginated_by_id_with_creator(
         &mut self,
         room_ids: &[RoomId],
-        limit: i64,
-        page: i64,
-    ) -> Result<(Vec<(Room, User)>, i64)>;
+        limit: PageSize,
+        page: Page,
+    ) -> Result<(Vec<(Room, User)>, ItemCount)>;
 }

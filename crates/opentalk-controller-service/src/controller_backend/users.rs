@@ -20,7 +20,12 @@ use opentalk_types_api_v1::{
         me::PatchMeRequestBody,
     },
 };
-use opentalk_types_common::{tariffs::TariffResource, time::Timestamp, users::UserId};
+use opentalk_types_common::{
+    pagination::{ItemCount, Page, PageSize},
+    tariffs::TariffResource,
+    time::Timestamp,
+    users::UserId,
+};
 use snafu::{Report, ResultExt, Whatever};
 
 use crate::{
@@ -152,14 +157,14 @@ impl ControllerBackend {
         current_user: RequestUser,
         sorting: AssetSortingQuery,
         pagination: &PagePaginationQuery,
-    ) -> Result<(GetUserAssetsResponseBody, i64), CaptureApiError> {
+    ) -> Result<(GetUserAssetsResponseBody, ItemCount), CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let (owned_assets, asset_count) = get_all_assets_for_room_owner_paginated_ordered(
             inventory.as_mut(),
             current_user.id,
-            pagination.per_page.into(),
-            pagination.page.into(),
+            pagination.per_page,
+            pagination.page,
             sorting,
         )
         .await?;
@@ -321,10 +326,10 @@ impl ControllerBackend {
 async fn get_all_assets_for_room_owner_paginated_ordered(
     inventory: &mut dyn Inventory,
     user_id: UserId,
-    limit: i64,
-    page: i64,
+    limit: PageSize,
+    page: Page,
     sorting: AssetSortingQuery,
-) -> Result<(Vec<UserAssetResource>, i64), opentalk_inventory::Error> {
+) -> Result<(Vec<UserAssetResource>, ItemCount), opentalk_inventory::Error> {
     let AssetSortingQuery { sort, order } = sorting;
 
     let (resources, total) = inventory

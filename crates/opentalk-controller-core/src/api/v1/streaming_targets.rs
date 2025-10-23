@@ -19,7 +19,7 @@ use opentalk_types_api_v1::{
         RoomAndStreamingTargetId,
     },
 };
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::{pagination::ItemCount, rooms::RoomId};
 
 use super::{DefaultApiResult, response::NoContent};
 use crate::api::{
@@ -72,12 +72,13 @@ pub async fn get_streaming_targets(
     let response = service
         .get_streaming_targets(current_user.id, room_id.into_inner(), &pagination)
         .await?;
-    let length = response.0.len();
+    let length = ItemCount::try_from(response.0.len())
+        .expect("looks like we got more items than can be represented in the ItemCount type");
 
     Ok(ApiResponse::new(response).with_page_pagination(
-        pagination.per_page.into(),
-        pagination.page.into(),
-        length as i64,
+        pagination.per_page,
+        pagination.page,
+        length,
     ))
 }
 

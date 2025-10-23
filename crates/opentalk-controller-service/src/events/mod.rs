@@ -15,6 +15,7 @@ use opentalk_types_api_v1::{
 };
 use opentalk_types_common::{
     events::EventId,
+    pagination::{Page, PageSize},
     shared_folders::{SharedFolder, SharedFolderAccess},
     users::UserId,
 };
@@ -28,14 +29,14 @@ pub async fn get_invited_mail_recipients_for_event(
 ) -> opentalk_inventory::Result<Vec<MailRecipient>> {
     // TODO(w.rabl) Further DB access optimization (replacing call to get_for_event_paginated)?
     let (invites_with_user, _) = inventory
-        .get_event_invites_paginated(event_id, i64::MAX, 1, None)
+        .get_event_invites_paginated(event_id, PageSize::MAX, Page::DEFAULT, None)
         .await?;
     let user_invitees = invites_with_user
         .into_iter()
         .map(|(_, user)| MailRecipient::Registered(user.into()));
 
     let (email_invites, _) = inventory
-        .get_event_email_invites_paginated(event_id, i64::MAX, 1)
+        .get_event_email_invites_paginated(event_id, PageSize::MAX, Page::DEFAULT)
         .await?;
     let email_invitees = email_invites.into_iter().map(|invitee| {
         MailRecipient::External(ExternalMailRecipient {

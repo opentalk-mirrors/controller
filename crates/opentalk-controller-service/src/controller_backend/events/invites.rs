@@ -34,6 +34,7 @@ use opentalk_types_common::{
     },
     features::GUESTS_ALLOWED_FEATURE_ID,
     modules::CORE_MODULE_ID,
+    pagination::{ItemCount, Page, PageSize},
     rooms::RoomId,
     shared_folders::SharedFolder,
     streaming::RoomStreamingTarget,
@@ -67,7 +68,7 @@ impl ControllerBackend {
             pagination: PagePaginationQuery { per_page, page },
             status: status_filter,
         }: GetEventsInvitesQuery,
-    ) -> Result<(Vec<EventInvitee>, i64, i64, i64), CaptureApiError> {
+    ) -> Result<(Vec<EventInvitee>, PageSize, Page, ItemCount), CaptureApiError> {
         let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
@@ -76,7 +77,7 @@ impl ControllerBackend {
         // Note that get_for_event_paginated returns a total record count of 0 when paging beyond the end.
 
         let (event_invites_with_user, event_invites_total) = inventory
-            .get_event_invites_paginated(event_id, i64::MAX, 1, status_filter)
+            .get_event_invites_paginated(event_id, PageSize::MAX, Page::DEFAULT, status_filter)
             .await?;
 
         let event_invitees_iter =
@@ -87,7 +88,7 @@ impl ControllerBackend {
                 });
 
         let (event_email_invites, event_email_invites_total) = inventory
-            .get_event_email_invites_paginated(event_id, i64::MAX, 1)
+            .get_event_email_invites_paginated(event_id, PageSize::MAX, Page::DEFAULT)
             .await?;
 
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
@@ -116,9 +117,9 @@ impl ControllerBackend {
 
         Ok((
             invitees,
-            per_page.into(),
-            page.into(),
-            event_invites_total + event_email_invites_total,
+            per_page,
+            page,
+            event_invites_total.saturating_add(event_email_invites_total),
         ))
     }
 

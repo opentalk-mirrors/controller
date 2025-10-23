@@ -13,7 +13,9 @@ use opentalk_types_api_v1::{
     assets::AssetResource, pagination::PagePaginationQuery,
     rooms::by_room_id::assets::RoomsByRoomIdAssetsGetResponseBody,
 };
-use opentalk_types_common::{assets::AssetId, modules::ModuleId, rooms::RoomId};
+use opentalk_types_common::{
+    assets::AssetId, modules::ModuleId, pagination::ItemCount, rooms::RoomId,
+};
 
 use crate::{ControllerBackend, helpers::asset_to_asset_resource};
 
@@ -22,15 +24,11 @@ impl ControllerBackend {
         &self,
         room_id: RoomId,
         pagination: &PagePaginationQuery,
-    ) -> Result<(RoomsByRoomIdAssetsGetResponseBody, i64), CaptureApiError> {
+    ) -> Result<(RoomsByRoomIdAssetsGetResponseBody, ItemCount), CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let (assets, asset_count) = inventory
-            .get_all_assets_for_room_paginated(
-                room_id,
-                pagination.per_page.into(),
-                pagination.page.into(),
-            )
+            .get_all_assets_for_room_paginated(room_id, pagination.per_page, pagination.page)
             .await?;
 
         let assets = assets.into_iter().map(asset_to_asset_resource).collect();
