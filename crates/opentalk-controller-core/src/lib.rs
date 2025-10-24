@@ -52,6 +52,7 @@ use opentalk_controller_service::{
 use opentalk_controller_service_facade::OpenTalkControllerService;
 use opentalk_controller_settings::{
     HttpTls, Monitoring, Settings, SettingsProvider, UserSearchBackend, UserSearchBackendKeycloak,
+    common::{HttpCorsAllowedOrigin, HttpCorsAllowedOrigins},
 };
 use opentalk_database::Db;
 use opentalk_inventory::InventoryProvider;
@@ -515,7 +516,7 @@ impl Controller {
             let service = Data::from(self.service);
 
             HttpServer::new(move || {
-                let cors = setup_cors();
+                let cors = setup_cors(settings_provider.clone());
 
                 // Unwraps cannot panic. Server gets stopped before dropping the Arc.
                 let inventory_provider = Data::from(inventory_provider.upgrade().unwrap());
@@ -1084,15 +1085,32 @@ fn v1_scope(
         )
 }
 
-fn setup_cors() -> Cors {
+fn setup_cors(settings_provider: SettingsProvider) -> Cors {
     use actix_web::http::{Method, header::*};
 
-    // Use a permissive CORS configuration.
-    // The HTTP API is using Bearer tokens for authentication, which are handled by the application and not the browser.
-    Cors::default()
-        .allow_any_origin()
-        .send_wildcard()
-        .allowed_header(CONTENT_TYPE)
+    let settings = settings_provider.get();
+    let frontend_base_url = &settings.frontend.base_url;
+    let cors_allowed_origins = &settings.http.cors;
+
+    let cors_allowed_origins = cors_allowed_origins
+        .allowed_origin
+        .clone()
+        .map(HttpCorsAllowedOrigins::into_vec)
+        .unwrap_or_else(|| {
+            vec![HttpCorsAllowedOrigin::try_from_url_relaxed(frontend_base_url.clone()).unwrap()]
+        });
+
+    let mut cors = Cors::default();
+
+    for allowed_origin in cors_allowed_origins {
+        cors = if allowed_origin.is_wildcard() {
+            cors.allow_any_origin()
+        } else {
+            cors.allowed_origin(&allowed_origin.header_value())
+        }
+    }
+
+    cors.allowed_header(CONTENT_TYPE)
         .allowed_header(AUTHORIZATION)
         .allowed_methods([
             Method::GET,

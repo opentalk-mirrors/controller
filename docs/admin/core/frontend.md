@@ -11,6 +11,9 @@ The section in the [configuration file](configuration.md) is called `frontend`.
 | ------------ | -------- | -------- | ------------- | ----------------------------- |
 | `base_url`   | `string` | yes      | -             | The base URL of the frontend  |
 
+Besides the usage in e.g. generating links, the `base_url` field value is also
+used in the [CORS header](frontend.md#cors-configuration) unless overridden.
+
 ### Example configuration
 
 ```toml

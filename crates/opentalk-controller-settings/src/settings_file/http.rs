@@ -4,7 +4,7 @@
 
 use serde::Deserialize;
 
-use super::HttpTls;
+use super::{HttpCors, HttpTls};
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Http {
@@ -16,4 +16,7 @@ pub struct Http {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tls: Option<HttpTls>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cors: Option<HttpCors>,
 }

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use super::HttpTls;
+use super::{HttpCors, HttpTls};
 use crate::settings_file;
 
 pub const DEFAULT_HTTP_PORT: u16 = 11311;
@@ -18,6 +18,9 @@ pub struct Http {
 
     /// The TLS configuration.
     pub tls: Option<HttpTls>,
+
+    /// The CORS configuration.
+    pub cors: HttpCors,
 }
 
 impl From<Option<settings_file::Http>> for Http {
@@ -27,11 +30,19 @@ impl From<Option<settings_file::Http>> for Http {
 }
 
 impl From<settings_file::Http> for Http {
-    fn from(settings_file::Http { addr, port, tls }: settings_file::Http) -> Self {
+    fn from(
+        settings_file::Http {
+            addr,
+            port,
+            tls,
+            cors,
+        }: settings_file::Http,
+    ) -> Self {
         Self {
             addr,
             port: port.unwrap_or(DEFAULT_HTTP_PORT),
             tls: tls.map(Into::into),
+            cors: cors.map(Into::into).unwrap_or_default(),
         }
     }
 }
@@ -42,6 +53,7 @@ impl Default for Http {
             addr: None,
             port: DEFAULT_HTTP_PORT,
             tls: None,
+            cors: HttpCors::default(),
         }
     }
 }
