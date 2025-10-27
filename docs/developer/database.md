@@ -96,7 +96,6 @@ events {
     bigint id_serial
     boolean is_adhoc
     boolean is_all_day
-    boolean is_recurring
     boolean is_time_independent
     character_varying recurrence_pattern
     integer revision
