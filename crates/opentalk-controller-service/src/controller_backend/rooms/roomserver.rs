@@ -8,6 +8,7 @@ use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::Inventory;
+use opentalk_roomserver_client::{Error, RequestTokenError};
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
     client_parameters::{ClientKind, ClientParameters, Role},
@@ -137,43 +138,40 @@ impl ControllerBackend {
                 .with_message("roomserver is not configured on this controller"));
         };
 
-        let maybe_token = client
+        match client
             .request_token(room_id, client_parameters.clone(), None)
             .await
-            .map_err(|e| {
-                log::error!("Failed to request token from roomserver for room `{room_id}`: {e}");
-
-                ApiError::internal().with_message("failed to request token from roomserver")
-            })?;
-
-        let access = match maybe_token {
-            Some(access) => access,
-            None => {
+        {
+            Ok(access) => Ok(access),
+            Err(Error::ApiError(opentalk_roomserver_client::ApiError {
+                code: RequestTokenError::RoomParametersMissing,
+                ..
+            })) => {
                 // The room is unknown to the roomserver,- resubmit the token request but include the room parameter
                 let room_parameters = self.build_room_parameters(room).await?;
 
-                let final_response = client
+                let access = client
                     .request_token(room_id, client_parameters, Some(room_parameters))
                     .await
                     .map_err(|e| {
                         log::error!("failed to request token from roomserver: {e}");
-
                         ApiError::internal().with_message("failed to request token from roomserver")
                     })?;
 
-                let Some(access) = final_response else {
-                    log::error!(
-                        "Roomserver responded with 'unknown room' despite the request containing room information"
-                    );
-                    return Err(ApiError::internal()
-                        .with_message("unable to request token from roomserver"));
-                };
-
-                access
+                Ok(access)
             }
-        };
-
-        Ok(access)
+            Err(Error::ApiError(opentalk_roomserver_client::ApiError {
+                code: RequestTokenError::Banned,
+                ..
+            })) => {
+                log::debug!("attempted to request a token for a banned user");
+                Err(ApiError::forbidden().with_message("you are banned from this room"))
+            }
+            Err(err) => {
+                log::error!("failed to request token from roomserver: {err}");
+                Err(ApiError::internal().with_message("failed to request token from roomserver"))
+            }
+        }
     }
 
     async fn build_room_parameters(
