@@ -160,6 +160,13 @@ impl ControllerBackend {
 
                 Ok(access)
             }
+            Err(Error::ApiError(opentalk_roomserver_client::ApiError {
+                code: RequestTokenError::Banned,
+                ..
+            })) => {
+                log::debug!("attempted to request a token for a banned user");
+                Err(ApiError::forbidden().with_message("you are banned from this room"))
+            }
             Err(err) => {
                 log::error!("failed to request token from roomserver: {err}");
                 Err(ApiError::internal().with_message("failed to request token from roomserver"))
