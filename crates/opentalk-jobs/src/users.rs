@@ -252,7 +252,6 @@ async fn event_replace_updated_by(
                         ends_at: None,
                         ends_at_tz: None,
                         duration_secs: None,
-                        is_recurring: None,
                         recurrence_pattern: None,
                         is_adhoc: None,
                         show_meeting_details: None,

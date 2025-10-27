@@ -46,7 +46,6 @@ async fn make_event(
             ends_at: None,
             ends_at_tz: None,
             duration_secs: None,
-            is_recurring: Some(false),
             recurrence_pattern: None,
             is_adhoc: false,
             tenant_id: tenant.id,

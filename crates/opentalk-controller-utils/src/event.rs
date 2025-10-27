@@ -55,7 +55,7 @@ pub trait EventExt {
 
 impl EventExt for Event {
     fn to_rruleset(&self) -> Result<Option<RRuleSet>, EventRRuleSetError> {
-        if !self.is_recurring.unwrap_or_default() {
+        if self.recurrence_pattern.is_none() {
             return Ok(None);
         }
 

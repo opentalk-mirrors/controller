@@ -65,9 +65,6 @@ pub struct Event {
     /// MUST be used to calculate the event instances length
     pub duration_secs: Option<i32>,
 
-    /// A flag indicating whether this is a recurring event.
-    pub is_recurring: Option<bool>,
-
     /// The recurrence pattern for recurring events.
     pub recurrence_pattern: Option<String>,
 
@@ -87,7 +84,7 @@ pub struct Event {
 impl Event {
     /// Returns the ends_at value of the first occurrence of the event
     pub fn ends_at_of_first_occurrence(&self) -> Option<(Timestamp, TimeZone)> {
-        if self.is_recurring.unwrap_or_default() {
+        if self.recurrence_pattern.is_some() {
             // Recurring events have the last occurrence of the recurrence saved in the ends_at fields
             // So we get the starts_at_dt and add the duration_secs field to it
             if let (Some(starts_at_dt), Some(dur), Some(tz)) =
