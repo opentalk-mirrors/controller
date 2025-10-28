@@ -50,9 +50,6 @@ pub struct UpdateEvent {
     /// MUST be used to calculate the event instances length
     pub duration_secs: Option<Option<i32>>,
 
-    /// A flag indicating whether this is a recurring event.
-    pub is_recurring: Option<Option<bool>>,
-
     /// The recurrence pattern for recurring events.
     pub recurrence_pattern: Option<Option<String>>,
 

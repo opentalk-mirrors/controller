@@ -435,9 +435,10 @@ impl ControllerBackend {
                 ends_at,
                 recurrence_pattern: event
                     .recurrence_pattern
+                    .as_ref()
                     .map(|s| s.parse::<RecurrencePattern>().unwrap())
                     .unwrap_or_default(),
-                type_: if event.is_recurring.unwrap_or_default() {
+                type_: if event.recurrence_pattern.is_some() {
                     EventType::Recurring
                 } else {
                     EventType::Single
@@ -535,9 +536,10 @@ impl ControllerBackend {
             ends_at,
             recurrence_pattern: event
                 .recurrence_pattern
+                .as_ref()
                 .map(|s| s.parse::<RecurrencePattern>().unwrap())
                 .unwrap_or_default(),
-            type_: if event.is_recurring.unwrap_or_default() {
+            type_: if event.recurrence_pattern.is_some() {
                 EventType::Recurring
             } else {
                 EventType::Single
@@ -771,9 +773,10 @@ impl ControllerBackend {
             ends_at,
             recurrence_pattern: event
                 .recurrence_pattern
+                .as_ref()
                 .map(|s| s.parse::<RecurrencePattern>().unwrap())
                 .unwrap_or_default(),
-            type_: if event.is_recurring.unwrap_or_default() {
+            type_: if event.recurrence_pattern.is_some() {
                 EventType::Recurring
             } else {
                 EventType::Single
@@ -1183,7 +1186,6 @@ async fn create_time_independent_event(
             ends_at: None,
             ends_at_tz: None,
             duration_secs: None,
-            is_recurring: None,
             recurrence_pattern: None,
             is_adhoc,
             show_meeting_details,
@@ -1295,7 +1297,6 @@ async fn create_time_dependent_event(
             ends_at: Some(ends_at_dt),
             ends_at_tz: Some(ends_at_tz),
             duration_secs,
-            is_recurring: Some(recurrence_pattern.is_some()),
             recurrence_pattern,
             is_adhoc,
             show_meeting_details,
@@ -1339,9 +1340,10 @@ async fn create_time_dependent_event(
             ends_at: Some(ends_at),
             recurrence_pattern: event
                 .recurrence_pattern
+                .as_ref()
                 .map(|s| s.parse::<RecurrencePattern>().unwrap())
                 .unwrap_or_default(),
-            type_: if event.is_recurring.unwrap_or_default() {
+            type_: if event.recurrence_pattern.is_some() {
                 EventType::Recurring
             } else {
                 EventType::Single
@@ -1386,7 +1388,6 @@ fn patch_event_change_to_time_dependent(
             ends_at: Some(Some(ends_at_dt)),
             ends_at_tz: Some(Some(ends_at_tz)),
             duration_secs: Some(duration_secs),
-            is_recurring: Some(Some(recurrence_pattern.is_some())),
             recurrence_pattern: Some(recurrence_pattern),
             is_adhoc: patch.is_adhoc,
             show_meeting_details: patch.show_meeting_details,
@@ -1465,7 +1466,7 @@ async fn patch_time_independent_event(
         return Err(ApiError::unprocessable_entities(entries).into());
     }
 
-    if event.is_recurring.unwrap_or_default() {
+    if event.recurrence_pattern.is_some() {
         // delete all exceptions as the time dependence has been removed
         inventory
             .delete_event_exceptions_for_event(event.id)
@@ -1484,7 +1485,6 @@ async fn patch_time_independent_event(
         ends_at: Some(None),
         ends_at_tz: Some(None),
         duration_secs: Some(None),
-        is_recurring: Some(None),
         recurrence_pattern: Some(None),
         is_adhoc: patch.is_adhoc,
         show_meeting_details: patch.show_meeting_details,
@@ -1515,7 +1515,7 @@ async fn patch_time_dependent_event(
     let (duration_secs, ends_at_dt, ends_at_tz) =
         parse_event_dt_params(is_all_day, starts_at, ends_at, &recurrence_pattern)?;
 
-    if event.is_recurring.unwrap_or_default() {
+    if event.recurrence_pattern.is_some() {
         // Delete all exceptions for recurring events as the patch may modify fields that influence the
         // timestamps at which instances (occurrences) are generated, making it impossible to match the
         // exceptions to instances
@@ -1536,7 +1536,6 @@ async fn patch_time_dependent_event(
         ends_at: Some(Some(ends_at_dt)),
         ends_at_tz: Some(Some(ends_at_tz)),
         duration_secs: Some(duration_secs),
-        is_recurring: Some(Some(recurrence_pattern.is_some())),
         is_adhoc: patch.is_adhoc,
         recurrence_pattern: Some(recurrence_pattern),
         show_meeting_details: patch.show_meeting_details,

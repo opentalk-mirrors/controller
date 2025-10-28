@@ -194,7 +194,6 @@ pub struct Event {
     /// MUST be used to calculate the event instances length
     pub duration_secs: Option<i32>,
 
-    pub is_recurring: Option<bool>,
     pub recurrence_pattern: Option<String>,
 
     pub is_adhoc: bool,
@@ -225,7 +224,6 @@ impl From<Event> for opentalk_inventory::Event {
             ends_at,
             ends_at_tz,
             duration_secs,
-            is_recurring,
             recurrence_pattern,
             is_adhoc,
             tenant_id,
@@ -250,7 +248,6 @@ impl From<Event> for opentalk_inventory::Event {
             ends_at: ends_at.map(Into::into),
             ends_at_tz,
             duration_secs,
-            is_recurring,
             recurrence_pattern,
             is_adhoc,
             tenant_id,
@@ -285,7 +282,6 @@ impl From<opentalk_inventory::Event> for Event {
             ends_at,
             ends_at_tz,
             duration_secs,
-            is_recurring,
             recurrence_pattern,
             is_adhoc,
             tenant_id,
@@ -310,7 +306,6 @@ impl From<opentalk_inventory::Event> for Event {
             ends_at: ends_at.map(Into::into),
             ends_at_tz,
             duration_secs,
-            is_recurring,
             recurrence_pattern,
             is_adhoc,
             tenant_id,
@@ -329,7 +324,7 @@ impl From<&opentalk_inventory::Event> for Event {
 impl Event {
     /// Returns the ends_at value of the first occurrence of the event
     pub fn ends_at_of_first_occurrence(&self) -> Option<(DateTime<Utc>, TimeZone)> {
-        if self.is_recurring.unwrap_or_default() {
+        if self.recurrence_pattern.is_some() {
             // Recurring events have the last occurrence of the recurrence saved in the ends_at fields
             // So we get the starts_at_dt and add the duration_secs field to it
             if let (Some(starts_at_dt), Some(dur), Some(tz)) =
@@ -425,7 +420,7 @@ impl Event {
             .inner_join(users::table.on(users::id.eq(events::created_by)))
             .select((events::id, events::room))
             .filter(events::ends_at.le(date))
-            .filter(events::is_recurring.ne(true))
+            .filter(events::recurrence_pattern.is_null())
             .filter(users::disabled_since.is_null())
             .load(conn)
             .await
@@ -468,7 +463,6 @@ impl Event {
         events::table
             .inner_join(users::table.on(users::id.eq(events::created_by)))
             .select(events::all_columns)
-            .filter(events::is_recurring.eq(true))
             .filter(
                 events::recurrence_pattern
                     .ilike("%UNTIL%")
@@ -760,7 +754,7 @@ impl Event {
         for (event, invite, room, sip_config, is_favorite, shared_folders, tariff) in
             events_with_invite_and_room
         {
-            let exceptions = if event.is_recurring.unwrap_or_default() {
+            let exceptions = if event.recurrence_pattern.is_some() {
                 event_exceptions::table
                     .filter(event_exceptions::event_id.eq(event.id))
                     .load(conn)
@@ -857,7 +851,6 @@ pub struct NewEvent {
     pub ends_at: Option<DateTime<Tz>>,
     pub ends_at_tz: Option<TimeZone>,
     pub duration_secs: Option<i32>,
-    pub is_recurring: Option<bool>,
     pub recurrence_pattern: Option<String>,
     pub is_adhoc: bool,
     pub tenant_id: TenantId,
@@ -879,7 +872,6 @@ impl From<opentalk_inventory::NewEvent> for NewEvent {
             ends_at,
             ends_at_tz,
             duration_secs,
-            is_recurring,
             recurrence_pattern,
             is_adhoc,
             tenant_id,
@@ -899,7 +891,6 @@ impl From<opentalk_inventory::NewEvent> for NewEvent {
             ends_at,
             ends_at_tz,
             duration_secs,
-            is_recurring,
             recurrence_pattern,
             is_adhoc,
             tenant_id,
@@ -933,7 +924,6 @@ pub struct UpdateEvent {
     pub ends_at: Option<Option<DateTime<Tz>>>,
     pub ends_at_tz: Option<Option<TimeZone>>,
     pub duration_secs: Option<Option<i32>>,
-    pub is_recurring: Option<Option<bool>>,
     pub recurrence_pattern: Option<Option<String>>,
     pub is_adhoc: Option<bool>,
     pub show_meeting_details: Option<bool>,
@@ -953,7 +943,6 @@ impl From<opentalk_inventory::UpdateEvent> for UpdateEvent {
             ends_at,
             ends_at_tz,
             duration_secs,
-            is_recurring,
             recurrence_pattern,
             is_adhoc,
             show_meeting_details,
@@ -971,7 +960,6 @@ impl From<opentalk_inventory::UpdateEvent> for UpdateEvent {
             ends_at,
             ends_at_tz,
             duration_secs,
-            is_recurring,
             recurrence_pattern,
             is_adhoc,
             show_meeting_details,

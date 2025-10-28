@@ -149,7 +149,6 @@ diesel::table! {
         #[max_length = 255]
         ends_at_tz -> Nullable<Varchar>,
         duration_secs -> Nullable<Int4>,
-        is_recurring -> Nullable<Bool>,
         #[max_length = 4094]
         recurrence_pattern -> Nullable<Varchar>,
         is_adhoc -> Bool,

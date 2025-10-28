@@ -404,7 +404,7 @@ impl ControllerBackend {
             .get_event_with_related_items(current_user.id, event_id)
             .await?;
 
-        if !event.is_recurring.unwrap_or_default() {
+        if event.recurrence_pattern.is_none() {
             return Err(ApiError::not_found().into());
         }
 
