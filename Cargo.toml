@@ -134,7 +134,7 @@ opentalk-types-signaling-subroom-audio = "0.38.0"
 opentalk-types-signaling-timer = "0.38.0"
 opentalk-types-signaling-training-participation-report = "0.9.0"
 opentalk-types-signaling-whiteboard = "0.38.0"
-opentalk-version = "0.2.0"
+opentalk-version = "0.3.0"
 opentelemetry = { version = "0.29.1", default-features = false, features = [
   "metrics",
   "trace",
