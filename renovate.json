@@ -16,17 +16,10 @@
     },
     {
       "matchPackageNames": [
-        "/^opentalk-types/"
+        "/^opentalk/"
       ],
-      "groupName": "opentalk-types",
-      "groupSlug": "opentalk-types"
-    },
-    {
-      "matchPackageNames": [
-        "/^opentalk-roomserver/"
-      ],
-      "groupName": "opentalk-roomserver",
-      "groupSlug": "opentalk-roomserver"
+      "groupName": "opentalk",
+      "groupSlug": "opentalk"
     },
     {
       "matchPackageNames": [
