@@ -8,28 +8,21 @@
   ],
   "packageRules": [
     {
-      "matchPackagePatterns": [
+      "matchPackageNames": [
         "opentelemetry*"
       ],
       "groupName": "opentelemetry-rs",
       "groupSlug": "opentelemetry-rs"
     },
     {
-      "matchPackagePatterns": [
-        "/^opentalk-types/"
+      "matchPackageNames": [
+        "/^opentalk/"
       ],
-      "groupName": "opentalk-types",
-      "groupSlug": "opentalk-types"
+      "groupName": "opentalk",
+      "groupSlug": "opentalk"
     },
     {
-      "matchPackagePatterns": [
-        "/^opentalk-roomserver/"
-      ],
-      "groupName": "opentalk-roomserver",
-      "groupSlug": "opentalk-roomserver"
-    },
-    {
-      "matchPackagePatterns": [
+      "matchPackageNames": [
         "/^livekit/"
       ],
       "groupName": "livekit",
