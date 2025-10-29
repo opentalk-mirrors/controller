@@ -17,3 +17,6 @@ test-group = 'serial'
 [[profile.default.overrides]]
 filter = 'test(/^expiring_data_hash_map::/)'
 test-group = 'serial'
+
+[profile.ci.junit]
+path = "junit.xml"
