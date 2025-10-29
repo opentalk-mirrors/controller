@@ -195,31 +195,31 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn create_group() {
+    async fn serial_test_create_group() {
         test_common::create_group(&mut storage().await).await
     }
 
     #[tokio::test]
     #[serial]
-    async fn add_participant() {
+    async fn serial_test_add_participant() {
         test_common::add_participant(&mut storage().await).await
     }
 
     #[tokio::test]
     #[serial]
-    async fn update_participant() {
+    async fn serial_test_update_participant() {
         test_common::update_participant(&mut storage().await).await
     }
 
     #[tokio::test]
     #[serial]
-    async fn remove_participant() {
+    async fn serial_test_remove_participant() {
         test_common::remove_participant(&mut storage().await).await
     }
 
     #[tokio::test]
     #[serial]
-    async fn manage_groups() {
+    async fn serial_test_manage_groups() {
         test_common::manage_groups(&mut storage().await).await
     }
 }

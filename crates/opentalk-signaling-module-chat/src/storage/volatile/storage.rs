@@ -413,61 +413,61 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn last_seen_global() {
+    async fn serial_test_last_seen_global() {
         test_common::last_seen_global(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn last_seen_global_is_personal() {
+    async fn serial_test_last_seen_global_is_personal() {
         test_common::last_seen_global_is_personal(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn last_seen_private() {
+    async fn serial_test_last_seen_private() {
         test_common::last_seen_private(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn last_seen_private_is_personal() {
+    async fn serial_test_last_seen_private_is_personal() {
         test_common::last_seen_private_is_personal(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn room_chat_history() {
+    async fn serial_test_room_chat_history() {
         test_common::room_chat_history(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn group_chat_history() {
+    async fn serial_test_group_chat_history() {
         test_common::group_chat_history(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn private_chat_history() {
+    async fn serial_test_private_chat_history() {
         test_common::private_chat_history(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn search_room_chat_history() {
+    async fn serial_test_search_room_chat_history() {
         test_common::search_room_chat_history(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn search_group_chat_history() {
+    async fn serial_test_search_group_chat_history() {
         test_common::search_group_chat_history(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn search_private_chat_history() {
+    async fn serial_test_search_private_chat_history() {
         test_common::search_private_chat_history(&mut storage().await).await;
     }
 }

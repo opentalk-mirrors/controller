@@ -489,7 +489,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn add_single() {
+    async fn serial_test_add_single() {
         let (_id, mut db_conn) = init_empty_resource().await;
 
         let operations = vec![ModuleResourceOperation::Add {
@@ -516,7 +516,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn empty_path() {
+    async fn serial_test_empty_path() {
         let (_id, mut db_conn) = init_empty_resource().await;
 
         let operations = vec![ModuleResourceOperation::Add {
@@ -540,7 +540,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn add_invalid() {
+    async fn serial_test_add_invalid() {
         let (_id, mut db_conn) = init_empty_resource().await;
 
         let operations = vec![ModuleResourceOperation::Add {
@@ -564,7 +564,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn add_a_lot() {
+    async fn serial_test_add_a_lot() {
         let (_id, mut db_conn) = init_empty_resource().await;
 
         let mut json_compare = json!({});
@@ -599,7 +599,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn add_single_empty() {
+    async fn serial_test_add_single_empty() {
         let (_id, mut db_conn) = init_empty_resource().await;
 
         let operations = vec![ModuleResourceOperation::Add {
@@ -621,7 +621,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn add_nested() {
+    async fn serial_test_add_nested() {
         let (_id, mut db_conn) = init_empty_resource().await;
 
         let operations = vec![
@@ -656,7 +656,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn add_to_array() {
+    async fn serial_test_add_to_array() {
         let initial_json = json!({
             "foo": ["a", "c"],
         });
@@ -687,7 +687,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn add_array() {
+    async fn serial_test_add_array() {
         let (_id, mut db_conn) = init_empty_resource().await;
 
         let operations = vec![ModuleResourceOperation::Add {
@@ -714,7 +714,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn add_multi() {
+    async fn serial_test_add_multi() {
         let (_id, mut db_conn) = init_empty_resource().await;
 
         let operations = vec![
@@ -748,7 +748,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn update_multi_add_with_update() {
+    async fn serial_test_update_multi_add_with_update() {
         let (_id, mut db_conn) = init_empty_resource().await;
 
         let operations = vec![
@@ -786,7 +786,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn simple_remove() {
+    async fn serial_test_simple_remove() {
         let initial_json = json!({
             "foo": 1,
             "bar": 2
@@ -817,7 +817,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn remove_by_index() {
+    async fn serial_test_remove_by_index() {
         let initial_json = json!({
             "foo": ["a", "b", "c"],
             "bar": {
@@ -859,7 +859,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn remove_and_add_with_numbers() {
+    async fn serial_test_remove_and_add_with_numbers() {
         let initial_json = json!({
             "foo": ["a", "b", "c"],
             "bar": {
@@ -906,7 +906,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn simple_move() {
+    async fn serial_test_simple_move() {
         let initial_json = json!({
             "foo": { "qux": 1 },
             "bar": {
@@ -944,7 +944,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn move_empty() {
+    async fn serial_test_move_empty() {
         let initial_json = json!({
             "foo": { "qux": 1 },
             "bar": {
@@ -975,7 +975,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn move_into_child() {
+    async fn serial_test_move_into_child() {
         let initial_json = json!({
             "foo": {
                 "bar": 42
@@ -1007,7 +1007,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn move_value_inside_array() {
+    async fn serial_test_move_value_inside_array() {
         let initial_json = json!({ "foo": [ "all", "grass", "cows", "eat" ] });
 
         let (_id, mut db_conn) = init_resource(initial_json).await;
@@ -1034,7 +1034,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn move_array_value() {
+    async fn serial_test_move_array_value() {
         let initial_json = json!({
             "foo": ["a", "b", "c"],
             "bar": {
@@ -1073,7 +1073,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn simple_copy() {
+    async fn serial_test_simple_copy() {
         let initial_json = json!({
             "foo": { "qux": 1 },
             "bar": {
@@ -1111,7 +1111,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn simple_test() {
+    async fn serial_test_simple_test() {
         let initial_json = json!({
             "foo": 1,
             "bar": 2,
@@ -1144,7 +1144,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn simple_test_error() {
+    async fn serial_test_simple_test_error() {
         let initial_json = json!({
             "foo": 1,
             "bar": 2,
@@ -1173,7 +1173,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn value_is_kept_on_error() {
+    async fn serial_test_value_is_kept_on_error() {
         let initial_json = json!({
             "foo": 1,
             "bar": 2,
@@ -1219,7 +1219,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn test_object_value() {
+    async fn serial_test_object_value() {
         let initial_json = json!({
         "foo": {
             "baz": 1,
@@ -1259,7 +1259,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn simple_replace() {
+    async fn serial_test_simple_replace() {
         let initial_json = json!({
             "foo": 1,
             "bar": 2,
@@ -1292,7 +1292,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn replace_array_index() {
+    async fn serial_test_replace_array_index() {
         let initial_json = json!({
             "foo": ["x", "b", "c"],
         });
@@ -1323,7 +1323,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn replace_invalid_array_index() {
+    async fn serial_test_replace_invalid_array_index() {
         let initial_json = json!({
             "foo": ["a", "b", "c"],
         });
@@ -1351,7 +1351,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn replace_nonexistent_field() {
+    async fn serial_test_replace_nonexistent_field() {
         let initial_json = json!({
             "foo": 1,
         });
@@ -1379,7 +1379,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn test_filter() {
+    async fn serial_test_filter() {
         let db_ctx = opentalk_test_util::database::DatabaseContext::new(false).await;
 
         let mut db_conn = db_ctx.db.get_conn().await.unwrap();

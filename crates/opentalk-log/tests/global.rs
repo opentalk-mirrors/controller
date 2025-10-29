@@ -19,7 +19,7 @@ static LOGGER: OnceLock<DummyLogger> = OnceLock::new();
 
 #[test]
 #[serial]
-fn log_general() {
+fn serial_test_log_general() {
     initialize_logging();
 
     log!(Level::Warn, "Hello, {}", "world");
@@ -32,7 +32,7 @@ fn log_general() {
 
 #[test]
 #[serial]
-fn log_multiple() {
+fn serial_test_log_multiple() {
     initialize_logging();
 
     error!("Hello, {}", "error");
@@ -55,7 +55,7 @@ fn log_multiple() {
 
 #[test]
 #[serial]
-fn log_error() {
+fn serial_test_log_error() {
     initialize_logging();
 
     error!("Hello, {}", "error");
@@ -68,7 +68,7 @@ fn log_error() {
 
 #[test]
 #[serial]
-fn log_warn() {
+fn serial_test_log_warn() {
     initialize_logging();
 
     warn!("Hello, {}", "warn");
@@ -81,7 +81,7 @@ fn log_warn() {
 
 #[test]
 #[serial]
-fn log_info() {
+fn serial_test_log_info() {
     initialize_logging();
 
     info!("Hello, {}", "info");
@@ -94,7 +94,7 @@ fn log_info() {
 
 #[test]
 #[serial]
-fn log_debug() {
+fn serial_test_log_debug() {
     initialize_logging();
 
     debug!("Hello, {}", "debug");
@@ -107,7 +107,7 @@ fn log_debug() {
 
 #[test]
 #[serial]
-fn log_trace() {
+fn serial_test_log_trace() {
     initialize_logging();
 
     trace!("Hello, {}", "trace");

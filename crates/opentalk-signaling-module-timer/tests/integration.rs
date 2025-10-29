@@ -154,7 +154,7 @@ async fn start_timer(
 
 #[actix_rt::test]
 #[serial]
-async fn simple_stopwatch() {
+async fn serial_test_simple_stopwatch() {
     let test_ctx = TestContext::default().await;
 
     let (mut module_tester, _user1, _user2) = common::setup_users::<Timer>(&test_ctx, ()).await;
@@ -171,7 +171,7 @@ async fn simple_stopwatch() {
 
 #[actix_rt::test]
 #[serial]
-async fn coffee_break() {
+async fn serial_test_coffee_break() {
     let test_ctx = TestContext::default().await;
 
     let (mut module_tester, _user1, _user2) = common::setup_users::<Timer>(&test_ctx, ()).await;
@@ -188,13 +188,13 @@ async fn coffee_break() {
 
 #[actix_rt::test]
 #[serial]
-async fn auto_stop_three_seconds() {
+async fn serial_test_auto_stop_three_seconds() {
     simple_countdown(3).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn auto_stop_zero_seconds() {
+async fn serial_test_auto_stop_zero_seconds() {
     simple_countdown(0).await
 }
 
@@ -242,7 +242,7 @@ async fn simple_countdown(duration: u64) {
 
 #[actix_rt::test]
 #[serial]
-async fn manual_stop() {
+async fn serial_test_manual_stop() {
     let test_ctx = TestContext::default().await;
 
     let (mut module_tester, _user1, _user2) = common::setup_users::<Timer>(&test_ctx, ()).await;
@@ -295,7 +295,7 @@ async fn manual_stop() {
 
 #[actix_rt::test]
 #[serial]
-async fn ready_status() {
+async fn serial_test_ready_status() {
     let test_ctx = TestContext::default().await;
 
     let (mut module_tester, _user1, _user2) = common::setup_users::<Timer>(&test_ctx, ()).await;
@@ -339,7 +339,7 @@ async fn ready_status() {
 
 #[actix_rt::test]
 #[serial]
-async fn ready_status_toggle() {
+async fn serial_test_ready_status_toggle() {
     let test_ctx = TestContext::default().await;
 
     let (mut module_tester, _user1, _user2) = common::setup_users::<Timer>(&test_ctx, ()).await;
@@ -412,7 +412,7 @@ async fn ready_status_toggle() {
 
 #[actix_rt::test]
 #[serial]
-async fn timer_already_active() {
+async fn serial_test_timer_already_active() {
     let test_ctx = TestContext::default().await;
 
     let (mut module_tester, _user1, _user2) = common::setup_users::<Timer>(&test_ctx, ()).await;

@@ -474,7 +474,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn test_adapter() {
+    async fn serial_test_adapter() {
         use casbin::prelude::*;
         let memory_adapter = MemoryAdapter::default();
 

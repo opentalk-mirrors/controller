@@ -88,7 +88,7 @@ mod tests {
     /// Once the test is finished, all variables are restored.
     #[test]
     #[serial]
-    fn settings_env_vars_overwrite_config() -> Result<()> {
+    fn serial_test_settings_env_vars_overwrite_config() -> Result<()> {
         // backup current environment variables
         let backup_vars = backup_env_variables();
 

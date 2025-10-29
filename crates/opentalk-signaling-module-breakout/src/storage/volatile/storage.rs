@@ -57,13 +57,13 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn config_unlimited() {
+    async fn serial_test_config_unlimited() {
         test_common::config_unlimited(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn config_expiring() {
+    async fn serial_test_config_expiring() {
         test_common::config_expiring(&mut storage().await).await;
     }
 }

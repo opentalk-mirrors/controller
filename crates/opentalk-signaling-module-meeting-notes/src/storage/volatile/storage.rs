@@ -121,19 +121,19 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn group() {
+    async fn serial_test_group() {
         test_common::group(&mut storage()).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn init() {
+    async fn serial_test_init() {
         test_common::init(&mut storage()).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn session() {
+    async fn serial_test_session() {
         test_common::session(&mut storage()).await;
     }
 }

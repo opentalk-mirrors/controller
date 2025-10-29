@@ -206,11 +206,13 @@ where
 #[cfg(test)]
 mod tests {
     use pretty_assertions::assert_eq;
+    use serial_test::serial;
 
     use super::*;
 
     #[tokio::test]
-    async fn test_lock_unlock_and_relock() {
+    #[serial]
+    async fn serial_test_lock_unlock_and_relock() {
         let redis_url =
             std::env::var("REDIS_ADDR").unwrap_or_else(|_| "redis://localhost:6379/".to_owned());
         let redis = redis::Client::open(redis_url).expect("Invalid redis url");
@@ -231,7 +233,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_double_locking() {
+    #[serial]
+    async fn serial_test_double_locking() {
         let redis_url =
             std::env::var("REDIS_ADDR").unwrap_or_else(|_| "redis://localhost:6379/".to_owned());
         let redis = redis::Client::open(redis_url).expect("Invalid redis url");

@@ -25,7 +25,7 @@ use serial_test::serial;
 
 #[actix_rt::test]
 #[serial]
-async fn last_seen_timestamps() {
+async fn serial_test_last_seen_timestamps() {
     let test_ctx = TestContext::default().await;
 
     let user1 = test_ctx
@@ -270,7 +270,7 @@ async fn last_seen_timestamps() {
 
 #[actix_rt::test]
 #[serial]
-async fn common_groups_on_join() {
+async fn serial_test_common_groups_on_join() {
     let test_ctx = TestContext::default().await;
 
     let user1 = test_ctx
@@ -452,7 +452,7 @@ async fn common_groups_on_join() {
 
 #[actix_rt::test]
 #[serial]
-async fn private_chat_history_on_join() {
+async fn serial_test_private_chat_history_on_join() {
     let test_ctx = TestContext::default().await;
 
     let user1 = test_ctx
@@ -673,7 +673,7 @@ async fn private_chat_history_on_join() {
 
 #[actix_rt::test]
 #[serial]
-async fn invalid_search_term_length() {
+async fn serial_test_invalid_search_term_length() {
     let test_ctx = TestContext::default().await;
 
     let user1 = test_ctx

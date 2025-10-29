@@ -235,31 +235,31 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn user_bans() {
+    async fn serial_test_user_bans() {
         test_common::user_bans(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn waiting_room_enabled_flag() {
+    async fn serial_test_waiting_room_enabled_flag() {
         test_common::waiting_room_enabled_flag(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn raise_hands_enabled_flag() {
+    async fn serial_test_raise_hands_enabled_flag() {
         test_common::raise_hands_enabled_flag(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn waiting_room_participants() {
+    async fn serial_test_waiting_room_participants() {
         test_common::waiting_room_participants(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn waiting_room_accepted_participants() {
+    async fn serial_test_waiting_room_accepted_participants() {
         test_common::waiting_room_accepted_participants(&mut storage().await).await;
     }
 }

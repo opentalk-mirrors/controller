@@ -86,7 +86,7 @@ async fn update_invite_status(
 
 #[tokio::test]
 #[serial]
-async fn test() {
+async fn serial_test_test() {
     let db_ctx = opentalk_test_util::database::DatabaseContext::new(true).await;
 
     let mut conn = db_ctx.db.get_conn().await.unwrap();
@@ -292,7 +292,7 @@ async fn test() {
 
 #[tokio::test]
 #[serial]
-async fn get_events_invite_filter() {
+async fn serial_test_get_events_invite_filter() {
     let db_ctx = opentalk_test_util::database::DatabaseContext::new(true).await;
 
     let mut conn = db_ctx.db.get_conn().await.unwrap();
@@ -553,7 +553,7 @@ async fn get_events_invite_filter() {
 
 #[tokio::test]
 #[serial]
-async fn get_event_invites() {
+async fn serial_test_get_event_invites() {
     let db_ctx = opentalk_test_util::database::DatabaseContext::new(true).await;
 
     let mut conn = db_ctx.db.get_conn().await.unwrap();
@@ -632,7 +632,7 @@ async fn get_event_invites() {
 
 #[tokio::test]
 #[serial]
-async fn get_event_adhoc() {
+async fn serial_test_get_event_adhoc() {
     let db_ctx = opentalk_test_util::database::DatabaseContext::new(true).await;
 
     let mut conn = db_ctx.db.get_conn().await.unwrap();
@@ -713,7 +713,7 @@ async fn get_event_adhoc() {
 
 #[tokio::test]
 #[serial]
-async fn get_event_time_independent() {
+async fn serial_test_get_event_time_independent() {
     let db_ctx = opentalk_test_util::database::DatabaseContext::new(true).await;
 
     let mut conn = db_ctx.db.get_conn().await.unwrap();
@@ -796,7 +796,7 @@ async fn get_event_time_independent() {
 
 #[tokio::test]
 #[serial]
-async fn get_event_min_max_time() {
+async fn serial_test_get_event_min_max_time() {
     let db_ctx = opentalk_test_util::database::DatabaseContext::new(true).await;
 
     let mut conn = db_ctx.db.get_conn().await.unwrap();

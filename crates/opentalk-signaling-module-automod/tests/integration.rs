@@ -17,7 +17,7 @@ use serial_test::serial;
 
 #[actix_rt::test]
 #[serial]
-async fn reject_start_empty_allow_or_playlist() {
+async fn serial_test_reject_start_empty_allow_or_playlist() {
     let test_ctx = TestContext::default().await;
     let (mut module_tester, _user1, _user2) =
         common::setup_users::<automod::Automod>(&test_ctx, ()).await;
@@ -57,7 +57,7 @@ async fn reject_start_empty_allow_or_playlist() {
 
 #[actix_rt::test]
 #[serial]
-async fn reject_start_invalid_allow_list() {
+async fn serial_test_reject_start_invalid_allow_list() {
     let test_ctx = TestContext::default().await;
     let (mut module_tester, _user1, _user2) =
         common::setup_users::<automod::Automod>(&test_ctx, ()).await;
@@ -101,7 +101,7 @@ async fn reject_start_invalid_allow_list() {
 
 #[actix_rt::test]
 #[serial]
-async fn reject_start_invalid_allow_list_with_some_correct() {
+async fn serial_test_reject_start_invalid_allow_list_with_some_correct() {
     let test_ctx = TestContext::default().await;
     let (mut module_tester, _user1, _user2) =
         common::setup_users::<automod::Automod>(&test_ctx, ()).await;
@@ -147,7 +147,7 @@ async fn reject_start_invalid_allow_list_with_some_correct() {
 
 #[actix_rt::test]
 #[serial]
-async fn reject_start_if_session_already_running() {
+async fn serial_test_reject_start_if_session_already_running() {
     let test_ctx = TestContext::default().await;
     let (mut module_tester, _user1, _user2) =
         common::setup_users::<automod::Automod>(&test_ctx, ()).await;
@@ -219,7 +219,7 @@ async fn reject_start_if_session_already_running() {
 
 #[actix_rt::test]
 #[serial]
-async fn accept_valid_edit() {
+async fn serial_test_accept_valid_edit() {
     let test_ctx = TestContext::default().await;
     let (mut module_tester, _user1, _user2) =
         common::setup_users::<automod::Automod>(&test_ctx, ()).await;
@@ -284,7 +284,7 @@ async fn accept_valid_edit() {
 
 #[actix_rt::test]
 #[serial]
-async fn reject_invalid_edit() {
+async fn serial_test_reject_invalid_edit() {
     let test_ctx = TestContext::default().await;
     let (mut module_tester, _user1, _user2) =
         common::setup_users::<automod::Automod>(&test_ctx, ()).await;
@@ -349,25 +349,25 @@ async fn reject_invalid_edit() {
 
 #[actix_rt::test]
 #[serial]
-async fn auto_append_playlist() {
+async fn serial_test_auto_append_playlist() {
     auto_append(SelectionStrategy::Playlist).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn auto_append_random() {
+async fn serial_test_auto_append_random() {
     auto_append(SelectionStrategy::Random).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn auto_append_nomination() {
+async fn serial_test_auto_append_nomination() {
     auto_append(SelectionStrategy::Nomination).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn auto_append_none() {
+async fn serial_test_auto_append_none() {
     auto_append(SelectionStrategy::None).await
 }
 
@@ -475,7 +475,7 @@ async fn auto_append(selection_strategy: SelectionStrategy) {
 
 #[actix_rt::test]
 #[serial]
-async fn full_run_playlist() {
+async fn serial_test_full_run_playlist() {
     let test_ctx = TestContext::default().await;
     let (mut module_tester, _user1, _user2) =
         common::setup_users::<automod::Automod>(&test_ctx, ()).await;
@@ -668,7 +668,7 @@ async fn full_run_playlist() {
 
 #[actix_rt::test]
 #[serial]
-async fn on_leaving_sends_remaning_update() {
+async fn serial_test_on_leaving_sends_remaning_update() {
     let test_ctx = TestContext::default().await;
     let (mut module_tester, _user1, _user2) =
         common::setup_users::<automod::Automod>(&test_ctx, ()).await;
@@ -788,7 +788,7 @@ async fn on_leaving_sends_remaning_update() {
 
 #[actix_rt::test]
 #[serial]
-async fn skipping_last_speaker_finishes_the_session() {
+async fn serial_test_skipping_last_speaker_finishes_the_session() {
     let test_ctx = TestContext::default().await;
     let (mut module_tester, _user1, _user2) =
         common::setup_users::<automod::Automod>(&test_ctx, ()).await;

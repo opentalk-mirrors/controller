@@ -139,19 +139,19 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn streams() {
+    async fn serial_test_streams() {
         test_common::streams(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn streams_contain_status() {
+    async fn serial_test_streams_contain_status() {
         test_common::streams_contain_status(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn update_streams_status() {
+    async fn serial_test_update_streams_status() {
         test_common::update_streams_status(&mut storage().await).await;
     }
 }

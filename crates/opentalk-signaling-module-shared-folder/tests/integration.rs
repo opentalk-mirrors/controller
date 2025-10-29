@@ -81,7 +81,7 @@ async fn make_shared_folder(inventory: &mut dyn Inventory, event_id: EventId) ->
 
 #[actix_rt::test]
 #[serial]
-async fn room_without_event() {
+async fn serial_test_room_without_event() {
     let test_ctx = TestContext::default().await;
 
     let user1 = test_ctx
@@ -164,7 +164,7 @@ async fn room_without_event() {
 
 #[actix_rt::test]
 #[serial]
-async fn room_with_event_but_no_shared_folder() {
+async fn serial_test_room_with_event_but_no_shared_folder() {
     let test_ctx = TestContext::default().await;
 
     let user1 = test_ctx
@@ -265,7 +265,7 @@ async fn room_with_event_but_no_shared_folder() {
 
 #[actix_rt::test]
 #[serial]
-async fn room_with_event_and_shared_folder() {
+async fn serial_test_room_with_event_and_shared_folder() {
     let test_ctx = TestContext::default().await;
 
     let user1 = test_ctx

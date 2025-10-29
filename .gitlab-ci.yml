@@ -233,7 +233,7 @@ test:cargo_test:
   script:
     - RUSTFLAGS="-C instrument-coverage -C link-arg=-fuse-ld=lld"
       LLVM_PROFILE_FILE="$(pwd)/target/coverage/raw/coverage-%p-%m.profraw"
-      cargo test --workspace --locked
+      cargo nextest run --workspace --locked
 
     # Extract code coverage data
     - grcov target/coverage/raw
