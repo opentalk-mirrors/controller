@@ -72,6 +72,7 @@ pub(crate) trait TrainingParticipationReportStorage: ControlStorageEvent {
         report_state: TrainingReportState,
     ) -> Result<(), SignalingModuleError>;
 
+    #[allow(dead_code)]
     async fn get_initial_checkpoint_delay(
         &mut self,
         room: RoomId,
@@ -106,7 +107,7 @@ pub(crate) trait TrainingParticipationReportStorage: ControlStorageEvent {
         timestamp: Timestamp,
     ) -> Result<(), SignalingModuleError>;
 
-    async fn get_recorded_presence_state(
+    async fn get_participation_logging_state(
         &mut self,
         room: RoomId,
         participant: ParticipantId,

@@ -164,14 +164,14 @@ impl TrainingParticipationReportStorage for VolatileStaticMemoryStorage {
             .record_presence_confirmation(room, participant, timestamp)
     }
 
-    async fn get_recorded_presence_state(
+    async fn get_participation_logging_state(
         &mut self,
         room: RoomId,
         participant: ParticipantId,
     ) -> Result<ParticipationLoggingState, SignalingModuleError> {
         state()
             .read()
-            .get_recorded_presence_state(room, participant)
+            .get_participation_logging_state(room, participant)
     }
 }
 

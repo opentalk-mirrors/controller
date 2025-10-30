@@ -41,7 +41,6 @@ use opentalk_signaling_core::{
         self, ControlStorageProvider,
         storage::{
             ControlStorage, ControlStorageParticipantAttributes as _, DISPLAY_NAME, IS_PRESENT,
-            IS_ROOM_OWNER,
         },
     },
 };
@@ -51,7 +50,10 @@ use opentalk_types_common::{
     modules::ModuleId,
     rooms::RoomId,
     time::{TimeZone, Timestamp},
-    training_participation_report::{TimeRange, TrainingParticipationReportParameterSet},
+    training_participation_report::{
+        SECONDS_PER_MINUTE, TimeRange, TimeRangeStart, TimeRangeWindow,
+        TrainingParticipationReportParameterSet,
+    },
     users::{DisplayName, UserId},
 };
 use opentalk_types_signaling::ParticipantId;
@@ -77,14 +79,13 @@ mod template;
 
 const DEFAULT_TEMPLATE: &str = include_str!("training_participation_report.typ");
 
-const SECONDS_PER_MINUTE: u64 = 60;
 const DEFAULT_INITIAL_CHECKPOINT_DELAY: TimeRange = TimeRange {
-    after: 10 * SECONDS_PER_MINUTE,
-    within: 20 * SECONDS_PER_MINUTE,
+    after: TimeRangeStart::from_i64_clamped(10 * SECONDS_PER_MINUTE),
+    within: TimeRangeWindow::from_i64_clamped(20 * SECONDS_PER_MINUTE),
 };
 const DEFAULT_CHECKPOINT_INTERVAL: TimeRange = TimeRange {
-    after: (60 + 45) * SECONDS_PER_MINUTE,
-    within: 30 * SECONDS_PER_MINUTE,
+    after: TimeRangeStart::from_i64_clamped((60 + 45) * SECONDS_PER_MINUTE),
+    within: TimeRangeWindow::from_i64_clamped(30 * SECONDS_PER_MINUTE),
 };
 
 /// An event queued by the runner for itself to handle a timeout
@@ -99,13 +100,13 @@ pub struct TrainingParticipationReport {
     participant: ParticipantId,
     inventory_provider: Arc<dyn InventoryProvider>,
     storage: Arc<ObjectStorage>,
-    room_owner_data: Option<RoomOwnerData>,
+    checkpoint_runner_data: Option<CheckpointRunnerData>,
+    is_room_owner: bool,
 }
 
 #[derive(Debug, Default, Clone)]
-struct RoomOwnerData {
-    trainees: BTreeSet<ParticipantId>,
-    other_room_owners: BTreeSet<ParticipantId>,
+struct CheckpointRunnerData {
+    other_present_participants: BTreeSet<ParticipantId>,
     timeout_id: Option<u32>,
 }
 
@@ -157,10 +158,10 @@ impl SignalingModule for TrainingParticipationReport {
             participant: ctx.participant_id(),
             inventory_provider: ctx.inventory_provider().clone(),
             storage: ctx.storage().clone(),
-            // The data required for the room owner instance of this module
-            // is only available on join, so we will store it when the join
-            // is handled.
-            room_owner_data: None,
+            // The data required for the checkpoint runner  is only available on join,
+            // so we will store it when the join is handled.
+            checkpoint_runner_data: None,
+            is_room_owner: false,
         }))
     }
 
@@ -236,85 +237,77 @@ impl TrainingParticipationReport {
                 .await?
         };
 
-        let mut state = ctx
+        let mut participation_logging_state = ctx
             .volatile
             .storage()
-            .get_recorded_presence_state(self.room, self.participant)
+            .get_participation_logging_state(self.room, self.participant)
             .await?;
 
-        if control_data.is_room_owner {
-            let (other_room_owners, trainees) = self
-                .load_already_present_room_owners_and_trainees(
-                    participants,
-                    ctx.volatile.control_storage(),
-                )
-                .await?;
-            if state == ParticipationLoggingState::WaitingForConfirmation {
-                // Don't ask the room owner for confirmation
-                state = ParticipationLoggingState::Enabled;
-            }
+        let other_present_participants = self
+            .get_other_present_participants(participants, ctx.volatile.control_storage())
+            .await?;
 
-            let room_owner_data = RoomOwnerData {
-                other_room_owners,
-                trainees,
-                timeout_id: None,
-            };
-            self.room_owner_data = Some(room_owner_data.clone());
+        let checkpoint_runner_data = CheckpointRunnerData {
+            other_present_participants,
+            timeout_id: None,
+        };
+        self.checkpoint_runner_data = Some(checkpoint_runner_data.clone());
+        self.is_room_owner = control_data.is_room_owner;
+
+        if checkpoint_runner_data.other_present_participants.is_empty() {
+            // This is the first checkpoint runner in the room, use it for generating checkpoints
 
             if let Some(TrainingParticipationReportParameterSet {
                 initial_checkpoint_delay,
                 checkpoint_interval,
             }) = parameter_set.clone()
-                && room_owner_data.other_room_owners.is_empty()
             {
-                // this is the first trainer in the room
-
-                if room_owner_data.trainees.is_empty() {
-                    ctx.volatile
-                        .storage()
-                        .initialize_room(
-                            self.room,
-                            ctx.timestamp,
-                            TrainingReportState::WaitingForParticipant,
-                            initial_checkpoint_delay.clone(),
-                            checkpoint_interval.clone(),
-                            room_owner_data.trainees.clone(),
-                        )
-                        .await?;
-                } else {
-                    ctx.volatile
-                        .storage()
-                        .initialize_room(
-                            self.room,
-                            ctx.timestamp,
-                            TrainingReportState::WaitingForInitialTimeout,
-                            initial_checkpoint_delay.clone(),
-                            checkpoint_interval.clone(),
-                            room_owner_data.trainees.clone(),
-                        )
-                        .await?;
-
-                    self.start_presence_logging(
-                        ctx,
+                // Initialize the room with all other present participants
+                ctx.volatile
+                    .storage()
+                    .initialize_room(
+                        self.room,
+                        ctx.timestamp,
+                        TrainingReportState::WaitingForInitialTimeout,
                         initial_checkpoint_delay.clone(),
-                        PresenceLoggingStartedReason::Autostart,
+                        checkpoint_interval.clone(),
+                        checkpoint_runner_data.other_present_participants.clone(),
                     )
                     .await?;
-                };
 
-                state = ParticipationLoggingState::Enabled;
+                self.start_presence_logging(
+                    ctx,
+                    initial_checkpoint_delay.clone(),
+                    PresenceLoggingStartedReason::Autostart,
+                )
+                .await?;
+
+                participation_logging_state = ParticipationLoggingState::Enabled;
             }
-
-            *frontend_data = Some(TrainingParticipationReportState {
-                state,
-                parameter_set,
-            });
-        } else {
-            *frontend_data = Some(TrainingParticipationReportState {
-                state,
-                parameter_set: None,
-            });
         }
+
+        // If participation reporting is active, add myself to the known participants
+        let training_report_state = ctx
+            .volatile
+            .storage()
+            .get_training_report_state(self.room)
+            .await?;
+        if training_report_state.is_some() {
+            ctx.volatile
+                .storage()
+                .add_known_participant(self.room, self.participant)
+                .await?;
+        }
+
+        *frontend_data = Some(TrainingParticipationReportState {
+            state: participation_logging_state,
+            parameter_set: if control_data.is_room_owner {
+                parameter_set
+            } else {
+                None
+            },
+        });
+
         Ok(())
     }
 
@@ -343,11 +336,11 @@ impl TrainingParticipationReport {
         Ok(parameter_set)
     }
 
-    async fn load_already_present_room_owners_and_trainees(
+    async fn get_other_present_participants(
         &self,
         participants: &HashMap<ParticipantId, Option<()>>,
         control_storage: &mut dyn ControlStorage,
-    ) -> Result<(BTreeSet<ParticipantId>, BTreeSet<ParticipantId>), SignalingModuleError> {
+    ) -> Result<BTreeSet<ParticipantId>, SignalingModuleError> {
         let participants = Vec::from_iter(
             participants
                 .keys()
@@ -357,29 +350,17 @@ impl TrainingParticipationReport {
         let is_present: Vec<Option<bool>> = control_storage
             .get_global_attribute_for_participants(&participants, self.room, IS_PRESENT)
             .await?;
-        let is_room_owner: Vec<Option<bool>> = control_storage
-            .get_global_attribute_for_participants(&participants, self.room, IS_ROOM_OWNER)
-            .await?;
-        let attributes = is_present
+        let is_present = is_present.into_iter().map(|p| p.unwrap_or_default());
+        let mut other_present_participants = BTreeSet::new();
+        for participant in participants
             .into_iter()
-            .map(|p| p.unwrap_or_default())
-            .zip(is_room_owner.into_iter().map(|p| p.unwrap_or_default()));
-        let mut room_owners = BTreeSet::new();
-        let mut trainees = BTreeSet::new();
-        for (participant, is_room_owner) in participants.into_iter().zip(attributes).filter_map(
-            |(participant, (is_present, is_room_owner))| {
-                is_present.then_some((participant, is_room_owner))
-            },
-        ) {
-            _ = if is_room_owner {
-                &mut room_owners
-            } else {
-                &mut trainees
-            }
-            .insert(participant);
+            .zip(is_present)
+            .filter_map(|(participant, is_present)| is_present.then_some(participant))
+        {
+            _ = other_present_participants.insert(participant);
         }
 
-        Ok((room_owners, trainees))
+        Ok(other_present_participants)
     }
 
     async fn handle_ws_message(
@@ -414,13 +395,19 @@ impl TrainingParticipationReport {
         initial_checkpoint_delay: Option<TimeRange>,
         checkpoint_interval: Option<TimeRange>,
     ) -> Result<(), SignalingModuleError> {
-        let Some(room_owner_data) = self.room_owner_data.as_mut() else {
+        if !self.is_room_owner {
             ctx.ws_send(TrainingParticipationReportEvent::Error(
                 Error::InsufficientPermissions,
             ));
             return Ok(());
+        }
+
+        let Some(checkpoint_runner_data) = self.checkpoint_runner_data.as_mut() else {
+            unreachable!("data should be set on join");
         };
+
         let storage = ctx.volatile.storage();
+
         if storage
             .get_training_report_state(self.room)
             .await?
@@ -447,25 +434,8 @@ impl TrainingParticipationReport {
         let checkpoint_interval = checkpoint_interval
             .or(parameter_set_checkpoint_interval)
             .unwrap_or(DEFAULT_CHECKPOINT_INTERVAL);
-        if room_owner_data.trainees.is_empty() {
-            storage
-                .initialize_room(
-                    self.room,
-                    ctx.timestamp,
-                    TrainingReportState::WaitingForParticipant,
-                    initial_checkpoint_delay,
-                    checkpoint_interval,
-                    room_owner_data.trainees.clone(),
-                )
-                .await?;
 
-            ctx.exchange_publish(
-                control::exchange::global_room_by_user_id(self.room, self.owner),
-                exchange::Event::PresenceLoggingEnabled,
-            );
-            return Ok(());
-        }
-
+        // Initialize the room with all other present participants
         storage
             .initialize_room(
                 self.room,
@@ -473,13 +443,20 @@ impl TrainingParticipationReport {
                 TrainingReportState::WaitingForInitialTimeout,
                 initial_checkpoint_delay.clone(),
                 checkpoint_interval,
-                room_owner_data.trainees.clone(),
+                checkpoint_runner_data.other_present_participants.clone(),
             )
             .await?;
+
+        // Add myself to the known participants
+        storage
+            .add_known_participant(self.room, self.participant)
+            .await?;
+
         ctx.exchange_publish(
             control::exchange::global_room_by_user_id(self.room, self.owner),
             exchange::Event::PresenceLoggingEnabled,
         );
+
         self.start_presence_logging(
             ctx,
             initial_checkpoint_delay,
@@ -494,14 +471,12 @@ impl TrainingParticipationReport {
         initial_checkpoint_delay: TimeRange,
         reason: PresenceLoggingStartedReason,
     ) -> Result<(), SignalingModuleError> {
-        let Some(room_owner_data) = self.room_owner_data.as_mut() else {
-            unreachable!(
-                "presence logging start can only be executed by the runner of a room owner"
-            );
+        let Some(checkpoint_runner_data) = self.checkpoint_runner_data.as_mut() else {
+            unreachable!("data should be set on join");
         };
 
         let first_checkpoint = Self::switch_to_next_checkpoint(
-            room_owner_data,
+            checkpoint_runner_data,
             self.room,
             ctx,
             &initial_checkpoint_delay,
@@ -520,7 +495,7 @@ impl TrainingParticipationReport {
     }
 
     async fn switch_to_next_checkpoint(
-        room_owner_data: &mut RoomOwnerData,
+        checkpoint_runner_data: &mut CheckpointRunnerData,
         room: RoomId,
         ctx: &mut ModuleContext<'_, Self>,
         time_range: &TimeRange,
@@ -535,7 +510,7 @@ impl TrainingParticipationReport {
         )
         .expect("value should be a valid duration");
         let checkpoint = ctx.timestamp + wait_duration;
-        Self::start_checkpoint_timer(room_owner_data, ctx, checkpoint);
+        Self::start_checkpoint_timer(checkpoint_runner_data, ctx, checkpoint);
 
         ctx.volatile
             .storage()
@@ -546,12 +521,12 @@ impl TrainingParticipationReport {
     }
 
     fn start_checkpoint_timer(
-        room_owner_data: &mut RoomOwnerData,
+        checkpoint_runner_data: &mut CheckpointRunnerData,
         ctx: &mut ModuleContext<'_, Self>,
         checkpoint: Timestamp,
     ) {
         let timeout_id = rand::rng().random();
-        room_owner_data.timeout_id = Some(timeout_id);
+        checkpoint_runner_data.timeout_id = Some(timeout_id);
 
         let duration = checkpoint
             .signed_duration_since(Utc::now())
@@ -566,7 +541,7 @@ impl TrainingParticipationReport {
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
     ) -> Result<(), SignalingModuleError> {
-        if self.room_owner_data.is_none() {
+        if !self.is_room_owner {
             ctx.ws_send(TrainingParticipationReportEvent::Error(
                 Error::InsufficientPermissions,
             ));
@@ -597,10 +572,12 @@ impl TrainingParticipationReport {
                 exchange::Event::PresenceLoggingEnded { reason },
             );
         }
+
         ctx.exchange_publish(
             control::exchange::global_room_by_user_id(self.room, self.owner),
             exchange::Event::PresenceLoggingDisabled,
         );
+
         Ok(())
     }
 
@@ -628,140 +605,45 @@ impl TrainingParticipationReport {
 
     async fn handle_participant_joined(
         &mut self,
-        ctx: &mut ModuleContext<'_, Self>,
+        _ctx: &mut ModuleContext<'_, Self>,
         participant: ParticipantId,
     ) -> Result<(), SignalingModuleError> {
-        if let Some(room_owner_data) = self.room_owner_data.as_mut() {
-            let is_room_owner: bool = ctx
-                .volatile
-                .control_storage()
-                .get_global_attribute(participant, self.room, IS_ROOM_OWNER)
-                .await?
-                .unwrap_or_default();
-            let state = ctx
-                .volatile
-                .storage()
-                .get_training_report_state(self.room)
-                .await?;
+        let Some(checkpoint_runner_data) = self.checkpoint_runner_data.as_mut() else {
+            unreachable!("data should be set on join");
+        };
 
-            let is_first_trainee = state == Some(TrainingReportState::WaitingForParticipant)
-                && !is_room_owner
-                && room_owner_data.trainees.is_empty();
-            if is_room_owner {
-                _ = room_owner_data.other_room_owners.insert(participant);
-            } else {
-                _ = room_owner_data.trainees.insert(participant);
-                if state.is_some() {
-                    ctx.volatile
-                        .storage()
-                        .add_known_participant(self.room, participant)
-                        .await?;
-                }
-            }
-            // This runner is only responsible if either no other room owner participants are present,
-            // or if this participant has the lowest id among the room owners.
-            let this_runner_is_responsible = match room_owner_data.other_room_owners.iter().next() {
-                None => true,
-                Some(other_room_owner) if other_room_owner > &self.participant => true,
-                Some(_) => false,
-            };
-            if is_first_trainee && this_runner_is_responsible {
-                let initial_checkpoint_delay = ctx
-                    .volatile
-                    .storage()
-                    .get_initial_checkpoint_delay(self.room)
-                    .await?;
-                self.start_presence_logging(
-                    ctx,
-                    initial_checkpoint_delay,
-                    PresenceLoggingStartedReason::FirstParticipantJoined,
-                )
-                .await?;
-                ctx.volatile
-                    .storage()
-                    .set_training_report_state(
-                        self.room,
-                        TrainingReportState::WaitingForInitialTimeout,
-                    )
-                    .await?;
-            }
-        }
+        _ = checkpoint_runner_data
+            .other_present_participants
+            .insert(participant);
+
         Ok(())
     }
 
     async fn handle_participant_left(
         &mut self,
-        ctx: &mut ModuleContext<'_, Self>,
+        _ctx: &mut ModuleContext<'_, Self>,
         participant: ParticipantId,
     ) -> Result<(), SignalingModuleError> {
-        let Some(room_owner_data) = self.room_owner_data.as_mut() else {
-            return Ok(());
+        let Some(checkpoint_runner_data) = self.checkpoint_runner_data.as_mut() else {
+            unreachable!("data should be set on join");
         };
 
-        if room_owner_data.other_room_owners.remove(&participant) {
-            // The leaving participant was another participant of the same room owner.
-            // If anything has to be done, the leaving participant's runner will take care
-            // of it and notify this runner with an exchange message.
-            return Ok(());
-        }
-
-        if room_owner_data.trainees.remove(&participant) && !room_owner_data.trainees.is_empty() {
-            // Some more trainees are present in the room.
-            return Ok(());
-        }
-
-        // All trainee participants left, time to create the report if necessary.
-        let Some(room_state) = ctx.volatile.storage().cleanup_room(self.room).await? else {
-            return Ok(());
-        };
-
-        let reason = PresenceLoggingEndedReason::LastParticipantLeft;
-        ctx.exchange_publish(
-            control::exchange::global_room_by_user_id(self.room, self.owner),
-            exchange::Event::PresenceLoggingEnded { reason },
-        );
-        let known_participants = room_owner_data.trainees.clone();
-
-        if matches!(
-            room_state.report_state,
-            TrainingReportState::TrackingPresence
-        ) {
-            self.create_training_participation_report(ctx, room_state.clone())
-                .await?;
-        }
-
-        let RoomState {
-            start,
-            initial_checkpoint_delay,
-            checkpoint_interval,
-            ..
-        } = room_state;
-        let report_state = TrainingReportState::WaitingForParticipant;
-
-        ctx.volatile
-            .storage()
-            .initialize_room(
-                self.room,
-                start,
-                report_state,
-                initial_checkpoint_delay,
-                checkpoint_interval,
-                known_participants,
-            )
-            .await?;
+        _ = checkpoint_runner_data
+            .other_present_participants
+            .remove(&participant);
 
         Ok(())
     }
 
     fn random_waiting_duration_seconds(range: &TimeRange) -> u64 {
-        let offset = if range.within == 0 {
+        let offset = if range.within == TimeRangeWindow::from_i64_clamped(0) {
             0
         } else {
             let mut rng = rand::rng();
-            rng.random_range(0..range.within)
+            rng.random_range(0..range.within.into())
         };
-        const MAXIMUM_ALLOWED: u64 = i64::MAX as u64;
-        range.after.saturating_add(offset).min(MAXIMUM_ALLOWED)
+        let x: i64 = range.after.saturating_add(offset).into();
+        x as u64
     }
 
     async fn handle_timeout(
@@ -769,23 +651,24 @@ impl TrainingParticipationReport {
         ctx: &mut ModuleContext<'_, Self>,
         timeout_id: u32,
     ) -> Result<(), SignalingModuleError> {
-        let Some(room_owner_data) = self.room_owner_data.as_mut() else {
-            unreachable!("timeout is only created on by room owner");
+        let Some(checkpoint_runner_data) = self.checkpoint_runner_data.as_mut() else {
+            unreachable!("data should be set on join");
         };
-        if room_owner_data.timeout_id != Some(timeout_id) {
+
+        if checkpoint_runner_data.timeout_id != Some(timeout_id) {
             // Timeout has been canceled or another timeout has been started
             // after the one we're currently handling, so this one is obsolete
             // and we just ignore it.
             return Ok(());
         }
 
-        if matches!(
-            ctx.volatile
-                .storage()
-                .get_training_report_state(self.room)
-                .await?,
-            None | Some(TrainingReportState::WaitingForParticipant),
-        ) {
+        if ctx
+            .volatile
+            .storage()
+            .get_training_report_state(self.room)
+            .await?
+            .is_none()
+        {
             // Presence logging has stopped, no need to handle the timer.
             return Ok(());
         }
@@ -801,7 +684,8 @@ impl TrainingParticipationReport {
             .set_training_report_state(self.room, TrainingReportState::TrackingPresence)
             .await?;
         let _checkpoint =
-            Self::switch_to_next_checkpoint(room_owner_data, self.room, ctx, &time_range).await?;
+            Self::switch_to_next_checkpoint(checkpoint_runner_data, self.room, ctx, &time_range)
+                .await?;
 
         ctx.exchange_publish(
             control::exchange::global_room_all_participants(self.room),
@@ -820,15 +704,15 @@ impl TrainingParticipationReport {
                 first_checkpoint,
                 reason,
             } => {
-                let message = if self.room_owner_data.is_none() {
-                    PresenceLoggingStarted {
-                        first_checkpoint: None,
-                        reason: None,
-                    }
-                } else {
+                let message = if self.is_room_owner {
                     PresenceLoggingStarted {
                         first_checkpoint: Some(first_checkpoint),
                         reason: Some(reason),
+                    }
+                } else {
+                    PresenceLoggingStarted {
+                        first_checkpoint: None,
+                        reason: None,
                     }
                 };
                 ctx.ws_send(message);
@@ -847,16 +731,14 @@ impl TrainingParticipationReport {
                 Ok(())
             }
             exchange::Event::PresenceConfirmationRequested => {
-                if self.room_owner_data.is_none() {
-                    ctx.ws_send(TrainingParticipationReportEvent::PresenceConfirmationRequested);
-                }
+                ctx.ws_send(TrainingParticipationReportEvent::PresenceConfirmationRequested);
                 Ok(())
             }
             exchange::Event::RoomOwnerHandOver { next_checkpoint } => {
-                let Some(room_owner_data) = self.room_owner_data.as_mut() else {
-                    return Ok(());
+                let Some(checkpoint_runner_data) = self.checkpoint_runner_data.as_mut() else {
+                    unreachable!("data should be set on join");
                 };
-                Self::start_checkpoint_timer(room_owner_data, ctx, next_checkpoint);
+                Self::start_checkpoint_timer(checkpoint_runner_data, ctx, next_checkpoint);
                 Ok(())
             }
             exchange::Event::PdfAsset(pdf_asset) => {
@@ -870,82 +752,76 @@ impl TrainingParticipationReport {
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
     ) -> Result<(), SignalingModuleError> {
-        let Some(room_owner_data) = self.room_owner_data.as_ref() else {
-            return Ok(());
+        let Some(checkpoint_runner_data) = self.checkpoint_runner_data.as_ref() else {
+            unreachable!("data should be set on join");
         };
 
-        match ctx
+        if ctx
             .volatile
             .storage()
             .get_training_report_state(self.room)
             .await?
+            .is_none()
         {
+            return Ok(());
+        }
+
+        let other_present_participant = checkpoint_runner_data
+            .other_present_participants
+            .iter()
+            .next();
+
+        match other_present_participant {
             None => {
-                return Ok(());
-            }
-            Some(TrainingReportState::WaitingForParticipant) => {
-                return Ok(());
-            }
-            Some(TrainingReportState::WaitingForInitialTimeout)
-            | Some(TrainingReportState::TrackingPresence) => {
-                let other_room_owner = room_owner_data.other_room_owners.iter().next();
+                let reason = PresenceLoggingEndedReason::LastParticipantLeft;
+                ctx.exchange_publish(
+                    control::exchange::global_room_all_participants(self.room),
+                    exchange::Event::PresenceLoggingEnded { reason },
+                );
 
-                match other_room_owner {
-                    None => {
-                        ctx.exchange_publish(
-                            control::exchange::global_room_all_participants(self.room),
-                            exchange::Event::PresenceLoggingEnded {
-                                reason: PresenceLoggingEndedReason::CreatorLeft,
-                            },
-                        );
+                // Abort waiting for the initial timeout.
+                let Some(room_state) = ctx.volatile.storage().cleanup_room(self.room).await? else {
+                    return Ok(());
+                };
 
-                        // All room owner participants, let's abort the waiting for initial timeout.
-                        let Some(room_state) =
-                            ctx.volatile.storage().cleanup_room(self.room).await?
-                        else {
-                            return Ok(());
-                        };
-
-                        if matches!(
-                            room_state.report_state,
-                            TrainingReportState::TrackingPresence
-                        ) {
-                            self.create_training_participation_report(ctx, room_state)
-                                .await?;
-                        }
-                        return Ok(());
-                    }
-                    Some(room_owner_id) => {
-                        // At least one other room owner participant is present.
-
-                        if room_owner_data.timeout_id.is_none() {
-                            // This room owner participant was not responsible for organizing the checkpoints.
-                            return Ok(());
-                        };
-
-                        // Let's hand over the responsibility for checkpoint
-                        // handling to the next runner.
-
-                        let Some(next_checkpoint) = ctx
-                            .volatile
-                            .storage()
-                            .get_next_checkpoint(self.room)
-                            .await?
-                        else {
-                            return Ok(());
-                        };
-
-                        ctx.exchange_publish(
-                            control::exchange::global_room_by_participant_id(
-                                self.room,
-                                *room_owner_id,
-                            ),
-                            exchange::Event::RoomOwnerHandOver { next_checkpoint },
-                        );
-                    }
+                if matches!(
+                    room_state.report_state,
+                    TrainingReportState::TrackingPresence
+                ) {
+                    self.create_training_participation_report(ctx, room_state)
+                        .await?;
                 }
+                return Ok(());
+            }
+            Some(other_present_participant) => {
+                // At least one other potential checkpoint runner is present.
+
+                if checkpoint_runner_data.timeout_id.is_none() {
+                    // This potential checkpoint runner was not responsible for organizing the checkpoints.
+                    return Ok(());
+                };
+
+                // Let's hand over the responsibility for checkpoint handling to the next runner.
+
+                let Some(next_checkpoint) = ctx
+                    .volatile
+                    .storage()
+                    .get_next_checkpoint(self.room)
+                    .await?
+                else {
+                    return Ok(());
+                };
+
+                ctx.exchange_publish(
+                    control::exchange::global_room_by_participant_id(
+                        self.room,
+                        *other_present_participant,
+                    ),
+                    exchange::Event::RoomOwnerHandOver { next_checkpoint },
+                );
             }
         }
+
         Ok(())
     }
 
