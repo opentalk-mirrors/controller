@@ -153,16 +153,16 @@ mod test_common {
         assert!(!storage.participant_id_in_use(ALICE).await.unwrap());
         assert!(
             storage
-                .acquire_participant_id(ALICE, runner_id)
+                .try_acquire_participant_id(ALICE, runner_id)
                 .await
-                .is_ok()
+                .unwrap()
         );
         assert!(storage.participant_id_in_use(ALICE).await.unwrap());
         assert!(
-            storage
-                .acquire_participant_id(ALICE, runner_id)
+            !storage
+                .try_acquire_participant_id(ALICE, runner_id)
                 .await
-                .is_err()
+                .unwrap()
         );
 
         assert_eq!(
