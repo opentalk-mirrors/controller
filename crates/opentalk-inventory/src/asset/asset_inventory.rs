@@ -56,7 +56,7 @@ pub trait AssetInventory {
 
     /// Update an asset.
     ///
-    /// Will return [`Ok(None)`] if no asset with the given `asset_id` is found.
+    /// Will return `Ok(None)` if no asset with the given `asset_id` is found.
     async fn update_asset(
         &mut self,
         asset_id: AssetId,
