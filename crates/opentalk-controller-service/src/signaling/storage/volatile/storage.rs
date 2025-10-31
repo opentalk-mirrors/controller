@@ -128,25 +128,25 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn ticket_token() {
+    async fn serial_test_ticket_token() {
         test_common::ticket_token(&mut storage()).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn resumption_token() {
+    async fn serial_test_resumption_token() {
         test_common::resumption_token(&mut storage()).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn participant_runner_lock() {
+    async fn serial_test_participant_runner_lock() {
         test_common::participant_runner_lock(&mut storage()).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn try_acquire_participant_id() {
+    async fn serial_test_try_acquire_participant_id() {
         test_common::try_acquire_participant_id(&mut storage()).await;
     }
 }

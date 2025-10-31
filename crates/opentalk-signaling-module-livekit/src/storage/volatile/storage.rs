@@ -65,7 +65,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn force_mute() {
+    async fn serial_test_force_mute() {
         test_common::force_mute(&mut storage().await).await;
     }
 }

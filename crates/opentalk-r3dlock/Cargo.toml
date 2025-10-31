@@ -22,4 +22,5 @@ snafu.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true
+serial_test.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }

@@ -240,7 +240,7 @@ mod tests {
     /// Once the test is finished, all variables are restored.
     #[test]
     #[serial]
-    fn reload() {
+    fn serial_test_reload() {
         // backup current environment variables
         let backup_vars = backup_env_variables();
 

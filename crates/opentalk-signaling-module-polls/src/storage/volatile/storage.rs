@@ -124,19 +124,19 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn polls_state() {
+    async fn serial_test_polls_state() {
         test_common::polls_state(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn voting() {
+    async fn serial_test_voting() {
         test_common::voting(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn polls() {
+    async fn serial_test_polls() {
         test_common::polls(&mut storage().await).await;
     }
 }

@@ -87,13 +87,13 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn initialized() {
+    async fn serial_test_initialized() {
         test_common::initialized(&mut storage()).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn shared_folder() {
+    async fn serial_test_shared_folder() {
         test_common::shared_folder(&mut storage()).await;
     }
 }

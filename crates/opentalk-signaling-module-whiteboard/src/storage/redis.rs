@@ -109,7 +109,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn initialization() {
+    async fn serial_test_initialization() {
         test_common::initialization(&mut storage().await).await;
     }
 }

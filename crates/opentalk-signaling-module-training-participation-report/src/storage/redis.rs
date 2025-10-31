@@ -486,49 +486,49 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn parameter_set_initialized() {
+    async fn serial_test_parameter_set_initialized() {
         test_common::parameter_set_initialized(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn parameter_set() {
+    async fn serial_test_parameter_set() {
         test_common::parameter_set(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn initialize_room_and_cleanup() {
+    async fn serial_test_initialize_room_and_cleanup() {
         test_common::initialize_room_and_cleanup(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn get_set_training_report_state() {
+    async fn serial_test_get_set_training_report_state() {
         test_common::get_set_training_report_state(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn get_initial_checkpoint_delay() {
+    async fn serial_test_get_initial_checkpoint_delay() {
         test_common::get_initial_checkpoint_delay(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn get_checkpoint_interval() {
+    async fn serial_test_get_checkpoint_interval() {
         test_common::get_checkpoint_interval(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn get_and_switch_to_next_checkpoint() {
+    async fn serial_test_get_and_switch_to_next_checkpoint() {
         test_common::get_and_switch_to_next_checkpoint(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn record_presence() {
+    async fn serial_test_record_presence() {
         test_common::record_presence(&mut storage().await).await;
     }
 }

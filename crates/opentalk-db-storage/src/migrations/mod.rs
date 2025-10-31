@@ -105,7 +105,7 @@ mod migration_tests {
     /// * DATABASE_NAME (default: `opentalk_test`) - the database name inside postgres
     #[tokio::test]
     #[serial]
-    async fn test_migration() -> Result<()> {
+    async fn serial_test_migration() -> Result<()> {
         // This will create a database and migrate it
         opentalk_test_util::database::DatabaseContext::new(false).await;
 

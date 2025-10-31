@@ -99,13 +99,13 @@ mod test {
 
     #[tokio::test]
     #[serial]
-    async fn history_returns_since_redis() {
+    async fn serial_test_history_returns_since_redis() {
         history_returns_since(&mut setup_redis().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn history_returns_since_memory() {
+    async fn serial_test_history_returns_since_memory() {
         history_returns_since(&mut setup_memory().await).await;
     }
 
@@ -183,13 +183,13 @@ mod test {
 
     #[tokio::test]
     #[serial]
-    async fn history_addition_redis() {
+    async fn serial_test_history_addition_redis() {
         history_addition(&mut setup_redis().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn history_addition_memory() {
+    async fn serial_test_history_addition_memory() {
         history_addition(&mut setup_memory().await).await;
     }
 
@@ -270,13 +270,13 @@ mod test {
 
     #[tokio::test]
     #[serial]
-    async fn start_animation_redis() {
+    async fn serial_test_start_animation_redis() {
         start_animation(&mut setup_redis().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn start_animation_memory() {
+    async fn serial_test_start_animation_memory() {
         start_animation(&mut setup_memory().await).await;
     }
 
@@ -314,13 +314,13 @@ mod test {
 
     #[tokio::test]
     #[serial]
-    async fn select_random_when_none_redis() {
+    async fn serial_test_select_random_when_none_redis() {
         select_random_when_none(&mut setup_redis().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn select_random_when_none_memory() {
+    async fn serial_test_select_random_when_none_memory() {
         select_random_when_none(&mut setup_memory().await).await;
     }
 
@@ -361,13 +361,13 @@ mod test {
 
     #[tokio::test]
     #[serial]
-    async fn select_random_when_playlist_redis() {
+    async fn serial_test_select_random_when_playlist_redis() {
         select_random_when_playlist(&mut setup_redis().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn select_random_when_playlist_memory() {
+    async fn serial_test_select_random_when_playlist_memory() {
         select_random_when_playlist(&mut setup_memory().await).await;
     }
 
@@ -461,13 +461,13 @@ mod test {
 
     #[tokio::test]
     #[serial]
-    async fn select_random_when_random_allow_double_select_redis() {
+    async fn serial_test_select_random_when_random_allow_double_select_redis() {
         select_random_when_random_allow_double_select(&mut setup_redis().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn select_random_when_random_allow_double_select_memory() {
+    async fn serial_test_select_random_when_random_allow_double_select_memory() {
         select_random_when_random_allow_double_select(&mut setup_memory().await).await;
     }
 

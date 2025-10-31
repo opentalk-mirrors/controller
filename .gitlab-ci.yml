@@ -200,13 +200,13 @@ test:cargo_test:
   stage: test
   <<: *default_job_condition
   artifacts:
-    paths:
-      - target/coverage/html
     reports:
+      junit: target/nextest/ci/junit.xml
       coverage_report:
         coverage_format: cobertura
-        path: target/coverage/cobertura.xml
-  coverage: '/Coverage: \d+(?:\.\d+)?/'
+        path: target/llvm-cov-target/cobertura.xml
+  # this uses region for coverage summary
+  coverage: /TOTAL\s+(\d+\s+)+(\d+\.\d+\%)/
   variables:
     # Set ENV vars for services
     POSTGRES_DB: opentalk
@@ -218,35 +218,16 @@ test:cargo_test:
     DATABASE_NAME: opentalk
     KUSTOS_TESTS_DATABASE_URL: postgres://postgres:password123@postgres:5432/kustos
     REDIS_ADDR: redis://redis:6379/
-    # Used for coverage
-    COVERAGE_XML_PATH: 'concat("Coverage: ", 100 * string(//coverage/@line-rate), "%")'
   services:
     - name: postgres:18-alpine
       alias: postgres
     - name: redis:8-alpine
       alias: redis
-  before_script:
-    - rustup component add rustfmt llvm-tools-preview
-    # libxml2-utils contains the xmllint command used below
-    - apt-get --update install -y libxml2-utils
-    - cargo install diesel_cli --version ~2 --no-default-features --features="postgres"
   script:
-    - RUSTFLAGS="-C instrument-coverage -C link-arg=-fuse-ld=lld"
-      LLVM_PROFILE_FILE="$(pwd)/target/coverage/raw/coverage-%p-%m.profraw"
-      cargo test --workspace --locked
-
-    # Extract code coverage data
-    - grcov target/coverage/raw
-      --binary-path ./target/debug/
-      --source-dir .
-      --output-types cobertura,html
-      --branch
-      --ignore-not-existing
-      --ignore "*cargo*"
-      --output-path target/coverage
-
-    # Print out the coverage percentage for GitLab
-    - xmllint --xpath "$COVERAGE_XML_PATH" target/coverage/cobertura.xml
+    - RUSTFLAGS="-C link-arg=-fuse-ld=lld"
+    - cargo llvm-cov --no-report nextest --profile ci --workspace --locked
+    - cargo +nightly llvm-cov --no-report --doc --workspace --locked
+    - cargo +nightly llvm-cov report --doctests --cobertura --output-path target/llvm-cov-target/cobertura.xml
 
 test:cargo_xtask:
   stage: test

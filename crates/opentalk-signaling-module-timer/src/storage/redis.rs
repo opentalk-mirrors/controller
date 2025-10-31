@@ -145,7 +145,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn ready_status() {
+    async fn serial_test_ready_status() {
         test_common::ready_status(&mut storage().await).await;
     }
 }

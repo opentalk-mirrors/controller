@@ -303,25 +303,25 @@ pub(crate) mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn allow_token() {
+    async fn serial_test_allow_token() {
         test_common::allow_token(&mut storage().await).await
     }
 
     #[tokio::test]
     #[serial]
-    async fn current_vote() {
+    async fn serial_test_current_vote() {
         test_common::current_vote(&mut storage().await).await
     }
 
     #[tokio::test]
     #[serial]
-    async fn parameter() {
+    async fn serial_test_parameter() {
         test_common::parameter(&mut storage().await).await
     }
 
     #[tokio::test]
     #[serial]
-    async fn voting() {
+    async fn serial_test_voting() {
         test_common::voting(&mut storage().await).await
     }
 }

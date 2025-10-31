@@ -776,79 +776,79 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn participant_set() {
+    async fn serial_test_participant_set() {
         test_common::participant_set(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn participant_attribute() {
+    async fn serial_test_participant_attribute() {
         test_common::participant_attribute(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn participant_attribute_empty() {
+    async fn serial_test_participant_attribute_empty() {
         test_common::participant_attribute_empty(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn participant_attributes() {
+    async fn serial_test_participant_attributes() {
         test_common::participant_attributes(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn participant_remove_attributes() {
+    async fn serial_test_participant_remove_attributes() {
         test_common::participant_remove_attributes(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn get_role_and_left_for_room_participants() {
+    async fn serial_test_get_role_and_left_for_room_participants() {
         test_common::get_role_and_left_for_room_participants(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn participant_attributes_bulk() {
+    async fn serial_test_participant_attributes_bulk() {
         test_common::participant_attributes_bulk(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn tariff() {
+    async fn serial_test_tariff() {
         test_common::tariff(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn event() {
+    async fn serial_test_event() {
         test_common::event(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn participant_count() {
+    async fn serial_test_participant_count() {
         test_common::participant_count(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn creator_info() {
+    async fn serial_test_creator_info() {
         test_common::creator_info(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn room_closes_at() {
+    async fn serial_test_room_closes_at() {
         test_common::room_closes_at(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn skip_waiting_room() {
+    async fn serial_test_skip_waiting_room() {
         test_common::skip_waiting_room(&mut storage().await).await;
     }
 }

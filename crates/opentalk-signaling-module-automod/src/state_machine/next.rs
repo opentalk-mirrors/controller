@@ -105,13 +105,13 @@ mod test {
 
     #[tokio::test]
     #[serial]
-    async fn start_animation_on_yield_redis() {
+    async fn serial_test_start_animation_on_yield_redis() {
         start_animation_on_yield(&mut setup_redis().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn start_animation_on_yield_memory() {
+    async fn serial_test_start_animation_on_yield_memory() {
         start_animation_on_yield(&mut setup_memory().await).await;
     }
 
@@ -149,13 +149,13 @@ mod test {
 
     #[tokio::test]
     #[serial]
-    async fn nomination_reselection_allowed_redis() {
+    async fn serial_test_nomination_reselection_allowed_redis() {
         nomination_reselection_allowed(&mut setup_redis().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn nomination_reselection_allowed_memory() {
+    async fn serial_test_nomination_reselection_allowed_memory() {
         nomination_reselection_allowed(&mut setup_memory().await).await;
     }
 
@@ -263,13 +263,13 @@ mod test {
 
     #[tokio::test]
     #[serial]
-    async fn nomination_redis() {
+    async fn serial_test_nomination_redis() {
         nomination(&mut setup_redis().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn nomination_memory() {
+    async fn serial_test_nomination_memory() {
         nomination(&mut setup_memory().await).await;
     }
 
@@ -357,13 +357,13 @@ mod test {
 
     #[tokio::test]
     #[serial]
-    async fn nomination_without_nomination_empty_allow_list_redis() {
+    async fn serial_test_nomination_without_nomination_empty_allow_list_redis() {
         nomination_without_nomination_empty_allow_list(&mut setup_redis().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn nomination_without_nomination_empty_allow_list_memory() {
+    async fn serial_test_nomination_without_nomination_empty_allow_list_memory() {
         nomination_without_nomination_empty_allow_list(&mut setup_memory().await).await;
     }
 
@@ -407,13 +407,13 @@ mod test {
 
     #[tokio::test]
     #[serial]
-    async fn nomination_without_nomination_with_allow_list_redis() {
+    async fn serial_test_nomination_without_nomination_with_allow_list_redis() {
         nomination_without_nomination_with_allow_list(&mut setup_redis().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn nomination_without_nomination_with_allow_list_memory() {
+    async fn serial_test_nomination_without_nomination_with_allow_list_memory() {
         nomination_without_nomination_with_allow_list(&mut setup_memory().await).await;
     }
 
@@ -497,13 +497,13 @@ mod test {
 
     #[tokio::test]
     #[serial]
-    async fn select_next_with_none_redis() {
+    async fn serial_test_select_next_with_none_redis() {
         select_next_with_none(&mut setup_redis().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn select_next_with_none_memory() {
+    async fn serial_test_select_next_with_none_memory() {
         select_next_with_none(&mut setup_memory().await).await;
     }
 
@@ -578,13 +578,13 @@ mod test {
 
     #[tokio::test]
     #[serial]
-    async fn select_next_with_playlist_redis() {
+    async fn serial_test_select_next_with_playlist_redis() {
         select_next_with_playlist(&mut setup_redis().await).await
     }
 
     #[tokio::test]
     #[serial]
-    async fn select_next_with_playlist_memory() {
+    async fn serial_test_select_next_with_playlist_memory() {
         select_next_with_playlist(&mut setup_memory().await).await
     }
 

@@ -38,43 +38,43 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn playlist() {
+    async fn serial_test_playlist() {
         test_common::playlist(&mut storage().await).await;
     }
 
     #[tokio::test]
     #[serial]
-    async fn playlist_remove_first() {
+    async fn serial_test_playlist_remove_first() {
         test_common::playlist_remove_first(&mut storage().await).await
     }
 
     #[tokio::test]
     #[serial]
-    async fn allow_list() {
+    async fn serial_test_allow_list() {
         test_common::allow_list(&mut storage().await).await
     }
 
     #[tokio::test]
     #[serial]
-    async fn storage_config() {
+    async fn serial_test_storage_config() {
         test_common::storage_config(&mut storage().await).await
     }
 
     #[tokio::test]
     #[serial]
-    async fn speaker() {
+    async fn serial_test_speaker() {
         test_common::speaker(&mut storage().await).await
     }
 
     #[tokio::test]
     #[serial]
-    async fn history() {
+    async fn serial_test_history() {
         test_common::history(&mut storage().await).await
     }
 
     #[tokio::test]
     #[serial]
-    async fn history_repeated_speaker() {
+    async fn serial_test_history_repeated_speaker() {
         test_common::history_repeated_speaker(&mut storage().await).await
     }
 }

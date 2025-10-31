@@ -8,6 +8,7 @@ use kustos::prelude::*;
 use opentalk_database::Db;
 use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_kustos_inventory::KustosInventoryProvider;
+use serial_test::serial;
 
 fn init_log() {
     let _ = env_logger::try_init();
@@ -20,7 +21,8 @@ fn init_log() {
 /// NOTE: Since the database is not cleaned up between tests runs and all tests
 ///       share the same database, we need to manually clean up the database
 #[tokio::test]
-async fn grant_revoke_grant_two_resources() -> Result<(), Box<dyn std::error::Error>> {
+#[serial]
+async fn serial_test_grant_revoke_grant_two_resources() -> Result<(), Box<dyn std::error::Error>> {
     init_log();
 
     let url = std::env::var("KUSTOS_TESTS_DATABASE_URL")

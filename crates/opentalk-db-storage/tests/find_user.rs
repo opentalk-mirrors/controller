@@ -12,7 +12,7 @@ mod common;
 
 #[tokio::test]
 #[serial]
-async fn test() {
+async fn serial_test_test() {
     const MAX_USER_SEARCH_RESULTS: usize = 20;
 
     let db_ctx = opentalk_test_util::database::DatabaseContext::new(true).await;

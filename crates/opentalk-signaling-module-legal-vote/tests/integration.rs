@@ -59,13 +59,13 @@ fn compare_stopped_message_except_for_timestamp(
 
 #[actix_rt::test]
 #[serial]
-async fn basic_vote_roll_call_redis() {
+async fn serial_test_basic_vote_roll_call_redis() {
     basic_vote_roll_call(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn basic_vote_roll_call_memory() {
+async fn serial_test_basic_vote_roll_call_memory() {
     basic_vote_roll_call(TestContextVolatileStorage::Memory).await
 }
 
@@ -314,13 +314,13 @@ async fn basic_vote_roll_call(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn basic_vote_live_roll_call_redis() {
+async fn serial_test_basic_vote_live_roll_call_redis() {
     basic_vote_live_roll_call(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn basic_vote_live_roll_call_memory() {
+async fn serial_test_basic_vote_live_roll_call_memory() {
     basic_vote_live_roll_call(TestContextVolatileStorage::Memory).await
 }
 
@@ -569,13 +569,13 @@ async fn basic_vote_live_roll_call(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn basic_vote_pseudonymous_redis() {
+async fn serial_test_basic_vote_pseudonymous_redis() {
     basic_vote_pseudonymous(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn basic_vote_pseudonymous_memory() {
+async fn serial_test_basic_vote_pseudonymous_memory() {
     basic_vote_pseudonymous(TestContextVolatileStorage::Memory).await
 }
 
@@ -780,13 +780,13 @@ async fn basic_vote_pseudonymous(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn hidden_legal_vote_redis() {
+async fn serial_test_hidden_legal_vote_redis() {
     hidden_legal_vote(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn hidden_legal_vote_memory() {
+async fn serial_test_hidden_legal_vote_memory() {
     hidden_legal_vote(TestContextVolatileStorage::Memory).await
 }
 
@@ -992,13 +992,13 @@ async fn hidden_legal_vote(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn basic_vote_abstain_redis() {
+async fn serial_test_basic_vote_abstain_redis() {
     basic_vote_abstain(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn basic_vote_abstain_memory() {
+async fn serial_test_basic_vote_abstain_memory() {
     basic_vote_abstain(TestContextVolatileStorage::Memory).await
 }
 
@@ -1247,13 +1247,13 @@ async fn basic_vote_abstain(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn expired_vote_redis() {
+async fn serial_test_expired_vote_redis() {
     expired_vote(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn expired_vote_memory() {
+async fn serial_test_expired_vote_memory() {
     expired_vote(TestContextVolatileStorage::Memory).await
 }
 
@@ -1389,13 +1389,13 @@ async fn expired_vote(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn auto_stop_vote_redis() {
+async fn serial_test_auto_stop_vote_redis() {
     auto_stop_vote(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn auto_stop_vote_memory() {
+async fn serial_test_auto_stop_vote_memory() {
     auto_stop_vote(TestContextVolatileStorage::Memory).await
 }
 
@@ -1647,13 +1647,13 @@ async fn auto_stop_vote(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn start_with_one_participant_redis() {
+async fn serial_test_start_with_one_participant_redis() {
     start_with_one_participant(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn start_with_one_participant_memory() {
+async fn serial_test_start_with_one_participant_memory() {
     start_with_one_participant(TestContextVolatileStorage::Memory).await
 }
 
@@ -1687,13 +1687,13 @@ async fn start_with_one_participant(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn initiator_left_redis() {
+async fn serial_test_initiator_left_redis() {
     initiator_left(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn initiator_left_memory() {
+async fn serial_test_initiator_left_memory() {
     initiator_left(TestContextVolatileStorage::Memory).await
 }
 
@@ -1728,13 +1728,13 @@ async fn initiator_left(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn ineligible_voter_redis() {
+async fn serial_test_ineligible_voter_redis() {
     ineligible_voter(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn ineligible_voter_memory() {
+async fn serial_test_ineligible_voter_memory() {
     ineligible_voter(TestContextVolatileStorage::Memory).await
 }
 
@@ -1795,13 +1795,13 @@ async fn ineligible_voter(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn start_with_allowed_guest_redis() {
+async fn serial_test_start_with_allowed_guest_redis() {
     start_with_allowed_guest(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn start_with_allowed_guest_memory() {
+async fn serial_test_start_with_allowed_guest_memory() {
     start_with_allowed_guest(TestContextVolatileStorage::Memory).await
 }
 
@@ -1856,13 +1856,13 @@ async fn start_with_allowed_guest(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn vote_on_nonexistent_vote_redis() {
+async fn serial_test_vote_on_nonexistent_vote_redis() {
     vote_on_nonexistent_vote(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn vote_on_nonexistent_vote_memory() {
+async fn serial_test_vote_on_nonexistent_vote_memory() {
     vote_on_nonexistent_vote(TestContextVolatileStorage::Memory).await
 }
 
@@ -1900,13 +1900,13 @@ async fn vote_on_nonexistent_vote(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn vote_on_completed_vote_redis() {
+async fn serial_test_vote_on_completed_vote_redis() {
     vote_on_completed_vote(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn vote_on_completed_vote_memory() {
+async fn serial_test_vote_on_completed_vote_memory() {
     vote_on_completed_vote(TestContextVolatileStorage::Memory).await
 }
 
@@ -1964,13 +1964,13 @@ async fn vote_on_completed_vote(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn vote_twice_redis() {
+async fn serial_test_vote_twice_redis() {
     vote_twice(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn vote_twice_memory() {
+async fn serial_test_vote_twice_memory() {
     vote_twice(TestContextVolatileStorage::Memory).await
 }
 
@@ -2084,13 +2084,13 @@ async fn vote_twice(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn non_moderator_stop_redis() {
+async fn serial_test_non_moderator_stop_redis() {
     non_moderator_stop(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn non_moderator_stop_memory() {
+async fn serial_test_non_moderator_stop_memory() {
     non_moderator_stop(TestContextVolatileStorage::Memory).await
 }
 
@@ -2122,13 +2122,13 @@ async fn non_moderator_stop(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn non_moderator_cancel_redis() {
+async fn serial_test_non_moderator_cancel_redis() {
     non_moderator_cancel(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn non_moderator_cancel_memory() {
+async fn serial_test_non_moderator_cancel_memory() {
     non_moderator_cancel(TestContextVolatileStorage::Memory).await
 }
 
@@ -2163,13 +2163,13 @@ async fn non_moderator_cancel(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn join_as_guest_redis() {
+async fn serial_test_join_as_guest_redis() {
     join_as_guest(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn join_as_guest_memory() {
+async fn serial_test_join_as_guest_memory() {
     join_as_guest(TestContextVolatileStorage::Memory).await
 }
 
@@ -2209,13 +2209,13 @@ async fn join_as_guest(storage: TestContextVolatileStorage) {
 
 #[actix_rt::test]
 #[serial]
-async fn frontend_data_redis() {
+async fn serial_test_frontend_data_redis() {
     frontend_data(TestContextVolatileStorage::Redis).await
 }
 
 #[actix_rt::test]
 #[serial]
-async fn frontend_data_memory() {
+async fn serial_test_frontend_data_memory() {
     frontend_data(TestContextVolatileStorage::Memory).await
 }
 
