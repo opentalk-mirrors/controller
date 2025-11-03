@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: EUPL-1.2
 
+ARG typst_plugins_version=dev
+
 FROM rust:slim-bookworm AS builder
 RUN mkdir /controller
 WORKDIR /controller
@@ -11,6 +13,8 @@ ADD . /controller
 RUN apt-get update && apt-get install --no-install-recommends -y libpq-dev protobuf-compiler curl
 
 RUN cargo build --release --locked
+
+FROM git.opentalk.dev:5050/opentalk/backend/containers/typst-plugins:${typst_plugins_version} AS typst-plugins
 
 FROM debian:bookworm-slim
 
@@ -26,6 +30,8 @@ WORKDIR /controller
 
 COPY --from=builder /controller/target/release/opentalk-controller .
 COPY example/controller.toml /etc/opentalk/controller.toml
+
+COPY --from=typst-plugins /usr/share/typst/packages/preview/linguify/ /usr/share/typst/packages/preview/linguify/
 
 USER $USERID:$GROUPID
 
