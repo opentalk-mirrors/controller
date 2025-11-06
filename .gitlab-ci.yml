@@ -214,6 +214,7 @@ test:cargo_test:
     - cargo +nightly llvm-cov --no-report nextest --profile ci --workspace --locked
     - cargo +nightly llvm-cov --no-report --doc --workspace --locked
     - cargo +nightly llvm-cov report --doctests --cobertura --output-path target/llvm-cov-target/cobertura.xml
+    - cargo +nightly llvm-cov report --summary-only
 
 test:cargo_xtask:
   stage: test
