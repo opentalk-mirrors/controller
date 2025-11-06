@@ -18,14 +18,14 @@ use crate::{Event, EventInvite, Result, User};
 /// A trait for retrieving and storing event invite entities.
 #[async_trait::async_trait]
 pub trait EventInviteInventory {
-    /// Attempts to create an [`EventEmailInvite`]. Returns [`Ok(None)`] when
+    /// Attempts to create an [`EventEmailInvite`]. Returns `Ok(None)` when
     /// an invitation for the same address already exists in the event.
     async fn try_create_event_email_invite(
         &mut self,
         invite: NewEventEmailInvite,
     ) -> Result<Option<EventEmailInvite>>;
 
-    /// Attempts to create an [`EventInvite`]. Returns [`Ok(None)`] when an
+    /// Attempts to create an [`EventInvite`]. Returns `Ok(None)` when an
     /// invitation for the same user already exists in the event.
     async fn try_create_event_invite(
         &mut self,
