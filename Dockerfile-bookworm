@@ -4,7 +4,7 @@
 
 ARG typst_plugins_version=dev
 
-FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.90.0-bookworm AS builder
+FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.91.0-bookworm AS builder
 
 RUN mkdir /controller
 WORKDIR /controller
