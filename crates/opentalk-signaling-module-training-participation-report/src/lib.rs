@@ -32,6 +32,7 @@ use chrono_tz::Tz;
 use either::Either;
 use futures::{FutureExt as _, stream::once};
 use opentalk_inventory::InventoryProvider;
+use opentalk_report_generation::GenerateOptions;
 use opentalk_signaling_core::{
     ChunkFormat, CleanupScope, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage,
     ObjectStorageError, SignalingModule, SignalingModuleDescription, SignalingModuleError,
@@ -903,16 +904,22 @@ impl TrainingParticipationReport {
             .map(|p| Path::new(&p).join(dump_to_relative_path))
             .ok();
 
+        let mut generate_options = GenerateOptions::default();
+        generate_options.dump_to_path = dump_to_path.as_deref();
+
         let pdf = opentalk_report_generation::generate_pdf_report(
             template,
             BTreeMap::from_iter([(
                 Path::new("data.json"),
-                serde_json::to_string_pretty(parameter)
-                    .unwrap()
-                    .into_bytes()
-                    .into(),
+                (
+                    None,
+                    serde_json::to_string_pretty(parameter)
+                        .unwrap()
+                        .into_bytes()
+                        .into(),
+                ),
             )]),
-            dump_to_path.as_deref(),
+            &generate_options,
         )
         .whatever_context::<_, SignalingModuleError>("unable to build pdf")?;
         Ok(pdf)
@@ -1101,7 +1108,7 @@ mod tests {
                 "large",
                 &crate::template::tests::example_large()
             ),
-            @r#"
+            @r"
         Training participation report
          Meeting: OpenTalk introduction training
 
@@ -1166,7 +1173,7 @@ mod tests {
 
         25 Zainab Zavala 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
 
-        26 嬴嬴嬴 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+        26    09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
 
         № Participant 01:37 03:27
 
@@ -1222,8 +1229,8 @@ mod tests {
 
         25 Zainab Zavala 01:37 03:27
 
-        26 嬴嬴嬴 01:37 03:27
-        "#
+        26    01:37 03:27
+        "
         );
     }
 }

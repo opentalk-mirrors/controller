@@ -10,7 +10,7 @@ use chrono_tz::Tz;
 use either::Either;
 use futures::{StreamExt as _, TryStreamExt, stream};
 use opentalk_inventory::{Event as InventoryEvent, InventoryProvider};
-use opentalk_report_generation::ToReportDateTime;
+use opentalk_report_generation::{GenerateOptions, ToReportDateTime};
 use opentalk_signaling_core::{
     ChunkFormat, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage,
     ObjectStorageError, SignalingModule, SignalingModuleDescription, SignalingModuleError,
@@ -263,17 +263,22 @@ impl MeetingReport {
         let dump_to_path = std::env::var("OPENTALK_REPORT_DUMP_PATH")
             .map(|p| Path::new(&p).join(dump_to_relative_path))
             .ok();
+        let mut generate_options = GenerateOptions::default();
+        generate_options.dump_to_path = dump_to_path.as_deref();
 
         let pdf = opentalk_report_generation::generate_pdf_report(
             template,
             BTreeMap::from_iter([(
                 Path::new("data.json"),
-                serde_json::to_string_pretty(parameter)
-                    .unwrap()
-                    .into_bytes()
-                    .into(),
+                (
+                    None,
+                    serde_json::to_string_pretty(parameter)
+                        .unwrap()
+                        .into_bytes()
+                        .into(),
+                ),
             )]),
-            dump_to_path.as_deref(),
+            &generate_options,
         )
         .whatever_context::<_, SignalingModuleError>("unable to build pdf")?;
         Ok(pdf)
