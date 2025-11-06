@@ -4,7 +4,8 @@
 
 ARG typst_plugins_version=dev
 
-FROM rust:slim-bookworm AS builder
+FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.90.0-bookworm AS builder
+
 RUN mkdir /controller
 WORKDIR /controller
 
@@ -12,7 +13,7 @@ ADD . /controller
 
 RUN apt-get update && apt-get install --no-install-recommends -y libpq-dev protobuf-compiler curl
 
-RUN cargo build --release --locked
+RUN cargo auditable build --release --locked
 
 FROM git.opentalk.dev:5050/opentalk/backend/containers/typst-plugins:${typst_plugins_version} AS typst-plugins
 
