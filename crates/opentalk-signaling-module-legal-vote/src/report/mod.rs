@@ -6,6 +6,7 @@ pub mod data;
 
 use data::ReportData;
 pub use error::Error;
+use opentalk_report_generation::GenerateOptions;
 use opentalk_types_common::users::{DisplayName, UserId};
 
 mod error;
@@ -47,16 +48,22 @@ fn generate_from_template(
         .map(|p| Path::new(&p).join(dump_to_relative_path))
         .ok();
 
+    let mut generate_options = GenerateOptions::default();
+    generate_options.dump_to_path = dump_to_path.as_deref();
+
     opentalk_report_generation::generate_pdf_report(
         template,
         BTreeMap::from_iter([(
             Path::new("data.json"),
-            serde_json::to_string_pretty(parameter)
-                .unwrap()
-                .into_bytes()
-                .into(),
+            (
+                None,
+                serde_json::to_string_pretty(parameter)
+                    .unwrap()
+                    .into_bytes()
+                    .into(),
+            ),
         )]),
-        dump_to_path.as_deref(),
+        &generate_options,
     )
     .context(ReportGenerationSnafu)
 }
