@@ -58,7 +58,7 @@ mod tests {
 
     #[test]
     fn expiring_data() {
-        let expires_after = Duration::from_millis(3);
+        let expires_after = Duration::from_millis(10);
 
         let expiring = ExpiringData::new_ex(5, expires_after);
         let nonexpiring = ExpiringData::new(5);
@@ -66,7 +66,7 @@ mod tests {
         assert_eq!(expiring.value(), Some(&5));
         assert_eq!(nonexpiring.value(), Some(&5));
 
-        std::thread::sleep(Duration::from_millis(5));
+        std::thread::sleep(Duration::from_millis(15));
 
         assert_eq!(expiring.value(), None);
         assert_eq!(nonexpiring.value(), Some(&5));
