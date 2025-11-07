@@ -35,7 +35,7 @@ use opentalk_signaling_core::{
     RunnerId, SignalingMetrics, SignalingModuleError, SignalingRoomId, SubscriberHandle,
     VolatileStorage,
     control::{
-        self, ControlStateExt as _, ControlStorageProvider, MODULE_ID, exchange,
+        self, ControlStateExt as _, ControlStorageProvider, exchange,
         storage::{
             AVATAR_URL, AttributeActions, BREAKOUT_ROOM, ControlStorageParticipantAttributes,
             DISPLAY_NAME, GlobalRoomAttributeId, HAND_IS_UP, HAND_UPDATED_AT, IS_PRESENT,
@@ -1141,7 +1141,7 @@ impl Runner {
             }
         };
 
-        if namespaced.module == MODULE_ID {
+        if namespaced.module == control::MODULE_ID {
             match serde_json::from_value(namespaced.payload) {
                 Ok(msg) => {
                     if let Err(e) = self.handle_control_msg(timestamp, msg).await {
@@ -1942,7 +1942,7 @@ impl Runner {
             }
         };
 
-        if namespaced.module == MODULE_ID {
+        if namespaced.module == control::MODULE_ID {
             let msg = match serde_json::from_value::<exchange::Message>(namespaced.payload) {
                 Ok(msg) => msg,
                 Err(e) => {
@@ -2284,7 +2284,7 @@ impl Runner {
         message: exchange::Message,
     ) {
         let message = NamespacedEvent {
-            module: MODULE_ID,
+            module: control::MODULE_ID,
             timestamp,
             payload: message,
         };
@@ -2426,7 +2426,7 @@ impl Runner {
         self.ws
             .send(Message::Text(
                 serde_json::to_string(&NamespacedEvent {
-                    module: MODULE_ID,
+                    module: control::MODULE_ID,
                     timestamp,
                     payload,
                 })
