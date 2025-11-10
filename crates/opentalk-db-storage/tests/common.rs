@@ -34,7 +34,7 @@ pub async fn make_user(
         lastname: lastname.into(),
         avatar_url: None,
         display_name: display_name.parse().expect("valid display name"),
-        language: "".parse().expect("valid language"),
+        language: "de".parse().expect("valid language"),
         oidc_sub: format!("{firstname}{lastname}"),
         phone: None,
         tenant_id: tenant.id,

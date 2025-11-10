@@ -4,7 +4,8 @@
 
 use std::{collections::BTreeSet, env};
 
-use opentalk_types_common::{features::ModuleFeatureId, time::TimeZone, users::Language};
+use icu_locid::{LanguageIdentifier, langid};
+use opentalk_types_common::{features::ModuleFeatureId, time::TimeZone};
 
 use crate::settings_file;
 
@@ -12,7 +13,7 @@ use crate::settings_file;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Defaults {
     /// The user language.
-    pub user_language: Language,
+    pub user_language: LanguageIdentifier,
 
     /// The timezone used by the system and as the users' default.
     pub timezone: TimeZone,
@@ -53,8 +54,8 @@ impl Default for Defaults {
     }
 }
 
-pub(crate) fn default_user_language() -> Language {
-    "en-US".parse().expect("valid language")
+pub(crate) fn default_user_language() -> LanguageIdentifier {
+    langid!("en-US")
 }
 
 pub(crate) fn global_timezone() -> TimeZone {

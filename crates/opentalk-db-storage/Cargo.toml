@@ -19,6 +19,7 @@ workspace = true
 barrel = { version = "0.7", features = ["pg"] }
 bigdecimal.workspace = true
 bincode.workspace = true
+byteorder.workspace = true
 chrono.workspace = true
 chrono-tz = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true, features = [
@@ -35,6 +36,7 @@ diesel = { workspace = true, features = [
   "uuid",
 ] }
 diesel-async.workspace = true
+icu_locid.workspace = true
 kustos-db.workspace = true
 log = { workspace = true, features = ["serde"] }
 opentalk-database.workspace = true

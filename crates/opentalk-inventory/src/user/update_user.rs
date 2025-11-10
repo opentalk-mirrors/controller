@@ -2,10 +2,11 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use icu_locid::LanguageIdentifier;
 use opentalk_types_common::{
     tariffs::{TariffId, TariffStatus},
     time::{TimeZone, Timestamp},
-    users::{DisplayName, Language, Theme, UserTitle},
+    users::{DisplayName, Theme, UserTitle},
 };
 
 /// Representation of an update to a user in the inventory.
@@ -30,7 +31,7 @@ pub struct UpdateUser<'a> {
     pub display_name: Option<&'a DisplayName>,
 
     /// Update the language.
-    pub language: Option<&'a Language>,
+    pub language: Option<LanguageIdentifier>,
 
     /// Update the dashboard theme.
     pub dashboard_theme: Option<&'a Theme>,

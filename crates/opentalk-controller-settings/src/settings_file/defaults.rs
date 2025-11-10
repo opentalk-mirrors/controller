@@ -4,13 +4,14 @@
 
 use std::collections::BTreeSet;
 
-use opentalk_types_common::{features::ModuleFeatureId, time::TimeZone, users::Language};
+use icu_locid::LanguageIdentifier;
+use opentalk_types_common::{features::ModuleFeatureId, time::TimeZone};
 use serde::Deserialize;
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, Deserialize)]
 pub(crate) struct Defaults {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub user_language: Option<Language>,
+    pub user_language: Option<LanguageIdentifier>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timezone: Option<TimeZone>,

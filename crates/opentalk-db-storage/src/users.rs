@@ -21,7 +21,7 @@ use opentalk_types_common::{
     tariffs::{TariffId, TariffStatus},
     tenants::TenantId,
     time::TimeZone,
-    users::{DisplayName, Language, Theme, UserId, UserTitle},
+    users::{DisplayName, Theme, UserId, UserTitle},
 };
 use serde::{Deserialize, Serialize};
 
@@ -29,7 +29,7 @@ use super::{
     groups::{Group, UserGroupRelation},
     schema::{assets, groups, room_assets, rooms, users},
 };
-use crate::{levenshtein, lower, paginate::Paginate as _, soundex};
+use crate::{levenshtein, lower, newtypes::LanguageIdentifier, paginate::Paginate as _, soundex};
 
 #[derive(
     AsRef,
@@ -70,7 +70,7 @@ pub struct User {
     pub title: UserTitle,
     pub firstname: String,
     pub lastname: String,
-    pub language: Language,
+    pub language: LanguageIdentifier,
     pub display_name: DisplayName,
     pub dashboard_theme: Theme,
     pub conference_theme: Theme,
@@ -118,7 +118,7 @@ impl From<User> for opentalk_inventory::User {
             title,
             firstname,
             lastname,
-            language,
+            language: language.into(),
             display_name,
             dashboard_theme,
             conference_theme,
@@ -168,7 +168,7 @@ impl From<opentalk_inventory::User> for User {
             title,
             firstname,
             lastname,
-            language,
+            language: language.into(),
             display_name,
             dashboard_theme,
             conference_theme,
@@ -473,7 +473,7 @@ pub struct NewUser {
     pub title: UserTitle,
     pub firstname: String,
     pub lastname: String,
-    pub language: Language,
+    pub language: LanguageIdentifier,
     pub display_name: DisplayName,
     pub phone: Option<String>,
     pub tenant_id: TenantId,
@@ -507,7 +507,7 @@ impl From<opentalk_inventory::NewUser> for NewUser {
             title,
             firstname,
             lastname,
-            language,
+            language: language.into(),
             display_name,
             phone,
             tenant_id,
@@ -553,7 +553,7 @@ impl NewUser {
             lastname: Some(&lastname),
             phone: Some(phone),
             display_name: enforce_display_name_on_update.then_some(&display_name),
-            language: Some(&language),
+            language: Some(language),
             dashboard_theme: None,
             conference_theme: None,
             tariff_id: Some(tariff_id),
@@ -585,7 +585,7 @@ pub struct UpdateUser<'a> {
     pub lastname: Option<&'a str>,
     pub phone: Option<Option<String>>,
     pub display_name: Option<&'a DisplayName>,
-    pub language: Option<&'a Language>,
+    pub language: Option<LanguageIdentifier>,
     pub dashboard_theme: Option<&'a Theme>,
     pub conference_theme: Option<&'a Theme>,
     // The tenant_id should never be updated!
@@ -625,7 +625,7 @@ impl<'a> From<opentalk_inventory::UpdateUser<'a>> for UpdateUser<'a> {
             lastname,
             phone,
             display_name,
-            language,
+            language: language.map(|l| l.into()),
             dashboard_theme,
             conference_theme,
             tariff_id,
@@ -676,7 +676,7 @@ impl From<User> for opentalk_mail_worker_protocol::v1::RegisteredUser {
             title: val.title,
             first_name: val.firstname,
             last_name: val.lastname,
-            language: val.language,
+            language: val.language.into(),
         }
     }
 }

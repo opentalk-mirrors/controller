@@ -1111,19 +1111,12 @@ async fn store_training_participation_report(
         checkpoint_interval,
     }: TrainingParticipationReportParameterSet,
 ) -> Result<Option<TrainingParticipationReportParameterSet>, CaptureApiError> {
-    let initial_checkpoint_delay_after = initial_checkpoint_delay.after.into();
-    let initial_checkpoint_delay_within = initial_checkpoint_delay.within.into();
-    let checkpoint_interval_after = checkpoint_interval.after.into();
-    let checkpoint_interval_within = checkpoint_interval.within.into();
-
     let inserted = inventory
         .try_create_event_training_participation_report_parameter_set(
             EventTrainingParticipationReportParameterSet {
                 event_id,
-                initial_checkpoint_delay_after,
-                initial_checkpoint_delay_within,
-                checkpoint_interval_after,
-                checkpoint_interval_within,
+                initial_checkpoint_delay,
+                checkpoint_interval,
             },
         )
         .await?;
@@ -1869,13 +1862,13 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::time::SystemTime;
+    use std::time::{Duration, SystemTime};
 
     use opentalk_types_common::{
         events::invites::InviteRole,
         rooms::RoomId,
         time::Timestamp,
-        training_participation_report::{TimeRange, TimeRangeStart, TimeRangeWindow},
+        training_participation_report::TimeRange,
         users::{UserId, UserInfo},
     };
     use serde_json::json;
@@ -1958,14 +1951,14 @@ mod tests {
             streaming_targets: Vec::new(),
             show_meeting_details: true,
             training_participation_report: Some(TrainingParticipationReportParameterSet {
-                initial_checkpoint_delay: TimeRange {
-                    after: TimeRangeStart::from_i64_clamped(100),
-                    within: TimeRangeWindow::from_i64_clamped(200),
-                },
-                checkpoint_interval: TimeRange {
-                    after: TimeRangeStart::from_i64_clamped(300),
-                    within: TimeRangeWindow::from_i64_clamped(400),
-                },
+                initial_checkpoint_delay: TimeRange::new_with_clamped_durations(
+                    Duration::from_secs(100),
+                    Duration::from_secs(200),
+                ),
+                checkpoint_interval: TimeRange::new_with_clamped_durations(
+                    Duration::from_secs(300),
+                    Duration::from_secs(400),
+                ),
             }),
         };
 
@@ -2108,14 +2101,14 @@ mod tests {
             streaming_targets: Vec::new(),
             show_meeting_details: false,
             training_participation_report: Some(TrainingParticipationReportParameterSet {
-                initial_checkpoint_delay: TimeRange {
-                    after: TimeRangeStart::from_i64_clamped(100),
-                    within: TimeRangeWindow::from_i64_clamped(200),
-                },
-                checkpoint_interval: TimeRange {
-                    after: TimeRangeStart::from_i64_clamped(300),
-                    within: TimeRangeWindow::from_i64_clamped(400),
-                },
+                initial_checkpoint_delay: TimeRange::new_with_clamped_durations(
+                    Duration::from_secs(100),
+                    Duration::from_secs(200),
+                ),
+                checkpoint_interval: TimeRange::new_with_clamped_durations(
+                    Duration::from_secs(300),
+                    Duration::from_secs(400),
+                ),
             }),
         };
 

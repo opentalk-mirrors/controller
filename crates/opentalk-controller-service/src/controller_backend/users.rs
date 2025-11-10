@@ -70,7 +70,7 @@ impl ControllerBackend {
                     phone: None,
                     email: None,
                     display_name: patch.display_name.as_ref(),
-                    language: patch.language.as_ref(),
+                    language: patch.language.map(Into::into),
                     dashboard_theme: patch.dashboard_theme.as_ref(),
                     conference_theme: patch.conference_theme.as_ref(),
                     tariff_id: None,

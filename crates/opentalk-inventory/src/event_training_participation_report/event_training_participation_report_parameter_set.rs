@@ -4,9 +4,7 @@
 
 use opentalk_types_common::{
     events::EventId,
-    training_participation_report::{
-        TimeRange, TimeRangeStart, TimeRangeWindow, TrainingParticipationReportParameterSet,
-    },
+    training_participation_report::{TimeRange, TrainingParticipationReportParameterSet},
 };
 
 /// The representation of a parameter set for the training participation report in the inventory.
@@ -15,17 +13,11 @@ pub struct EventTrainingParticipationReportParameterSet {
     /// The id of the event.
     pub event_id: EventId,
 
-    /// The minimum duration until the initial checkpoint.
-    pub initial_checkpoint_delay_after: i64,
+    /// The time range to use for determining the inital checkpoint.
+    pub initial_checkpoint_delay: TimeRange,
 
-    /// The timespan within which the initial checkpoint happens.
-    pub initial_checkpoint_delay_within: i64,
-
-    /// The minimum duration for the checkpoint interval.
-    pub checkpoint_interval_after: i64,
-
-    /// The timespan within which the checkpoint interval happens.
-    pub checkpoint_interval_within: i64,
+    /// The time range to use for determining subsequent checkpoint intervals.
+    pub checkpoint_interval: TimeRange,
 }
 
 impl From<EventTrainingParticipationReportParameterSet>
@@ -34,22 +26,13 @@ impl From<EventTrainingParticipationReportParameterSet>
     fn from(
         EventTrainingParticipationReportParameterSet {
             event_id: _,
-            initial_checkpoint_delay_after,
-            initial_checkpoint_delay_within,
-            checkpoint_interval_after,
-            checkpoint_interval_within,
+            initial_checkpoint_delay,
+            checkpoint_interval,
         }: EventTrainingParticipationReportParameterSet,
     ) -> Self {
         Self {
-            initial_checkpoint_delay: TimeRange {
-                after: TimeRangeStart::try_from(initial_checkpoint_delay_after).unwrap_or_default(),
-                within: TimeRangeWindow::try_from(initial_checkpoint_delay_within)
-                    .unwrap_or_default(),
-            },
-            checkpoint_interval: TimeRange {
-                after: TimeRangeStart::try_from(checkpoint_interval_after).unwrap_or_default(),
-                within: TimeRangeWindow::try_from(checkpoint_interval_within).unwrap_or_default(),
-            },
+            initial_checkpoint_delay,
+            checkpoint_interval,
         }
     }
 }
@@ -68,10 +51,8 @@ impl From<(EventId, TrainingParticipationReportParameterSet)>
     ) -> Self {
         Self {
             event_id,
-            initial_checkpoint_delay_after: initial_checkpoint_delay.after.into(),
-            initial_checkpoint_delay_within: initial_checkpoint_delay.within.into(),
-            checkpoint_interval_after: checkpoint_interval.after.into(),
-            checkpoint_interval_within: checkpoint_interval.within.into(),
+            initial_checkpoint_delay,
+            checkpoint_interval,
         }
     }
 }
