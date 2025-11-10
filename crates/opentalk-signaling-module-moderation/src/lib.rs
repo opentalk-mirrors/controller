@@ -76,14 +76,14 @@ async fn build_waiting_room_participants(
     Ok(waiting_room)
 }
 
-async fn set_waiting_room_enabled(
+async fn set_waiting_room_state(
     ctx: &mut ModuleContext<'_, Moderation>,
     room_id: RoomId,
     enabled: bool,
 ) -> Result<(), SignalingModuleError> {
     ctx.volatile
         .moderation_storage()
-        .set_waiting_room_enabled(room_id, enabled)
+        .set_waiting_room_state(room_id, enabled)
         .await?;
 
     ctx.exchange_publish(
@@ -289,7 +289,7 @@ impl SignalingModule for Moderation {
                     .is_waiting_room_enabled(self.room.room_id())
                     .await?
                 {
-                    set_waiting_room_enabled(&mut ctx, self.room.room_id(), true).await?;
+                    set_waiting_room_state(&mut ctx, self.room.room_id(), true).await?;
                 }
 
                 // Enforce the participant to enter the waiting room (if enabled) on next rejoin
@@ -357,7 +357,7 @@ impl SignalingModule for Moderation {
                     .waiting_room_accepted_remove_participants(self.room.room_id(), &to_remove)
                     .await?;
 
-                set_waiting_room_enabled(&mut ctx, self.room.room_id(), true).await?;
+                set_waiting_room_state(&mut ctx, self.room.room_id(), true).await?;
 
                 ctx.exchange_publish(
                     control::exchange::current_room_all_participants(self.room),
@@ -429,7 +429,7 @@ impl SignalingModule for Moderation {
                     return Ok(());
                 }
 
-                set_waiting_room_enabled(&mut ctx, self.room.room_id(), true).await?;
+                set_waiting_room_state(&mut ctx, self.room.room_id(), true).await?;
             }
             Event::WsMessage(ModerationCommand::DisableWaitingRoom) => {
                 if ctx.role() != Role::Moderator {
@@ -437,7 +437,7 @@ impl SignalingModule for Moderation {
                     return Ok(());
                 }
 
-                set_waiting_room_enabled(&mut ctx, self.room.room_id(), false).await?;
+                set_waiting_room_state(&mut ctx, self.room.room_id(), false).await?;
             }
             Event::WsMessage(ModerationCommand::Accept(Accept { target })) => {
                 if ctx.role() != Role::Moderator {

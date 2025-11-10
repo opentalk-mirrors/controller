@@ -39,7 +39,7 @@ pub trait ModerationStorage:
         enabled: bool,
     ) -> Result<bool, SignalingModuleError>;
 
-    async fn set_waiting_room_enabled(
+    async fn set_waiting_room_state(
         &mut self,
         room: RoomId,
         enabled: bool,
