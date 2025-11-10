@@ -140,12 +140,14 @@ pub async fn save_asset<E>(
 where
     ObjectStorageError: From<E>,
 {
-    let mut inventory = inventory_provider
-        .get_inventory()
-        .await
-        .context(InventoryConnectionSnafu)?;
+    let room = {
+        let mut inventory = inventory_provider
+            .get_inventory()
+            .await
+            .context(InventoryConnectionSnafu)?;
 
-    let room = prepare_storage(room_id, inventory.as_mut()).await?;
+        prepare_storage(room_id, inventory.as_mut()).await
+    }?;
 
     let asset_id = AssetId::generate();
 
@@ -159,38 +161,43 @@ where
     let size = match size {
         Ok(size) => size,
         Err(e) => {
-            drop(inventory);
             rollback_object_storage(storage, &asset_id).await?;
             return Err(e);
         }
     };
 
-    if filename.event_title.is_none() {
-        filename.event_title = inventory
-            .get_event_for_room(room.id)
+    let result = {
+        let mut inventory = inventory_provider
+            .get_inventory()
             .await
-            .context(InventoryQuerySnafu)?
-            .map(|e| e.title);
-    }
+            .context(InventoryConnectionSnafu)?;
+        if filename.event_title.is_none() {
+            filename.event_title = inventory
+                .get_event_for_room(room.id)
+                .await
+                .context(InventoryQuerySnafu)?
+                .map(|e| e.title);
+        }
 
-    let kind = filename.kind.clone();
-    let filename = filename.to_string();
+        let kind = filename.kind.clone();
+        let filename = filename.to_string();
 
-    // Create a inventory entry for the uploaded asset
-    let result = insert_asset_into_inventory(
-        inventory.as_mut(),
-        namespace,
-        filename.clone(),
-        kind,
-        asset_id,
-        room,
-        size,
-    )
-    .await
-    .context(InventoryQuerySnafu);
+        // Create a inventory entry for the uploaded asset
+        insert_asset_into_inventory(
+            inventory.as_mut(),
+            namespace,
+            filename.clone(),
+            kind,
+            asset_id,
+            room,
+            size,
+        )
+        .await
+        .map(|asset| (asset.id, filename))
+        .context(InventoryQuerySnafu)
+    };
 
     if let Err(e) = result {
-        drop(inventory);
         // if there was an error, we roll back and return the original error.
         // if the rollback fails, we return a rollback error with the cause of
         // the rollback and the reason why the rollback failed.
@@ -200,8 +207,7 @@ where
                 .with_context(|_| RollbackSnafu::<AssetError> { rollback_reason: e }),
         };
     }
-
-    Ok((asset_id, filename))
+    result
 }
 
 async fn rollback_object_storage(storage: &ObjectStorage, asset_id: &AssetId) -> Result<()> {
