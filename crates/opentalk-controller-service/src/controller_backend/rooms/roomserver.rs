@@ -12,9 +12,11 @@ use opentalk_roomserver_client::{Error, RequestTokenError};
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
     client_parameters::{ClientKind, ClientParameters, Role},
+    module_settings::ModuleSettings,
     public_user_profile::PublicUserProfile,
     room_parameters::{AssetStorageConfig, EventContext, RoomParameters},
 };
+use opentalk_roomserver_types_training_participation_report::settings::TrainingParticipationReportSettings;
 use opentalk_types_api_v1::{
     error::ApiError,
     rooms::{
@@ -201,6 +203,7 @@ impl ControllerBackend {
             .map(|r| r.modules.clone())
             .unwrap_or_default();
 
+        Self::override_module_settings(inventory.as_mut(), room.id, &mut module_settings).await?;
         module_settings.retain(|module_id, _| tariff.modules.contains_key(module_id));
 
         let timezone = get_user_timezone(room.created_by.id, inventory.as_mut(), &settings).await;
@@ -260,6 +263,32 @@ impl ControllerBackend {
         };
 
         Ok(Some(context))
+    }
+
+    /// Overrides module settings with values from the inventory.
+    async fn override_module_settings(
+        inventory: &mut dyn Inventory,
+        room_id: RoomId,
+        module_settings: &mut ModuleSettings,
+    ) -> Result<(), CaptureApiError> {
+        let Some(event) = inventory.get_event_for_room(room_id).await? else {
+            return Ok(());
+        };
+
+        if let Some(autostart) = inventory
+            .get_event_training_participation_report_parameter_set(event.id)
+            .await?
+        {
+            let settings = TrainingParticipationReportSettings {
+                autostart: Some(autostart.into()),
+            };
+            module_settings.insert(&settings).map_err(|err| {
+                log::error!("failed to serialize training participation report module settings for room {room_id}: {err}");
+                ApiError::internal()
+            })?;
+        }
+
+        Ok(())
     }
 
     async fn get_call_in_info(

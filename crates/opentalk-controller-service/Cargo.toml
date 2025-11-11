@@ -45,6 +45,7 @@ opentalk-mail-worker-protocol.workspace = true
 opentalk-nextcloud-client.workspace = true
 opentalk-roomserver-client.workspace = true
 opentalk-roomserver-types.workspace = true
+opentalk-roomserver-types-training-participation-report.workspace = true
 opentalk-signaling-core.workspace = true
 opentalk-signaling-module-breakout.workspace = true
 opentalk-signaling-module-moderation.workspace = true

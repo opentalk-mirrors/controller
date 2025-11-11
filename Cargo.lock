@@ -5129,6 +5129,7 @@ dependencies = [
  "opentalk-nextcloud-client",
  "opentalk-roomserver-client",
  "opentalk-roomserver-types",
+ "opentalk-roomserver-types-training-participation-report",
  "opentalk-signaling-core",
  "opentalk-signaling-module-breakout",
  "opentalk-signaling-module-moderation",
