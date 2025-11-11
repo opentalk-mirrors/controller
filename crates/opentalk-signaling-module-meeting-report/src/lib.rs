@@ -2,13 +2,19 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{collections::BTreeMap, path::Path, sync::Arc};
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use bytes::Bytes;
 use chrono::{DateTime, Datelike, Local, Utc};
 use chrono_tz::Tz;
 use either::Either;
+use fluent_langneg::{NegotiationStrategy, negotiate_languages};
 use futures::{StreamExt as _, TryStreamExt, stream};
+use icu_locid::{LanguageIdentifier, langid};
 use opentalk_inventory::{Event as InventoryEvent, InventoryProvider};
 use opentalk_report_generation::{GenerateOptions, ToReportDateTime};
 use opentalk_signaling_core::{
@@ -44,7 +50,10 @@ pub mod exchange;
 mod storage;
 mod template;
 
-const DEFAULT_TEMPLATE: &str = include_str!("attendance_report.typ");
+const TEMPLATE: &str = include_str!("../templates/attendance_report.typ");
+const FTL_EN: &str = include_str!("../templates/l10n/en.ftl");
+const FTL_DE: &str = include_str!("../templates/l10n/de.ftl");
+const AVAILABLE_LANGUAGES: &[LanguageIdentifier] = &[langid!("en"), langid!("de")];
 
 trait MeetingReportStorageProvider {
     fn storage(&mut self) -> &mut dyn MeetingReportStorage;
@@ -60,6 +69,8 @@ impl MeetingReportStorageProvider for VolatileStorage {
 }
 
 pub struct MeetingReport {
+    system_default_language: LanguageIdentifier,
+    typst_packages_path: PathBuf,
     room_id: SignalingRoomId,
     inventory_provider: Arc<dyn InventoryProvider>,
     storage: Arc<ObjectStorage>,
@@ -72,11 +83,17 @@ impl SignalingModuleDescription for MeetingReport {
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MeetingReportParams {
+    system_default_language: LanguageIdentifier,
+    typst_packages_path: PathBuf,
+}
+
 #[async_trait::async_trait(?Send)]
 impl SignalingModule for MeetingReport {
     const NAMESPACE: ModuleId = MODULE_ID;
 
-    type Params = ();
+    type Params = MeetingReportParams;
 
     type Incoming = MeetingReportCommand;
 
@@ -92,10 +109,15 @@ impl SignalingModule for MeetingReport {
 
     async fn init(
         ctx: InitContext<'_, Self>,
-        _params: &Self::Params,
+        Self::Params {
+            system_default_language,
+            typst_packages_path,
+        }: &Self::Params,
         _protocol: &'static str,
     ) -> Result<Option<Self>, SignalingModuleError> {
         Ok(Some(Self {
+            system_default_language: system_default_language.clone(),
+            typst_packages_path: typst_packages_path.clone(),
             room_id: ctx.room_id(),
             inventory_provider: ctx.inventory_provider().clone(),
             storage: ctx.storage.clone(),
@@ -129,9 +151,14 @@ impl SignalingModule for MeetingReport {
     async fn on_destroy(self, _ctx: DestroyContext<'_>) {}
 
     fn build_params(
-        _init: SignalingModuleInitData,
+        init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
-        Ok(Some(()))
+        let typst_packages_path = init.startup_settings.reports.typst.packages_path.clone();
+        let system_default_language = init.startup_settings.defaults.user_language.clone();
+        Ok(Some(MeetingReportParams {
+            system_default_language,
+            typst_packages_path,
+        }))
     }
 }
 
@@ -161,17 +188,24 @@ impl MeetingReport {
         mut ctx: ModuleContext<'_, Self>,
         include_email_addresses: bool,
     ) -> Result<(), SignalingModuleError> {
-        let (participants, event, timezone) = self
+        let (participants, event, timezone, language) = self
             .collect_report_information(&mut ctx, include_email_addresses)
             .await?;
 
-        let report =
-            Self::generate_pdf_report(DEFAULT_TEMPLATE.to_string(), event, participants, timezone)
-                .await
-                .with_whatever_context::<_, _, SignalingModuleError>(|_| {
-                    ctx.ws_send(Error::Generate);
-                    "Failed to create pdf"
-                })?;
+        let report = Self::generate_pdf_report(
+            TEMPLATE.to_string(),
+            Vec::from_iter(AVAILABLE_LANGUAGES.iter().cloned()),
+            event,
+            participants,
+            timezone,
+            language,
+            &self.typst_packages_path,
+        )
+        .await
+        .with_whatever_context::<_, _, SignalingModuleError>(|_| {
+            ctx.ws_send(Error::Generate);
+            "Failed to create pdf"
+        })?;
         self.upload_pdf(report, ctx).await;
 
         Ok(())
@@ -181,7 +215,15 @@ impl MeetingReport {
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         include_email_addresses: bool,
-    ) -> Result<(Vec<ReportParticipant>, InventoryEvent, TimeZone), SignalingModuleError> {
+    ) -> Result<
+        (
+            Vec<ReportParticipant>,
+            InventoryEvent,
+            TimeZone,
+            LanguageIdentifier,
+        ),
+        SignalingModuleError,
+    > {
         const CONCURRENT_PARTICIPANT_QUERIES: usize = 10;
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
@@ -193,6 +235,7 @@ impl MeetingReport {
             .ok_or(SignalingModuleError::NotFoundError {
                 message: "Room not found".to_string(),
             })?;
+        let room_owner = inventory.get_user(event.created_by).await?;
 
         // Query all participant IDs and create and concurrently fetch all participant information.
         let participants = storage.get_all_participants(self.room_id).await?;
@@ -212,14 +255,38 @@ impl MeetingReport {
                 source: Some(Box::new(e).into()),
             })?;
 
-        Ok((participants, event, ctx.timezone))
+        let language = {
+            let fallback = AVAILABLE_LANGUAGES
+                .iter()
+                .next()
+                .expect("AVAILABLE_LANGUAGES is not empty");
+            let system_default = &self.system_default_language;
+
+            negotiate_languages(
+                &[room_owner.language.as_ref(), system_default],
+                AVAILABLE_LANGUAGES,
+                None,
+                NegotiationStrategy::Lookup,
+            )
+            .into_iter()
+            .next()
+            .unwrap_or_else(|| {
+                log::warn!("Could not find a valid report language. System default: {system_default}, available: {AVAILABLE_LANGUAGES:?}.");
+                fallback
+            }).clone()
+        };
+
+        Ok((participants, event, ctx.timezone, language))
     }
 
     async fn generate_pdf_report(
         template: String,
+        available_languages: Vec<LanguageIdentifier>,
         event: InventoryEvent,
         participants: Vec<ReportParticipant>,
         report_timezone: TimeZone,
+        report_language: LanguageIdentifier,
+        typst_package_path: &Path,
     ) -> Result<Vec<u8>, SignalingModuleError> {
         let tz = Tz::from(report_timezone);
         let starts_at = event.starts_at.map(DateTime::from).to_report_date_time(&tz);
@@ -243,6 +310,7 @@ impl MeetingReport {
         Self::generate_pdf_report_from_template(
             template,
             &ReportTemplateParameter {
+                available_languages,
                 title: event.title,
                 description: event.description,
                 starts_at,
@@ -250,8 +318,10 @@ impl MeetingReport {
                 report_created_at,
                 report_timezone,
                 participants,
+                report_language,
             },
             Path::new(&format!("{MODULE_ID}/{timestamp}")),
+            typst_package_path,
         )
     }
 
@@ -259,16 +329,17 @@ impl MeetingReport {
         template: String,
         parameter: &ReportTemplateParameter,
         dump_to_relative_path: &Path,
+        typst_package_path: &Path,
     ) -> Result<Vec<u8>, SignalingModuleError> {
         let dump_to_path = std::env::var("OPENTALK_REPORT_DUMP_PATH")
             .map(|p| Path::new(&p).join(dump_to_relative_path))
             .ok();
         let mut generate_options = GenerateOptions::default();
         generate_options.dump_to_path = dump_to_path.as_deref();
+        generate_options.packages_path = Some(typst_package_path);
 
-        let pdf = opentalk_report_generation::generate_pdf_report(
-            template,
-            BTreeMap::from_iter([(
+        let files = vec![
+            (
                 Path::new("data.json"),
                 (
                     None,
@@ -277,7 +348,14 @@ impl MeetingReport {
                         .into_bytes()
                         .into(),
                 ),
-            )]),
+            ),
+            (Path::new("l10n/de.ftl"), (None, FTL_DE.as_bytes().into())),
+            (Path::new("l10n/en.ftl"), (None, FTL_EN.as_bytes().into())),
+        ];
+
+        let pdf = opentalk_report_generation::generate_pdf_report(
+            template,
+            BTreeMap::from_iter(files),
             &generate_options,
         )
         .whatever_context::<_, SignalingModuleError>("unable to build pdf")?;
@@ -396,14 +474,32 @@ mod tests {
     use std::path::Path;
 
     use insta::assert_snapshot;
+    use opentalk_controller_settings::reports_typst_default_packages_path;
 
-    use crate::{DEFAULT_TEMPLATE, MODULE_ID, MeetingReport, template::ReportTemplateParameter};
+    use crate::{MODULE_ID, MeetingReport, TEMPLATE, template::ReportTemplateParameter};
 
     fn generate(sample_name: &str, parameter: &ReportTemplateParameter) -> String {
+        const TYPST_PACKAGE_CACHE_PATH_ENV_VARIABLE: &str = "TYPST_PACKAGE_CACHE_PATH";
+
+        let typst_packages_path =
+            if let Some(env_variable) = std::env::var_os(TYPST_PACKAGE_CACHE_PATH_ENV_VARIABLE) {
+                Path::new(&env_variable).to_path_buf()
+            } else {
+                dirs::cache_dir()
+                    .map(|d| d.join("typst/packages"))
+                    .unwrap_or_else(|| reports_typst_default_packages_path().to_path_buf())
+            };
+
+        assert!(
+            typst_packages_path.exists(),
+            "Please make sure that the typst packages path {typst_packages_path:?} exists and contains the required typst packages, or point the {TYPST_PACKAGE_CACHE_PATH_ENV_VARIABLE:?} environment variable to the path with the typst packages"
+        );
+
         let pdf = MeetingReport::generate_pdf_report_from_template(
-            DEFAULT_TEMPLATE.to_string(),
+            TEMPLATE.to_string(),
             parameter,
             Path::new(&format!("{MODULE_ID}/{sample_name}")),
+            &typst_packages_path,
         )
         .expect("generation should work");
         pdf_extract::extract_text_from_mem(&pdf)
@@ -461,6 +557,42 @@ mod tests {
     }
 
     #[test]
+    fn generate_report_medium_de() {
+        let mut report_template_data = crate::template::tests::example_medium();
+        report_template_data.report_language =
+            "de".parse().expect("value must be parsable as Language");
+        assert_snapshot!(
+            generate(
+                "medium_de",
+                &report_template_data
+            ),
+            @r"
+        Anwesenheitsbericht
+         Meeting : Testmeeting
+
+        Details : A medium sized test meeting
+
+        Geplanter Beginn : 2025-02-06 08:18
+
+        Geplantes Ende : 2025-02-06 11:25
+
+        Bericht erstellt um : 2025-02-06 09:16
+
+        Zeitzone des Berichts : Europe/Berlin
+
+        Teilnehmende
+         Nr Name Rolle
+
+        1 Alice Adams Moderator
+
+        2 Charlie Cooper Nutzer
+
+        3 Bob Burton Nutzer
+        "
+        );
+    }
+
+    #[test]
     fn generate_report_large() {
         assert_snapshot!(generate("large", &crate::template::tests::example_large()), @r"
         Attendance Report
@@ -491,5 +623,47 @@ mod tests {
 
         6 Dave Dunn Guest
         ");
+    }
+
+    #[test]
+    fn generate_report_large_de() {
+        let mut report_template_data = crate::template::tests::example_large();
+        report_template_data.report_language =
+            "de".parse().expect("value must be parsable as Language");
+        assert_snapshot!(
+            generate(
+                "large_de",
+                &report_template_data
+            ),
+            @r"
+        Anwesenheitsbericht
+         Meeting : Large Testmeeting
+
+        Details : The large test meeting
+
+        Geplanter Beginn : 2025-02-06 08:18
+
+        Geplantes Ende : 2025-02-06 11:25
+
+        Bericht erstellt um : 2025-02-06 09:16
+
+        Zeitzone des Berichts : Europe/Berlin
+
+        Teilnehmende
+         Nr Name Rolle
+
+        1 Alice Adams Moderator
+
+        2 Franz Fischer Nutzer
+
+        3 Charlie Cooper Nutzer
+
+        4 Bob Burton Nutzer
+
+        5 Erin Gast
+
+        6 Dave Dunn Gast
+        "
+        );
     }
 }

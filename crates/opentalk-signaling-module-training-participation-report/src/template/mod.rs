@@ -13,15 +13,18 @@ pub(crate) mod tests {
     use std::collections::BTreeMap;
 
     use chrono_tz::Europe::Berlin;
+    use icu_locid::langid;
     use opentalk_types_common::users::DisplayName;
     use opentalk_types_signaling::ParticipantId;
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
     use super::{Checkpoint, ReportTemplateParameter};
+    use crate::AVAILABLE_LANGUAGES;
 
     pub fn example_small() -> ReportTemplateParameter {
         ReportTemplateParameter {
+            available_languages: Vec::from_iter(AVAILABLE_LANGUAGES.iter().cloned()),
             title: "OpenTalk introduction training"
                 .parse()
                 .expect("value must be parsable as EventTitle"),
@@ -35,6 +38,7 @@ pub(crate) mod tests {
                 .parse()
                 .expect("value must be parsable as ReportDateTime"),
             report_timezone: Berlin,
+            report_language: langid!("en"),
             participants: BTreeMap::from_iter([
                 (
                     ParticipantId::from_u128(0x3ad9e7bf_c0de_4fa8_980e_2a1f55784311),
@@ -109,11 +113,13 @@ pub(crate) mod tests {
 
     pub fn example_small_json() -> serde_json::Value {
         json!({
+          "available_languages": ["en", "de"],
           "title": "OpenTalk introduction training",
           "description": "",
           "start": "2025-02-18T09:01:23",
           "end": "2025-02-18T13:32:02",
           "report_timezone": "Europe/Berlin",
+          "report_language": "en",
           "participants": {
             "3ad9e7bf-c0de-4fa8-980e-2a1f55784311": "Bob Burton",
             "6b9cf256-b8f9-4b20-80e8-5e946118ef0f": "Charlie Cooper"
@@ -145,6 +151,7 @@ pub(crate) mod tests {
 
     pub fn example_medium() -> ReportTemplateParameter {
         ReportTemplateParameter {
+            available_languages: Vec::from_iter(AVAILABLE_LANGUAGES.iter().cloned()),
             title: "OpenTalk introduction training"
                 .parse()
                 .expect("value must be parsable as EventTitle"),
@@ -158,6 +165,7 @@ pub(crate) mod tests {
                 .parse()
                 .expect("value must be parsable as ReportDateTime"),
             report_timezone: Berlin,
+            report_language: langid!("en"),
             participants: BTreeMap::from_iter([
                 (
                     ParticipantId::from_u128(0x3ad9e7bf_c0de_4fa8_980e_2a1f55784311),
@@ -304,11 +312,13 @@ pub(crate) mod tests {
 
     pub fn example_medium_json() -> serde_json::Value {
         json!({
+          "available_languages": ["en", "de"],
           "title": "OpenTalk introduction training",
           "description": "",
           "start": "2025-02-18T09:01:23",
           "end": "2025-02-19T03:32:02",
           "report_timezone": "Europe/Berlin",
+          "report_language": "en",
           "participants": {
             "3ad9e7bf-c0de-4fa8-980e-2a1f55784311": "Bob Burton",
             "6b9cf256-b8f9-4b20-80e8-5e946118ef0f": "Charlie Cooper"
@@ -446,6 +456,7 @@ pub(crate) mod tests {
         let timestamp10 = "2025-02-19T03:27:00".parse().unwrap();
 
         ReportTemplateParameter {
+            available_languages: Vec::from_iter(AVAILABLE_LANGUAGES.iter().cloned()),
             title: "OpenTalk introduction training"
                 .parse()
                 .expect("value must be parsable as EventTitle"),
@@ -459,6 +470,7 @@ pub(crate) mod tests {
                 .parse()
                 .expect("value must be parsable as ReportDateTime"),
             report_timezone: Berlin,
+            report_language: langid!("en"),
             participants: BTreeMap::from_iter([
                 (bob_id, Some(bob)),
                 (charlie_id, Some(charlie)),
@@ -1114,11 +1126,13 @@ pub(crate) mod tests {
           }
         });
         json!({
+          "available_languages": ["en", "de"],
           "title": "OpenTalk introduction training",
           "description": "",
           "start": "2025-02-18T09:01:23",
           "end": "2025-02-19T03:32:02",
           "report_timezone": "Europe/Berlin",
+          "report_language": "en",
           "participants": {
             "07a6b5ba-8a9d-40e7-96f0-1c98ff8cf935": "Jack Jilbert",
             "23c72230-c78b-4151-956d-fcbbaad493cb": "Xiomara Xiong",

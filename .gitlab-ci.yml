@@ -170,9 +170,25 @@ lint:justfile:
     # The `--fmt` command-line parameter is still unstable, but valuable anyway.
     - just --unstable --fmt --check
 
+test:load_typst_plugins:
+  stage: test
+  <<: *default_job_condition
+  needs: []
+  artifacts:
+    paths:
+      - target/typst
+    expire_in: 1 day
+  image:
+    name: git.opentalk.dev:5050/opentalk/backend/containers/typst-plugins:alpine-dev
+  script:
+    - mkdir -p target
+    - cp -r /usr/share/typst target/typst
+
 test:cargo_test:
   stage: test
   <<: *default_job_condition
+  needs:
+    - test:load_typst_plugins
   artifacts:
     reports:
       junit: target/nextest/ci/junit.xml
@@ -192,12 +208,15 @@ test:cargo_test:
     DATABASE_NAME: opentalk
     KUSTOS_TESTS_DATABASE_URL: postgres://postgres:password123@postgres:5432/kustos
     REDIS_ADDR: redis://redis:6379/
+    TYPST_PACKAGE_CACHE_PATH: $CI_PROJECT_DIR/target/typst/packages
   services:
     - name: postgres:18-alpine
       alias: postgres
     - name: redis:8-alpine
       alias: redis
   script:
+    - pwd
+    - ls
     - RUSTFLAGS="-C link-arg=-fuse-ld=lld"
     - cargo +nightly llvm-cov --no-report nextest --profile ci --workspace --locked
     - cargo +nightly llvm-cov --no-report --doc --workspace --locked

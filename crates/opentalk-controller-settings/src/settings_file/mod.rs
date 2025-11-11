@@ -27,7 +27,7 @@ mod operator_information;
 mod rabbit_mq_config;
 mod redis_config;
 mod reports;
-mod reports_template;
+mod reports_typst;
 mod roomserver;
 mod settings_raw;
 mod shared_folder;
@@ -68,7 +68,7 @@ pub(crate) use operator_information::OperatorInformation;
 pub(crate) use rabbit_mq_config::RabbitMqConfig;
 pub(crate) use redis_config::RedisConfig;
 pub(crate) use reports::Reports;
-pub(crate) use reports_template::ReportsTemplate;
+pub(crate) use reports_typst::ReportsTypst;
 pub(crate) use roomserver::RoomServer;
 pub use settings_raw::SettingsRaw;
 #[cfg(test)]

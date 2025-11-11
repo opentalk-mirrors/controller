@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use icu_locid::LanguageIdentifier;
 use serde::{Deserialize, Serialize};
 
 use super::{ResolvedVote, Summary, TimedEvent};
@@ -9,13 +10,16 @@ use super::{ResolvedVote, Summary, TimedEvent};
 /// The data used to generate a report with typst
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReportData {
+    pub available_languages: Vec<LanguageIdentifier>,
     pub summary: Summary,
     pub votes: Vec<ResolvedVote>,
     pub events: Vec<TimedEvent>,
+    pub report_language: LanguageIdentifier,
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use icu_locid::langid;
     use opentalk_types_common::users::DisplayName;
     use opentalk_types_signaling_legal_vote::{
         cancel::{CancelReason, CustomCancelReason},
@@ -29,15 +33,19 @@ pub(crate) mod tests {
 
     use super::ReportData;
     use crate::{
-        report::data::{
-            Event, ResolvedCancel, ResolvedReportedIssue, ResolvedVote, StopReason, Summary,
-            TimedEvent,
+        report::{
+            AVAILABLE_LANGUAGES,
+            data::{
+                Event, ResolvedCancel, ResolvedReportedIssue, ResolvedVote, StopReason, Summary,
+                TimedEvent,
+            },
         },
         storage::v1::FinalResults,
     };
 
     pub(crate) fn example_live_roll_call() -> ReportData {
         ReportData {
+            available_languages: Vec::from_iter(AVAILABLE_LANGUAGES.iter().cloned()),
             summary: Summary {
                 title: "Weather Vote".into(),
                 subtitle: Some("Another one of these weather votes".into()),
@@ -174,11 +182,13 @@ pub(crate) mod tests {
                     }),
                 }),
             }],
+            report_language: langid!("en"),
         }
     }
 
     fn example_live_roll_call_json() -> serde_json::Value {
         json!({
+            "available_languages": ["en", "de"],
             "summary": {
                 "title": "Weather Vote",
                 "subtitle": "Another one of these weather votes",
@@ -253,6 +263,7 @@ pub(crate) mod tests {
                     "time": "2025-01-02T03:04:18",
                 },
             ],
+            "report_language": "en",
         })
     }
 
@@ -286,6 +297,7 @@ pub(crate) mod tests {
 
     pub(crate) fn example_roll_call() -> ReportData {
         ReportData {
+            available_languages: Vec::from_iter(AVAILABLE_LANGUAGES.iter().cloned()),
             summary: Summary {
                 title: "End meeting early".into(),
                 subtitle: Some("Should we end today's meeting earlier?".into()),
@@ -411,11 +423,13 @@ pub(crate) mod tests {
                     ),
                 },
             ],
+            report_language: langid!("en"),
         }
     }
 
     fn example_roll_call_json() -> serde_json::Value {
         json!({
+            "available_languages": ["en", "de"],
             "summary": {
                 "title": "End meeting early",
                 "subtitle": "Should we end today's meeting earlier?",
@@ -482,7 +496,8 @@ pub(crate) mod tests {
                       "name": "Charlie Cooper"
                     }
                 }
-            ]
+            ],
+            "report_language": "en"
         })
     }
 
@@ -502,6 +517,7 @@ pub(crate) mod tests {
 
     pub(crate) fn example_pseudonymous() -> ReportData {
         ReportData {
+            available_languages: Vec::from_iter(AVAILABLE_LANGUAGES.iter().cloned()),
             summary: Summary {
                 title: "Example Pseudonymous Vote".into(),
                 subtitle: None,
@@ -561,11 +577,13 @@ pub(crate) mod tests {
                 },
             ],
             events: vec![],
+            report_language: langid!("en"),
         }
     }
 
     fn example_pseudonymous_json() -> serde_json::Value {
         json!({
+            "available_languages": ["en", "de"],
             "summary": {
                 "title": "Example Pseudonymous Vote",
                 "kind": "pseudonymous",
@@ -607,7 +625,8 @@ pub(crate) mod tests {
                     "option": "no"
                 }
             ],
-            "events": []
+            "events": [],
+            "report_language": "en",
         })
     }
 

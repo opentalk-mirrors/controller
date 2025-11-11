@@ -22,7 +22,7 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
-    path::Path,
+    path::{Path, PathBuf},
     sync::Arc,
     time::Duration,
 };
@@ -31,7 +31,9 @@ use bytes::Bytes;
 use chrono::{Local, Utc};
 use chrono_tz::Tz;
 use either::Either;
+use fluent_langneg::{NegotiationStrategy, negotiate_languages};
 use futures::{FutureExt as _, stream::once};
+use icu_locid::{LanguageIdentifier, langid};
 use opentalk_inventory::InventoryProvider;
 use opentalk_report_generation::GenerateOptions;
 use opentalk_signaling_core::{
@@ -76,7 +78,10 @@ pub mod exchange;
 mod storage;
 mod template;
 
-const DEFAULT_TEMPLATE: &str = include_str!("training_participation_report.typ");
+const TEMPLATE: &str = include_str!("../templates/training_participation_report.typ");
+const FTL_EN: &str = include_str!("../templates/l10n/en.ftl");
+const FTL_DE: &str = include_str!("../templates/l10n/de.ftl");
+const AVAILABLE_LANGUAGES: &[LanguageIdentifier] = &[langid!("en"), langid!("de")];
 
 fn default_initial_checkpoint_delay() -> TimeRange {
     TimeRange::new_with_clamped_durations(Duration::from_mins(10), Duration::from_mins(20))
@@ -93,6 +98,8 @@ pub struct TimeoutEvent(u32);
 /// Signaling module for tracking participant presence during a training session
 #[derive(Debug)]
 pub struct TrainingParticipationReport {
+    system_default_language: LanguageIdentifier,
+    typst_packages_path: PathBuf,
     room: RoomId,
     owner: UserId,
     participant: ParticipantId,
@@ -127,11 +134,18 @@ impl SignalingModuleDescription for TrainingParticipationReport {
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
+/// The initialization parameters for [`TrainingParticipationReport`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TrainingParticipationReportParams {
+    system_default_language: LanguageIdentifier,
+    typst_packages_path: PathBuf,
+}
+
 #[async_trait::async_trait(?Send)]
 impl SignalingModule for TrainingParticipationReport {
     const NAMESPACE: ModuleId = MODULE_ID;
 
-    type Params = ();
+    type Params = TrainingParticipationReportParams;
 
     type Incoming = TrainingParticipationReportCommand;
 
@@ -147,10 +161,15 @@ impl SignalingModule for TrainingParticipationReport {
 
     async fn init(
         ctx: InitContext<'_, Self>,
-        _params: &Self::Params,
+        Self::Params {
+            system_default_language,
+            typst_packages_path,
+        }: &Self::Params,
         _protocol: &'static str,
     ) -> Result<Option<Self>, SignalingModuleError> {
         Ok(Some(Self {
+            system_default_language: system_default_language.clone(),
+            typst_packages_path: typst_packages_path.clone(),
             room: ctx.room_id().room_id(),
             owner: ctx.room().created_by,
             participant: ctx.participant_id(),
@@ -209,9 +228,14 @@ impl SignalingModule for TrainingParticipationReport {
     }
 
     fn build_params(
-        _init: SignalingModuleInitData,
+        init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
-        Ok(Some(()))
+        let typst_packages_path = init.startup_settings.reports.typst.packages_path.clone();
+        let system_default_language = init.startup_settings.defaults.user_language.clone();
+        Ok(Some(TrainingParticipationReportParams {
+            system_default_language,
+            typst_packages_path,
+        }))
     }
 }
 
@@ -824,12 +848,16 @@ impl TrainingParticipationReport {
         ctx: &mut ModuleContext<'_, Self>,
         room_state: RoomState,
     ) -> Result<(), SignalingModuleError> {
-        let mut inventory = self.inventory_provider.get_inventory().await?;
-        let event = inventory.get_event_for_room(self.room).await?.ok_or(
-            SignalingModuleError::NotFoundError {
-                message: "Event for room not found".to_string(),
-            },
-        )?;
+        let (event, room_owner) = {
+            let mut inventory = self.inventory_provider.get_inventory().await?;
+            let event = inventory.get_event_for_room(self.room).await?.ok_or(
+                SignalingModuleError::NotFoundError {
+                    message: "Event for room not found".to_string(),
+                },
+            )?;
+            let (_room, room_owner) = inventory.get_room_with_creator(self.room).await?;
+            (event, room_owner)
+        };
 
         let required_participants = Vec::from_iter(room_state.known_participants.clone());
 
@@ -843,14 +871,37 @@ impl TrainingParticipationReport {
             .zip(display_names)
             .collect();
 
+        let language = {
+            let fallback = AVAILABLE_LANGUAGES
+                .iter()
+                .next()
+                .expect("AVAILABLE_LANGUAGES is not empty");
+            let system_default = &self.system_default_language;
+
+            negotiate_languages(
+                &[room_owner.language.as_ref(), system_default],
+                AVAILABLE_LANGUAGES,
+                None,
+                NegotiationStrategy::Lookup,
+            )
+            .into_iter()
+            .next()
+            .unwrap_or_else(|| {
+                log::warn!("Could not find a valid report language. System default: {system_default}, available: {AVAILABLE_LANGUAGES:?}.");
+                fallback
+            }).clone()
+        };
+
         let report = Self::generate_pdf_report(
-            DEFAULT_TEMPLATE.to_string(),
+            TEMPLATE.to_string(),
             room_state,
             ctx.timezone,
             participants,
             event.title,
             event.description,
             ctx.timestamp,
+            language,
+            &self.typst_packages_path,
         )
         .await
         .with_whatever_context::<_, _, SignalingModuleError>(|_| {
@@ -862,6 +913,7 @@ impl TrainingParticipationReport {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn generate_pdf_report(
         template: String,
         room_state: RoomState,
@@ -870,6 +922,8 @@ impl TrainingParticipationReport {
         title: EventTitle,
         description: EventDescription,
         end: Timestamp,
+        report_language: LanguageIdentifier,
+        typst_package_path: &Path,
     ) -> Result<Vec<u8>, SignalingModuleError> {
         let timestamp = Local::now().naive_local().format("%Y-%m-%dT%H:%M:%S.%f");
         let report_tz = Tz::from(report_timezone);
@@ -879,12 +933,14 @@ impl TrainingParticipationReport {
             &ReportTemplateParameter::build(
                 &room_state,
                 &report_tz,
+                report_language,
                 participants,
                 title,
                 description,
                 end,
             ),
             Path::new(&format!("{MODULE_ID}/{timestamp}")),
+            typst_package_path,
         )
     }
 
@@ -892,6 +948,7 @@ impl TrainingParticipationReport {
         template: String,
         parameter: &ReportTemplateParameter,
         dump_to_relative_path: &Path,
+        typst_package_path: &Path,
     ) -> Result<Vec<u8>, SignalingModuleError> {
         let dump_to_path = std::env::var("OPENTALK_REPORT_DUMP_PATH")
             .map(|p| Path::new(&p).join(dump_to_relative_path))
@@ -899,19 +956,24 @@ impl TrainingParticipationReport {
 
         let mut generate_options = GenerateOptions::default();
         generate_options.dump_to_path = dump_to_path.as_deref();
+        generate_options.packages_path = Some(typst_package_path);
 
         let pdf = opentalk_report_generation::generate_pdf_report(
             template,
-            BTreeMap::from_iter([(
-                Path::new("data.json"),
+            BTreeMap::from_iter([
                 (
-                    None,
-                    serde_json::to_string_pretty(parameter)
-                        .unwrap()
-                        .into_bytes()
-                        .into(),
+                    Path::new("data.json"),
+                    (
+                        None,
+                        serde_json::to_string_pretty(parameter)
+                            .unwrap()
+                            .into_bytes()
+                            .into(),
+                    ),
                 ),
-            )]),
+                (Path::new("l10n/de.ftl"), (None, FTL_DE.as_bytes().into())),
+                (Path::new("l10n/en.ftl"), (None, FTL_EN.as_bytes().into())),
+            ]),
             &generate_options,
         )
         .whatever_context::<_, SignalingModuleError>("unable to build pdf")?;
@@ -1013,17 +1075,36 @@ impl TrainingParticipationReport {
 mod tests {
     use std::path::Path;
 
+    use icu_locid::langid;
     use insta::assert_snapshot;
+    use opentalk_controller_settings::reports_typst_default_packages_path;
 
     use crate::{
-        DEFAULT_TEMPLATE, MODULE_ID, TrainingParticipationReport, template::ReportTemplateParameter,
+        MODULE_ID, TEMPLATE, TrainingParticipationReport, template::ReportTemplateParameter,
     };
 
     fn generate(sample_name: &str, parameter: &ReportTemplateParameter) -> String {
+        const TYPST_PACKAGE_CACHE_PATH_ENV_VARIABLE: &str = "TYPST_PACKAGE_CACHE_PATH";
+
+        let typst_packages_path =
+            if let Some(env_variable) = std::env::var_os(TYPST_PACKAGE_CACHE_PATH_ENV_VARIABLE) {
+                Path::new(&env_variable).to_path_buf()
+            } else {
+                dirs::cache_dir()
+                    .map(|d| d.join("typst/packages"))
+                    .unwrap_or_else(|| reports_typst_default_packages_path().to_path_buf())
+            };
+
+        assert!(
+            typst_packages_path.exists(),
+            "Please make sure that the typst packages path {typst_packages_path:?} exists and contains the required typst packages, or point the {TYPST_PACKAGE_CACHE_PATH_ENV_VARIABLE:?} environment variable to the path with the typst packages"
+        );
+
         let pdf = TrainingParticipationReport::generate_pdf_report_from_template(
-            DEFAULT_TEMPLATE.to_string(),
+            TEMPLATE.to_string(),
             parameter,
             Path::new(&format!("{MODULE_ID}/{sample_name}")),
+            &typst_packages_path,
         )
         .expect("generation should work");
         pdf_extract::extract_text_from_mem(&pdf)
@@ -1037,7 +1118,7 @@ mod tests {
                 "small",
                 &crate::template::tests::example_small()
             ),
-            @r#"
+            @r"
         Training participation report
          Meeting: OpenTalk introduction training
 
@@ -1050,12 +1131,44 @@ mod tests {
         Training end: 2025-02-18 13:32
 
         Participation checkpoints
-         № Participant 09:22 11:22 13:19
+         № Person 09:22 11:22 13:19
 
         1 Bob Burton 09:22 11:25 —
 
         2 Charlie Cooper 09:22 11:25 13:19
-        "#
+        "
+        );
+    }
+
+    #[test]
+    fn generate_report_small_de() {
+        let mut data = crate::template::tests::example_small();
+        data.report_language = langid!("de");
+
+        assert_snapshot!(
+            generate(
+                "small_de",
+                &data
+            ),
+            @r"
+        Schulungs-Teilnahmebericht
+         Meeting: OpenTalk introduction training
+
+        Beschreibung: —
+
+        Zeitzone des Berichts: Europe/Berlin
+
+        Beginn der Schulung: 2025-02-18 09:01
+
+        Ende der Schulung: 2025-02-18 13:32
+
+        Teilnahme-Kontrollpunkte
+         № Person 09:22 11:22 13:19
+
+        1 Bob Burton 09:22 11:25 —
+
+        2 Charlie Cooper 09:22 11:25 13:19
+        "
         );
     }
 
@@ -1066,7 +1179,7 @@ mod tests {
                 "medium",
                 &crate::template::tests::example_medium()
             ),
-            @r#"
+            @r"
         Training participation report
          Meeting: OpenTalk introduction training
 
@@ -1079,18 +1192,56 @@ mod tests {
         Training end: 2025-02-19 03:32
 
         Participation checkpoints
-         № Participant 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+         № Person 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
 
         1 Bob Burton 09:22 11:25 — — 17:21 19:31 21:31 —
 
         2 Charlie Cooper 09:22 — 13:19 — — — — 23:36
 
-        № Participant 01:37 03:27
+        № Person 01:37 03:27
 
         1 Bob Burton 01:37 03:27
 
         2 Charlie Cooper 01:55 —
-        "#
+        "
+        );
+    }
+
+    #[test]
+    fn generate_report_medium_de() {
+        let mut data = crate::template::tests::example_medium();
+        data.report_language = langid!("de");
+
+        assert_snapshot!(
+            generate(
+                "medium_de",
+                &data
+            ),
+            @r"
+        Schulungs-Teilnahmebericht
+         Meeting: OpenTalk introduction training
+
+        Beschreibung: —
+
+        Zeitzone des Berichts: Europe/Berlin
+
+        Beginn der Schulung: 2025-02-18 09:01
+
+        Ende der Schulung: 2025-02-19 03:32
+
+        Teilnahme-Kontrollpunkte
+         № Person 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        1 Bob Burton 09:22 11:25 — — 17:21 19:31 21:31 —
+
+        2 Charlie Cooper 09:22 — 13:19 — — — — 23:36
+
+        № Person 01:37 03:27
+
+        1 Bob Burton 01:37 03:27
+
+        2 Charlie Cooper 01:55 —
+        "
         );
     }
 
@@ -1114,7 +1265,7 @@ mod tests {
         Training end: 2025-02-19 03:32
 
         Participation checkpoints
-         № Participant 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+         № Person 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
 
         1 Bob Burton 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
 
@@ -1168,7 +1319,7 @@ mod tests {
 
         26    09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
 
-        № Participant 01:37 03:27
+        № Person 01:37 03:27
 
         1 Bob Burton 01:37 03:27
 
@@ -1180,7 +1331,143 @@ mod tests {
 
         5 Frank Floyd 01:37 03:27
 
-        № Participant 01:37 03:27
+        № Person 01:37 03:27
+
+        6 George Garvis 01:37 03:27
+
+        7 Hannah Händl 01:37 03:27
+
+        8 Isaac Ivens (Northwind Ltd.) 01:37 03:27
+
+        9 Jack Jilbert 01:37 03:27
+
+        10 Karl Keating 01:37 03:27
+
+        11 Leann Larn 01:37 03:27
+
+        12 Marlene M. Maine 01:37 03:27
+
+        13 Neil Neugraten 01:37 03:27
+
+        14 Ofelia Ollivander 01:37 03:27
+
+        15 Patrick Peterson 01:37 03:27
+
+        16 Quinton Quintana 01:37 03:27
+
+        17 Roger Richard 01:37 03:27
+
+        18 Sophie Stanton 01:37 03:27
+
+        19 Thalia Tyler 01:37 03:27
+
+        20 Ulises Underwood 01:37 03:27
+
+        21 Valentina Villalobos 01:37 03:27
+
+        22 Wallace Winters 01:37 03:27
+
+        23 Xiomara Xiong 01:37 03:27
+
+        24 Yousef Yu 01:37 03:27
+
+        25 Zainab Zavala 01:37 03:27
+
+        26    01:37 03:27
+        "
+        );
+    }
+
+    #[test]
+    fn generate_report_large_de() {
+        let mut data = crate::template::tests::example_large();
+        data.report_language = langid!("de");
+
+        assert_snapshot!(
+            generate(
+                "large_de",
+                &data
+            ),
+            @r"
+        Schulungs-Teilnahmebericht
+         Meeting: OpenTalk introduction training
+
+        Beschreibung: —
+
+        Zeitzone des Berichts: Europe/Berlin
+
+        Beginn der Schulung: 2025-02-18 09:01
+
+        Ende der Schulung: 2025-02-19 03:32
+
+        Teilnahme-Kontrollpunkte
+         № Person 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        1 Bob Burton 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        2 Charlie Cooper 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        3 Dave Dunn 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        4 Erin Eaton 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        5 Frank Floyd 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        6 George Garvis 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        7 Hannah Händl 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        8 Isaac Ivens (Northwind Ltd.) 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        9 Jack Jilbert 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        10 Karl Keating 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        11 Leann Larn 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        12 Marlene M. Maine 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        13 Neil Neugraten 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        14 Ofelia Ollivander 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        15 Patrick Peterson 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        16 Quinton Quintana 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        17 Roger Richard 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        18 Sophie Stanton 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        19 Thalia Tyler 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        20 Ulises Underwood 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        21 Valentina Villalobos 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        22 Wallace Winters 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        23 Xiomara Xiong 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        24 Yousef Yu 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        25 Zainab Zavala 09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        26    09:22 11:22 13:19 15:08 17:21 19:31 21:31 23:36
+
+        № Person 01:37 03:27
+
+        1 Bob Burton 01:37 03:27
+
+        2 Charlie Cooper 01:37 03:27
+
+        3 Dave Dunn 01:37 03:27
+
+        4 Erin Eaton 01:37 03:27
+
+        5 Frank Floyd 01:37 03:27
+
+        № Person 01:37 03:27
 
         6 George Garvis 01:37 03:27
 

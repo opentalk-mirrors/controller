@@ -19,8 +19,11 @@ bytes.workspace = true
 chrono.workspace = true
 chrono-tz.workspace = true
 either.workspace = true
+fluent-langneg.workspace = true
 futures.workspace = true
+icu_locid = { workspace = true, features = ["serde"] }
 log.workspace = true
+opentalk-controller-settings.workspace = true
 opentalk-inventory.workspace = true
 opentalk-report-generation.workspace = true
 opentalk-signaling-core.workspace = true
@@ -34,6 +37,7 @@ serde_json.workspace = true
 snafu.workspace = true
 
 [dev-dependencies]
+dirs.workspace = true
 insta.workspace = true
 pdf-extract.workspace = true
 pretty_assertions.workspace = true
