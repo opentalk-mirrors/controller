@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use chrono::Utc;
+use opentalk_database::DatabaseError;
 use opentalk_db_storage::invites::{self as db};
 use opentalk_inventory::{
     NewRoomInvite, RoomInvite, RoomInviteInventory, RoomInviteWithUsers, UpdateRoomInvite,
@@ -15,7 +16,7 @@ use opentalk_types_common::{
 };
 use snafu::ResultExt as _;
 
-use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
+use crate::{DatabaseConnection, Error, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl RoomInviteInventory for DatabaseConnection {
@@ -30,10 +31,11 @@ impl RoomInviteInventory for DatabaseConnection {
 
     #[tracing::instrument(err, skip_all)]
     async fn get_room_invite(&mut self, invite_code: InviteCode) -> Result<RoomInvite> {
-        Ok(db::Invite::get(&mut self.inner, invite_code)
-            .await
-            .context(DatabaseSnafu)?
-            .into())
+        match db::Invite::get(&mut self.inner, invite_code).await {
+            Ok(invite) => Ok(invite.into()),
+            Err(DatabaseError::NotFound) => Err(Error::NotFound),
+            Err(err) => Err(err).context(DatabaseSnafu)?,
+        }
     }
 
     async fn get_all_room_invites(&mut self) -> Result<Vec<RoomInvite>> {

@@ -23,6 +23,9 @@ pub enum Error {
     /// An error occurred when attempting to begin, rollback or finish a transaction.
     BrokenTransactionManager,
 
+    /// The requested entity was not found.
+    NotFound,
+
     /// A custom error with just a message.
     #[snafu(whatever, display("{message}"))]
     Custom {
@@ -33,6 +36,16 @@ pub enum Error {
         #[snafu(source(from(Box<dyn std::error::Error + Send + Sync>,Some)))]
         source: Option<Box<dyn std::error::Error + Send + Sync>>,
     },
+}
+
+impl Error {
+    /// Returns `true` if the error is [`NotFound`].
+    ///
+    /// [`NotFound`]: Error::NotFound
+    #[must_use]
+    pub fn is_not_found(&self) -> bool {
+        matches!(self, Self::NotFound)
+    }
 }
 
 /// An error that can be returned from the storage backend.
