@@ -52,7 +52,7 @@ impl ModerationStorage for VolatileStaticMemoryStorage {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn set_waiting_room_enabled(
+    async fn set_waiting_room_state(
         &mut self,
         room: RoomId,
         enabled: bool,

@@ -7,7 +7,7 @@ use opentalk_types_signaling_moderation::{KickScope, event::DisplayNameChanged};
 use serde::{Deserialize, Serialize};
 
 /// Control messages sent between controller modules to communicate changes inside a room
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum Message {
     Kicked(ParticipantId),

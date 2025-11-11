@@ -35,7 +35,7 @@ use opentalk_signaling_core::{
     RunnerId, SignalingMetrics, SignalingModuleError, SignalingRoomId, SubscriberHandle,
     VolatileStorage,
     control::{
-        self, ControlStateExt as _, ControlStorageProvider, MODULE_ID, exchange,
+        self, ControlStateExt as _, ControlStorageProvider, exchange,
         storage::{
             AVATAR_URL, AttributeActions, BREAKOUT_ROOM, ControlStorageParticipantAttributes,
             DISPLAY_NAME, GlobalRoomAttributeId, HAND_IS_UP, HAND_UPDATED_AT, IS_PRESENT,
@@ -43,7 +43,9 @@ use opentalk_signaling_core::{
         },
     },
 };
-use opentalk_signaling_module_moderation::ModerationStorageProvider as _;
+use opentalk_signaling_module_moderation::{
+    ModerationStorageProvider as _, exchange::Message as ModerationMessage,
+};
 use opentalk_types_common::{
     modules::{ModuleId, module_id},
     rooms::{BreakoutRoomId, RoomId},
@@ -589,7 +591,7 @@ impl Runner {
                             serde_json::to_string(&NamespacedEvent {
                                 module: opentalk_types_signaling_moderation::MODULE_ID,
                                 timestamp: Timestamp::now(),
-                                payload: opentalk_signaling_module_moderation::exchange::Message::LeftWaitingRoom(self.id),
+                                payload: ModerationMessage::LeftWaitingRoom(self.id),
                             })
                             .expect("Failed to convert namespaced to json"),
                         );
@@ -1141,7 +1143,7 @@ impl Runner {
             }
         };
 
-        if namespaced.module == MODULE_ID {
+        if namespaced.module == control::MODULE_ID {
             match serde_json::from_value(namespaced.payload) {
                 Ok(msg) => {
                     if let Err(e) = self.handle_control_msg(timestamp, msg).await {
@@ -1256,7 +1258,7 @@ impl Runner {
                             serde_json::to_string(&NamespacedEvent {
                                 module: opentalk_types_signaling_moderation::MODULE_ID,
                                 timestamp,
-                                payload: opentalk_signaling_module_moderation::exchange::Message::LeftWaitingRoom(self.id),
+                                payload: ModerationMessage::LeftWaitingRoom(self.id),
                             })
                             .expect("Failed to convert namespaced to json"),
                         );
@@ -1574,9 +1576,7 @@ impl Runner {
             serde_json::to_string(&NamespacedEvent {
                 module: opentalk_types_signaling_moderation::MODULE_ID,
                 timestamp,
-                payload: opentalk_signaling_module_moderation::exchange::Message::JoinedWaitingRoom(
-                    self.id,
-                ),
+                payload: ModerationMessage::JoinedWaitingRoom(self.id),
             })
             .expect("Failed to convert namespaced to json"),
         );
@@ -1942,7 +1942,7 @@ impl Runner {
             }
         };
 
-        if namespaced.module == MODULE_ID {
+        if namespaced.module == control::MODULE_ID {
             let msg = match serde_json::from_value::<exchange::Message>(namespaced.payload) {
                 Ok(msg) => msg,
                 Err(e) => {
@@ -1978,6 +1978,36 @@ impl Runner {
                         .await
                 }
                 Err(NoSuchModuleError) => log::warn!("Got invalid exchange message"),
+            }
+        } else if let RunnerState::Waiting { .. } = &self.state
+            && namespaced.module == opentalk_types_signaling_moderation::MODULE_ID
+        {
+            let msg = match serde_json::from_value::<ModerationMessage>(namespaced.payload.clone())
+            {
+                Ok(msg) => msg,
+                Err(e) => {
+                    log::error!(
+                        "Failed to read incoming control exchange message, {}",
+                        Report::from_error(e)
+                    );
+                    return;
+                }
+            };
+            if ModerationMessage::WaitingRoomEnableUpdated == msg {
+                match self
+                    .handle_module_targeted_event(
+                        &namespaced.module,
+                        namespaced.timestamp,
+                        DynTargetedEvent::ExchangeMessage(namespaced.payload),
+                    )
+                    .await
+                {
+                    Ok(actions) => {
+                        self.handle_module_requested_actions(namespaced.timestamp, actions)
+                            .await
+                    }
+                    Err(NoSuchModuleError) => log::warn!("Got invalid exchange message"),
+                }
             }
         }
     }
@@ -2264,9 +2294,7 @@ impl Runner {
             serde_json::to_string(&NamespacedEvent {
                 module: opentalk_types_signaling_moderation::MODULE_ID,
                 timestamp,
-                payload: opentalk_signaling_module_moderation::exchange::Message::JoinedWaitingRoom(
-                    self.id,
-                ),
+                payload: ModerationMessage::JoinedWaitingRoom(self.id),
             })
             .expect("Failed to convert namespaced to json"),
         );
@@ -2284,7 +2312,7 @@ impl Runner {
         message: exchange::Message,
     ) {
         let message = NamespacedEvent {
-            module: MODULE_ID,
+            module: control::MODULE_ID,
             timestamp,
             payload: message,
         };
@@ -2426,7 +2454,7 @@ impl Runner {
         self.ws
             .send(Message::Text(
                 serde_json::to_string(&NamespacedEvent {
-                    module: MODULE_ID,
+                    module: control::MODULE_ID,
                     timestamp,
                     payload,
                 })
@@ -2570,11 +2598,9 @@ impl Runner {
                 return Some(JoinEvent::Room(self.room_id));
             }
         } else if namespaced.module == opentalk_types_signaling_moderation::MODULE_ID {
-            if let Ok(opentalk_signaling_module_moderation::exchange::Message::JoinedWaitingRoom(
-                _,
-            )) = serde_json::from_value::<opentalk_signaling_module_moderation::exchange::Message>(
-                namespaced.payload,
-            ) {
+            if let Ok(ModerationMessage::JoinedWaitingRoom(_)) =
+                serde_json::from_value::<ModerationMessage>(namespaced.payload)
+            {
                 return Some(JoinEvent::WaitingRoom);
             }
         } else if namespaced.module == opentalk_types_signaling_breakout::MODULE_ID

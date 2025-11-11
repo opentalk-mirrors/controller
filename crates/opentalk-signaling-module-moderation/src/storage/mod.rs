@@ -65,11 +65,11 @@ mod test_common {
         );
         assert!(storage.is_waiting_room_enabled(ROOM).await.unwrap());
 
-        storage.set_waiting_room_enabled(ROOM, false).await.unwrap();
+        storage.set_waiting_room_state(ROOM, false).await.unwrap();
 
         assert!(!storage.is_waiting_room_enabled(ROOM).await.unwrap());
 
-        storage.set_waiting_room_enabled(ROOM, true).await.unwrap();
+        storage.set_waiting_room_state(ROOM, true).await.unwrap();
         storage.delete_waiting_room_enabled(ROOM).await.unwrap();
 
         assert!(!storage.is_waiting_room_enabled(ROOM).await.unwrap());

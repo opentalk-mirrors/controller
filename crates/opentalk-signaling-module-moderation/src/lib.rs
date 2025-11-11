@@ -76,14 +76,13 @@ async fn build_waiting_room_participants(
     Ok(waiting_room)
 }
 
-async fn set_waiting_room_enabled(
+async fn enable_waiting_room(
     ctx: &mut ModuleContext<'_, Moderation>,
     room_id: RoomId,
-    enabled: bool,
 ) -> Result<(), SignalingModuleError> {
     ctx.volatile
         .moderation_storage()
-        .set_waiting_room_enabled(room_id, enabled)
+        .set_waiting_room_state(room_id, true)
         .await?;
 
     ctx.exchange_publish(
@@ -92,6 +91,68 @@ async fn set_waiting_room_enabled(
     );
 
     Ok(())
+}
+
+impl Moderation {
+    async fn disable_waiting_room(
+        &self,
+        ctx: &mut ModuleContext<'_, Moderation>,
+    ) -> Result<(), SignalingModuleError> {
+        ctx.volatile
+            .moderation_storage()
+            .set_waiting_room_state(self.room.room_id(), false)
+            .await?;
+
+        let waiting_participants = ctx
+            .volatile
+            .moderation_storage()
+            .waiting_room_participants(self.room.room_id())
+            .await?;
+        for p in waiting_participants {
+            self.accept(ctx, p).await?;
+        }
+
+        ctx.exchange_publish(
+            control::exchange::global_room_all_participants(self.room.room_id()),
+            exchange::Message::WaitingRoomEnableUpdated,
+        );
+
+        Ok(())
+    }
+
+    async fn accept(
+        &self,
+        ctx: &mut ModuleContext<'_, Moderation>,
+        target: ParticipantId,
+    ) -> Result<(), SignalingModuleError> {
+        if !ctx
+            .volatile
+            .moderation_storage()
+            .waiting_room_contains_participant(self.room.room_id(), target)
+            .await?
+        {
+            // TODO return error
+            return Ok(());
+        }
+
+        _ = ctx
+            .volatile
+            .moderation_storage()
+            .waiting_room_accepted_add_participant(self.room.room_id(), target)
+            .await?;
+        ctx.volatile
+            .moderation_storage()
+            .waiting_room_remove_participant(self.room.room_id(), target)
+            .await?;
+
+        ctx.exchange_publish_to_namespace(
+            control::exchange::global_room_by_participant_id(self.room.room_id(), target),
+            opentalk_signaling_core::control::MODULE_ID,
+            control::exchange::Message::Accepted(target),
+        );
+
+        Ok(())
+    }
 }
 
 pub trait ModerationStorageProvider {
@@ -289,7 +350,7 @@ impl SignalingModule for Moderation {
                     .is_waiting_room_enabled(self.room.room_id())
                     .await?
                 {
-                    set_waiting_room_enabled(&mut ctx, self.room.room_id(), true).await?;
+                    enable_waiting_room(&mut ctx, self.room.room_id()).await?;
                 }
 
                 // Enforce the participant to enter the waiting room (if enabled) on next rejoin
@@ -357,7 +418,7 @@ impl SignalingModule for Moderation {
                     .waiting_room_accepted_remove_participants(self.room.room_id(), &to_remove)
                     .await?;
 
-                set_waiting_room_enabled(&mut ctx, self.room.room_id(), true).await?;
+                enable_waiting_room(&mut ctx, self.room.room_id()).await?;
 
                 ctx.exchange_publish(
                     control::exchange::current_room_all_participants(self.room),
@@ -429,7 +490,7 @@ impl SignalingModule for Moderation {
                     return Ok(());
                 }
 
-                set_waiting_room_enabled(&mut ctx, self.room.room_id(), true).await?;
+                enable_waiting_room(&mut ctx, self.room.room_id()).await?;
             }
             Event::WsMessage(ModerationCommand::DisableWaitingRoom) => {
                 if ctx.role() != Role::Moderator {
@@ -437,7 +498,7 @@ impl SignalingModule for Moderation {
                     return Ok(());
                 }
 
-                set_waiting_room_enabled(&mut ctx, self.room.room_id(), false).await?;
+                self.disable_waiting_room(&mut ctx).await?;
             }
             Event::WsMessage(ModerationCommand::Accept(Accept { target })) => {
                 if ctx.role() != Role::Moderator {
@@ -445,31 +506,7 @@ impl SignalingModule for Moderation {
                     return Ok(());
                 }
 
-                if !ctx
-                    .volatile
-                    .moderation_storage()
-                    .waiting_room_contains_participant(self.room.room_id(), target)
-                    .await?
-                {
-                    // TODO return error
-                    return Ok(());
-                }
-
-                _ = ctx
-                    .volatile
-                    .moderation_storage()
-                    .waiting_room_accepted_add_participant(self.room.room_id(), target)
-                    .await?;
-                ctx.volatile
-                    .moderation_storage()
-                    .waiting_room_remove_participant(self.room.room_id(), target)
-                    .await?;
-
-                ctx.exchange_publish_to_namespace(
-                    control::exchange::global_room_by_participant_id(self.room.room_id(), target),
-                    opentalk_signaling_core::control::MODULE_ID,
-                    control::exchange::Message::Accepted(target),
-                );
+                self.accept(&mut ctx, target).await?;
             }
             Event::WsMessage(ModerationCommand::ResetRaisedHands(ResetRaisedHands { target })) => {
                 if ctx.role() != Role::Moderator {
