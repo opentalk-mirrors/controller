@@ -630,10 +630,14 @@ impl TrainingParticipationReport {
     }
 
     fn random_waiting_duration(range: &TimeRange) -> Duration {
-        let mut rng = rand::rng();
-        range
-            .after()
-            .saturating_add(rng.random_range(Duration::ZERO..range.within()))
+        let within = range.within();
+        let timeframe = if within.is_zero() {
+            within
+        } else {
+            let mut rng = rand::rng();
+            rng.random_range(Duration::ZERO..within)
+        };
+        range.after().saturating_add(timeframe)
     }
 
     async fn handle_timeout(
