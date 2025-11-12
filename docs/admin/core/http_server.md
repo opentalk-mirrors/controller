@@ -13,11 +13,12 @@ Services provided:
 
 The section in the [configuration file](./configuration.md) is called `http`.
 
-| Field  | Type                                    | Required | Default value | Description                                                                                    |
-| ------ | --------------------------------------- | -------- | ------------- | ---------------------------------------------------------------------------------------------- |
-| `addr` | `string`                                | no       | -             | IP address or hostname to which to listen for incoming connections                             |
-| `port` | `uint`                                  | no       | `11311`       | TCP port number where the HTTP server can be reached                                           |
-| `tls`  | [TLS configuration](#tls-configuration) | no       | -             | When present, the HTTP server will use TLS, when absent it will serve under a plain connection |
+| Field  | Type                                      | Required | Default value | Description                                                                                    |
+| ------ | ----------------------------------------- | -------- | ------------- | ---------------------------------------------------------------------------------------------- |
+| `addr` | `string`                                  | no       | -             | IP address or hostname to which to listen for incoming connections                             |
+| `port` | `uint`                                    | no       | `11311`       | TCP port number where the HTTP server can be reached                                           |
+| `tls`  | [TLS configuration](#tls-configuration)   | no       | -             | When present, the HTTP server will use TLS, when absent it will serve under a plain connection |
+| `cors` | [CORS configuration](#cors-configuration) | no       | -             | Configure the CORS headers                                                                     |
 
 ### Listening address
 
@@ -90,4 +91,49 @@ port = 443
 [http.tls]
 certificate = "/etc/ssl/certs/example.org.pem"
 private_key = "/etc/ssl/keys/example.org.key"
+```
+
+### CORS configuration
+
+| Field            | Type       | Required | Default value | Description                                                              |
+| ---------------- | ---------- | -------- | ------------- | ------------------------------------------------------------------------ |
+| `allowed_origin` | `string[]` | no       | -             | A list of allowed origins, either origin URLs, or one single `"*"` entry |
+
+#### Default behavior
+
+By default, the `Access-Control-Allow-Origin` header is derived from the
+`base_url` field in the [Frontend configuration](frontend.md). All elements
+that are not needed when used as the CORS origin (username, password, path,
+query and fragment parts) will be stripped for usage as a CORS header. If
+`base_url` has a value of `"https://example.com/opentalk/"`, then the derived
+value for the origin is `"https://example.com"`.
+
+This default configuration should be suitable for most standard deployments, so
+the `allowed_origin` configuration is not required there.
+
+#### Example configurations
+
+##### Wildcard
+
+This allows browsers to access the controller API from websites regardless their
+origin.
+
+If the list contains a `"*"` entry, no other entries can be present, otherwise
+this is considered a configuration error which prevents the controller from
+starting.
+
+```toml
+[http.cors]
+allowed_origin = ["*"]
+```
+
+##### Specific origins
+
+When configuring the allowed origins like this, one entry corresponding to
+`frontend.base_url` should be included in the list as well, otherwise a frontend
+deployed there won't be able to access the controller.
+
+```toml
+[http.cors]
+allowed_origin = ["https://example.com", "https://opentalk.example.com:1337"]
 ```

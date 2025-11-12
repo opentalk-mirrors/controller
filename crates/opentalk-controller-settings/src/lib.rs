@@ -31,6 +31,7 @@
 //!
 //! Setting categories, in which all properties implement a default value, should also implement the [`Default`] trait.
 
+pub mod common;
 pub mod settings_file;
 
 mod settings_error;

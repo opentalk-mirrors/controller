@@ -82,6 +82,22 @@ url = "postgres://postgres:password123@localhost:5432/opentalk"
 # The port to bind the HTTP Server to (defaults to 11311).
 #port = 11311
 
+# Settings for the CORS headers.
+#[http.cors]
+#
+# Configuration of the "Access-Control-Allow-Origin" CORS header.
+# If this option is absent, the header is derived from the frontend.base_url field.
+#
+# Allow requests in browsers from all origins. If a "*" is present, it must be
+# the only element in the list.
+#allowed_origin = ["*"]
+#
+# Explicitly set the list of allowed origins. In order for standard deployments
+# to work properly when the allowed origins configured explicitly, the usually
+# should contain the value corresponding to frontend.base_url, otherwise a
+# frontend deployed there won't be able to connect.
+#allowed_origin = ["https://example.com", "https://opentalk.example.com:1337"]
+
 # Settings for the Keycloak which is the user provider and allows authentication via OIDC.
 # This is deprecated, replace with [oidc] and [user_search] sections.
 #[keycloak]

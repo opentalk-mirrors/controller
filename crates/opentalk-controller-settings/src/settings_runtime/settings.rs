@@ -212,7 +212,7 @@ pub(crate) fn minimal_example() -> Settings {
         DEFAULT_LIBRAVATAR_URL, DEFAULT_STATIC_TARIFF_NAME, DEFAULT_STATIC_TENANT_ID, Frontend,
         OidcFrontend, TariffAssignment, TenantAssignment,
         settings_runtime::{
-            database::DEFAULT_DATABASE_MAX_CONNECTIONS, defaults::default_user_language,
+            HttpCors, database::DEFAULT_DATABASE_MAX_CONNECTIONS, defaults::default_user_language,
             http::DEFAULT_HTTP_PORT,
         },
     };
@@ -242,6 +242,7 @@ pub(crate) fn minimal_example() -> Settings {
             addr: None,
             port: DEFAULT_HTTP_PORT,
             tls: None,
+            cors: HttpCors::default(),
         },
         database: Database {
             url: "postgres://postgres:password123@localhost:5432/opentalk".to_string(),
