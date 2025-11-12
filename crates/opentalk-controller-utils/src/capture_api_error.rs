@@ -37,6 +37,9 @@ impl<'a> From<&'a CaptureApiError> for &'a ApiError {
 
 impl From<DatabaseError> for CaptureApiError {
     fn from(value: DatabaseError) -> Self {
+        if value.is_not_found() {
+            return CaptureApiError(ApiError::not_found());
+        }
         log::error!(
             "REST API threw internal error from Diesel error: {}",
             snafu::Report::from_error(value)
@@ -47,6 +50,9 @@ impl From<DatabaseError> for CaptureApiError {
 
 impl From<opentalk_inventory::Error> for CaptureApiError {
     fn from(value: opentalk_inventory::Error) -> Self {
+        if value.is_not_found() {
+            return CaptureApiError(ApiError::not_found());
+        }
         log::error!(
             "REST API threw internal error from data storage backend: {}",
             snafu::Report::from_error(value)

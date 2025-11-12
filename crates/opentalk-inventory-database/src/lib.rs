@@ -43,4 +43,4 @@ mod user;
 
 pub use database_connection::DatabaseConnection;
 pub use database_connection_pool::DatabaseConnectionPool;
-use opentalk_inventory::Result;
+use opentalk_inventory::{Error, Result};
