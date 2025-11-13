@@ -17,6 +17,7 @@ workspace = true
 [dependencies]
 opentalk-signaling-core.workspace = true
 
+opentalk-signaling-module-asset-storage.workspace = true
 opentalk-signaling-module-automod.workspace = true
 opentalk-signaling-module-breakout.workspace = true
 opentalk-signaling-module-chat.workspace = true

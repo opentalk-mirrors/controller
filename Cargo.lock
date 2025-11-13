@@ -6005,6 +6005,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-signaling-module-asset-storage"
+version = "0.33.0-alpha"
+dependencies = [
+ "actix-rt",
+ "async-trait",
+ "opentalk-inventory",
+ "opentalk-signaling-core",
+ "opentalk-test-util",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "opentalk-types-signaling-asset-storage",
+ "opentalk-types-signaling-control",
+ "serial_test",
+ "snafu",
+]
+
+[[package]]
 name = "opentalk-signaling-module-automod"
 version = "0.33.0-alpha"
 dependencies = [
@@ -6463,6 +6480,7 @@ version = "0.33.0-alpha"
 dependencies = [
  "async-trait",
  "opentalk-signaling-core",
+ "opentalk-signaling-module-asset-storage",
  "opentalk-signaling-module-automod",
  "opentalk-signaling-module-breakout",
  "opentalk-signaling-module-chat",
@@ -6625,6 +6643,17 @@ dependencies = [
  "strum 0.27.2",
  "utoipa",
  "uuid",
+]
+
+[[package]]
+name = "opentalk-types-signaling-asset-storage"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1dfd2337574f3ffe08d671c1cbb28657dbbac5335ad5c9f011301ae5899962b"
+dependencies = [
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "serde",
 ]
 
 [[package]]
