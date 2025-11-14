@@ -34,10 +34,10 @@ pub struct UpdateUser<'a> {
     pub language: Option<LanguageIdentifier>,
 
     /// Update the dashboard theme.
-    pub dashboard_theme: Option<&'a Theme>,
+    pub dashboard_theme: Option<Option<&'a Theme>>,
 
     /// Update the conference theme.
-    pub conference_theme: Option<&'a Theme>,
+    pub conference_theme: Option<Option<&'a Theme>>,
 
     // The tenant_id should never be updated!
     //pub tenant_id: Option<TenantId>,

@@ -370,10 +370,8 @@ diesel::table! {
         language -> Varchar,
         #[max_length = 511]
         display_name -> Varchar,
-        #[max_length = 128]
-        dashboard_theme -> Varchar,
-        #[max_length = 128]
-        conference_theme -> Varchar,
+        dashboard_theme -> Nullable<Theme>,
+        conference_theme -> Nullable<Theme>,
         #[max_length = 30]
         phone -> Nullable<Varchar>,
         tenant_id -> Uuid,

@@ -28,9 +28,9 @@ pub struct RequestUser {
     /// The user's display name
     pub display_name: DisplayName,
     /// The theme the user uses for the dashboard
-    pub dashboard_theme: Theme,
+    pub dashboard_theme: Option<Theme>,
     /// The theme the user uses for the conference
-    pub conference_theme: Theme,
+    pub conference_theme: Option<Theme>,
     // pub phone: Option<String>,
     /// The user's tenant id
     pub tenant_id: TenantId,
