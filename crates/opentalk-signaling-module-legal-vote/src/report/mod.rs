@@ -357,7 +357,7 @@ mod tests {
         let mut data = example_roll_call();
         data.report_language = langid!("de");
         assert_snapshot!(
-            generate("roll_call", &data),
+            generate("roll_call_de", &data),
             @r"
         OpenTalk Abstimmungsbericht
          Titel : End meeting early
@@ -476,7 +476,7 @@ mod tests {
     fn generate_pseudonymous_de() {
         let mut data = example_pseudonymous();
         data.report_language = langid!("de");
-        assert_snapshot!(generate("pseudonymous",&data),
+        assert_snapshot!(generate("pseudonymous_de",&data),
         @r"
         OpenTalk Abstimmungsbericht
          Titel : Example Pseudonymous Vote
@@ -594,7 +594,7 @@ mod tests {
         let mut data = canceled_live_roll_call();
         data.report_language = langid!("de");
         assert_snapshot!(
-            generate("canceled_live_roll_call", &data),
+            generate("canceled_live_roll_call_de", &data),
             @r"
         OpenTalk Abstimmungsbericht
          Titel : Weather Vote
