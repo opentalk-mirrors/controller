@@ -22,6 +22,7 @@ These subcommands are available:
 - [`tariffs`](../advanced/tariffs.md#opentalk-controller-tariffs-subcommand) for managing tariffs.
 - [`jobs`](./jobs.md#opentalk-controller-jobs-subcommand) for configuring and running maintenance jobs.
 - [`modules`](../advanced/modules.md#opentalk-controller-modules-subcommand) for managing modules.
+- [`health`](./health.md#opentalk-controller-health-subcommand) for fetching the current readiness state.
 - [`openapi`](./openapi.md#opentalk-controller-openapi-subcommand) for exporting the OpenAPI specification.
 - `help` for showing the help output.
 
@@ -43,6 +44,7 @@ Commands:
   jobs        Manage and execute maintenance jobs
   modules     Manage modules
   openapi     Get information on the OpenAPI specification
+  health      Return the readiness state
   reload      Triggers a reload of reloadable configuration options for already running opentalk-controller processes
   help        Print this message or the help of the given subcommand(s)
 
