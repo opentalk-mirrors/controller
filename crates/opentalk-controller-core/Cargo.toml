@@ -40,7 +40,6 @@ lapin-pool.workspace = true
 log = { workspace = true, features = ["serde"] }
 md5.workspace = true
 mime = "0.3"
-nix = { version = "0.30", features = ["signal"] }
 openidconnect.workspace = true
 opentalk-controller-service.workspace = true
 opentalk-controller-service-facade.workspace = true
@@ -88,7 +87,6 @@ serde_json.workspace = true
 service-probe = "0.3"
 snafu.workspace = true
 strum.workspace = true
-sysinfo = { version = "0.37", default-features = false, features = ["system"] }
 tabled = "0.20"
 tokio = { workspace = true, features = ["signal"] }
 tokio-stream.workspace = true

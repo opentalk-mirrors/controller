@@ -58,7 +58,7 @@ impl Args {
             println!(
                 "The `--reload` argument is deprecated and will be removed in the future. Please execute `{current_exe} reload` instead."
             );
-            opentalk_controller_core::cli::reload::Command.exec()?;
+            command::reload::Command.exec()?;
             return Ok(());
         }
 
