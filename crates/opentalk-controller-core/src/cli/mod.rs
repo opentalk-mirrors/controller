@@ -2,5 +2,4 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-pub mod tariffs;
 pub mod tenants;

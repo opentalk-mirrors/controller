@@ -18,6 +18,9 @@ workspace = true
 [dependencies]
 actix-web.workspace = true
 clap = { workspace = true, features = ["derive"] }
+diesel.workspace = true
+diesel-async.workspace = true
+humansize.workspace = true
 itertools.workspace = true
 kustos.workspace = true
 lapin-pool.workspace = true
@@ -36,10 +39,13 @@ opentalk-signaling-core.workspace = true
 opentalk-signaling-modules.workspace = true
 opentalk-types-common.workspace = true
 opentalk-version.workspace = true
+parse-size.workspace = true
 serde_json.workspace = true
 service-probe-client = "0.3"
 snafu.workspace = true
+strum.workspace = true
 sysinfo = { version = "0.37", default-features = false, features = ["system"] }
+tabled = "0.20"
 url.workspace = true
 utoipa.workspace = true
 yaml-rust2.workspace = true

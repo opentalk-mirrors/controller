@@ -26,13 +26,11 @@ bytes.workspace = true
 bytestring = { workspace = true, features = ["serde"] }
 chrono.workspace = true
 clap.workspace = true
-diesel.workspace = true
 diesel-async.workspace = true
 either.workspace = true
 fluent-langneg.workspace = true
 futures.workspace = true
 http.workspace = true
-humansize.workspace = true
 icu_locid = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 kustos.workspace = true
@@ -75,7 +73,6 @@ opentelemetry = { workspace = true, features = ["metrics", "trace"] }
 opentelemetry-otlp = { workspace = true, features = ["grpc-tonic"] }
 opentelemetry-prometheus.workspace = true
 opentelemetry_sdk.workspace = true
-parse-size.workspace = true
 phonenumber.workspace = true
 prometheus.workspace = true
 redis = { workspace = true, features = ["connection-manager", "tokio-comp"] }
@@ -86,7 +83,6 @@ serde.workspace = true
 serde_json.workspace = true
 service-probe = "0.3"
 snafu.workspace = true
-strum.workspace = true
 tabled = "0.20"
 tokio = { workspace = true, features = ["signal"] }
 tokio-stream.workspace = true

@@ -5,7 +5,7 @@
 use std::path::Path;
 
 use clap::Subcommand;
-use opentalk_controller_core::cli::{tariffs, tenants};
+use opentalk_controller_core::cli::tenants;
 use opentalk_signaling_modules::Modules;
 
 use crate::Result;
@@ -18,6 +18,7 @@ mod migrate_db;
 mod modules;
 mod openapi;
 pub(super) mod reload;
+mod tariffs;
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
