@@ -37,6 +37,7 @@ use std::{
     fs::File,
     io::BufReader,
     net::{Ipv4Addr, Ipv6Addr, SocketAddr, TcpListener, ToSocketAddrs as _},
+    path::PathBuf,
     sync::Arc,
     time::Duration,
 };
@@ -174,8 +175,8 @@ pub struct Controller {
     /// Cloneable shared settings, can be used to reload settings from, when receiving the `reload` signal.
     pub settings_provider: SettingsProvider,
 
-    /// CLI arguments
-    args: cli::Args,
+    /// Path of the configuration file
+    optional_config_path: Option<PathBuf>,
 
     inventory_provider: Arc<dyn InventoryProvider>,
 
@@ -249,17 +250,17 @@ impl Controller {
 
         log::info!("Global timezone is {}", settings.defaults.timezone);
 
-        let controller = Self::init::<M>(settings_provider, args)
+        let controller = Self::init::<M>(settings_provider, args.config)
             .await
             .whatever_context("Failed to init controller")?;
 
         Ok(Some(controller))
     }
 
-    #[tracing::instrument(err, skip(settings_provider, args))]
+    #[tracing::instrument(err, skip(settings_provider))]
     async fn init<M: RegisterModules>(
         settings_provider: SettingsProvider,
-        args: cli::Args,
+        optional_config_path: Option<PathBuf>,
     ) -> Result<Self> {
         let settings = settings_provider.get();
         let metrics = metrics::CombinedMetrics::try_init()
@@ -448,7 +449,7 @@ impl Controller {
             service,
             startup_settings: settings,
             settings_provider,
-            args,
+            optional_config_path,
             inventory_provider,
             caches,
             storage,
@@ -605,7 +606,7 @@ impl Controller {
                 _ = reload_signal.recv() => {
                     log::info!("Got reload signal, reloading");
 
-                    if let Err(e) = self.settings_provider.reload_from_path_or_standard_paths(self.args.config.as_deref()) {
+                    if let Err(e) = self.settings_provider.reload_from_path_or_standard_paths(self.optional_config_path.as_deref()) {
                         log::error!("Failed to reload settings, {}", Report::from_error(e));
                         continue
                     }
