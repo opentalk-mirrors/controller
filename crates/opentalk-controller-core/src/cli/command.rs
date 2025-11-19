@@ -45,6 +45,9 @@ pub(super) enum Command {
     #[clap(subcommand)]
     Openapi(super::openapi::Command),
 
+    /// Return the readiness state
+    Health(super::health::Command),
+
     /// Triggers a reload of reloadable configuration options for already
     /// running opentalk-controller processes
     Reload(super::reload::Command),
@@ -79,6 +82,9 @@ impl Command {
             }
             Command::Openapi(command) => {
                 command.exec()?;
+            }
+            Command::Health(command) => {
+                command.exec(optional_config_path).await?;
             }
             Command::Reload(command) => {
                 command.exec()?;

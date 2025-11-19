@@ -15,6 +15,7 @@ use crate::{Controller, Result};
 mod acl;
 mod command;
 mod fix_acl;
+mod health;
 mod jobs;
 mod license;
 mod migrate_db;
