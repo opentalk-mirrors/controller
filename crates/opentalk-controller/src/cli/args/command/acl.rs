@@ -8,17 +8,17 @@ use std::{path::Path, sync::Arc};
 
 use clap::{Parser, Subcommand};
 use kustos::prelude::AccessMethod;
+use opentalk_controller_core::{
+    acl::{check_or_create_kustos_role_policy, maybe_remove_kustos_role_policy},
+    load_settings_provider,
+};
 use opentalk_controller_settings::Settings;
 use opentalk_database::Db;
 use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_kustos_inventory::KustosInventoryProvider;
 use snafu::ResultExt;
 
-use crate::{
-    Result,
-    acl::{check_or_create_kustos_role_policy, maybe_remove_kustos_role_policy},
-    load_settings_provider,
-};
+use crate::Result;
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]

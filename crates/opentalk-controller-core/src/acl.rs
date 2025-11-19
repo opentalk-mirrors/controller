@@ -49,7 +49,7 @@ pub async fn check_or_create_kustos_default_permissions(authz: &Authz) -> Result
     Ok(())
 }
 
-pub(crate) async fn check_or_create_kustos_role_policy<P, R, A>(
+pub async fn check_or_create_kustos_role_policy<P, R, A>(
     authz: &kustos::Authz,
     role: P,
     res: R,
@@ -88,7 +88,7 @@ where
     Ok(())
 }
 
-pub(crate) async fn maybe_remove_kustos_role_policy<P, R, A>(
+pub async fn maybe_remove_kustos_role_policy<P, R, A>(
     authz: &kustos::Authz,
     role: P,
     res: R,

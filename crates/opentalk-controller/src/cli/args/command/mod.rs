@@ -6,12 +6,13 @@ use std::path::Path;
 
 use clap::Subcommand;
 use opentalk_controller_core::cli::{
-    acl, health, jobs, migrate_db, modules, openapi, reload, tariffs, tenants,
+    health, jobs, migrate_db, modules, openapi, reload, tariffs, tenants,
 };
 use opentalk_signaling_modules::Modules;
 
 use crate::Result;
 
+mod acl;
 mod fix_acl;
 
 #[derive(Subcommand, Debug, Clone)]
