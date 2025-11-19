@@ -21,7 +21,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Parser)]
-pub(super) struct Command {
+pub struct Command {
     /// !DANGER! Removes all ACL entries before running any fixes.
     ///
     /// Requires all fixes to be run.

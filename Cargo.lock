@@ -5094,6 +5094,7 @@ dependencies = [
  "opentalk-controller-core",
  "opentalk-controller-service",
  "opentalk-signaling-modules",
+ "opentalk-version",
  "snafu",
 ]
 
@@ -5152,7 +5153,6 @@ dependencies = [
  "opentalk-types-signaling-control",
  "opentalk-types-signaling-moderation",
  "opentalk-types-signaling-recording",
- "opentalk-version",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry-prometheus",

@@ -4,7 +4,6 @@
 
 [package]
 authors.workspace = true
-build = "build.rs"
 edition = "2024"
 license = "EUPL-1.2"
 name = "opentalk-controller-core"
@@ -74,7 +73,6 @@ opentalk-types-signaling-moderation = { workspace = true, features = [
 opentalk-types-signaling-recording = { workspace = true, features = [
   "backend",
 ] }
-opentalk-version.workspace = true
 opentelemetry = { workspace = true, features = ["metrics", "trace"] }
 opentelemetry-otlp = { workspace = true, features = ["grpc-tonic"] }
 opentelemetry-prometheus.workspace = true
@@ -114,10 +112,6 @@ yaml-rust2.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true
-
-[build-dependencies]
-opentalk-version.workspace = true
-snafu.workspace = true
 
 [features]
 default = []

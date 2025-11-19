@@ -2,95 +2,14 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::path::PathBuf;
-
-use build_info::BuildInfo;
-use clap::Parser;
-use command::Command;
-use opentalk_signaling_core::RegisterModules;
-use opentalk_version::InfoArgs;
-
-use crate::{Controller, Result};
-
 mod acl;
-mod command;
+pub mod command;
 mod fix_acl;
 mod health;
 mod jobs;
-mod license;
 mod migrate_db;
 mod modules;
 mod openapi;
-pub(crate) mod reload;
+pub mod reload;
 mod tariffs;
 mod tenants;
-
-#[derive(Parser, Debug, Clone)]
-#[clap(name = "opentalk-controller")]
-pub struct Args {
-    /// Path of the configuration file.
-    ///
-    /// If present, exactly this config file will be used.
-    ///
-    /// If absent, `controller` looks for a config file in these locations and uses the first one that is found:
-    ///
-    /// - `config.toml` in the current directory (deprecated, for backwards compatiblity only)
-    /// - `controller.toml` in the current directory
-    /// - `<XDG_CONFIG_HOME>/opentalk/controller.toml` (where `XDG_CONFIG_HOME` is usually `~/.config`)
-    /// - `/etc/opentalk/controller.toml`
-    #[clap(short, long, verbatim_doc_comment)]
-    pub config: Option<PathBuf>,
-
-    /// Triggers a reload of reloadable configuration options (deprecated, use the `reload` subcommand instead)
-    #[clap(long)]
-    pub reload: bool,
-
-    #[clap(subcommand)]
-    cmd: Option<Command>,
-
-    #[command(flatten)]
-    pub(crate) info: InfoArgs,
-}
-
-impl Args {
-    /// Returns true if we want to startup the controller after we finished the cli part
-    pub fn controller_should_start(&self) -> bool {
-        !(self.reload || self.cmd.is_some() || self.info.should_print())
-    }
-
-    pub async fn exec<M: RegisterModules>(self) -> Result<()> {
-        if self.info.should_print() {
-            print_info(&self.info);
-            return Ok(());
-        }
-
-        if self.reload {
-            let current_exe = std::env::current_exe()
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_else(|_| "opentalk-controller".to_string());
-            println!(
-                "The `--reload` argument is deprecated and will be removed in the future. Please execute `{current_exe} reload` instead."
-            );
-            reload::Command.exec()?;
-            return Ok(());
-        }
-
-        if let Some(command) = self.cmd {
-            command.exec::<M>(self.config.as_deref()).await?;
-        } else {
-            let controller = Controller::create::<M>(self.config).await?;
-            controller.run().await?;
-        }
-
-        Ok(())
-    }
-}
-
-opentalk_version::build_info!();
-
-pub(crate) fn print_info(info_args: &InfoArgs) {
-    let build_info = BuildInfo::with_license(license::LICENSE.to_owned());
-    if let Some(text) = build_info.format(info_args) {
-        println!("{text}");
-    }
-}

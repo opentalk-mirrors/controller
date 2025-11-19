@@ -4,6 +4,7 @@
 
 [package]
 authors.workspace = true
+build = "build.rs"
 default-run = "opentalk-controller"
 edition = "2024"
 license = "EUPL-1.2"
@@ -21,8 +22,13 @@ log.workspace = true
 opentalk-controller-core.workspace = true
 opentalk-controller-service.workspace = true
 opentalk-signaling-modules.workspace = true
+opentalk-version.workspace = true
 snafu.workspace = true
 
 [features]
 default = ["swagger"]
 swagger = ["opentalk-controller-core/swagger"]
+
+[build-dependencies]
+opentalk-version.workspace = true
+snafu.workspace = true

@@ -22,7 +22,7 @@ use crate::{
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
-pub(crate) enum Command {
+pub enum Command {
     /// Allows all users access to all rooms
     UsersHaveAccessToAllRooms {
         /// Enable/Disable
@@ -45,7 +45,7 @@ impl Command {
 
 #[derive(Parser, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
-pub(crate) enum EnableDisable {
+pub enum EnableDisable {
     /// enable
     Enable,
     /// disable

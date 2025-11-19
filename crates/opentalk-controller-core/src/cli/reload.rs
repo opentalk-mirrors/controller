@@ -10,11 +10,11 @@ use sysinfo::{self, Pid, Process, ProcessRefreshKind, RefreshKind, System, get_c
 use crate::Result;
 
 #[derive(Debug, Clone, Parser)]
-pub(crate) struct Command;
+pub struct Command;
 
 impl Command {
     /// Sends SIGHUP to all process with a different pid and the same name
-    pub(crate) fn exec(self) -> Result<()> {
+    pub fn exec(self) -> Result<()> {
         let target_processes = find_target_processes()?;
         if target_processes.is_empty() {
             println!("There is currently no other controller process running");

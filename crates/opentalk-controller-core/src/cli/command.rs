@@ -12,7 +12,7 @@ use crate::Result;
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
 #[allow(clippy::large_enum_variant)]
-pub(super) enum Command {
+pub enum Command {
     /// Recreate all ACL entries from the current database content. Existing entries will not be touched unless the
     /// command is told to delete them all beforehand.
     FixAcl(super::fix_acl::Command),
@@ -54,10 +54,7 @@ pub(super) enum Command {
 }
 
 impl Command {
-    pub(crate) async fn exec<M: RegisterModules>(
-        self,
-        optional_config_path: Option<&Path>,
-    ) -> Result<()> {
+    pub async fn exec<M: RegisterModules>(self, optional_config_path: Option<&Path>) -> Result<()> {
         match self {
             Command::FixAcl(command) => {
                 command.exec(optional_config_path).await?;

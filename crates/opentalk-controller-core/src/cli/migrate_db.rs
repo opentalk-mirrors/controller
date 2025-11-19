@@ -12,7 +12,7 @@ use snafu::ResultExt as _;
 use crate::{Result, load_settings_provider};
 
 #[derive(Debug, Clone, Parser)]
-pub(super) struct Command {}
+pub struct Command {}
 
 impl Command {
     pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
