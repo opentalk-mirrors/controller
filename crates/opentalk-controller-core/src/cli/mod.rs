@@ -40,7 +40,7 @@ pub struct Args {
     #[clap(short, long, verbatim_doc_comment)]
     pub config: Option<PathBuf>,
 
-    /// Triggers a reload of reloadable configuration options
+    /// Triggers a reload of reloadable configuration options (deprecated, use the `reload` subcommand instead)
     #[clap(long)]
     pub reload: bool,
 
@@ -69,7 +69,13 @@ pub async fn parse_args<M: RegisterModules>() -> Result<Args> {
     }
 
     if args.reload {
-        reload::trigger_reload()?;
+        let current_exe = std::env::current_exe()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| "opentalk-controller".to_string());
+        println!(
+            "The `--reload` argument is deprecated and will be removed in the future. Please execute `{current_exe} reload` instead."
+        );
+        reload::Command.exec()?;
     }
 
     if let Some(command) = args.cmd.clone() {

@@ -44,6 +44,10 @@ pub(super) enum Command {
     /// Get information on the OpenAPI specification
     #[clap(subcommand)]
     Openapi(super::openapi::Command),
+
+    /// Triggers a reload of reloadable configuration options for already
+    /// running opentalk-controller processes
+    Reload(super::reload::Command),
 }
 
 impl Command {
@@ -71,10 +75,13 @@ impl Command {
                 command.exec(optional_config_path).await?;
             }
             Command::Modules(command) => {
-                command.exec::<M>().await?;
+                command.exec::<M>()?;
             }
             Command::Openapi(command) => {
-                command.exec().await?;
+                command.exec()?;
+            }
+            Command::Reload(command) => {
+                command.exec()?;
             }
         }
         Ok(())

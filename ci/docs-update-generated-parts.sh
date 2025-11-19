@@ -83,6 +83,7 @@ $OPENTALK_CONTROLLER_CMD modules --help | codify text > "$CLI_DIR"/"$CMDNAME"-mo
 $OPENTALK_CONTROLLER_CMD modules list --help | codify text > "$CLI_DIR"/"$CMDNAME"-modules-list-help.md
 $OPENTALK_CONTROLLER_CMD openapi --help | codify text > "$CLI_DIR"/"$CMDNAME"-openapi-help.md
 $OPENTALK_CONTROLLER_CMD openapi dump --help | codify text > "$CLI_DIR"/"$CMDNAME"-openapi-dump-help.md
+$OPENTALK_CONTROLLER_CMD reload --help | codify text > "$CLI_DIR"/"$CMDNAME"-reload-help.md
 
 $OPENTALK_CONTROLLER_CMD --config example/controller.toml jobs default-parameters self-check | codify json > "$JOBS_DIR"/parameters-self-check.json.md
 $OPENTALK_CONTROLLER_CMD --config example/controller.toml jobs default-parameters event-cleanup | codify json > "$JOBS_DIR"/parameters-event-cleanup.json.md

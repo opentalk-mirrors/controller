@@ -2,20 +2,26 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use clap::Parser;
 use nix::sys::signal::{SIGHUP, kill};
 use snafu::{OptionExt, ResultExt};
 use sysinfo::{self, Pid, Process, ProcessRefreshKind, RefreshKind, System, get_current_pid};
 
 use crate::Result;
 
-/// Sends SIGHUP to all process with a different pid and the same name
-pub fn trigger_reload() -> Result<()> {
-    let target_processes = find_target_processes()?;
-    if target_processes.is_empty() {
-        println!("There is currently no other controller process running");
-        Ok(())
-    } else {
-        send_sighup_to_processes(target_processes)
+#[derive(Debug, Clone, Parser)]
+pub(super) struct Command;
+
+impl Command {
+    /// Sends SIGHUP to all process with a different pid and the same name
+    pub(super) fn exec(self) -> Result<()> {
+        let target_processes = find_target_processes()?;
+        if target_processes.is_empty() {
+            println!("There is currently no other controller process running");
+            Ok(())
+        } else {
+            send_sighup_to_processes(target_processes)
+        }
     }
 }
 

@@ -43,6 +43,7 @@ Commands:
   jobs        Manage and execute maintenance jobs
   modules     Manage modules
   openapi     Get information on the OpenAPI specification
+  reload      Triggers a reload of reloadable configuration options for already running opentalk-controller processes
   help        Print this message or the help of the given subcommand(s)
 
 Options:
@@ -59,7 +60,7 @@ Options:
           - `/etc/opentalk/controller.toml`
 
       --reload
-          Triggers a reload of reloadable configuration options
+          Triggers a reload of reloadable configuration options (deprecated, use the `reload` subcommand instead)
 
   -V, --version
           Print version information
