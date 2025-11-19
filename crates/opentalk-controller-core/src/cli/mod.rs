@@ -17,6 +17,7 @@ mod acl;
 mod fix_acl;
 mod jobs;
 mod license;
+mod migrate_db;
 mod modules;
 mod openapi;
 mod reload;
@@ -56,15 +57,15 @@ pub struct Args {
 enum SubCommand {
     /// Recreate all ACL entries from the current database content. Existing entries will not be touched unless the
     /// command is told to delete them all beforehand.
-    FixAcl(fix_acl::Args),
+    FixAcl(fix_acl::Command),
 
     /// Modify the ACLs.
     #[clap(subcommand)]
-    Acl(AclSubCommand),
+    Acl(acl::Command),
 
     /// Migrate the db. This is done automatically during start of the controller,
     /// but can be done without starting the controller using this command.
-    MigrateDb,
+    MigrateDb(migrate_db::Command),
 
     /// Manage existing tenants
     #[clap(subcommand)]
@@ -85,26 +86,6 @@ enum SubCommand {
     /// Get information on the OpenAPI specification
     #[clap(subcommand)]
     Openapi(openapi::Command),
-}
-
-#[derive(Subcommand, Debug, Clone)]
-#[clap(rename_all = "kebab_case")]
-pub(crate) enum AclSubCommand {
-    /// Allows all users access to all rooms
-    UsersHaveAccessToAllRooms {
-        /// Enable/Disable
-        #[clap(subcommand)]
-        action: EnableDisable,
-    },
-}
-
-#[derive(Parser, Debug, Clone)]
-#[clap(rename_all = "kebab_case")]
-pub(crate) enum EnableDisable {
-    /// enable
-    Enable,
-    /// disable
-    Disable,
 }
 
 impl Args {
@@ -134,13 +115,13 @@ pub async fn parse_args<M: RegisterModules>() -> Result<Args> {
         let settings = settings_provider.get();
 
         match sub_command {
-            SubCommand::FixAcl(args) => {
-                fix_acl::fix_acl(&settings, args).await?;
+            SubCommand::FixAcl(command) => {
+                fix_acl::fix_acl(&settings, command).await?;
             }
-            SubCommand::Acl(subcommand) => {
-                acl::acl(&settings, subcommand).await?;
+            SubCommand::Acl(command) => {
+                acl::acl(&settings, command).await?;
             }
-            SubCommand::MigrateDb => {
+            SubCommand::MigrateDb(_command) => {
                 let result =
                     opentalk_db_storage::migrations::migrate_from_url(&settings.database.url)
                         .await

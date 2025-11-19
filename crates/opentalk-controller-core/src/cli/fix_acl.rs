@@ -22,7 +22,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Parser)]
-pub(super) struct Args {
+pub(super) struct Command {
     /// !DANGER! Removes all ACL entries before running any fixes.
     ///
     /// Requires all fixes to be run.
@@ -50,7 +50,7 @@ pub(super) struct Args {
     skip_events: bool,
 }
 
-pub(super) async fn fix_acl(settings: &Settings, args: Args) -> Result<()> {
+pub(super) async fn fix_acl(settings: &Settings, args: Command) -> Result<()> {
     let db = Arc::new(
         Db::connect(&settings.database).whatever_context("Failed to connect to database")?,
     );
@@ -65,7 +65,7 @@ pub(super) async fn fix_acl(settings: &Settings, args: Args) -> Result<()> {
         .whatever_context("Failed to initialize kustos/authz")?;
 
     match &args {
-        Args {
+        Command {
             delete_acl_entries: true,
             skip_users: false,
             skip_groups: false,
@@ -79,7 +79,7 @@ pub(super) async fn fix_acl(settings: &Settings, args: Args) -> Result<()> {
                 .await
                 .whatever_context("Failed to clear policies")?;
         }
-        Args {
+        Command {
             delete_acl_entries: true,
             ..
         } => {
@@ -125,7 +125,7 @@ pub(super) async fn fix_acl(settings: &Settings, args: Args) -> Result<()> {
 }
 
 async fn fix_user(
-    args: &Args,
+    args: &Command,
     inventory: &mut dyn Inventory,
     authz: &kustos::Authz,
     errors: &mut Vec<kustos::Error>,
