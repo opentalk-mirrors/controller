@@ -11,6 +11,9 @@ use opentalk_signaling_core::{
     SignalingModuleFeatureDescription,
 };
 use opentalk_types_common::modules::ModuleId;
+use snafu::ResultExt as _;
+
+use crate::Result;
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
@@ -20,6 +23,17 @@ pub enum Command {
 
     /// Print a documentation of the modules (in Markdown)
     PrintDocumentation,
+}
+
+impl Command {
+    pub(super) fn exec<M: RegisterModules>(self) -> Result<()> {
+        match self {
+            Command::List => M::register(&mut ModuleConsolePrinter),
+            Command::PrintDocumentation => M::register(&mut ModulesMarkdownPrinter),
+        }
+        .whatever_context("Modules command failed")?;
+        Ok(())
+    }
 }
 
 struct ModuleConsolePrinter;
@@ -91,11 +105,4 @@ fn generate_feature_documentation(
         "#### `{}::{}`\n\n{}",
         module_id, feature.feature_id, feature.description
     )
-}
-
-pub async fn handle_command<M: RegisterModules>(command: Command) -> Result<(), Infallible> {
-    match command {
-        Command::List => M::register(&mut ModuleConsolePrinter),
-        Command::PrintDocumentation => M::register(&mut ModulesMarkdownPrinter),
-    }
 }

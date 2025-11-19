@@ -5001,9 +5001,12 @@ name = "opentalk-controller"
 version = "0.33.0-alpha"
 dependencies = [
  "actix-web",
+ "clap",
+ "log",
  "opentalk-controller-core",
  "opentalk-controller-service",
  "opentalk-signaling-modules",
+ "snafu",
 ]
 
 [[package]]

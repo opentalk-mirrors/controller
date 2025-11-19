@@ -4,6 +4,7 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
+    path::Path,
     str::FromStr,
     sync::Arc,
 };
@@ -25,6 +26,8 @@ use opentalk_types_common::{
 use parse_size::parse_size;
 use snafu::{OptionExt, ResultExt, Snafu};
 use tabled::{Table, Tabled, settings::Style};
+
+use crate::{Result, load_settings_provider};
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
@@ -96,6 +99,61 @@ pub enum Command {
     },
 }
 
+impl Command {
+    pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
+        let settings = load_settings_provider(optional_config_path)?.get();
+        match self {
+            Command::List => list_all_tariffs(&settings).await,
+            Command::Create {
+                tariff_name,
+                external_tariff_id,
+                disabled_modules,
+                disabled_features,
+                quotas,
+            } => {
+                create_tariff(
+                    &settings,
+                    tariff_name,
+                    external_tariff_id,
+                    BTreeSet::from_iter(disabled_modules),
+                    BTreeSet::from_iter(disabled_features),
+                    quotas.into_iter().collect(),
+                )
+                .await
+            }
+            Command::Delete { tariff_name } => delete_tariff(&settings, tariff_name).await,
+            Command::Edit {
+                tariff_name,
+                set_name,
+                add_external_tariff_ids,
+                remove_external_tariff_ids,
+                add_disabled_modules,
+                remove_disabled_modules,
+                add_disabled_features,
+                remove_disabled_features,
+                add_quotas,
+                remove_quotas,
+            } => {
+                edit_tariff(
+                    &settings,
+                    tariff_name,
+                    set_name,
+                    add_external_tariff_ids,
+                    remove_external_tariff_ids,
+                    BTreeSet::from_iter(add_disabled_modules),
+                    BTreeSet::from_iter(remove_disabled_modules),
+                    BTreeSet::from_iter(add_disabled_features),
+                    BTreeSet::from_iter(remove_disabled_features),
+                    add_quotas.into_iter().collect(),
+                    remove_quotas,
+                )
+                .await
+            }
+        }
+        .whatever_context("Tariffs command failed")
+    }
+}
+
 #[derive(Debug, Snafu)]
 enum CliParameterError {
     /// Invalid key-value-pair, must be of form `key=value`
@@ -125,60 +183,6 @@ pub enum CliExecutionError {
     /// Inventory error
     #[snafu(transparent)]
     Inventory { source: opentalk_inventory::Error },
-}
-
-pub async fn handle_command(
-    settings: &Settings,
-    command: Command,
-) -> Result<(), CliExecutionError> {
-    match command {
-        Command::List => list_all_tariffs(settings).await,
-        Command::Create {
-            tariff_name,
-            external_tariff_id,
-            disabled_modules,
-            disabled_features,
-            quotas,
-        } => {
-            create_tariff(
-                settings,
-                tariff_name,
-                external_tariff_id,
-                BTreeSet::from_iter(disabled_modules),
-                BTreeSet::from_iter(disabled_features),
-                quotas.into_iter().collect(),
-            )
-            .await
-        }
-        Command::Delete { tariff_name } => delete_tariff(settings, tariff_name).await,
-        Command::Edit {
-            tariff_name,
-            set_name,
-            add_external_tariff_ids,
-            remove_external_tariff_ids,
-            add_disabled_modules,
-            remove_disabled_modules,
-            add_disabled_features,
-            remove_disabled_features,
-            add_quotas,
-            remove_quotas,
-        } => {
-            edit_tariff(
-                settings,
-                tariff_name,
-                set_name,
-                add_external_tariff_ids,
-                remove_external_tariff_ids,
-                BTreeSet::from_iter(add_disabled_modules),
-                BTreeSet::from_iter(remove_disabled_modules),
-                BTreeSet::from_iter(add_disabled_features),
-                BTreeSet::from_iter(remove_disabled_features),
-                add_quotas.into_iter().collect(),
-                remove_quotas,
-            )
-            .await
-        }
-    }
 }
 
 async fn list_all_tariffs(settings: &Settings) -> Result<(), CliExecutionError> {

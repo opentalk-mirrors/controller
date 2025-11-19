@@ -3,40 +3,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 //! Extensible core library of the *OpentTalk Controller*
-//!
-//! # Example
-//!
-//! ```no_run
-//! use opentalk_controller_core::Controller;
-//! use opentalk_controller_service::Whatever;
-//!
-//! # use opentalk_signaling_core::{ModulesRegistrar, RegisterModules};
-//! # struct Modules;
-//! # #[async_trait::async_trait(?Send)]
-//! # impl RegisterModules for Modules {
-//! #     fn register<E>(registrar: &mut impl ModulesRegistrar<Error=E>) -> Result<(), E> {
-//! #         unimplemented!();
-//! #     }
-//! # }
-//!
-//! #[actix_web::main]
-//! async fn main() {
-//!     opentalk_controller_core::try_or_exit(run()).await;
-//! }
-//!
-//! async fn run() -> Result<(), Whatever> {
-//!    if let Some(controller) = Controller::create::<Modules>("OpenTalk Controller").await? {
-//!         controller.run().await?;
-//!     }
-//!
-//!     Ok(())
-//! }
-//! ```
 
 use std::{
     fs::File,
     io::BufReader,
     net::{Ipv4Addr, Ipv6Addr, SocketAddr, TcpListener, ToSocketAddrs as _},
+    path::{Path, PathBuf},
     sync::Arc,
     time::Duration,
 };
@@ -68,7 +40,7 @@ use opentalk_signaling_core::{
 use opentalk_types_api_v1::{auth::OidcProvider, error::ApiError};
 use rustls_pki_types::{CertificateDer, PrivatePkcs8KeyDer};
 use service_probe::{ServiceState, set_service_state, start_probe};
-use snafu::{ErrorCompat, Report, ResultExt, Snafu};
+use snafu::{Report, ResultExt, Snafu};
 use swagger::WithSwagger as _;
 use tokio::{
     signal::{
@@ -91,12 +63,12 @@ use crate::{
 };
 
 mod acl;
-mod cli;
 mod metrics;
 mod swagger;
 mod trace;
 
 pub mod api;
+pub mod cli;
 pub mod settings;
 
 #[derive(Debug, Snafu)]
@@ -130,40 +102,6 @@ where
     fut.await.context(BlockingSnafu)
 }
 
-/// Wrapper of the main function. Correctly outputs the error to the logging utility or stderr.
-pub async fn try_or_exit<T, F>(f: F) -> T
-where
-    F: std::future::Future<Output = Result<T>>,
-{
-    match f.await {
-        Ok(ok) => ok,
-        Err(err) => {
-            let show_backtrace = std::env::var("RUST_BACKTRACE").is_ok_and(|v| v != "0");
-
-            let backtrace = if show_backtrace {
-                err.backtrace()
-                    .map(|e| format!("\nBacktrace:\n{e}"))
-                    .unwrap_or_else(|| "No backtrace available".to_string())
-            } else {
-                "NOTE: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
-                    .to_string()
-            };
-
-            let report = Report::from_error(err);
-
-            let message = format!("Error: {report}{backtrace}");
-
-            if log::log_enabled!(log::Level::Error) {
-                log::error!("{message}");
-            } else {
-                eprintln!("{message}");
-            }
-
-            std::process::exit(-1);
-        }
-    }
-}
-
 /// Controller struct representation containing all fields required to extend and drive the controller
 pub struct Controller {
     pub service: Arc<dyn OpenTalkControllerService>,
@@ -174,8 +112,8 @@ pub struct Controller {
     /// Cloneable shared settings, can be used to reload settings from, when receiving the `reload` signal.
     pub settings_provider: SettingsProvider,
 
-    /// CLI arguments
-    args: cli::Args,
+    /// Path of the configuration file
+    optional_config_path: Option<PathBuf>,
 
     inventory_provider: Arc<dyn InventoryProvider>,
 
@@ -222,44 +160,28 @@ pub struct Controller {
 }
 
 impl Controller {
-    /// Tries to create a controller from CLI arguments and then the settings.
-    ///
-    /// This can return Ok(None) which would indicate that the controller executed a CLI
-    /// subprogram (e.g. `--reload`) and must now exit.
-    ///
-    /// Otherwise it will return itself which can be modified and then run using [`Controller::run`]
-    pub async fn create<M: RegisterModules>(program_name: &str) -> Result<Option<Self>> {
-        let args = cli::parse_args::<M>()
-            .await
-            .whatever_context("Failed to parse cli arguments")?;
+    /// Creates a controller instance based on the optional config path command-line argument.
+    pub async fn create<M: RegisterModules>(optional_config_path: Option<PathBuf>) -> Result<Self> {
+        let settings_provider = load_settings_provider(optional_config_path.as_deref())?;
 
-        // Some args run commands by them self and thus should exit here
-        if !args.controller_should_start() {
-            return Ok(None);
-        }
+        log::info!("Starting OpenTalk Controller");
 
-        let settings_provider =
-            SettingsProvider::load_from_path_or_standard_paths(args.config.as_deref())
-                .whatever_context("Failed to load settings")?;
-        let settings = settings_provider.get();
+        log::info!(
+            "Global timezone is {}",
+            settings_provider.get().defaults.timezone
+        );
 
-        trace::init(&settings.logging).whatever_context("Failed to initialize tracing")?;
-
-        log::info!("Starting {program_name}");
-
-        log::info!("Global timezone is {}", settings.defaults.timezone);
-
-        let controller = Self::init::<M>(settings_provider, args)
+        let controller = Self::init::<M>(settings_provider, optional_config_path)
             .await
             .whatever_context("Failed to init controller")?;
 
-        Ok(Some(controller))
+        Ok(controller)
     }
 
-    #[tracing::instrument(err, skip(settings_provider, args))]
+    #[tracing::instrument(err, skip(settings_provider))]
     async fn init<M: RegisterModules>(
         settings_provider: SettingsProvider,
-        args: cli::Args,
+        optional_config_path: Option<PathBuf>,
     ) -> Result<Self> {
         let settings = settings_provider.get();
         let metrics = metrics::CombinedMetrics::try_init()
@@ -448,7 +370,7 @@ impl Controller {
             service,
             startup_settings: settings,
             settings_provider,
-            args,
+            optional_config_path,
             inventory_provider,
             caches,
             storage,
@@ -605,7 +527,7 @@ impl Controller {
                 _ = reload_signal.recv() => {
                     log::info!("Got reload signal, reloading");
 
-                    if let Err(e) = self.settings_provider.reload_from_path_or_standard_paths(self.args.config.as_deref()) {
+                    if let Err(e) = self.settings_provider.reload_from_path_or_standard_paths(self.optional_config_path.as_deref()) {
                         log::error!("Failed to reload settings, {}", Report::from_error(e));
                         continue
                     }
@@ -1193,4 +1115,19 @@ fn determine_socket_address(
         Vec::from_iter((Ipv4Addr::UNSPECIFIED, config_port).to_socket_addrs()?)
     };
     Ok(to_socket_addrs)
+}
+
+fn load_settings_provider(optional_config_path: Option<&Path>) -> Result<SettingsProvider> {
+    let settings_provider =
+        SettingsProvider::load_from_path_or_standard_paths(optional_config_path)
+            .whatever_context("Failed to load settings")?;
+
+    let settings = settings_provider.get();
+
+    if let Err(e) = trace::init(&settings.logging) {
+        let report = Report::from_error(e);
+        eprintln!("Could not initialize log output: {report}");
+    }
+
+    Ok(settings_provider)
 }

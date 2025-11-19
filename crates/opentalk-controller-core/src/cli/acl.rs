@@ -4,8 +4,9 @@
 
 //! Allows to manipulate the acls
 //! Currently supported is enabling/disabling room access for all users.
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
+use clap::{Parser, Subcommand};
 use kustos::prelude::AccessMethod;
 use opentalk_controller_settings::Settings;
 use opentalk_database::Db;
@@ -13,20 +14,42 @@ use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_kustos_inventory::KustosInventoryProvider;
 use snafu::ResultExt;
 
-use super::AclSubCommand;
 use crate::{
     Result,
     acl::{check_or_create_kustos_role_policy, maybe_remove_kustos_role_policy},
+    load_settings_provider,
 };
 
-pub(crate) async fn acl(settings: &Settings, e: AclSubCommand) -> Result<()> {
-    match e {
-        AclSubCommand::UsersHaveAccessToAllRooms { action } => match action {
-            super::EnableDisable::Enable => enable_user_access_to_all_rooms(settings).await?,
-            super::EnableDisable::Disable => disable_user_access_to_all_rooms(settings).await?,
-        },
+#[derive(Subcommand, Debug, Clone)]
+#[clap(rename_all = "kebab_case")]
+pub(crate) enum Command {
+    /// Allows all users access to all rooms
+    UsersHaveAccessToAllRooms {
+        /// Enable/Disable
+        #[clap(subcommand)]
+        action: EnableDisable,
+    },
+}
+
+impl Command {
+    pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
+        let settings = load_settings_provider(optional_config_path)?.get();
+        match self {
+            Command::UsersHaveAccessToAllRooms { action } => match action {
+                EnableDisable::Enable => enable_user_access_to_all_rooms(&settings).await,
+                EnableDisable::Disable => disable_user_access_to_all_rooms(&settings).await,
+            },
+        }
     }
-    Ok(())
+}
+
+#[derive(Parser, Debug, Clone)]
+#[clap(rename_all = "kebab_case")]
+pub(crate) enum EnableDisable {
+    /// enable
+    Enable,
+    /// disable
+    Disable,
 }
 
 async fn enable_user_access_to_all_rooms(settings: &Settings) -> Result<()> {

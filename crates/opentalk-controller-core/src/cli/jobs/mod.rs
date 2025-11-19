@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{sync::Arc, time::Duration};
+use std::{path::Path, sync::Arc, time::Duration};
 
 use clap::Subcommand;
 use kustos::Authz;
@@ -17,7 +17,7 @@ use opentalk_signaling_core::{ExchangeHandle, ExchangeTask};
 use serde_json::json;
 use snafu::{ResultExt, ensure_whatever};
 
-use crate::Result;
+use crate::{Result, load_settings_provider};
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
@@ -55,25 +55,38 @@ pub enum Command {
     },
 }
 
-pub async fn handle_command(settings: &Settings, command: Command) -> Result<()> {
-    match command {
-        Command::Execute {
-            job_type,
-            parameters,
-            timeout,
-            hide_duration,
-        } => execute_job(settings, job_type, parameters, timeout, hide_duration).await,
-        Command::DefaultParameters { job_type } => show_default_parameters(job_type),
+impl Command {
+    pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
+        match self {
+            Command::Execute {
+                job_type,
+                parameters,
+                timeout,
+                hide_duration,
+            } => {
+                execute_job(
+                    optional_config_path,
+                    job_type,
+                    parameters,
+                    timeout,
+                    hide_duration,
+                )
+                .await
+            }
+            Command::DefaultParameters { job_type } => show_default_parameters(job_type),
+        }
+        .whatever_context("Jobs command failed")
     }
 }
 
 async fn execute_job(
-    settings: &Settings,
+    optional_config_path: Option<&Path>,
     job_type: JobType,
     parameters: String,
     timeout: u64,
     hide_duration: bool,
 ) -> Result<()> {
+    let settings = load_settings_provider(optional_config_path)?.get();
     let db = Arc::new(
         Db::connect(&settings.database).whatever_context("Failed to connect to database")?,
     );
@@ -113,7 +126,7 @@ async fn execute_job(
         inventory_provider,
         authz,
         exchange_handle,
-        settings,
+        settings: &settings,
         parameters,
         timeout,
         hide_duration,
