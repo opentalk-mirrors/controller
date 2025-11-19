@@ -45,6 +45,7 @@ use std::{
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, Scope, web, web::Data};
 use api::signaling::SignalingModules;
+use clap::Parser as _;
 use kustos::Authz;
 use lapin_pool::RabbitMqPool;
 use opentalk_controller_service::{
@@ -88,6 +89,7 @@ use crate::{
         signaling::SignalingProtocols,
         v1::{middleware::metrics::RequestMetrics, response::error::json_error_handler},
     },
+    cli::Args,
     trace::ReducedSpanBuilder,
 };
 
@@ -230,9 +232,9 @@ impl Controller {
     ///
     /// Otherwise it will return itself which can be modified and then run using [`Controller::run`]
     pub async fn create<M: RegisterModules>(program_name: &str) -> Result<Option<Self>> {
-        let args = cli::parse_args::<M>()
-            .await
-            .whatever_context("Failed to parse cli arguments")?;
+        let args = Args::parse();
+
+        args.clone().exec::<M>().await?;
 
         // Some args run commands by them self and thus should exit here
         if !args.controller_should_start() {

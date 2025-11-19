@@ -20,7 +20,7 @@ mod license;
 mod migrate_db;
 mod modules;
 mod openapi;
-mod reload;
+pub(crate) mod reload;
 mod tariffs;
 mod tenants;
 
@@ -56,38 +56,35 @@ impl Args {
     pub fn controller_should_start(&self) -> bool {
         !(self.reload || self.cmd.is_some() || self.info.should_print())
     }
-}
 
-/// Parses the CLI-Arguments into [`Args`]
-///
-/// Also runs (optional) cli commands if necessary
-pub async fn parse_args<M: RegisterModules>() -> Result<Args> {
-    let args = Args::parse();
+    pub(crate) async fn exec<M: RegisterModules>(self) -> Result<()> {
+        if self.info.should_print() {
+            print_info(&self.info);
+            return Ok(());
+        }
 
-    if args.info.should_print() {
-        print_info(&args.info);
+        if self.reload {
+            let current_exe = std::env::current_exe()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|_| "opentalk-controller".to_string());
+            println!(
+                "The `--reload` argument is deprecated and will be removed in the future. Please execute `{current_exe} reload` instead."
+            );
+            reload::Command.exec()?;
+            return Ok(());
+        }
+
+        if let Some(command) = self.cmd {
+            command.exec::<M>(self.config.as_deref()).await?;
+        }
+
+        Ok(())
     }
-
-    if args.reload {
-        let current_exe = std::env::current_exe()
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|_| "opentalk-controller".to_string());
-        println!(
-            "The `--reload` argument is deprecated and will be removed in the future. Please execute `{current_exe} reload` instead."
-        );
-        reload::Command.exec()?;
-    }
-
-    if let Some(command) = args.cmd.clone() {
-        command.exec::<M>(args.config.as_deref()).await?;
-    }
-
-    Ok(args)
 }
 
 opentalk_version::build_info!();
 
-fn print_info(info_args: &InfoArgs) {
+pub(crate) fn print_info(info_args: &InfoArgs) {
     let build_info = BuildInfo::with_license(license::LICENSE.to_owned());
     if let Some(text) = build_info.format(info_args) {
         println!("{text}");

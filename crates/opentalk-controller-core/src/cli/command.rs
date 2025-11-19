@@ -51,7 +51,7 @@ pub(super) enum Command {
 }
 
 impl Command {
-    pub(super) async fn exec<M: RegisterModules>(
+    pub(crate) async fn exec<M: RegisterModules>(
         self,
         optional_config_path: Option<&Path>,
     ) -> Result<()> {
