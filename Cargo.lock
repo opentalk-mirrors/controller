@@ -5090,6 +5090,7 @@ version = "0.33.0-alpha"
 dependencies = [
  "actix-web",
  "clap",
+ "itertools 0.14.0",
  "kustos",
  "lapin-pool",
  "log",

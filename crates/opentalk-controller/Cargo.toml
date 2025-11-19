@@ -18,6 +18,7 @@ workspace = true
 [dependencies]
 actix-web.workspace = true
 clap = { workspace = true, features = ["derive"] }
+itertools.workspace = true
 kustos.workspace = true
 lapin-pool.workspace = true
 log.workspace = true
