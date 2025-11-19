@@ -2,18 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::path::PathBuf;
 
 use build_info::BuildInfo;
 use clap::Parser;
 use command::Command;
-use opentalk_controller_settings::{Settings, SettingsProvider};
 use opentalk_signaling_core::RegisterModules;
 use opentalk_version::InfoArgs;
-use snafu::ResultExt;
 
 use crate::Result;
 
@@ -61,16 +56,6 @@ impl Args {
     pub fn controller_should_start(&self) -> bool {
         !(self.reload || self.cmd.is_some() || self.info.should_print())
     }
-}
-
-fn load_settings_provider(optional_config_path: Option<&Path>) -> Result<SettingsProvider> {
-    SettingsProvider::load_from_path_or_standard_paths(optional_config_path)
-        .whatever_context("Failed to load settings")
-}
-
-fn load_settings(optional_config_path: Option<&Path>) -> Result<Arc<Settings>> {
-    let settings_provider = load_settings_provider(optional_config_path)?;
-    Ok(settings_provider.get())
 }
 
 /// Parses the CLI-Arguments into [`Args`]

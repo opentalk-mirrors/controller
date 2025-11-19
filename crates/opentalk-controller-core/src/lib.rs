@@ -37,7 +37,7 @@ use std::{
     fs::File,
     io::BufReader,
     net::{Ipv4Addr, Ipv6Addr, SocketAddr, TcpListener, ToSocketAddrs as _},
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::Arc,
     time::Duration,
 };
@@ -239,16 +239,14 @@ impl Controller {
             return Ok(None);
         }
 
-        let settings_provider =
-            SettingsProvider::load_from_path_or_standard_paths(args.config.as_deref())
-                .whatever_context("Failed to load settings")?;
-        let settings = settings_provider.get();
-
-        trace::init(&settings.logging).whatever_context("Failed to initialize tracing")?;
+        let settings_provider = load_settings_provider(args.config.as_deref())?;
 
         log::info!("Starting {program_name}");
 
-        log::info!("Global timezone is {}", settings.defaults.timezone);
+        log::info!(
+            "Global timezone is {}",
+            settings_provider.get().defaults.timezone
+        );
 
         let controller = Self::init::<M>(settings_provider, args.config)
             .await
@@ -1194,4 +1192,19 @@ fn determine_socket_address(
         Vec::from_iter((Ipv4Addr::UNSPECIFIED, config_port).to_socket_addrs()?)
     };
     Ok(to_socket_addrs)
+}
+
+fn load_settings_provider(optional_config_path: Option<&Path>) -> Result<SettingsProvider> {
+    let settings_provider =
+        SettingsProvider::load_from_path_or_standard_paths(optional_config_path)
+            .whatever_context("Failed to load settings")?;
+
+    let settings = settings_provider.get();
+
+    if let Err(e) = trace::init(&settings.logging) {
+        let report = Report::from_error(e);
+        eprintln!("Could not initialize log output: {report}");
+    }
+
+    Ok(settings_provider)
 }

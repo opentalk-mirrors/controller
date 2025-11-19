@@ -17,6 +17,7 @@ use snafu::ResultExt;
 use crate::{
     Result,
     acl::{check_or_create_kustos_role_policy, maybe_remove_kustos_role_policy},
+    load_settings_provider,
 };
 
 #[derive(Subcommand, Debug, Clone)]
@@ -32,7 +33,7 @@ pub(crate) enum Command {
 
 impl Command {
     pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
-        let settings = super::load_settings(optional_config_path)?;
+        let settings = load_settings_provider(optional_config_path)?.get();
         match self {
             Command::UsersHaveAccessToAllRooms { action } => match action {
                 EnableDisable::Enable => enable_user_access_to_all_rooms(&settings).await,

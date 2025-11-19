@@ -15,7 +15,7 @@ use snafu::ResultExt as _;
 use tabled::{Table, Tabled, settings::Style};
 use uuid::Uuid;
 
-use crate::Result;
+use crate::{Result, load_settings_provider};
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
@@ -28,7 +28,7 @@ pub enum Command {
 
 impl Command {
     pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
-        let settings = super::load_settings(optional_config_path)?;
+        let settings = load_settings_provider(optional_config_path)?.get();
         match self {
             Command::List => list_all_tenants(&settings).await,
             Command::SetOidcId { id, new_oidc_id } => {

@@ -17,7 +17,7 @@ use snafu::{ResultExt, whatever};
 
 use crate::{
     Result, acl::check_or_create_kustos_default_permissions,
-    api::v1::events::EventPoliciesBuilderExt,
+    api::v1::events::EventPoliciesBuilderExt, load_settings_provider,
 };
 
 #[derive(Debug, Clone, Parser)]
@@ -51,7 +51,7 @@ pub(super) struct Command {
 
 impl Command {
     pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
-        let settings = super::load_settings(optional_config_path)?;
+        let settings = load_settings_provider(optional_config_path)?.get();
         let db = Arc::new(
             Db::connect(&settings.database).whatever_context("Failed to connect to database")?,
         );

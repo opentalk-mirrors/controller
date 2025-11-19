@@ -17,7 +17,7 @@ use opentalk_signaling_core::{ExchangeHandle, ExchangeTask};
 use serde_json::json;
 use snafu::{ResultExt, ensure_whatever};
 
-use crate::Result;
+use crate::{Result, load_settings_provider};
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
@@ -86,7 +86,7 @@ async fn execute_job(
     timeout: u64,
     hide_duration: bool,
 ) -> Result<()> {
-    let settings = super::load_settings(optional_config_path)?;
+    let settings = load_settings_provider(optional_config_path)?.get();
     let db = Arc::new(
         Db::connect(&settings.database).whatever_context("Failed to connect to database")?,
     );
