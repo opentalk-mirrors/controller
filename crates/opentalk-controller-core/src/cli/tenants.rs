@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::path::Path;
+
 use chrono::Utc;
 use clap::Subcommand;
 use opentalk_controller_settings::Settings;
@@ -25,12 +27,13 @@ pub enum Command {
 }
 
 impl Command {
-    pub(super) async fn exec(self, settings: &Settings) -> Result<()> {
+    pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
+        let settings = super::load_settings(optional_config_path)?;
         match self {
-            Command::List => list_all_tenants(settings).await,
+            Command::List => list_all_tenants(&settings).await,
             Command::SetOidcId { id, new_oidc_id } => {
                 set_oidc_id(
-                    settings,
+                    &settings,
                     TenantId::from(id),
                     OidcTenantId::from(new_oidc_id),
                 )

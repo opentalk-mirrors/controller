@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{sync::Arc, time::Duration};
+use std::{path::Path, sync::Arc, time::Duration};
 
 use clap::Subcommand;
 use kustos::Authz;
@@ -56,14 +56,23 @@ pub enum Command {
 }
 
 impl Command {
-    pub(super) async fn exec(self, settings: &Settings) -> Result<()> {
+    pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
         match self {
             Command::Execute {
                 job_type,
                 parameters,
                 timeout,
                 hide_duration,
-            } => execute_job(settings, job_type, parameters, timeout, hide_duration).await,
+            } => {
+                execute_job(
+                    optional_config_path,
+                    job_type,
+                    parameters,
+                    timeout,
+                    hide_duration,
+                )
+                .await
+            }
             Command::DefaultParameters { job_type } => show_default_parameters(job_type),
         }
         .whatever_context("Jobs command failed")
@@ -71,12 +80,13 @@ impl Command {
 }
 
 async fn execute_job(
-    settings: &Settings,
+    optional_config_path: Option<&Path>,
     job_type: JobType,
     parameters: String,
     timeout: u64,
     hide_duration: bool,
 ) -> Result<()> {
+    let settings = super::load_settings(optional_config_path)?;
     let db = Arc::new(
         Db::connect(&settings.database).whatever_context("Failed to connect to database")?,
     );
@@ -116,7 +126,7 @@ async fn execute_job(
         inventory_provider,
         authz,
         exchange_handle,
-        settings,
+        settings: &settings,
         parameters,
         timeout,
         hide_duration,

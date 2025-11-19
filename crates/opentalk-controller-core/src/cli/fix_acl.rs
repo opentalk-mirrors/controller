@@ -4,12 +4,11 @@
 
 //! Fixes acl rules based on the database content
 
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use clap::Parser;
 use kustos::prelude::*;
 use opentalk_controller_service::controller_backend::RoomsPoliciesBuilderExt;
-use opentalk_controller_settings::Settings;
 use opentalk_database::Db;
 use opentalk_inventory::{Inventory, RoomInvite};
 use opentalk_inventory_database::DatabaseConnectionPool;
@@ -51,7 +50,8 @@ pub(super) struct Command {
 }
 
 impl Command {
-    pub(super) async fn exec(self, settings: &Settings) -> Result<()> {
+    pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
+        let settings = super::load_settings(optional_config_path)?;
         let db = Arc::new(
             Db::connect(&settings.database).whatever_context("Failed to connect to database")?,
         );

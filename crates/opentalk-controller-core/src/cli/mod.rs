@@ -2,11 +2,14 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::path::PathBuf;
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use build_info::BuildInfo;
 use clap::{Parser, Subcommand};
-use opentalk_controller_settings::SettingsProvider;
+use opentalk_controller_settings::{Settings, SettingsProvider};
 use opentalk_signaling_core::RegisterModules;
 use opentalk_version::InfoArgs;
 use snafu::ResultExt;
@@ -95,6 +98,16 @@ impl Args {
     }
 }
 
+fn load_settings_provider(optional_config_path: Option<&Path>) -> Result<SettingsProvider> {
+    SettingsProvider::load_from_path_or_standard_paths(optional_config_path)
+        .whatever_context("Failed to load settings")
+}
+
+fn load_settings(optional_config_path: Option<&Path>) -> Result<Arc<Settings>> {
+    let settings_provider = load_settings_provider(optional_config_path)?;
+    Ok(settings_provider.get())
+}
+
 /// Parses the CLI-Arguments into [`Args`]
 ///
 /// Also runs (optional) cli commands if necessary
@@ -109,29 +122,26 @@ pub async fn parse_args<M: RegisterModules>() -> Result<Args> {
         reload::trigger_reload()?;
     }
     if let Some(sub_command) = args.cmd.clone() {
-        let settings_provider =
-            SettingsProvider::load_from_path_or_standard_paths(args.config.as_deref())
-                .whatever_context("Failed to load settings")?;
-        let settings = settings_provider.get();
+        let config = args.config.as_deref();
 
         match sub_command {
             SubCommand::FixAcl(command) => {
-                command.exec(&settings).await?;
+                command.exec(config).await?;
             }
             SubCommand::Acl(command) => {
-                command.exec(&settings).await?;
+                command.exec(config).await?;
             }
             SubCommand::MigrateDb(command) => {
-                command.exec(&settings).await?;
+                command.exec(config).await?;
             }
             SubCommand::Tenants(command) => {
-                command.exec(&settings).await?;
+                command.exec(config).await?;
             }
             SubCommand::Tariffs(command) => {
-                command.exec(&settings).await?;
+                command.exec(config).await?;
             }
             SubCommand::Jobs(command) => {
-                command.exec(&settings).await?;
+                command.exec(config).await?;
             }
             SubCommand::Modules(command) => {
                 command.exec::<M>().await?;

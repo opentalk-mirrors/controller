@@ -4,7 +4,7 @@
 
 //! Allows to manipulate the acls
 //! Currently supported is enabling/disabling room access for all users.
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use clap::{Parser, Subcommand};
 use kustos::prelude::AccessMethod;
@@ -31,11 +31,12 @@ pub(crate) enum Command {
 }
 
 impl Command {
-    pub(super) async fn exec(self, settings: &Settings) -> Result<()> {
+    pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
+        let settings = super::load_settings(optional_config_path)?;
         match self {
             Command::UsersHaveAccessToAllRooms { action } => match action {
-                EnableDisable::Enable => enable_user_access_to_all_rooms(settings).await,
-                EnableDisable::Disable => disable_user_access_to_all_rooms(settings).await,
+                EnableDisable::Enable => enable_user_access_to_all_rooms(&settings).await,
+                EnableDisable::Disable => disable_user_access_to_all_rooms(&settings).await,
             },
         }
     }

@@ -4,6 +4,7 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
+    path::Path,
     str::FromStr,
     sync::Arc,
 };
@@ -99,9 +100,10 @@ pub enum Command {
 }
 
 impl Command {
-    pub(super) async fn exec(self, settings: &Settings) -> Result<()> {
+    pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
+        let settings = super::load_settings(optional_config_path)?;
         match self {
-            Command::List => list_all_tariffs(settings).await,
+            Command::List => list_all_tariffs(&settings).await,
             Command::Create {
                 tariff_name,
                 external_tariff_id,
@@ -110,7 +112,7 @@ impl Command {
                 quotas,
             } => {
                 create_tariff(
-                    settings,
+                    &settings,
                     tariff_name,
                     external_tariff_id,
                     BTreeSet::from_iter(disabled_modules),
@@ -119,7 +121,7 @@ impl Command {
                 )
                 .await
             }
-            Command::Delete { tariff_name } => delete_tariff(settings, tariff_name).await,
+            Command::Delete { tariff_name } => delete_tariff(&settings, tariff_name).await,
             Command::Edit {
                 tariff_name,
                 set_name,
@@ -133,7 +135,7 @@ impl Command {
                 remove_quotas,
             } => {
                 edit_tariff(
-                    settings,
+                    &settings,
                     tariff_name,
                     set_name,
                     add_external_tariff_ids,
