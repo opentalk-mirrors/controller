@@ -8,6 +8,7 @@ use clap::Subcommand;
 use kustos::Authz;
 use lapin_pool::RabbitMqPool;
 use log::Log;
+use opentalk_controller_core::load_settings_provider;
 use opentalk_controller_settings::Settings;
 use opentalk_database::Db;
 use opentalk_inventory::{InventoryProvider, JobType};
@@ -17,7 +18,7 @@ use opentalk_signaling_core::{ExchangeHandle, ExchangeTask};
 use serde_json::json;
 use snafu::{ResultExt, ensure_whatever};
 
-use crate::{Result, load_settings_provider};
+use crate::Result;
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
