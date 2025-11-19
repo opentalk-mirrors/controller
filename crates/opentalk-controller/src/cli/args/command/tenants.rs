@@ -6,6 +6,7 @@ use std::path::Path;
 
 use chrono::Utc;
 use clap::Subcommand;
+use opentalk_controller_core::load_settings_provider;
 use opentalk_controller_settings::Settings;
 use opentalk_database::{DatabaseError, Db};
 use opentalk_db_storage::tenants::{Tenant, UpdateTenant};
@@ -15,7 +16,7 @@ use snafu::ResultExt as _;
 use tabled::{Table, Tabled, settings::Style};
 use uuid::Uuid;
 
-use crate::{Result, load_settings_provider};
+use crate::Result;
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]

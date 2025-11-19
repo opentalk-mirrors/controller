@@ -68,7 +68,6 @@ mod trace;
 
 pub mod acl;
 pub mod api;
-pub mod cli;
 
 #[derive(Debug, Snafu)]
 /// Blocking thread has panicked

@@ -17,6 +17,7 @@ workspace = true
 
 [dependencies]
 actix-web.workspace = true
+chrono.workspace = true
 clap = { workspace = true, features = ["derive"] }
 diesel.workspace = true
 diesel-async.workspace = true
@@ -48,6 +49,7 @@ sysinfo = { version = "0.37", default-features = false, features = ["system"] }
 tabled = "0.20"
 url.workspace = true
 utoipa.workspace = true
+uuid = { workspace = true, features = ["serde", "v4"] }
 yaml-rust2.workspace = true
 
 [features]

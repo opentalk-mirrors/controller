@@ -5089,6 +5089,7 @@ name = "opentalk-controller"
 version = "0.33.0-alpha"
 dependencies = [
  "actix-web",
+ "chrono",
  "clap",
  "diesel",
  "diesel-async",
@@ -5120,6 +5121,7 @@ dependencies = [
  "tabled",
  "url",
  "utoipa",
+ "uuid",
  "yaml-rust2",
 ]
 
@@ -5138,7 +5140,6 @@ dependencies = [
  "bytes",
  "bytestring",
  "chrono",
- "clap",
  "diesel-async",
  "either",
  "fluent-langneg",
@@ -5189,7 +5190,6 @@ dependencies = [
  "serde_json",
  "service-probe",
  "snafu",
- "tabled",
  "tokio",
  "tokio-stream",
  "tracing",
