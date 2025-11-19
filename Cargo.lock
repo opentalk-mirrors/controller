@@ -5111,6 +5111,8 @@ dependencies = [
  "service-probe-client",
  "snafu",
  "url",
+ "utoipa",
+ "yaml-rust2",
 ]
 
 [[package]]
@@ -5197,7 +5199,6 @@ dependencies = [
  "utoipa",
  "utoipa-swagger-ui",
  "uuid",
- "yaml-rust2",
 ]
 
 [[package]]

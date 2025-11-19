@@ -39,6 +39,8 @@ serde_json.workspace = true
 service-probe-client = "0.3"
 snafu.workspace = true
 url.workspace = true
+utoipa.workspace = true
+yaml-rust2.workspace = true
 
 [features]
 default = ["swagger"]

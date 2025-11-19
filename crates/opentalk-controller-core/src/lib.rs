@@ -887,7 +887,7 @@ impl ModulesRegistrar for Controller {
     ),
     modifiers(&SecurityAddon),
 )]
-struct ApiDoc;
+pub struct ApiDoc;
 
 struct SecurityAddon;
 

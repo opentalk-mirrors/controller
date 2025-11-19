@@ -106,7 +106,6 @@ utoipa-swagger-ui = { workspace = true, features = [
   "actix-web",
 ], optional = true }
 uuid = { workspace = true, features = ["serde", "v4"] }
-yaml-rust2.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true

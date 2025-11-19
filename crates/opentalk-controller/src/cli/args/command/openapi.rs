@@ -54,7 +54,7 @@ impl DumpArguments {
             ))
         };
 
-        let mut api = crate::ApiDoc::openapi();
+        let mut api = opentalk_controller_core::ApiDoc::openapi();
         api.servers = Some(vec![Server::new("/v1")]);
 
         let openapi_json_string = api
