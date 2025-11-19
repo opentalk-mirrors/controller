@@ -8,7 +8,8 @@ use std::{
 };
 
 use build_info::BuildInfo;
-use clap::{Parser, Subcommand};
+use clap::Parser;
+use command::Command;
 use opentalk_controller_settings::{Settings, SettingsProvider};
 use opentalk_signaling_core::RegisterModules;
 use opentalk_version::InfoArgs;
@@ -17,6 +18,7 @@ use snafu::ResultExt;
 use crate::Result;
 
 mod acl;
+mod command;
 mod fix_acl;
 mod jobs;
 mod license;
@@ -48,47 +50,10 @@ pub struct Args {
     pub reload: bool,
 
     #[clap(subcommand)]
-    cmd: Option<SubCommand>,
+    cmd: Option<Command>,
 
     #[command(flatten)]
     pub(crate) info: InfoArgs,
-}
-
-#[derive(Subcommand, Debug, Clone)]
-#[clap(rename_all = "kebab_case")]
-#[allow(clippy::large_enum_variant)]
-enum SubCommand {
-    /// Recreate all ACL entries from the current database content. Existing entries will not be touched unless the
-    /// command is told to delete them all beforehand.
-    FixAcl(fix_acl::Command),
-
-    /// Modify the ACLs.
-    #[clap(subcommand)]
-    Acl(acl::Command),
-
-    /// Migrate the db. This is done automatically during start of the controller,
-    /// but can be done without starting the controller using this command.
-    MigrateDb(migrate_db::Command),
-
-    /// Manage existing tenants
-    #[clap(subcommand)]
-    Tenants(tenants::Command),
-
-    /// Manage tariffs
-    #[clap(subcommand)]
-    Tariffs(tariffs::Command),
-
-    /// Manage and execute maintenance jobs
-    #[clap(subcommand)]
-    Jobs(jobs::Command),
-
-    /// Manage modules
-    #[clap(subcommand)]
-    Modules(modules::Command),
-
-    /// Get information on the OpenAPI specification
-    #[clap(subcommand)]
-    Openapi(openapi::Command),
 }
 
 impl Args {
@@ -121,35 +86,9 @@ pub async fn parse_args<M: RegisterModules>() -> Result<Args> {
     if args.reload {
         reload::trigger_reload()?;
     }
-    if let Some(sub_command) = args.cmd.clone() {
-        let config = args.config.as_deref();
 
-        match sub_command {
-            SubCommand::FixAcl(command) => {
-                command.exec(config).await?;
-            }
-            SubCommand::Acl(command) => {
-                command.exec(config).await?;
-            }
-            SubCommand::MigrateDb(command) => {
-                command.exec(config).await?;
-            }
-            SubCommand::Tenants(command) => {
-                command.exec(config).await?;
-            }
-            SubCommand::Tariffs(command) => {
-                command.exec(config).await?;
-            }
-            SubCommand::Jobs(command) => {
-                command.exec(config).await?;
-            }
-            SubCommand::Modules(command) => {
-                command.exec::<M>().await?;
-            }
-            SubCommand::Openapi(command) => {
-                command.exec().await?;
-            }
-        }
+    if let Some(command) = args.cmd.clone() {
+        command.exec::<M>(args.config.as_deref()).await?;
     }
 
     Ok(args)
