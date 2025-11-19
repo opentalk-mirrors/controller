@@ -5102,7 +5102,9 @@ dependencies = [
  "opentalk-signaling-modules",
  "opentalk-types-common",
  "opentalk-version",
+ "service-probe-client",
  "snafu",
+ "url",
 ]
 
 [[package]]
@@ -5174,7 +5176,6 @@ dependencies = [
  "serde",
  "serde_json",
  "service-probe",
- "service-probe-client",
  "snafu",
  "strum 0.27.2",
  "sysinfo",

@@ -30,7 +30,9 @@ opentalk-kustos-inventory.workspace = true
 opentalk-signaling-modules.workspace = true
 opentalk-types-common.workspace = true
 opentalk-version.workspace = true
+service-probe-client = "0.3"
 snafu.workspace = true
+url.workspace = true
 
 [features]
 default = ["swagger"]

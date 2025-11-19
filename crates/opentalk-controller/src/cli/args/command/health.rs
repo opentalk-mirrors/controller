@@ -5,10 +5,11 @@
 use std::{path::Path, process::exit};
 
 use clap::Parser;
+use opentalk_controller_core::load_settings_provider;
 use service_probe_client::is_ready;
 use url::Url;
 
-use crate::{Result, load_settings_provider};
+use crate::Result;
 #[derive(Debug, Clone, Parser)]
 pub struct Command {
     /// The monitoring endpoint can be provided optionally

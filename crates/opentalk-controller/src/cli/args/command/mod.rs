@@ -5,15 +5,14 @@
 use std::path::Path;
 
 use clap::Subcommand;
-use opentalk_controller_core::cli::{
-    health, jobs, migrate_db, modules, openapi, reload, tariffs, tenants,
-};
+use opentalk_controller_core::cli::{jobs, migrate_db, modules, openapi, reload, tariffs, tenants};
 use opentalk_signaling_modules::Modules;
 
 use crate::Result;
 
 mod acl;
 mod fix_acl;
+mod health;
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
