@@ -23,7 +23,7 @@ pub enum Command {
     Dump(DumpArguments),
 }
 impl Command {
-    pub(super) fn exec(self) -> Result<()> {
+    pub fn exec(self) -> Result<()> {
         match self {
             Command::Dump(args) => args.exec(),
         }

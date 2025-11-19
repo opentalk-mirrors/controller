@@ -56,7 +56,7 @@ pub enum Command {
 }
 
 impl Command {
-    pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
+    pub async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
         match self {
             Command::Execute {
                 job_type,

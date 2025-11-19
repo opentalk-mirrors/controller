@@ -32,7 +32,7 @@ pub enum Command {
 }
 
 impl Command {
-    pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
+    pub async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
         let settings = load_settings_provider(optional_config_path)?.get();
         match self {
             Command::UsersHaveAccessToAllRooms { action } => match action {

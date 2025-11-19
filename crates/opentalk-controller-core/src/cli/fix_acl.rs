@@ -50,7 +50,7 @@ pub struct Command {
 }
 
 impl Command {
-    pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
+    pub async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
         let settings = load_settings_provider(optional_config_path)?.get();
         let db = Arc::new(
             Db::connect(&settings.database).whatever_context("Failed to connect to database")?,

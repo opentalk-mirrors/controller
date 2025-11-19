@@ -2,14 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-mod acl;
-pub mod command;
-mod fix_acl;
-mod health;
-mod jobs;
-mod migrate_db;
-mod modules;
-mod openapi;
+pub mod acl;
+pub mod fix_acl;
+pub mod health;
+pub mod jobs;
+pub mod migrate_db;
+pub mod modules;
+pub mod openapi;
 pub mod reload;
-mod tariffs;
-mod tenants;
+pub mod tariffs;
+pub mod tenants;
