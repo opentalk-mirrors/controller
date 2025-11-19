@@ -3,35 +3,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 //! Extensible core library of the *OpentTalk Controller*
-//!
-//! # Example
-//!
-//! ```no_run
-//! use opentalk_controller_core::Controller;
-//! use opentalk_controller_service::Whatever;
-//!
-//! # use opentalk_signaling_core::{ModulesRegistrar, RegisterModules};
-//! # struct Modules;
-//! # #[async_trait::async_trait(?Send)]
-//! # impl RegisterModules for Modules {
-//! #     fn register<E>(registrar: &mut impl ModulesRegistrar<Error=E>) -> Result<(), E> {
-//! #         unimplemented!();
-//! #     }
-//! # }
-//!
-//! #[actix_web::main]
-//! async fn main() {
-//!     opentalk_controller_core::try_or_exit(run()).await;
-//! }
-//!
-//! async fn run() -> Result<(), Whatever> {
-//!    if let Some(controller) = Controller::create::<Modules>("OpenTalk Controller").await? {
-//!         controller.run().await?;
-//!     }
-//!
-//!     Ok(())
-//! }
-//! ```
 
 use std::{
     fs::File,
@@ -45,7 +16,6 @@ use std::{
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, Scope, web, web::Data};
 use api::signaling::SignalingModules;
-use clap::Parser as _;
 use kustos::Authz;
 use lapin_pool::RabbitMqPool;
 use opentalk_controller_service::{
@@ -70,7 +40,7 @@ use opentalk_signaling_core::{
 use opentalk_types_api_v1::{auth::OidcProvider, error::ApiError};
 use rustls_pki_types::{CertificateDer, PrivatePkcs8KeyDer};
 use service_probe::{ServiceState, set_service_state, start_probe};
-use snafu::{ErrorCompat, Report, ResultExt, Snafu};
+use snafu::{Report, ResultExt, Snafu};
 use swagger::WithSwagger as _;
 use tokio::{
     signal::{
@@ -89,17 +59,16 @@ use crate::{
         signaling::SignalingProtocols,
         v1::{middleware::metrics::RequestMetrics, response::error::json_error_handler},
     },
-    cli::Args,
     trace::ReducedSpanBuilder,
 };
 
 mod acl;
-mod cli;
 mod metrics;
 mod swagger;
 mod trace;
 
 pub mod api;
+pub mod cli;
 pub mod settings;
 
 #[derive(Debug, Snafu)]
@@ -131,40 +100,6 @@ where
     let fut = actix_rt::task::spawn_blocking(move || span.in_scope(f));
 
     fut.await.context(BlockingSnafu)
-}
-
-/// Wrapper of the main function. Correctly outputs the error to the logging utility or stderr.
-pub async fn try_or_exit<T, F>(f: F) -> T
-where
-    F: std::future::Future<Output = Result<T>>,
-{
-    match f.await {
-        Ok(ok) => ok,
-        Err(err) => {
-            let show_backtrace = std::env::var("RUST_BACKTRACE").is_ok_and(|v| v != "0");
-
-            let backtrace = if show_backtrace {
-                err.backtrace()
-                    .map(|e| format!("\nBacktrace:\n{e}"))
-                    .unwrap_or_else(|| "No backtrace available".to_string())
-            } else {
-                "NOTE: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
-                    .to_string()
-            };
-
-            let report = Report::from_error(err);
-
-            let message = format!("Error: {report}{backtrace}");
-
-            if log::log_enabled!(log::Level::Error) {
-                log::error!("{message}");
-            } else {
-                eprintln!("{message}");
-            }
-
-            std::process::exit(-1);
-        }
-    }
 }
 
 /// Controller struct representation containing all fields required to extend and drive the controller
@@ -225,36 +160,22 @@ pub struct Controller {
 }
 
 impl Controller {
-    /// Tries to create a controller from CLI arguments and then the settings.
-    ///
-    /// This can return Ok(None) which would indicate that the controller executed a CLI
-    /// subprogram (e.g. `--reload`) and must now exit.
-    ///
-    /// Otherwise it will return itself which can be modified and then run using [`Controller::run`]
-    pub async fn create<M: RegisterModules>(program_name: &str) -> Result<Option<Self>> {
-        let args = Args::parse();
+    /// Creates a controller instance based on the optional config path command-line argument.
+    pub async fn create<M: RegisterModules>(optional_config_path: Option<PathBuf>) -> Result<Self> {
+        let settings_provider = load_settings_provider(optional_config_path.as_deref())?;
 
-        args.clone().exec::<M>().await?;
-
-        // Some args run commands by them self and thus should exit here
-        if !args.controller_should_start() {
-            return Ok(None);
-        }
-
-        let settings_provider = load_settings_provider(args.config.as_deref())?;
-
-        log::info!("Starting {program_name}");
+        log::info!("Starting OpenTalk Controller");
 
         log::info!(
             "Global timezone is {}",
             settings_provider.get().defaults.timezone
         );
 
-        let controller = Self::init::<M>(settings_provider, args.config)
+        let controller = Self::init::<M>(settings_provider, optional_config_path)
             .await
             .whatever_context("Failed to init controller")?;
 
-        Ok(Some(controller))
+        Ok(controller)
     }
 
     #[tracing::instrument(err, skip(settings_provider))]

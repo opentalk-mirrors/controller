@@ -16,9 +16,12 @@ workspace = true
 
 [dependencies]
 actix-web.workspace = true
+clap = { workspace = true, features = ["derive"] }
+log.workspace = true
 opentalk-controller-core.workspace = true
 opentalk-controller-service.workspace = true
 opentalk-signaling-modules.workspace = true
+snafu.workspace = true
 
 [features]
 default = ["swagger"]

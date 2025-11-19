@@ -10,7 +10,7 @@ use command::Command;
 use opentalk_signaling_core::RegisterModules;
 use opentalk_version::InfoArgs;
 
-use crate::Result;
+use crate::{Controller, Result};
 
 mod acl;
 mod command;
@@ -57,7 +57,7 @@ impl Args {
         !(self.reload || self.cmd.is_some() || self.info.should_print())
     }
 
-    pub(crate) async fn exec<M: RegisterModules>(self) -> Result<()> {
+    pub async fn exec<M: RegisterModules>(self) -> Result<()> {
         if self.info.should_print() {
             print_info(&self.info);
             return Ok(());
@@ -76,6 +76,9 @@ impl Args {
 
         if let Some(command) = self.cmd {
             command.exec::<M>(self.config.as_deref()).await?;
+        } else {
+            let controller = Controller::create::<M>(self.config).await?;
+            controller.run().await?;
         }
 
         Ok(())
