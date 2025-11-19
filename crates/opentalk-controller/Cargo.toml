@@ -25,6 +25,7 @@ opentalk-controller-core.workspace = true
 opentalk-controller-service.workspace = true
 opentalk-controller-settings.workspace = true
 opentalk-database.workspace = true
+opentalk-db-storage.workspace = true
 opentalk-inventory.workspace = true
 opentalk-inventory-database.workspace = true
 opentalk-jobs.workspace = true

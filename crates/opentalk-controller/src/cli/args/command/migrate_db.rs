@@ -7,9 +7,10 @@
 use std::path::Path;
 
 use clap::Parser;
+use opentalk_controller_core::load_settings_provider;
 use snafu::ResultExt as _;
 
-use crate::{Result, load_settings_provider};
+use crate::Result;
 
 #[derive(Debug, Clone, Parser)]
 pub struct Command {}

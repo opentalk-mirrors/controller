@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-pub mod migrate_db;
 pub mod modules;
 pub mod openapi;
 pub mod reload;
