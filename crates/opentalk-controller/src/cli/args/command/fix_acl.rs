@@ -7,7 +7,11 @@
 use std::{path::Path, sync::Arc};
 
 use clap::Parser;
-use kustos::prelude::*;
+use kustos::{AccessMethod, Resource as _, prelude::PoliciesBuilder};
+use opentalk_controller_core::{
+    acl::check_or_create_kustos_default_permissions, api::v1::events::EventPoliciesBuilderExt as _,
+    load_settings_provider,
+};
 use opentalk_controller_service::controller_backend::RoomsPoliciesBuilderExt;
 use opentalk_database::Db;
 use opentalk_inventory::{Inventory, RoomInvite};
@@ -15,10 +19,7 @@ use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_types_common::time::Timestamp;
 use snafu::{ResultExt, whatever};
 
-use crate::{
-    Result, acl::check_or_create_kustos_default_permissions,
-    api::v1::events::EventPoliciesBuilderExt, load_settings_provider,
-};
+use crate::Result;
 
 #[derive(Debug, Clone, Parser)]
 pub struct Command {

@@ -62,11 +62,11 @@ use crate::{
     trace::ReducedSpanBuilder,
 };
 
-mod acl;
 mod metrics;
 mod swagger;
 mod trace;
 
+pub mod acl;
 pub mod api;
 pub mod cli;
 
@@ -1116,7 +1116,7 @@ fn determine_socket_address(
     Ok(to_socket_addrs)
 }
 
-fn load_settings_provider(optional_config_path: Option<&Path>) -> Result<SettingsProvider> {
+pub fn load_settings_provider(optional_config_path: Option<&Path>) -> Result<SettingsProvider> {
     let settings_provider =
         SettingsProvider::load_from_path_or_standard_paths(optional_config_path)
             .whatever_context("Failed to load settings")?;

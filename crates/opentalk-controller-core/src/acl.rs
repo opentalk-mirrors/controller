@@ -10,7 +10,7 @@ use crate::Result;
 /// Checks whether the default permissions are present. These are the mandatory permissions.
 ///
 /// If you introduce new endpoints that need user post access, add these permissions here.
-pub(crate) async fn check_or_create_kustos_default_permissions(authz: &Authz) -> Result<()> {
+pub async fn check_or_create_kustos_default_permissions(authz: &Authz) -> Result<()> {
     check_or_create_kustos_role_policy(
         authz,
         "user",

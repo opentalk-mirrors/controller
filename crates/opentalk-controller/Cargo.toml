@@ -18,10 +18,15 @@ workspace = true
 [dependencies]
 actix-web.workspace = true
 clap = { workspace = true, features = ["derive"] }
+kustos.workspace = true
 log.workspace = true
 opentalk-controller-core.workspace = true
 opentalk-controller-service.workspace = true
+opentalk-database.workspace = true
+opentalk-inventory.workspace = true
+opentalk-inventory-database.workspace = true
 opentalk-signaling-modules.workspace = true
+opentalk-types-common.workspace = true
 opentalk-version.workspace = true
 snafu.workspace = true
 
