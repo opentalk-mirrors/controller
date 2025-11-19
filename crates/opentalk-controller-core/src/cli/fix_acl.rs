@@ -50,77 +50,81 @@ pub(super) struct Command {
     skip_events: bool,
 }
 
-pub(super) async fn fix_acl(settings: &Settings, args: Command) -> Result<()> {
-    let db = Arc::new(
-        Db::connect(&settings.database).whatever_context("Failed to connect to database")?,
-    );
-    let inventory_provider = Arc::new(DatabaseConnectionPool::new(db));
-    let mut inventory = inventory_provider
-        .get_connection()
-        .await
-        .whatever_context("hello")?;
+impl Command {
+    pub(super) async fn exec(self, settings: &Settings) -> Result<()> {
+        let db = Arc::new(
+            Db::connect(&settings.database).whatever_context("Failed to connect to database")?,
+        );
+        let inventory_provider = Arc::new(DatabaseConnectionPool::new(db));
+        let mut inventory = inventory_provider
+            .get_connection()
+            .await
+            .whatever_context("hello")?;
 
-    let authz = kustos::Authz::new(inventory_provider)
-        .await
-        .whatever_context("Failed to initialize kustos/authz")?;
+        let authz = kustos::Authz::new(inventory_provider)
+            .await
+            .whatever_context("Failed to initialize kustos/authz")?;
 
-    match &args {
-        Command {
-            delete_acl_entries: true,
-            skip_users: false,
-            skip_groups: false,
-            skip_rooms: false,
-            skip_module_resources: false,
-            skip_events: false,
-        } => {
-            // Only remove all policies if none of the skips are specified
-            authz
-                .clear_all_policies()
-                .await
-                .whatever_context("Failed to clear policies")?;
+        match &self {
+            Command {
+                delete_acl_entries: true,
+                skip_users: false,
+                skip_groups: false,
+                skip_rooms: false,
+                skip_module_resources: false,
+                skip_events: false,
+            } => {
+                // Only remove all policies if none of the skips are specified
+                authz
+                    .clear_all_policies()
+                    .await
+                    .whatever_context("Failed to clear policies")?;
+            }
+            Command {
+                delete_acl_entries: true,
+                ..
+            } => {
+                whatever!(
+                    "Refusing to delete acl entries if any of the subsequent checks are skipped"
+                );
+            }
+            _ => {}
         }
-        Command {
-            delete_acl_entries: true,
-            ..
-        } => {
-            whatever!("Refusing to delete acl entries if any of the subsequent checks are skipped");
+
+        check_or_create_kustos_default_permissions(&authz).await?;
+
+        // Used to collect errors during looped operations
+        let mut errors: Vec<kustos::Error> = Vec::new();
+
+        if !(self.skip_users && self.skip_groups) {
+            fix_user(&self, &mut inventory, &authz, &mut errors).await?;
         }
-        _ => {}
-    }
 
-    check_or_create_kustos_default_permissions(&authz).await?;
+        if !self.skip_rooms {
+            fix_rooms(&mut inventory, &authz).await?;
+        }
 
-    // Used to collect errors during looped operations
-    let mut errors: Vec<kustos::Error> = Vec::new();
+        if !self.skip_module_resources {
+            fix_module_resources(&mut inventory, &authz).await?;
+        }
 
-    if !(args.skip_users && args.skip_groups) {
-        fix_user(&args, &mut inventory, &authz, &mut errors).await?;
-    }
+        if !self.skip_events {
+            fix_events(&mut inventory, &authz).await?;
+        }
 
-    if !args.skip_rooms {
-        fix_rooms(&mut inventory, &authz).await?;
-    }
-
-    if !args.skip_module_resources {
-        fix_module_resources(&mut inventory, &authz).await?;
-    }
-
-    if !args.skip_events {
-        fix_events(&mut inventory, &authz).await?;
-    }
-
-    if errors.is_empty() {
-        println!("ACLs fixed");
-        Ok(())
-    } else {
-        use std::fmt::Write;
-        whatever!(
-            "{}",
-            errors.iter().fold(String::new(), |mut out, e| {
-                let _ = writeln!(out, "{e:#} ");
-                out
-            })
-        )
+        if errors.is_empty() {
+            println!("ACLs fixed");
+            Ok(())
+        } else {
+            use std::fmt::Write;
+            whatever!(
+                "{}",
+                errors.iter().fold(String::new(), |mut out, e| {
+                    let _ = writeln!(out, "{e:#} ");
+                    out
+                })
+            )
+        }
     }
 }
 

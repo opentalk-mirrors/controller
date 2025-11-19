@@ -55,15 +55,18 @@ pub enum Command {
     },
 }
 
-pub async fn handle_command(settings: &Settings, command: Command) -> Result<()> {
-    match command {
-        Command::Execute {
-            job_type,
-            parameters,
-            timeout,
-            hide_duration,
-        } => execute_job(settings, job_type, parameters, timeout, hide_duration).await,
-        Command::DefaultParameters { job_type } => show_default_parameters(job_type),
+impl Command {
+    pub(super) async fn exec(self, settings: &Settings) -> Result<()> {
+        match self {
+            Command::Execute {
+                job_type,
+                parameters,
+                timeout,
+                hide_duration,
+            } => execute_job(settings, job_type, parameters, timeout, hide_duration).await,
+            Command::DefaultParameters { job_type } => show_default_parameters(job_type),
+        }
+        .whatever_context("Jobs command failed")
     }
 }
 

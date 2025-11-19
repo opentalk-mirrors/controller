@@ -9,8 +9,11 @@ use opentalk_database::{DatabaseError, Db};
 use opentalk_db_storage::tenants::{Tenant, UpdateTenant};
 use opentalk_inventory::OidcTenantId;
 use opentalk_types_common::tenants::TenantId;
+use snafu::ResultExt as _;
 use tabled::{Table, Tabled, settings::Style};
 use uuid::Uuid;
+
+use crate::Result;
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
@@ -21,17 +24,20 @@ pub enum Command {
     SetOidcId { id: Uuid, new_oidc_id: String },
 }
 
-pub async fn handle_command(settings: &Settings, command: Command) -> Result<(), DatabaseError> {
-    match command {
-        Command::List => list_all_tenants(settings).await,
-        Command::SetOidcId { id, new_oidc_id } => {
-            set_oidc_id(
-                settings,
-                TenantId::from(id),
-                OidcTenantId::from(new_oidc_id),
-            )
-            .await
+impl Command {
+    pub(super) async fn exec(self, settings: &Settings) -> Result<()> {
+        match self {
+            Command::List => list_all_tenants(settings).await,
+            Command::SetOidcId { id, new_oidc_id } => {
+                set_oidc_id(
+                    settings,
+                    TenantId::from(id),
+                    OidcTenantId::from(new_oidc_id),
+                )
+                .await
+            }
         }
+        .whatever_context("Tenants command failed")
     }
 }
 

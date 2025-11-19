@@ -30,6 +30,17 @@ pub(crate) enum Command {
     },
 }
 
+impl Command {
+    pub(super) async fn exec(self, settings: &Settings) -> Result<()> {
+        match self {
+            Command::UsersHaveAccessToAllRooms { action } => match action {
+                EnableDisable::Enable => enable_user_access_to_all_rooms(settings).await,
+                EnableDisable::Disable => disable_user_access_to_all_rooms(settings).await,
+            },
+        }
+    }
+}
+
 #[derive(Parser, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
 pub(crate) enum EnableDisable {
@@ -37,16 +48,6 @@ pub(crate) enum EnableDisable {
     Enable,
     /// disable
     Disable,
-}
-
-pub(crate) async fn acl(settings: &Settings, e: Command) -> Result<()> {
-    match e {
-        Command::UsersHaveAccessToAllRooms { action } => match action {
-            EnableDisable::Enable => enable_user_access_to_all_rooms(settings).await?,
-            EnableDisable::Disable => disable_user_access_to_all_rooms(settings).await?,
-        },
-    }
-    Ok(())
 }
 
 async fn enable_user_access_to_all_rooms(settings: &Settings) -> Result<()> {
