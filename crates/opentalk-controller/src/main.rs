@@ -3,16 +3,18 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use clap::Parser as _;
-use opentalk_controller_core::cli::Args;
 use opentalk_controller_service::Whatever;
-use opentalk_signaling_modules::Modules;
 use snafu::{ErrorCompat as _, Report};
+
+mod cli;
+
+type Result<T, E = Whatever> = std::result::Result<T, E>;
 
 #[actix_web::main]
 async fn main() {
-    let args = Args::parse();
+    let args = cli::Args::parse();
 
-    if let Err(err) = args.exec::<Modules>().await {
+    if let Err(err) = args.exec().await {
         dump_err(err);
         std::process::exit(-1);
     }

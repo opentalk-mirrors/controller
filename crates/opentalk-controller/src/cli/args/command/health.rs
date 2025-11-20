@@ -5,18 +5,19 @@
 use std::{path::Path, process::exit};
 
 use clap::Parser;
+use opentalk_controller_core::load_settings_provider;
 use service_probe_client::is_ready;
 use url::Url;
 
-use crate::{Result, load_settings_provider};
+use crate::Result;
 #[derive(Debug, Clone, Parser)]
-pub(super) struct Command {
+pub struct Command {
     /// The monitoring endpoint can be provided optionally
     endpoint: Option<Url>,
 }
 
 impl Command {
-    pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
+    pub async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
         let settings = load_settings_provider(optional_config_path)?.get();
         let Some(monitoring_endpoint) = self.endpoint.or_else(|| {
             settings.monitoring.as_ref().map(|monitoring_settings| {

@@ -7,7 +7,11 @@
 use std::{path::Path, sync::Arc};
 
 use clap::Parser;
-use kustos::prelude::*;
+use kustos::{AccessMethod, Resource as _, prelude::PoliciesBuilder};
+use opentalk_controller_core::{
+    acl::check_or_create_kustos_default_permissions, api::v1::events::EventPoliciesBuilderExt as _,
+    load_settings_provider,
+};
 use opentalk_controller_service::controller_backend::RoomsPoliciesBuilderExt;
 use opentalk_database::Db;
 use opentalk_inventory::{Inventory, RoomInvite};
@@ -15,13 +19,10 @@ use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_types_common::time::Timestamp;
 use snafu::{ResultExt, whatever};
 
-use crate::{
-    Result, acl::check_or_create_kustos_default_permissions,
-    api::v1::events::EventPoliciesBuilderExt, load_settings_provider,
-};
+use crate::Result;
 
 #[derive(Debug, Clone, Parser)]
-pub(super) struct Command {
+pub struct Command {
     /// !DANGER! Removes all ACL entries before running any fixes.
     ///
     /// Requires all fixes to be run.
@@ -50,7 +51,7 @@ pub(super) struct Command {
 }
 
 impl Command {
-    pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
+    pub async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
         let settings = load_settings_provider(optional_config_path)?.get();
         let db = Arc::new(
             Db::connect(&settings.database).whatever_context("Failed to connect to database")?,

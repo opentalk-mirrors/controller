@@ -23,7 +23,7 @@ pub enum Command {
     Dump(DumpArguments),
 }
 impl Command {
-    pub(super) fn exec(self) -> Result<()> {
+    pub fn exec(self) -> Result<()> {
         match self {
             Command::Dump(args) => args.exec(),
         }
@@ -54,7 +54,7 @@ impl DumpArguments {
             ))
         };
 
-        let mut api = crate::ApiDoc::openapi();
+        let mut api = opentalk_controller_core::ApiDoc::openapi();
         api.servers = Some(vec![Server::new("/v1")]);
 
         let openapi_json_string = api

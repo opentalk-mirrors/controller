@@ -8,21 +8,21 @@ use std::{path::Path, sync::Arc};
 
 use clap::{Parser, Subcommand};
 use kustos::prelude::AccessMethod;
+use opentalk_controller_core::{
+    acl::{check_or_create_kustos_role_policy, maybe_remove_kustos_role_policy},
+    load_settings_provider,
+};
 use opentalk_controller_settings::Settings;
 use opentalk_database::Db;
 use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_kustos_inventory::KustosInventoryProvider;
 use snafu::ResultExt;
 
-use crate::{
-    Result,
-    acl::{check_or_create_kustos_role_policy, maybe_remove_kustos_role_policy},
-    load_settings_provider,
-};
+use crate::Result;
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
-pub(crate) enum Command {
+pub enum Command {
     /// Allows all users access to all rooms
     UsersHaveAccessToAllRooms {
         /// Enable/Disable
@@ -32,7 +32,7 @@ pub(crate) enum Command {
 }
 
 impl Command {
-    pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
+    pub async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
         let settings = load_settings_provider(optional_config_path)?.get();
         match self {
             Command::UsersHaveAccessToAllRooms { action } => match action {
@@ -45,7 +45,7 @@ impl Command {
 
 #[derive(Parser, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
-pub(crate) enum EnableDisable {
+pub enum EnableDisable {
     /// enable
     Enable,
     /// disable

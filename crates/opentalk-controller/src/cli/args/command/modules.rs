@@ -26,7 +26,7 @@ pub enum Command {
 }
 
 impl Command {
-    pub(super) fn exec<M: RegisterModules>(self) -> Result<()> {
+    pub fn exec<M: RegisterModules>(self) -> Result<()> {
         match self {
             Command::List => M::register(&mut ModuleConsolePrinter),
             Command::PrintDocumentation => M::register(&mut ModulesMarkdownPrinter),

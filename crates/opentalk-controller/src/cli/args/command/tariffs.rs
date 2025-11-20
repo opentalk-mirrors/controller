@@ -13,6 +13,7 @@ use clap::Subcommand;
 use diesel_async::scoped_futures::ScopedFutureExt;
 use humansize::{DECIMAL, FormatSizeOptions, format_size};
 use itertools::Itertools;
+use opentalk_controller_core::load_settings_provider;
 use opentalk_controller_settings::Settings;
 use opentalk_database::{DatabaseError, Db};
 use opentalk_inventory::{
@@ -27,7 +28,7 @@ use parse_size::parse_size;
 use snafu::{OptionExt, ResultExt, Snafu};
 use tabled::{Table, Tabled, settings::Style};
 
-use crate::{Result, load_settings_provider};
+use crate::Result;
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
@@ -100,7 +101,7 @@ pub enum Command {
 }
 
 impl Command {
-    pub(super) async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
+    pub async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
         let settings = load_settings_provider(optional_config_path)?.get();
         match self {
             Command::List => list_all_tariffs(&settings).await,
