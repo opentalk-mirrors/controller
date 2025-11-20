@@ -331,14 +331,12 @@ impl Controller {
 
         M::register(&mut initializer).whatever_context("Failed to register modules")?;
 
-        let roomserver_client = if let Some(roomserver_config) = &settings.roomserver {
-            Some(
-                RoomServerClient::new(roomserver_config.url.clone(), &roomserver_config.api_token)
-                    .whatever_context("Failed to create roomserver client")?,
+        let roomserver_client = settings.roomserver.as_ref().map(|roomserver_config| {
+            RoomServerClient::new(
+                roomserver_config.url.clone(),
+                roomserver_config.api_key.clone(),
             )
-        } else {
-            None
-        };
+        });
 
         let backend = {
             let oidc_provider = OidcProvider {
