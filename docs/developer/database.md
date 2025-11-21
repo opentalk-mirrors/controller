@@ -221,7 +221,7 @@ users {
     character_varying avatar_url
     theme conference_theme
     timestamp_with_time_zone created_at
-    them dashboard_theme
+    theme dashboard_theme
     timestamp_with_time_zone disabled_since
     character_varying display_name
     character_varying email
