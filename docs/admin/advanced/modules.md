@@ -168,6 +168,14 @@ Handles training participation report functionality. Participants are asked to c
 
 This module does not provide any configurable features.
 
+## Module `asset_storage`
+
+Provides infomation about the asset storage.
+
+### Features
+
+This module does not provide any configurable features.
+
 <!-- end:fromfile:modules/module-features-documentation.md -->
 
 ## `opentalk-controller modules` subcommand
@@ -202,6 +210,7 @@ whiteboard: []
 meeting_report: []
 subroom_audio: []
 training_participation_report: []
+asset_storage: []
 ```
 
 <!-- end:fromfile:cli-usage/opentalk-controller-modules-list.md -->

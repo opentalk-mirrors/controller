@@ -228,6 +228,9 @@ exceptions = [
   ], name = "opentalk-types-signaling" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-types-signaling-asset-storage" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-types-signaling-automod" },
   { allow = [
     "EUPL-1.2",

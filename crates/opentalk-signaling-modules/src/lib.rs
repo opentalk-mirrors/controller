@@ -4,6 +4,7 @@
 
 use async_trait::async_trait;
 use opentalk_signaling_core::{ModulesRegistrar, RegisterModules};
+use opentalk_signaling_module_asset_storage::AssetStorage;
 use opentalk_signaling_module_automod::Automod;
 use opentalk_signaling_module_breakout::Breakout;
 use opentalk_signaling_module_chat::Chat;
@@ -44,6 +45,7 @@ impl RegisterModules for Modules {
         registrar.register::<Whiteboard>()?;
         registrar.register::<MeetingReport>()?;
         registrar.register::<SubroomAudio>()?;
-        registrar.register::<TrainingParticipationReport>()
+        registrar.register::<TrainingParticipationReport>()?;
+        registrar.register::<AssetStorage>()
     }
 }

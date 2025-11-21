@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+edition = "2024"
+license = "EUPL-1.2"
+name = "opentalk-signaling-module-asset-storage"
+publish = false
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+async-trait.workspace = true
+opentalk-inventory.workspace = true
+opentalk-signaling-core.workspace = true
+opentalk-types-common = { workspace = true, features = ["backend"] }
+opentalk-types-signaling = { workspace = true, features = ["backend"] }
+opentalk-types-signaling-asset-storage = { workspace = true, features = [
+  "backend",
+] }
+snafu.workspace = true
+
+[dev-dependencies]
+actix-rt.workspace = true
+opentalk-test-util = { workspace = true, features = ["controller"] }
+opentalk-types-signaling-control = { workspace = true, features = ["backend"] }
+serial_test.workspace = true

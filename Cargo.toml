@@ -31,6 +31,7 @@ opentalk-kustos-inventory = { path = "crates/opentalk-kustos-inventory", version
 opentalk-log = { path = "crates/opentalk-log", version = "0.33.0-alpha" }
 opentalk-r3dlock = { path = "crates/opentalk-r3dlock", version = "0.33.0-alpha" }
 opentalk-signaling-core = { path = "crates/opentalk-signaling-core", version = "0.33.0-alpha" }
+opentalk-signaling-module-asset-storage = { path = "crates/opentalk-signaling-module-asset-storage", version = "0.33.0-alpha" }
 opentalk-signaling-module-automod = { path = "crates/opentalk-signaling-module-automod", version = "0.33.0-alpha" }
 opentalk-signaling-module-breakout = { path = "crates/opentalk-signaling-module-breakout", version = "0.33.0-alpha" }
 opentalk-signaling-module-chat = { path = "crates/opentalk-signaling-module-chat", version = "0.33.0-alpha" }
@@ -120,6 +121,7 @@ opentalk-roomserver-types-training-participation-report = "0.0.14"
 opentalk-types-api-v1 = "0.46.0"
 opentalk-types-common = "0.39.1"
 opentalk-types-signaling = "0.41.0"
+opentalk-types-signaling-asset-storage = "0.1.0"
 opentalk-types-signaling-automod = "0.10.0"
 opentalk-types-signaling-breakout = "0.40.0"
 opentalk-types-signaling-chat = "0.41.0"
