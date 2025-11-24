@@ -366,6 +366,7 @@ skip = [
   { name = "float-cmp", version = "0.9" },
   { name = "futures-lite", version = "1" },
   { name = "getrandom", version = "0.2" },
+  { name = "gif", version = "0.13" },
   { name = "group", version = "0.12" },
   { name = "h2", version = "0.3" },
   { name = "hashbrown", version = "0.11" },
@@ -382,6 +383,7 @@ skip = [
   { name = "imagesize", version = "0.13" },
   { name = "itertools", version = "0.10" },
   { name = "itertools", version = "0.11" },
+  { name = "itertools", version = "0.12" },
   { name = "kurbo", version = "0.11" },
   { name = "linux-raw-sys", version = "0.3" },
   { name = "litemap", version = "0.7" },
@@ -436,6 +438,8 @@ skip = [
   { name = "zerotrie", version = "0.1" },
   { name = "zerovec", version = "0.10" },
   { name = "zerovec-derive", version = "0.10" },
+  { name = "zune-core", version = "0.4" },
+  { name = "zune-jpeg", version = "0.4" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
