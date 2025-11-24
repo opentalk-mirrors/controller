@@ -1,6 +1,6 @@
 # Metrics
 
-The OpenTalk controller is collecting metrics and is exposing them through the `/metrics` endpoint.
+The {{ product_name }} controller is collecting metrics and is exposing them through the `/metrics` endpoint.
 
 ## Configuration
 

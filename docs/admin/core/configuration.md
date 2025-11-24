@@ -2,7 +2,7 @@
 title: Configuration
 ---
 
-# Configuring OpenTalk Controller
+# Configuring {{ product_name }} Controller
 
 When the Controller gets started, it loads the configuration from the
 environment. It reads the settings in this order:

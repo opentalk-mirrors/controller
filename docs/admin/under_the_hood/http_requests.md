@@ -1,7 +1,7 @@
 # Handling of WebAPI HTTP Requests
 
 Requests to the WebAPI are handled by the web server which is embedded in the
-OpenTalk controller. Each request is passed through some layers of middleware
+{{ product_name }} controller. Each request is passed through some layers of middleware
 before they reach the handler that processes and answers it.
 
 ```mermaid
@@ -90,8 +90,8 @@ in the OIDC access token.
 
 These endpoints are for services that log in to meetings for providing
 functionality for the meeting, such as the
-[OpenTalk Recorder](https://docs.opentalk.eu/admin/recorder/) or the
-[OpenTalk Obelisk](https://docs.opentalk.eu/admin/obelisk/).
+[{{ product_name }} Recorder](https://docs.opentalk.eu/admin/recorder/) or the
+[{{ product_name }} Obelisk](https://docs.opentalk.eu/admin/obelisk/).
 
 ### OIDC middleware
 
@@ -110,7 +110,7 @@ rules are stored in the
 [`casbin_rule` database table](https://docs.opentalk.eu/developer/controller/database/).
 This is enforced by the
 [Casbin rule enforcement engine](https://docs.rs/casbin/), which is the base for
-the OpenTalk Controller rule enforcement system called `kustos`. When an
+the {{ product_name }} Controller rule enforcement system called `kustos`. When an
 endpoint is not allowed for access, the corresponding HTTP error status code
 is returned.
 

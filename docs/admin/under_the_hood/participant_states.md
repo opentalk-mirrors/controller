@@ -32,15 +32,13 @@ Guests can access the meeting through a guest link, which has no usage limits,
 can be reused multiple times and simultaneously by multiple clients. If a guest
 is banned during a meeting, they can still use the guest link to attempt to rejoin.
 
-:::info Guest Rejoining After Being Banned
+!!! info Guest Rejoining After Being Banned
 
-Because there's no foolproof and privacy-respecting method to identify guests,
-they may still reenter a meeting using the guest link even after being banned.
+    Because there's no foolproof and privacy-respecting method to identify guests,
+    they may still reenter a meeting using the guest link even after being banned.
 
-To prevent banned guests from rejoining, enabling the waiting room is an effective
-solution.
-
-:::
+    To prevent banned guests from rejoining, enabling the waiting room is an effective
+    solution.
 
 ## Banned
 

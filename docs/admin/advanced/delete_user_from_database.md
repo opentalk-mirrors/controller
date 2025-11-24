@@ -29,7 +29,7 @@ manual can be used to perform the deletion.
 ## Instructions
 
 This is the `SQL` snippet that needs to be executed in the
-[Postgres database](../core/database.md) of the OpenTalk controller.
+[Postgres database](../core/database.md) of the {{ product_name }} controller.
 
 Please note that you need to perform a few changes before executing it, these
 are explained below. It is best to copy the whole block into a text editor,

@@ -1,6 +1,6 @@
 # ACL Management
 
-OpenTalk uses an in-memory Access Control List to efficiently track permissions. The controller maintains that list in
+{{ product_name }} uses an in-memory Access Control List to efficiently track permissions. The controller maintains that list in
 its database. Controllers will synchronize changes to the ACL by sending changesets to each other using RabbitMQ.
 
 ## Configuration
@@ -38,7 +38,7 @@ Options:
 
 ## `opentalk-controller fix-acl` subcommand
 
-This subcommand is used to recreate all ACL entries from the current database content. Some updates to OpenTalk require
+This subcommand is used to recreate all ACL entries from the current database content. Some updates to {{ product_name }} require
 this command to be run after migration.
 
 ### Help output

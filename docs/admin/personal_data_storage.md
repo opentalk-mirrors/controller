@@ -1,14 +1,10 @@
----
-sidebar_position: 105
----
-
 # Retention of Personal Data
 
-This document describes how the OpenTalk service stores personal data, e.g. to cover GPDR compliance.
+This document describes how the {{ product_name }} service stores personal data, e.g. to cover GPDR compliance.
 
 ## What data is stored
 
-The OpenTalk service collects the following types of data:
+The {{ product_name }} service collects the following types of data:
 
 - Personal identification data (name, email address and phone number)
 - Streaming keys

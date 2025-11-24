@@ -1,6 +1,6 @@
 # Tracing
 
-The OpenTalk controller is able to provide tracing information. If configured, these are exported to an [OTLP](https://opentelemetry.io/docs/specs/otlp/) endpoint.
+The {{ product_name }} controller is able to provide tracing information. If configured, these are exported to an [OTLP](https://opentelemetry.io/docs/specs/otlp/) endpoint.
 
 ## Configuration
 

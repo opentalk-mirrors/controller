@@ -1,8 +1,8 @@
-# OIDC Authentication Flow for OpenTalk Controller WebAPI Endpoints
+# OIDC Authentication Flow for {{ product_name }} Controller WebAPI Endpoints
 
 This diagram describes the flow of an authentication against the OIDC provider
 for accessing the
-[OpenTalk Controller WebAPI](https://docs.opentalk.eu/developer/controller/rest/).
+[{{ product_name }} Controller WebAPI](https://docs.opentalk.eu/developer/controller/rest/).
 
 ```mermaid
 sequenceDiagram

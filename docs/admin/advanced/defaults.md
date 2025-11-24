@@ -9,7 +9,7 @@ A missing module specifier defaults to `"core"`. The features currently supporte
 - `integration::outlook`
 
 The [`modules`](./modules.md#opentalk-controller-modules-subcommand) subcommand outputs all modules
-available in the OpenTalk controller, including the features that can be enabled or disabled.
+available in the {{ product_name }} controller, including the features that can be enabled or disabled.
 
 ## Configuration
 

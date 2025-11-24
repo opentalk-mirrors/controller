@@ -52,3 +52,9 @@ fabric.properties
 
 # Macos
 .DS_Store
+
+# mkdocs build directory
+/site/
+
+# mkdocs cache
+/.cache/

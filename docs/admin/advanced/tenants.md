@@ -1,12 +1,12 @@
 # Tenants
 
-A deployment of OpenTalk is capable of handling multiple completely separated
+A deployment of {{ product_name }} is capable of handling multiple completely separated
 organizations, named *tenant*. Inside such a system, each tenant is handled the
 same way as if they had a separate deployment. Some exceptions to that rule
-exist though, e.g. all login information for OpenTalk is supplied by the same
+exist though, e.g. all login information for {{ product_name }} is supplied by the same
 identity provider.
 
-By default, OpenTalk is configured that only a single, automatically created,
+By default, {{ product_name }} is configured that only a single, automatically created,
 tenant named `OpenTalkDefaultTenant` exists. Therefore instances where tenants
 don't matter need no extra configuration.
 
@@ -28,8 +28,8 @@ the default value.
 
 In order to use multiple tenants, `assignment` must be set to
 `"by_external_tenant_id"`. This requires the `tenant_id` field
-in the [authentication information sent by Keycloak](../core/oidc.md#jwt-fields-for-user-login).
-Whenever a user logs in with a `tenant_id` that is unknown to the OpenTalk
+in the [authentication information sent by Keycloak](../core/oidc.md#access-token-jwt-fields-for-service-login).
+Whenever a user logs in with a `tenant_id` that is unknown to the {{ product_name }}
 controller, a new entry for this tenant is created in the database. Because of
 that, the command-line tooling provides no option for adding tenants to the
 database.
@@ -47,7 +47,7 @@ always be configured as `tenant_id`.
 
 #### Configuration for using a static tenant assignment
 
-This is the default configuration that is applied by OpenTalk when no
+This is the default configuration that is applied by {{ product_name }} when no
 `[tenants]` section exists in the configuration file.
 
 ```toml

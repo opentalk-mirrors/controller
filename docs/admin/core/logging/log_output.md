@@ -1,6 +1,6 @@
 # Log Output
 
-The log output from each component of the OpenTalk Controller can be configured, allowing administrators to control the
+The log output from each component of the {{ product_name }} Controller can be configured, allowing administrators to control the
 verbosity and granularity of log messages.
 
 ## Configuration

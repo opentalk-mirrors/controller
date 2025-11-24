@@ -1,8 +1,8 @@
 # Tariffs
 
-Tariffs in OpenTalk can be created, edited, and deleted with the commandline using `opentalk-controller tariffs <COMMAND>`.
+Tariffs in {{ product_name }} can be created, edited, and deleted with the commandline using `opentalk-controller tariffs <COMMAND>`.
 
-A tariff can restrict the OpenTalk resource usage by imposing a combination of different quota types.
+A tariff can restrict the {{ product_name }} resource usage by imposing a combination of different quota types.
 The following quotas are supported:
 
 | Quota Name               | Description                                                                                                                             |

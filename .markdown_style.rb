@@ -11,6 +11,9 @@ rule 'MD007', :indent => 4
 
 rule 'MD029', :style => :ordered
 
+# We want to allow a few specific HTML tags
+rule 'MD033', :allowed_elements => 'swagger-ui'
+
 # Disable duplicate heading check
 exclude_rule 'MD024'
 

@@ -1,6 +1,6 @@
 # HTTP Server
 
-The OpenTalk Controller provides its service to clients through a built-in HTTP
+The {{ product_name }} Controller provides its service to clients through a built-in HTTP
 server.
 
 Services provided:

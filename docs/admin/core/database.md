@@ -1,6 +1,6 @@
 # Database (Postgres)
 
-The OpenTalk Controller uses PostgreSQL database.
+The {{ product_name }} Controller uses PostgreSQL database.
 
 ## Configuration
 

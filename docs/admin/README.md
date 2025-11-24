@@ -2,14 +2,14 @@
 title: Controller
 ---
 
-# Administration Guide for the OpenTalk Controller
+# Administration Guide for the {{ product_name }} Controller
 
 ## General information about the service
 
 - [Configuration](./core/configuration.md)
 - [HTTP Server](./core/http_server.md) on which the controller offers its service
-- [Migration Guide for Updating to New Versions](./migration/migration.md)
-- [Command-Line Usage of the Controller](./cli/cli.md)
+- [Migration Guide for Updating to New Versions](./migration/README.md)
+- [Command-Line Usage of the Controller](./cli/README.md)
 - [Configuration of Multiple Tenants](./advanced/tenants.md)
 - [Configuration of Different Tariffs and Their Capabilities](./advanced/tariffs.md)
 - [Execution of Maintenance Jobs](./cli/jobs.md)
@@ -22,31 +22,31 @@ title: Controller
 - [Metrics](./core/logging/metrics.md)
 - [Personal Data Storage](./personal_data_storage.md)
 
-## Interaction between OpenTalk Controller and other services
+## Interaction between {{ product_name }} Controller and other services
 
-### Services required by OpenTalk Controller
+### Services required by {{ product_name }} Controller
 
 - [Database](./core/database.md)
 - [Keycloak](./core/keycloak.md)
 - [MinIO](./core/minio.md)
 
-### Services required by OpenTalk Controller for certain setups
+### Services required by {{ product_name }} Controller for certain setups
 
-- [RabbitMQ](./core/rabbitmq.md) for communication with [services that interact with OpenTalk Controller](#services-that-can-interact-with-opentalk-controller)
-- [Redis](./core/redis.md) for the clustered mode of OpenTalk Controller
+- [RabbitMQ](./core/rabbitmq.md) for communication with [services that interact with {{ product_name }} Controller](#services-that-can-interact-with-the-controller)
+- [Redis](./core/redis.md) for the clustered mode of {{ product_name }} Controller
 
-### Services that OpenTalk Controller can be integrated with
+### Services that the Controller can be integrated with
 
 - [Shared Folders on External Systems](./advanced/additional_services/shared_folder.md)
 - [Tracing](./core/logging/tracing.md)
 - [Etherpad](./advanced/additional_services/etherpad.md)
 - [SpaceDeck](./advanced/additional_services/spacedeck.md)
 
-### Services that can interact with OpenTalk Controller
+### Services that can interact with the Controller
 
-- [OpenTalk Obelisk](./advanced/additional_services/obelisk.md) for handling dial-in from telephone line
-- [OpenTalk Recorder](./advanced/additional_services/recorder.md) for recording meetings
-- [OpenTalk SMTP-Mailer](./advanced/additional_services/smtp_mailer.md) for sending E-Mail notifications to users
+- [{{ product_name }} Obelisk](./advanced/additional_services/obelisk.md) for handling dial-in from telephone line
+- [{{ product_name }} Recorder](./advanced/additional_services/recorder.md) for recording meetings
+- [{{ product_name }} SMTP-Mailer](./advanced/additional_services/smtp_mailer.md) for sending E-Mail notifications to users
 
 ## Under the hood
 
