@@ -21,7 +21,7 @@ use opentalk_signaling_core::{
     ChunkFormat, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage,
     ObjectStorageError, SignalingModule, SignalingModuleDescription, SignalingModuleError,
     SignalingModuleFeatureDescription, SignalingModuleInitData, SignalingRoomId, VolatileStorage,
-    assets::{AssetError, NewAssetFileName, save_asset},
+    assets::{AssetError, AssetSaved, NewAssetFileName, save_asset},
     control::{
         self,
         storage::{
@@ -381,7 +381,9 @@ impl MeetingReport {
         .await;
 
         // If storing the asset failed, we report the error and silently return.
-        let (asset_id, file_name) = match result {
+        let AssetSaved {
+            asset_id, filename, ..
+        } = match result {
             Ok(inner) => inner,
             Err(AssetError::AssetStorageExceeded) => {
                 log::debug!("Storage exceeded while storing meeting report");
@@ -398,10 +400,7 @@ impl MeetingReport {
             }
         };
 
-        let pdf_asset = PdfAsset {
-            filename: file_name,
-            asset_id,
-        };
+        let pdf_asset = PdfAsset { filename, asset_id };
         log::debug!("Generated meeting attendance report: {pdf_asset:?}");
         ctx.exchange_publish(
             control::exchange::current_room_all_participants(self.room_id),

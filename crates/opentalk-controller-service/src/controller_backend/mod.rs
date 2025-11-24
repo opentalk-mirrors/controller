@@ -31,7 +31,7 @@ use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_roomserver_client::Client as RoomServerClient;
 use opentalk_signaling_core::{
     ExchangeHandle, ObjectStorage, ObjectStorageError, VolatileStorage,
-    assets::{ByStreamExt, NewAssetFileName},
+    assets::{AssetSaved, ByStreamExt, NewAssetFileName},
 };
 use opentalk_types_api_v1::{
     assets::{AssetResource, AssetSortingQuery},
@@ -313,7 +313,7 @@ impl OpenTalkControllerService for ControllerBackend {
         filename: NewAssetFileName,
         namespace: Option<ModuleId>,
         data: Box<dyn Stream<Item = Result<Bytes, ObjectStorageError>> + Unpin>,
-    ) -> Result<AssetResource, ApiError> {
+    ) -> Result<(AssetResource, AssetSaved), ApiError> {
         Ok(self
             .create_room_asset(room_id, filename, namespace, data)
             .await?)

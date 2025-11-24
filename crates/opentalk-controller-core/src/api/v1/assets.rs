@@ -149,6 +149,10 @@ pub async fn room_asset(
             description = "Storage quota has been exceeded",
         ),
         (
+            status = StatusCode::NOT_FOUND,
+            description = "The associated room was not found",
+        ),
+        (
             status = StatusCode::UNAUTHORIZED,
             response = Unauthorized,
         ),
@@ -183,7 +187,7 @@ pub async fn create(
         source: Some(e.into()),
     });
 
-    let resource = service
+    let (resource, _) = service
         .create_room_asset(room_id, filename, query.namespace, Box::new(data))
         .await?;
 

@@ -729,6 +729,7 @@ impl ModulesRegistrar for Controller {
         api::v1::services::call_in::post_call_in_start,
         api::v1::services::recording::get_recording_upload,
         api::v1::services::recording::post_recording_start,
+        api::v1::services::roomserver::post_roomserver_asset,
         api::v1::sip_configs::delete,
         api::v1::sip_configs::get,
         api::v1::sip_configs::put,
@@ -929,6 +930,13 @@ fn v1_scope(
         .service(api::v1::rooms::roomserver::start_invited)
         .service(api::v1::invites::verify_invite_code)
         .service(api::v1::turn::get)
+        .service(
+            web::scope("/services/roomserver")
+                .wrap(api::v1::middleware::roomserver_auth::RoomserverAuth::new(
+                    settings_provider.clone(),
+                ))
+                .service(api::v1::services::roomserver::services()),
+        )
         .service(
             web::scope("/services")
                 .wrap(api::v1::middleware::service_auth::ServiceAuth::new(

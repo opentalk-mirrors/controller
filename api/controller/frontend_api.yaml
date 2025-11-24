@@ -1460,6 +1460,8 @@ paths:
           description: Storage quota has been exceeded
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: The associated room was not found
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -2427,9 +2429,76 @@ paths:
               - websocket
       responses:
         "200":
-          description: WebSocket connection succcessfully established
+          description: WebSocket connection successfully established
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+  "/services/roomserver/room/{room_id}/asset":
+    post:
+      tags:
+        - "api::v1::services::roomserver"
+      summary: |-
+        Upload an asset. This endpoint requires the client to provide the RoomServer
+        credentials.
+      operationId: roomserver_asset
+      parameters:
+        - name: room_id
+          in: path
+          description: The id of the room
+          required: true
+          schema:
+            $ref: "#/components/schemas/RoomId"
+        - name: event_title
+          in: query
+          description: The title of the event
+          required: false
+          schema:
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/EventTitle"
+        - name: file_extension
+          in: query
+          description: The file extension
+          required: true
+          schema:
+            $ref: "#/components/schemas/FileExtension"
+        - name: kind
+          in: query
+          description: The kind of the asset
+          required: true
+          schema:
+            $ref: "#/components/schemas/AssetFileKind"
+        - name: namespace
+          in: query
+          description: The namespace the asset is assigned to
+          required: false
+          schema:
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/ModuleId"
+      requestBody:
+        description: The contents of the file
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+        required: true
+      responses:
+        "200":
+          description: The asset has been created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostAssetResponseBody"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -4338,8 +4407,21 @@ components:
             - "null"
           description: If waiting room is enabled
     PostAssetResponseBody:
-      $ref: "#/components/schemas/AssetResource"
-      description: "Response for *POST /rooms/{room_id}/assets*"
+      type: object
+      description: "Response for the `POST /services/roomserver/room/{room_id}/asset` endpoint"
+      required:
+        - asset_resource
+      properties:
+        asset_resource:
+          $ref: "#/components/schemas/AssetResource"
+          description: The asset that was uploaded
+        remaining_quota_bytes:
+          type:
+            - integer
+            - "null"
+          format: int64
+          description: "The remaining quota in bytes for the room, if applicable."
+          minimum: 0
     PostCallInStartRequestBody:
       type: object
       description: "Body for the `POST /services/call_in/start` endpoint"

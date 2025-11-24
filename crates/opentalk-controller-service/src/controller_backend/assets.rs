@@ -7,10 +7,12 @@ use futures_core::Stream;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_signaling_core::{
     ChunkFormat, ObjectStorageError,
-    assets::{ByStreamExt, NewAssetFileName, delete_asset, get_asset, save_asset},
+    assets::{
+        AssetError, AssetSaved, ByStreamExt, NewAssetFileName, delete_asset, get_asset, save_asset,
+    },
 };
 use opentalk_types_api_v1::{
-    assets::AssetResource, pagination::PagePaginationQuery,
+    assets::AssetResource, error::ApiError, pagination::PagePaginationQuery,
     rooms::by_room_id::assets::RoomsByRoomIdAssetsGetResponseBody,
 };
 use opentalk_types_common::{
@@ -51,14 +53,15 @@ impl ControllerBackend {
         Ok(stream)
     }
 
+    #[tracing::instrument(level = "debug", skip(self, data))]
     pub(crate) async fn create_room_asset(
         &self,
         room_id: RoomId,
         filename: NewAssetFileName,
         namespace: Option<ModuleId>,
         data: Box<dyn Stream<Item = Result<Bytes, ObjectStorageError>> + Unpin>,
-    ) -> Result<AssetResource, CaptureApiError> {
-        let (asset_id, _filename) = save_asset(
+    ) -> Result<(AssetResource, AssetSaved), CaptureApiError> {
+        let res = save_asset(
             &self.storage.clone(),
             self.inventory_provider.as_ref(),
             room_id,
@@ -67,16 +70,28 @@ impl ControllerBackend {
             data,
             ChunkFormat::Data,
         )
-        .await?;
+        .await;
+
+        let asset_saved = match res {
+            Err(AssetError::AssetStorageExceeded) => {
+                return Err(CaptureApiError(
+                    ApiError::bad_request().with_message("Asset storage exceeded"),
+                ));
+            }
+            Err(e) => {
+                return Err(e.into());
+            }
+            Ok(asset) => asset,
+        };
 
         let asset = self
             .inventory_provider
             .get_inventory()
             .await?
-            .get_asset_for_room(room_id, asset_id)
+            .get_asset_for_room(room_id, asset_saved.asset_id)
             .await?;
 
-        Ok(asset_to_asset_resource(asset))
+        Ok((asset_to_asset_resource(asset), asset_saved))
     }
 
     pub(crate) async fn delete_room_asset(

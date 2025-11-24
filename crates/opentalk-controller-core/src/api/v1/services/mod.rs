@@ -20,6 +20,7 @@ use super::middleware::service_auth::RealmRoles;
 
 pub mod call_in;
 pub mod recording;
+pub mod roomserver;
 
 /// Middleware factory for [`RequiredRealmRoleMiddleware`]
 struct RequiredRealmRole {

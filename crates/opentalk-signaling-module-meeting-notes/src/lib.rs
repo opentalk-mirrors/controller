@@ -13,7 +13,7 @@ use opentalk_signaling_core::{
     ChunkFormat, CleanupScope, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage,
     SignalingModule, SignalingModuleDescription, SignalingModuleError,
     SignalingModuleFeatureDescription, SignalingModuleInitData, SignalingRoomId, VolatileStorage,
-    assets::{AssetError, NewAssetFileName, save_asset},
+    assets::{AssetError, AssetSaved, NewAssetFileName, save_asset},
     control::{
         self,
         storage::{ControlStorageParticipantAttributes as _, DISPLAY_NAME},
@@ -384,7 +384,9 @@ impl MeetingNotes {
                         FileExtension::pdf(),
                     );
 
-                    let (asset_id, filename) = match save_asset(
+                    let AssetSaved {
+                        asset_id, filename, ..
+                    } = match save_asset(
                         &self.storage,
                         self.inventory_provider.as_ref(),
                         self.room_id.room_id(),

@@ -31,7 +31,7 @@ impl ControllerBackend {
 
         let room = inventory.get_room(body.room_id).await?;
 
-        verify_storage_usage(inventory.as_mut(), room.created_by).await?;
+        let _ = verify_storage_usage(inventory.as_mut(), room.created_by).await?;
 
         let (ticket, resumption) = start_or_continue_signaling_session(
             &mut volatile,

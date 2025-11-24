@@ -319,6 +319,9 @@ api_secret = "your-livekit-api-secret"
 #url = "http://localhost:11333"
 # The roomservers API key
 #api_token = "secret"
+# Where the roomsserver stores assets
+#[roomserver.asset_storage]
+#type = "in_memory"
 #The Modules that are enabled in the roomserver
 #[roomserver.modules.chat]
 #[roomserver.modules.e2ee]

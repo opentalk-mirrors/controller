@@ -9,7 +9,6 @@ use std::{
 };
 
 use aws_sdk_s3::primitives::{ByteStream, ByteStreamError};
-use bigdecimal::BigDecimal;
 use bytes::Bytes;
 use futures::Stream;
 use opentalk_inventory::{Asset, Inventory, InventoryProvider, NewAsset, Room};
@@ -60,6 +59,7 @@ type Result<T, E = AssetError> = std::result::Result<T, E>;
 
 const ASSET_FILE_NAME_MAX_LENGTH: usize = 100;
 
+#[derive(Debug, Clone)]
 pub struct NewAssetFileName {
     event_title: Option<EventTitle>,
     kind: AssetFileKind,
@@ -118,6 +118,20 @@ impl Display for NewAssetFileName {
     }
 }
 
+/// The result of a successful asset save operation
+#[derive(Debug, Clone)]
+pub struct AssetSaved {
+    /// The id of the saved asset
+    pub asset_id: AssetId,
+
+    /// The filename of the saved asset
+    pub filename: String,
+
+    /// The remaining quota of the user after the asset was saved. None if the user has
+    /// no quota.
+    pub remaining_quota: Option<u64>,
+}
+
 /// Save an asset in the long term storage
 ///
 /// Creates a new database entry before after the asset in the configured S3 bucket.
@@ -136,11 +150,11 @@ pub async fn save_asset<E>(
     mut filename: NewAssetFileName,
     data: impl Stream<Item = Result<Bytes, E>> + Unpin,
     chunk_format: ChunkFormat,
-) -> Result<(AssetId, String)>
+) -> Result<AssetSaved>
 where
     ObjectStorageError: From<E>,
 {
-    let room = {
+    let (room, storage_quota) = {
         let mut inventory = inventory_provider
             .get_inventory()
             .await
@@ -193,7 +207,11 @@ where
             size,
         )
         .await
-        .map(|asset| (asset.id, filename))
+        .map(|asset| AssetSaved {
+            asset_id: asset.id,
+            filename,
+            remaining_quota: storage_quota.map(|q| q.saturating_sub(size as u64)),
+        })
         .context(InventoryQuerySnafu)
     };
 
@@ -250,15 +268,16 @@ async fn insert_asset_into_inventory(
 async fn prepare_storage(
     room_id: RoomId,
     inventory: &mut dyn Inventory,
-) -> Result<Room, AssetError> {
+) -> Result<(Room, Option<u64>), AssetError> {
     let room = inventory
         .get_room(room_id)
         .await
         .context(InventoryQuerySnafu)?;
-    verify_storage_usage(inventory, room.created_by).await?;
-    Ok(room)
+    let storage_quota = verify_storage_usage(inventory, room.created_by).await?;
+    Ok((room, storage_quota))
 }
 
+#[derive(Debug)]
 pub struct ByStreamExt(ByteStream);
 
 impl futures::stream::Stream for ByStreamExt {
@@ -305,10 +324,18 @@ pub fn asset_key(asset_id: &AssetId) -> String {
 }
 
 /// Verify that the storage quota wasn't exhausted. Files don't need to fit into the remaining quota,
-/// there only needs to be available quota.
-pub async fn verify_storage_usage(inventory: &mut dyn Inventory, user_id: UserId) -> Result<()> {
+/// there only needs to be remaining quota.
+///
+/// # Return Value
+///
+/// If the storage usage is limited for a user by a storage quota, the current remaining quota is
+/// returned. Otherwise `None` is returned.
+pub async fn verify_storage_usage(
+    inventory: &mut dyn Inventory,
+    user_id: UserId,
+) -> Result<Option<u64>> {
     let used_storage = inventory
-        .get_user_storage_used_size(user_id)
+        .get_user_storage_used_size_u64(user_id)
         .await
         .context(InventoryQuerySnafu)?;
     let user_tariff = inventory
@@ -316,13 +343,14 @@ pub async fn verify_storage_usage(inventory: &mut dyn Inventory, user_id: UserId
         .await
         .context(InventoryQuerySnafu)?;
 
-    if let Some(max_storage) = user_tariff.quota(&QuotaType::MaxStorage)
-        && used_storage > BigDecimal::from(max_storage)
+    let storage_quota = user_tariff.quota(&QuotaType::MaxStorage);
+    if let Some(max_storage) = storage_quota
+        && used_storage > max_storage
     {
         return AssetStorageExceededSnafu.fail();
     }
 
-    Ok(())
+    Ok(storage_quota.map(|q| q.saturating_sub(used_storage)))
 }
 
 #[cfg(test)]

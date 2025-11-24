@@ -12,7 +12,7 @@ use opentalk_signaling_core::{
     ChunkFormat, CleanupScope, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage,
     SignalingModule, SignalingModuleDescription, SignalingModuleError,
     SignalingModuleFeatureDescription, SignalingModuleInitData, SignalingRoomId, VolatileStorage,
-    assets::{AssetError, NewAssetFileName, save_asset},
+    assets::{AssetError, AssetSaved, NewAssetFileName, save_asset},
     control,
 };
 use opentalk_types_common::{
@@ -207,7 +207,9 @@ impl SignalingModule for Whiteboard {
                 let filename =
                     NewAssetFileName::new(ASSET_FILE_KIND, timestamp, FileExtension::pdf());
 
-                let (asset_id, filename) = match save_asset(
+                let AssetSaved {
+                    asset_id, filename, ..
+                } = match save_asset(
                     &self.storage,
                     self.inventory_provider.as_ref(),
                     self.room_id.room_id(),
