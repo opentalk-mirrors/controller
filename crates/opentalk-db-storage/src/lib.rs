@@ -52,6 +52,7 @@ pub mod sql_types {
         },
         streaming::StreamingKindType as StreamingKind,
         tariffs::TariffStatusType as TariffStatus,
+        users::ThemeType as Theme,
     };
 
     pub use super::{

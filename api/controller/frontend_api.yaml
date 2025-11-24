@@ -4628,8 +4628,6 @@ components:
         - lastname
         - display_name
         - avatar_url
-        - dashboard_theme
-        - conference_theme
         - language
         - tariff_status
         - used_storage
@@ -4638,11 +4636,15 @@ components:
           type: string
           description: "The user's avatar URL"
         conference_theme:
-          $ref: "#/components/schemas/Theme"
-          description: The conference theme
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/Theme"
+              description: The conference theme
         dashboard_theme:
-          $ref: "#/components/schemas/Theme"
-          description: The dashboard theme
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/Theme"
+              description: The dashboard theme
         display_name:
           $ref: "#/components/schemas/DisplayName"
           description: "The user's display name"
@@ -5155,10 +5157,11 @@ components:
         - downgraded
     Theme:
       type: string
-      description: A theme identifier
-      examples:
-        - de
-      maxLength: 128
+      enum:
+        - light
+        - dark
+        - system
+      example: system
     TicketToken:
       type: string
       description: A ticket token

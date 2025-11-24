@@ -51,10 +51,10 @@ pub struct User {
     pub display_name: DisplayName,
 
     /// The dashboard theme.
-    pub dashboard_theme: Theme,
+    pub dashboard_theme: Option<Theme>,
 
     /// The conference theme.
-    pub conference_theme: Theme,
+    pub conference_theme: Option<Theme>,
 
     /// The phone number of the user.
     pub phone: Option<String>,
