@@ -290,14 +290,28 @@ impl SignalingModule for Chat {
     ) -> Result<Option<Self>, SignalingModuleError> {
         let id = ctx.participant_id();
         let room = ctx.room_id();
+        let room_tenant = ctx.room().tenant_id;
 
         let groups = if let Participant::User(user) = ctx.participant() {
-            let groups = ctx
+            let mut groups = ctx
                 .inventory_provider()
                 .get_inventory()
                 .await?
                 .get_groups_for_user(user.id)
                 .await?;
+
+            groups.retain(|g| {
+                if g.tenant_id == room_tenant {
+                    true
+                } else {
+                    log::warn!(
+                        "User `{}` is part of group `{}` which is outside their tenant",
+                        user.id,
+                        g.name
+                    );
+                    false
+                }
+            });
 
             for group in &groups {
                 log::debug!("Group: {}", group.id);
