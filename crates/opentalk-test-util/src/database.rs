@@ -144,7 +144,7 @@ impl DatabaseContext {
             .whatever_context("db connect failed")?;
 
         let tenant = inventory
-            .get_or_create_tenant_by_oidc_id(&"default".into())
+            .get_or_create_tenant_by_oidc_id(&"OpenTalkDefaultTenant".into())
             .await
             .whatever_context("get or create tenant failed")?;
 
