@@ -2942,7 +2942,7 @@ components:
       type: string
       description: A cursor pointing to an event instance
       examples:
-        - EAAAAAAAAAAAAAAAAAAAAAAAAEQzIhEAFAAAAAAAAAAyMDI0LTA3LTIwVDE0OjE2OjE5WgA
+        - EAAAAAAAAAAAAAAAAAAAAAAAAEQzIhEAFAAAAAAAAAAyMDI0LTA3LTIwVDE0OjE2OjE5WgAA
     DateTimeTz:
       type: object
       description: Representation of a datetime timezone
@@ -3041,6 +3041,98 @@ components:
       description: An event id and an instance id
       examples:
         - 00000000-0000-0000-0000-004433221100_20240705T170242Z
+    EventDate:
+      type: object
+      description: Representing event date related information.
+      required:
+        - starts_at
+        - ends_at
+      properties:
+        ends_at:
+          $ref: "#/components/schemas/DateTimeTz"
+          description: |-
+            End time of the event.
+
+            For recurring events these must contain the datetime of the first instance.
+        is_all_day:
+          type: boolean
+          description: |-
+            Should the event be all-day?
+
+            If true, requires `starts_at.datetime` and `ends_at.datetime` to have a 00:00 time part.
+        recurrence_pattern:
+          $ref: "#/components/schemas/RecurrencePattern"
+          description: |-
+            Recurrence pattern(s) for recurring events.
+
+            Contains a list of recurrence rules which describe the occurrences of the event.
+
+            # Allowed Values
+
+            - `RRULE`
+            - `RDATE`
+            - `EXRULE`
+            - `EXDATE`
+
+            # Forbidden Values
+
+            - `DTSTART`
+            - `DTEND`
+
+            This information is stored in the `starts_at` and `ends_at` fields.
+        starts_at:
+          $ref: "#/components/schemas/DateTimeTz"
+          description: |-
+            Start time of the event.
+
+            For recurring events these must contain the datetime of the first instance.
+      example:
+        ends_at:
+          datetime: "2002-04-01T11:41:35Z"
+          timezone: Europe/Berlin
+        is_all_day: true
+        recurrence_pattern:
+          - FREQ=WEEKLY;INTERVAL=1;BYDAY=MO
+        starts_at:
+          datetime: "2002-04-01T10:41:35Z"
+          timezone: Europe/Berlin
+    EventDateKind:
+      oneOf:
+        - type: object
+          description: Event is not bound to specific times.
+          required:
+            - is_time_independent
+          properties:
+            is_time_independent:
+              $ref: "#/components/schemas/TimeIndependentMarker"
+              description: |-
+                Should the created event be time independent?
+
+                If true, all following fields must be null.
+                If false, requires `is_all_day`, `starts_at`, `ends_at`.
+        - allOf:
+            - $ref: "#/components/schemas/EventDate"
+              description: Represents all date related information of the respective event.
+            - type: object
+              required:
+                - is_time_independent
+              properties:
+                is_time_independent:
+                  $ref: "#/components/schemas/TimeDependentMarker"
+                  description: Marker field to identify this variant during deserialization.
+          description: Event is bound to specific times.
+      description: Contains date related parameters for the respective event.
+      example:
+        ends_at:
+          datetime: "2002-04-01T11:41:35Z"
+          timezone: Europe/Berlin
+        is_all_day: true
+        is_time_independent: false
+        recurrence_pattern:
+          - FREQ=WEEKLY;INTERVAL=1;BYDAY=MO
+        starts_at:
+          datetime: "2002-04-01T10:41:35Z"
+          timezone: Europe/Berlin
     EventDescription:
       type: string
       description: The description of an event
@@ -3942,7 +4034,7 @@ components:
       type: string
       description: A cursor pointing to an event instance
       examples:
-        - EAAAAAAAAAAAAAAAAAAAAAAAAEQzIhEAFAAAAAAAAAAyMDI0LTA3LTIwVDE0OjE2OjE5WgA
+        - EAAAAAAAAAAAAAAAAAAAAAAAAEQzIhEAFAAAAAAAAAAyMDI0LTA3LTIwVDE0OjE2OjE5WgAA
     GetFindResponseBody:
       type: array
       items:
@@ -4446,103 +4538,67 @@ components:
         invitee: 00000009-9889-9889-9889-988000000000
         role: user
     PostEventsBody:
-      type: object
+      allOf:
+        - $ref: "#/components/schemas/EventDateKind"
+          description: The field containing optional parameter related to the date of the event.
+        - type: object
+          required:
+            - title
+            - description
+          properties:
+            description:
+              $ref: "#/components/schemas/EventDescription"
+              description: Description of the event
+            e2e_encryption:
+              type: boolean
+              description: Should the created event be encrypted?
+            has_shared_folder:
+              type: boolean
+              description: Should the created event have a shared folder?
+            is_adhoc:
+              type: boolean
+              description: Is this an ad-hoc chatroom?
+            password:
+              $ref: "#/components/schemas/RoomPassword"
+              description: Optional password for the room related to the event
+            show_meeting_details:
+              type: boolean
+              description: Should it be able to show the meeting details?
+            streaming_targets:
+              type: array
+              items:
+                $ref: "#/components/schemas/StreamingTarget"
+              description: The streaming targets of the room associated with the event
+            title:
+              $ref: "#/components/schemas/EventTitle"
+              description: Title of the event
+            training_participation_report:
+              $ref: "#/components/schemas/TrainingParticipationReportParameterSet"
+              description: |-
+                The training participation report parameter set for the event.
+
+                When present, the training participation report will be started
+                automatically in the meeting.
+            waiting_room:
+              type: boolean
+              description: Should the created event have a waiting room?
       description: "Body of the `POST /events` endpoint"
-      required:
-        - title
-        - description
-        - is_time_independent
-      properties:
-        description:
-          $ref: "#/components/schemas/EventDescription"
-          description: Description of the event
-        e2e_encryption:
-          type: boolean
-          description: Should the created event be encrypted?
-        ends_at:
-          $ref: "#/components/schemas/DateTimeTz"
-          description: |-
-            End time of the event
-
-            For recurring events these must contain the datetime of the first instance
-        has_shared_folder:
-          type: boolean
-          description: Should the created event have a shared folder?
-        is_adhoc:
-          type: boolean
-          description: Is this an ad-hoc chatroom?
-        is_all_day:
-          type: boolean
-          description: |-
-            Should the event be all-day?
-
-            If true, requires `starts_at.datetime` and `ends_at.datetime` to have a 00:00 time part
-        is_time_independent:
-          type: boolean
-          description: |-
-            Should the created event be time independent?
-
-            If true, all following fields must be null
-            If false, requires `is_all_day`, `starts_at`, `ends_at`
-        password:
-          $ref: "#/components/schemas/RoomPassword"
-          description: Optional password for the room related to the event
-        recurrence_pattern:
-          $ref: "#/components/schemas/RecurrencePattern"
-          description: |-
-            Recurrence pattern(s) for recurring events
-
-            May contain RRULE, EXRULE, RDATE and EXDATE strings
-
-            Requires `type` to be `recurring`
-
-            Contains a list of recurrence rules which describe the occurrences of the event.
-
-            Allowed are `RRULE`, `RDATE`, `EXRULE` and `EXDATE`.
-            The `DTSTART` and `DTEND` attributes are not allowed as their information is stored
-            in the `starts_at` and `ends_at` fields.
-        show_meeting_details:
-          type: boolean
-          description: Should it be able to show the meeting details?
-        starts_at:
-          $ref: "#/components/schemas/DateTimeTz"
-          description: |-
-            Start time of the event
-
-            For recurring events these must contain the datetime of the first instance
-        streaming_targets:
-          type: array
-          items:
-            $ref: "#/components/schemas/StreamingTarget"
-          description: The streaming targets of the room associated with the event
-        title:
-          $ref: "#/components/schemas/EventTitle"
-          description: Title of the event
-        training_participation_report:
-          $ref: "#/components/schemas/TrainingParticipationReportParameterSet"
-          description: |-
-            The training participation report parameter set for the event.
-
-            When present, the training participation report will be started
-            automatically in the meeting.
-        waiting_room:
-          type: boolean
-          description: Should the created event have a waiting room?
       example:
         description: The weekly teammeeting
         e2e_encryption: false
         ends_at:
-          datetime: "2024-07-22T11:00:00Z"
+          datetime: "2002-04-01T11:41:35Z"
           timezone: Europe/Berlin
         has_shared_folder: false
         is_adhoc: false
+        is_all_day: true
         is_time_independent: false
         password: v3rys3cr3t
         recurrence_pattern:
           - FREQ=WEEKLY;INTERVAL=1;BYDAY=MO
         show_meeting_details: true
         starts_at:
-          datetime: "2024-07-22T10:00:00Z"
+          datetime: "2002-04-01T10:41:35Z"
           timezone: Europe/Berlin
         streaming_targets:
           - kind: custom
@@ -5247,6 +5303,18 @@ components:
     TicketToken:
       type: string
       description: A ticket token
+    TimeDependentMarker:
+      description: |-
+        Marker type that serializes to `false`.
+
+        This ensures `is_time_independent: false` appears in JSON for TimeDependent variant.
+      default: ~
+    TimeIndependentMarker:
+      description: |-
+        Marker type that serializes to `true`
+
+        This ensures `is_time_independent: true` appears in JSON for TimeIndependent variant
+      default: ~
     TimeRange:
       type: object
       description: |-
