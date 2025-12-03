@@ -29,10 +29,11 @@ use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
     error::{ApiError, ERROR_CODE_IGNORED_VALUE, ERROR_CODE_VALUE_REQUIRED, ValidationErrorEntry},
     events::{
-        CallInInfo, DeleteEventsQuery, EmailOnlyUser, EventAndInstanceId, EventExceptionResource,
-        EventInvitee, EventInviteeProfile, EventOptionsQuery, EventOrException, EventResource,
-        EventRoomInfo, EventStatus, EventType, GetEventQuery, GetEventsCursorData, GetEventsQuery,
-        PatchEventBody, PatchEventQuery, PostEventsBody, PublicInviteUserProfile,
+        CallInInfo, DeleteEventsQuery, EmailOnlyUser, EventAndInstanceId, EventDate, EventDateKind,
+        EventExceptionResource, EventInvitee, EventInviteeProfile, EventOptionsQuery,
+        EventOrException, EventResource, EventRoomInfo, EventStatus, EventType, GetEventQuery,
+        GetEventsCursorData, GetEventsQuery, PatchEventBody, PatchEventQuery, PostEventsBody,
+        PublicInviteUserProfile,
     },
     pagination::Cursor,
     users::PublicUserProfile,
@@ -92,102 +93,100 @@ impl ControllerBackend {
         let (event_resource, mail_resource) = transaction(inventory.as_mut(), |inventory| {
             let tariff = tariff.clone();
             async move {
-                    // simplify logic by splitting the event creation
-                    // into two paths: time independent and time dependent
-                    let (mut event_resource, mail_resource) = match event {
-                        PostEventsBody {
+                // simplify logic by splitting the event creation
+                // into two paths: time independent and time dependent
+                let (mut event_resource, mail_resource) = match event {
+                    PostEventsBody {
+                        title,
+                        description,
+                        password,
+                        waiting_room,
+                        e2e_encryption,
+                        is_adhoc,
+                        streaming_targets,
+                        has_shared_folder: _,
+                        show_meeting_details,
+                        training_participation_report,
+                        date:
+                            EventDateKind::TimeIndependent {
+                                is_time_independent: _,
+                            },
+                    } => {
+                        create_time_independent_event(
+                            &transaction_settings,
+                            inventory,
+                            current_user,
+                            &tariff,
                             title,
                             description,
                             password,
                             waiting_room,
                             e2e_encryption,
-                            is_time_independent: true,
-                            is_all_day: _,
-                            starts_at: _,
-                            ends_at: _,
-                            recurrence_pattern,
                             is_adhoc,
                             streaming_targets,
-                            has_shared_folder: _,
                             show_meeting_details,
-                            training_participation_report
-                        } if recurrence_pattern.is_empty() => {
-                            create_time_independent_event(
-                                &transaction_settings,
-                                inventory,
-                                current_user,
-                                &tariff,
-                                title,
-                                description,
-                                password,
-                                waiting_room,
-                                e2e_encryption,
-                                is_adhoc,
-                                streaming_targets,
-                                show_meeting_details,
-                                query,
-                                training_participation_report
-                            )
-                                .await?
-                        }
-                        PostEventsBody {
-                            title,
-                            description,
-                            password,
-                            waiting_room,
-                            e2e_encryption,
-                            is_time_independent: false,
-                            is_all_day: Some(is_all_day),
-                            starts_at: Some(starts_at),
-                            ends_at: Some(ends_at),
-                            recurrence_pattern,
-                            is_adhoc,
-                            streaming_targets,
-                            has_shared_folder: _,
-                            show_meeting_details,
-                            training_participation_report
-                        } => {
-                            create_time_dependent_event(
-                                &transaction_settings,
-                                inventory,
-                                current_user,
-                                &tariff,
-                                title,
-                                description,
-                                password,
-                                waiting_room,
-                                e2e_encryption,
-                                is_all_day,
-                                starts_at,
-                                ends_at,
-                                recurrence_pattern,
-                                is_adhoc,
-                                streaming_targets,
-                                show_meeting_details,
-                                query,
-                                training_participation_report
-                            )
-                                .await?
-                        }
-                        event => {
-                            let msg = if event.is_time_independent {
-                                "time independent events must not have is_all_day, starts_at, ends_at or recurrence_pattern set"
-                            } else {
-                                "time dependent events must have title, description, is_all_day, starts_at and ends_at set"
-                            };
-
-                            return Err(CaptureApiError::from(ApiError::bad_request().with_message(msg)));
-                        }
-                    };
-
-                    if event.has_shared_folder {
-                        let (shared_folder, _) = put_shared_folder(&transaction_settings, event_resource.id, inventory)
-                                .await?;
-                        event_resource.shared_folder = Some(SharedFolder::from(shared_folder));
+                            query,
+                            training_participation_report,
+                        )
+                        .await?
                     }
+                    PostEventsBody {
+                        title,
+                        description,
+                        password,
+                        waiting_room,
+                        e2e_encryption,
+                        is_adhoc,
+                        streaming_targets,
+                        has_shared_folder: _,
+                        show_meeting_details,
+                        training_participation_report,
+                        date:
+                            EventDateKind::TimeDependent {
+                                is_time_independent: _,
+                                date:
+                                    EventDate {
+                                        is_all_day,
+                                        starts_at,
+                                        ends_at,
+                                        recurrence_pattern,
+                                    },
+                            },
+                    } => {
+                        create_time_dependent_event(
+                            &transaction_settings,
+                            inventory,
+                            current_user,
+                            &tariff,
+                            title,
+                            description,
+                            password,
+                            waiting_room,
+                            e2e_encryption,
+                            is_all_day,
+                            starts_at,
+                            ends_at,
+                            recurrence_pattern,
+                            is_adhoc,
+                            streaming_targets,
+                            show_meeting_details,
+                            query,
+                            training_participation_report,
+                        )
+                        .await?
+                    }
+                };
 
-                    Ok((event_resource, mail_resource))
-                }.scope_boxed()
+                if event.has_shared_folder {
+                    let (shared_folder, _) =
+                        put_shared_folder(&transaction_settings, event_resource.id, inventory)
+                            .await?;
+                    event_resource.shared_folder = Some(SharedFolder::from(shared_folder));
+                }
+
+                Result::<_, CaptureApiError>::Ok((event_resource, mail_resource))
+            }
+            .scope_boxed()
         })
         .await?;
 
@@ -365,6 +364,7 @@ impl ControllerBackend {
                 event_id: event.id,
                 event_created_at: event.created_at,
                 event_starts_at: event.starts_at,
+                instance_id: None,
             });
 
             let created_by = users.get(event.created_by);

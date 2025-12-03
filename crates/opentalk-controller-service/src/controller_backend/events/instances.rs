@@ -56,6 +56,7 @@ impl ControllerBackend {
                 event_id: after.event_id,
                 event_created_at: after.event_created_at,
                 event_starts_at: after.event_starts_at,
+                instance_id: None,
             })
         });
 
