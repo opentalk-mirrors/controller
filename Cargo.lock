@@ -52,7 +52,7 @@ checksum = "daa239b93927be1ff123eebada5a3ff23e89f0124ccb8609234e5103d5a5ae6d"
 dependencies = [
  "actix-utils",
  "actix-web",
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "futures-util",
  "log",
  "once_cell",
@@ -75,7 +75,7 @@ dependencies = [
  "brotli",
  "bytes",
  "bytestring",
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "encoding_rs",
  "flate2",
  "foldhash",
@@ -211,7 +211,7 @@ dependencies = [
  "bytestring",
  "cfg-if",
  "cookie 0.16.2",
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "encoding_rs",
  "foldhash",
  "futures-core",
@@ -1755,6 +1755,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
+name = "convert_case"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "633458d4ef8c78b72454de2d54fd6ab2e60f9e02be22f3c6104cdc8a4e0fceb9"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "cookie"
 version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2196,7 +2205,7 @@ version = "0.99.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6edb4b64a43d977b8e99788fe3a04d483834fba1215a7e02caa415b626497f7f"
 dependencies = [
- "convert_case",
+ "convert_case 0.4.0",
  "proc-macro2",
  "quote",
  "rustc_version",
@@ -2205,21 +2214,23 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "2.0.1"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "093242cf7570c207c83073cf82f79706fe7b8317e98620a47d5be7c3d8497678"
+checksum = "10b768e943bed7bf2cab53df09f4bc34bfd217cdb57d971e769874c9a6710618"
 dependencies = [
  "derive_more-impl",
 ]
 
 [[package]]
 name = "derive_more-impl"
-version = "2.0.1"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bda628edc44c4bb645fbe0f758797143e4e07926f7ebf4e9bdfbd3d2ce621df3"
+checksum = "6d286bfdaf75e988b4a78e013ecd79c581e06399ab53fbacd2d916c2f904f30b"
 dependencies = [
+ "convert_case 0.10.0",
  "proc-macro2",
  "quote",
+ "rustc_version",
  "syn",
  "unicode-xid",
 ]
@@ -5334,7 +5345,7 @@ dependencies = [
  "byteorder",
  "chrono",
  "chrono-tz",
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "diesel",
  "diesel-async",
  "icu_locid",
@@ -5411,7 +5422,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "clap",
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "icu_locid",
  "opentalk-inventory-common",
  "opentalk-kustos-inventory",
@@ -5682,7 +5693,7 @@ checksum = "08a19007f06632634e597a772f9d65e7f8fcb0a8097efc750da5e117c1506a36"
 dependencies = [
  "anyhow",
  "chrono",
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "serde",
@@ -5712,7 +5723,7 @@ version = "0.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ae00325e7939c5b72c9411c1d58ca0aa67493bf4bd4ad5926e22995c3b43c311"
 dependencies = [
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",
@@ -5755,7 +5766,7 @@ dependencies = [
  "basen",
  "chrono",
  "chrono-tz",
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "insta",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5830,7 +5841,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "53c2ed90f9608ba7f77bf9989bab9f49e6014852448755f043708168e2fb5ec7"
 dependencies = [
  "chrono",
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",
@@ -5870,7 +5881,7 @@ version = "0.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8e6bcff8de7ea37c21fc894908fff507ebab0c13235f23591b513c378fa6529"
 dependencies = [
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",
@@ -5933,7 +5944,7 @@ dependencies = [
  "bytestring",
  "chrono",
  "config",
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "either",
  "futures",
  "kustos",
@@ -6274,7 +6285,7 @@ name = "opentalk-signaling-module-recording"
 version = "0.33.0-alpha"
 dependencies = [
  "async-trait",
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "either",
  "futures",
  "lapin",
@@ -6500,7 +6511,7 @@ dependencies = [
  "actix-web",
  "base64 0.22.1",
  "bincode 2.0.1",
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "http 0.2.12",
  "http 1.4.0",
  "log",
@@ -6520,7 +6531,7 @@ checksum = "766229671ffc72c9c4fe7061da35ef5637a648faf5fa855ca7d9aab013d126b7"
 dependencies = [
  "chrono",
  "chrono-tz",
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "opentalk-types-api-common",
  "opentalk-types-common",
  "serde",
@@ -6543,7 +6554,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "clap",
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "diesel",
  "email_address",
  "icu_locid",
@@ -6572,7 +6583,7 @@ version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48920a374d6fd87ca1bfbe237e966e821f8bb0e0ebf0de1039aed64f6a464222"
 dependencies = [
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "diesel",
  "opentalk-diesel-newtype",
  "serde",
@@ -6601,7 +6612,7 @@ version = "0.42.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ebf41422eaf3299b3918944cc1a970037ba7563316161216828eef84047060d"
 dependencies = [
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "opentalk-types-common",
  "redis-args",
  "serde",
@@ -6650,7 +6661,7 @@ version = "0.42.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ca23ae9abc8f1f7e6ee62a8a8243036ac87707c7320d0cb3242c87c51681096"
 dependencies = [
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "redis-args",
@@ -6690,7 +6701,7 @@ checksum = "ee3e9fb81469510d62caaad6a403506fea6a1b8c50e6a9265ddad35dc77b674b"
 dependencies = [
  "basen",
  "chrono",
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "rand 0.9.2",
@@ -6751,7 +6762,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af9b5e5d4d48fe9fc23f82ca4db050a5cbf9c085980f312db2219ba8affee81e"
 dependencies = [
  "chrono",
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "redis-args",
@@ -6765,7 +6776,7 @@ version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "662afd93d11c8c3c5a30e9e60b869971aae3245eea697842c9e6725a1d37a067"
 dependencies = [
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "redis-args",
@@ -6804,7 +6815,7 @@ version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6bde92ac0f2255bf14b09436c08fc68b1f9328142adb7bdeda220b3fafc59c9e"
 dependencies = [
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "redis-args",
@@ -6819,7 +6830,7 @@ version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3e1900463ca55c8022d261f48aa2fb5df3273b83c68ef077f8fa163c3113c15"
 dependencies = [
- "derive_more 2.0.1",
+ "derive_more 2.1.0",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "redis-args",
