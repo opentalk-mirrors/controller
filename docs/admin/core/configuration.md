@@ -362,9 +362,9 @@ access_key = "minioadmin"
 secret_key = "minioadmin"
 
 # Etcd configuration
-[etcd]
+#[etcd]
 # A list urls of a etcd cluster
-urls = ["localhost:2379"]
+#urls = ["localhost:2379"]
 
 # The etherpad configuration for the meeting-notes module
 #[etherpad]
