@@ -18,7 +18,12 @@ impl SettingsProvider {
             .add_source(
                 Environment::with_prefix("OPENTALK_CTRL")
                     .prefix_separator("_")
-                    .separator("__"),
+                    .separator("__")
+                    .list_separator(",")
+                    .with_list_parse_key("http.cors.allowed_origin")
+                    .with_list_parse_key("logging.default_directives")
+                    .with_list_parse_key("etcd.urls")
+                    .try_parsing(true),
             )
             .build()?;
 
