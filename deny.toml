@@ -220,6 +220,9 @@ exceptions = [
   ], name = "opentalk-roomserver-types-whiteboard" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-service-auth" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-types-api-common" },
   { allow = [
     "EUPL-1.2",
@@ -347,8 +350,6 @@ highlight = "all"
 # List of crates that are allowed. Use with care!
 allow = []
 # List of crates to deny
-deny = []
-# Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
   { name = "ahash", version = "0.7" },
   { name = "async-io", version = "1" },
@@ -395,6 +396,7 @@ skip = [
   { name = "itertools", version = "0.10" },
   { name = "itertools", version = "0.11" },
   { name = "itertools", version = "0.12" },
+  { name = "jsonwebtoken", version = "9.3.1" },
   { name = "kurbo", version = "0.11" },
   { name = "linux-raw-sys", version = "0.3" },
   { name = "litemap", version = "0.7" },
@@ -443,6 +445,7 @@ skip = [
   { name = "toml_edit", version = "0.22" },
   { name = "tonic", version = "0.12" },
   { name = "tower", version = "0.4" },
+  { name = "untrusted", version = "0.7.1" },
   { name = "writeable", version = "0.5" },
   { name = "yoke", version = "0.7" },
   { name = "yoke-derive", version = "0.7" },
@@ -451,7 +454,7 @@ skip = [
   { name = "zerovec-derive", version = "0.10" },
   { name = "zune-core", version = "0.4" },
   { name = "zune-jpeg", version = "0.4" },
-]
+] # Certain crates/versions that will be skipped when doing duplicate detection.deny = []
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
 # dependencies starting at the specified crate, up to a certain depth, which is
