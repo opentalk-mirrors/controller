@@ -59,6 +59,16 @@ ignore = [
   # reqwest v0.12.12 -> hyper-rustls v0.27.5 -> rustls v0.23.23 -> aws-lc-rs v1.12.5 -> paste v1.0.15
   # actix-web v4.10.2 -> actix-http v3.10.0 -> actix-tls v3.4.0 -> tokio-rustls v0.26.2 -> rustls v0.23.23 -> aws-lc-rs v1.12.5 -> paste v1.0.15
   "RUSTSEC-2024-0436",
+
+  # | rustls-pemfile is unmaintained
+  # |
+  # | The rustls-pemfile crate is no longer maintained. The repository has been archived since August
+  # | 2025, and users are encouraged to depend directly on the underlying PEM parsing code included
+  # | in rustls-pki-types since 1.9.0. The latest version of rustls-pemfile is in fact a thin wrapper
+  # | around the same code used in rustls-pki-types, so migrating should be straightforward.
+  #
+  # We need to wait until dependencies update to an alternative crate.
+  "RUSTSEC-2025-0134",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
