@@ -353,6 +353,21 @@ build:docs:
   script:
     - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
 
+build:pages:
+  stage: build
+  image:
+    name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
+    entrypoint: ['']
+    pull_policy: if-not-present
+  pages:
+    publish: site
+  needs: []
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  before_script: []
+  script:
+    - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
+
 package:read-tags:
   stage: package
   needs: []
