@@ -208,13 +208,20 @@ impl ControllerBackend {
         Self::override_module_settings(inventory.as_mut(), room.id, &mut module_settings).await?;
         module_settings.retain(|module_id, _| tariff.modules.contains_key(module_id));
 
-        let timezone = get_user_timezone(room.created_by.id, inventory.as_mut(), &settings).await;
+        let user_id = room.created_by.id;
+        let timezone = get_user_timezone(user_id, inventory.as_mut(), &settings).await;
         let created_by = PublicUserProfile {
             id: room.created_by.id,
             email: room.created_by.email,
             user_info: room.created_by.user_info,
             timezone,
         };
+        let preferred_language = inventory
+            .get_user(user_id)
+            .await
+            .ok()
+            .map(|user| user.language.0)
+            .unwrap_or(settings.defaults.user_language.clone());
         let parameters = RoomParameters {
             created_by,
             password: room.password,
@@ -227,6 +234,8 @@ impl ControllerBackend {
             e2e_encryption: false,
             module_settings,
             asset_storage: room_server_settings.asset_storage.clone(),
+            preferred_language,
+            fallback_language: settings.defaults.user_language.clone(),
         };
 
         Ok(parameters)
