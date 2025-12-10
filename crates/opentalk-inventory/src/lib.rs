@@ -50,8 +50,9 @@ pub mod utils;
 
 pub use asset::{Asset, AssetInventory, NewAsset, UpdateAsset};
 pub use event::{
-    Event, EventException, EventExceptionId, EventExceptionKind, EventInventory, GetEventsCursor,
-    NewEvent, NewEventException, UpdateEvent, UpdateEventException,
+    Event, EventException, EventExceptionId, EventExceptionKind, EventInventory,
+    GetEventExceptionsCursor, GetEventsCursor, NewEvent, NewEventException, UpdateEvent,
+    UpdateEventException,
 };
 pub use event_invite::{
     EventEmailInvite, EventInvite, EventInviteId, EventInviteInventory, NewEventEmailInvite,

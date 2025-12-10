@@ -2,13 +2,15 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, pin::Pin};
 
+use futures_util::Stream;
 use opentalk_db_storage::events::{self as db, EventFavorite, NewEventFavorite};
 use opentalk_inventory::{
     Event, EventException, EventExceptionId, EventInventory, EventInvite, EventSharedFolder,
-    EventTrainingParticipationReportParameterSet, GetEventsCursor, NewEvent, NewEventException,
-    Room, RoomSipConfig, Tariff, UpdateEvent, UpdateEventException, User,
+    EventTrainingParticipationReportParameterSet, GetEventExceptionsCursor, GetEventsCursor,
+    NewEvent, NewEventException, Room, RoomSipConfig, Tariff, UpdateEvent, UpdateEventException,
+    User,
 };
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
@@ -19,7 +21,9 @@ use opentalk_types_common::{
 };
 use snafu::ResultExt as _;
 
-use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
+use crate::{
+    DatabaseConnection, Result, error::DatabaseSnafu, utils::convert_db_stream_to_inventory_stream,
+};
 
 #[async_trait::async_trait]
 impl EventInventory for DatabaseConnection {
@@ -246,6 +250,101 @@ impl EventInventory for DatabaseConnection {
             .collect())
     }
 
+    async fn get_all_events_for_user_paginated_as_stream<'a>(
+        &'a mut self,
+        user: User,
+        only_favorites: bool,
+        invite_status_filter: BTreeSet<EventInviteStatus>,
+        time_min: Option<Timestamp>,
+        time_max: Option<Timestamp>,
+        created_before: Option<Timestamp>,
+        created_after: Option<Timestamp>,
+        adhoc: Option<bool>,
+        time_independent: Option<bool>,
+        cursor: Option<GetEventsCursor>,
+    ) -> Result<
+        Pin<
+            Box<
+                dyn Stream<
+                        Item = Result<(
+                            Event,
+                            Option<EventInvite>,
+                            Room,
+                            Option<RoomSipConfig>,
+                            bool,
+                            Option<EventSharedFolder>,
+                            Tariff,
+                            Option<TrainingParticipationReportParameterSet>,
+                        )>,
+                    > + 'a,
+            >,
+        >,
+    > {
+        let stream = db::Event::get_all_for_user_paginated_as_stream(
+            &mut self.inner,
+            user.into(),
+            only_favorites,
+            Vec::from_iter(invite_status_filter),
+            time_min.map(Into::into),
+            time_max.map(Into::into),
+            created_before.map(Into::into),
+            created_after.map(Into::into),
+            adhoc,
+            time_independent,
+            cursor.map(Into::into),
+        )
+        .await
+        .context(DatabaseSnafu)?;
+
+        let stream = convert_db_stream_to_inventory_stream(
+            stream,
+            convert_event_and_related_to_inventory_types,
+        )
+        .await
+        .context(DatabaseSnafu)?;
+
+        Ok(stream)
+    }
+
+    async fn get_all_event_exceptions_for_user_paginated_as_stream<'a>(
+        &'a mut self,
+        user: User,
+        only_favorites: bool,
+        invite_status_filter: BTreeSet<EventInviteStatus>,
+        time_min: Option<Timestamp>,
+        time_max: Option<Timestamp>,
+        created_before: Option<Timestamp>,
+        created_after: Option<Timestamp>,
+        adhoc: Option<bool>,
+        time_independent: Option<bool>,
+        cursor: Option<GetEventExceptionsCursor>,
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<(EventException, Event)>> + 'a>>> {
+        let stream = db::Event::get_all_exceptions_for_user_paginated_as_stream(
+            &mut self.inner,
+            user.into(),
+            only_favorites,
+            Vec::from_iter(invite_status_filter),
+            time_min.map(Into::into),
+            time_max.map(Into::into),
+            created_before.map(Into::into),
+            created_after.map(Into::into),
+            adhoc,
+            time_independent,
+            cursor.map(Into::into),
+        )
+        .await
+        .context(DatabaseSnafu)?;
+
+        let stream = convert_db_stream_to_inventory_stream(
+            stream,
+            convert_event_exception_and_related_to_inventory_types,
+        )
+        .await
+        .context(DatabaseSnafu)?;
+
+        Ok(stream)
+    }
+
     #[tracing::instrument(err, skip_all)]
     async fn get_all_event_ids_with_creator_id(&mut self) -> Result<Vec<(EventId, UserId)>> {
         Ok(db::Event::get_all_with_creator(&mut self.inner)
@@ -361,4 +460,46 @@ impl EventInventory for DatabaseConnection {
                 .context(DatabaseSnafu)?,
         )
     }
+}
+
+#[allow(clippy::type_complexity)]
+fn convert_event_and_related_to_inventory_types(
+    (event, invite, room, sip_config, is_favorite, shared_folder, tariff): (
+        opentalk_db_storage::events::Event,
+        Option<opentalk_db_storage::events::EventInvite>,
+        opentalk_db_storage::rooms::Room,
+        Option<opentalk_db_storage::sip_configs::SipConfig>,
+        bool,
+        Option<opentalk_db_storage::events::shared_folders::EventSharedFolder>,
+        opentalk_db_storage::tariffs::Tariff,
+    ),
+) -> (
+    Event,
+    Option<EventInvite>,
+    Room,
+    Option<RoomSipConfig>,
+    bool,
+    Option<EventSharedFolder>,
+    Tariff,
+    Option<TrainingParticipationReportParameterSet>,
+) {
+    (
+        event.into(),
+        invite.map(Into::into),
+        room.into(),
+        sip_config.map(Into::into),
+        is_favorite,
+        shared_folder.map(Into::into),
+        tariff.into(),
+        None, // TODO: remove this (as in opentalk_db_storage::events::get_all_for_user_paginated)
+    )
+}
+
+fn convert_event_exception_and_related_to_inventory_types(
+    (event_exception, event): (
+        opentalk_db_storage::events::EventException,
+        opentalk_db_storage::events::Event,
+    ),
+) -> (EventException, Event) {
+    (event_exception.into(), event.into())
 }

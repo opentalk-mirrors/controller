@@ -4,7 +4,9 @@
 
 use std::{fmt::Debug, io::Write};
 
+use async_stream::stream;
 use diesel::{
+    QueryResult,
     backend::Backend,
     deserialize::{FromSql, FromSqlRow},
     expression::AsExpression,
@@ -12,6 +14,8 @@ use diesel::{
     serialize::{IsNull, ToSql},
     sql_types,
 };
+use futures_core::Stream;
+use opentalk_database::DatabaseError;
 use serde::{Deserialize, Serialize};
 
 /// JSONB Wrapper for any type implementing the serde `Serialize` or `Deserialize` trait
@@ -42,5 +46,18 @@ impl<T: Serialize + Debug> ToSql<sql_types::Jsonb, Pg> for Jsonb<T> {
         serde_json::to_writer(out, &self.0)
             .map(|_| IsNull::No)
             .map_err(Into::into)
+    }
+}
+
+pub(super) fn convert_diesel_query_results<S: Stream<Item = QueryResult<T>>, T>(
+    input: S,
+) -> impl Stream<Item = opentalk_database::Result<T>> {
+    stream! {
+        for await value in input {
+            match value {
+                Ok(value) => { yield Ok(value); }
+                Err(error) => { yield Err(DatabaseError::DieselError {source: error}); }
+            }
+        }
     }
 }

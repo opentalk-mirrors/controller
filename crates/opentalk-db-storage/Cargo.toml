@@ -16,6 +16,7 @@ workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+async-stream.workspace = true
 barrel = { version = "0.7", features = ["pg"] }
 bigdecimal.workspace = true
 bincode.workspace = true
@@ -36,6 +37,7 @@ diesel = { workspace = true, features = [
   "uuid",
 ] }
 diesel-async.workspace = true
+futures-core.workspace = true
 icu_locid.workspace = true
 kustos-db.workspace = true
 log = { workspace = true, features = ["serde"] }

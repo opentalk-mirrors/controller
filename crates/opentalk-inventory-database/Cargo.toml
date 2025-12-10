@@ -14,10 +14,12 @@ version.workspace = true
 workspace = true
 
 [dependencies]
+async-stream.workspace = true
 async-trait.workspace = true
 bigdecimal.workspace = true
 chrono.workspace = true
 diesel-async.workspace = true
+futures-util.workspace = true
 kustos-db.workspace = true
 opentalk-database.workspace = true
 opentalk-db-storage.workspace = true

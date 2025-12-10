@@ -16,6 +16,7 @@ use diesel::{
     sql_types::{Nullable, Record, Timestamptz, Uuid},
 };
 use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
+use futures_core::Stream;
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_diesel_newtype::DieselNewtype;
 use opentalk_types_common::{
@@ -47,6 +48,7 @@ use crate::{
     sip_configs::SipConfig,
     tariffs::Tariff,
     users::User,
+    utils::convert_diesel_query_results,
 };
 
 #[derive(
@@ -387,6 +389,54 @@ impl GetEventsCursor {
     }
 }
 
+pub struct GetEventExceptionsCursor {
+    pub from_id: EventId,
+    pub from_created_at: DateTime<Utc>,
+    pub from_starts_at: Option<DateTime<Utc>>,
+    pub from_exception_date: DateTime<Utc>,
+}
+
+impl From<GetEventExceptionsCursor> for opentalk_inventory::GetEventExceptionsCursor {
+    fn from(
+        GetEventExceptionsCursor {
+            from_id,
+            from_created_at,
+            from_starts_at,
+            from_exception_date,
+        }: GetEventExceptionsCursor,
+    ) -> Self {
+        Self::new(
+            from_id,
+            from_created_at.into(),
+            from_starts_at.map(Into::into),
+            from_exception_date.into(),
+        )
+    }
+}
+
+impl From<opentalk_inventory::GetEventExceptionsCursor> for GetEventExceptionsCursor {
+    fn from(value: opentalk_inventory::GetEventExceptionsCursor) -> Self {
+        let (from_id, from_created_at, from_starts_at, from_exception_date) = value.into();
+        Self {
+            from_id,
+            from_created_at: from_created_at.into(),
+            from_starts_at: from_starts_at.map(Into::into),
+            from_exception_date: from_exception_date.into(),
+        }
+    }
+}
+
+impl GetEventExceptionsCursor {
+    pub fn from_last_event_in_query(exception: &EventException) -> Self {
+        Self {
+            from_id: exception.event_id,
+            from_created_at: exception.created_at,
+            from_starts_at: exception.starts_at,
+            from_exception_date: exception.exception_date,
+        }
+    }
+}
+
 impl Event {
     #[tracing::instrument(err, skip_all)]
     pub async fn get(conn: &mut DbConnection, event_id: EventId) -> Result<Event> {
@@ -584,6 +634,347 @@ impl Event {
 
     #[tracing::instrument(err, skip_all)]
     #[allow(clippy::too_many_arguments, clippy::type_complexity)]
+    pub async fn get_all_for_user_paginated_as_stream(
+        conn: &mut DbConnection,
+        user: User,
+        only_favorites: bool,
+        invite_status_filter: Vec<EventInviteStatus>,
+        time_min: Option<DateTime<Utc>>,
+        time_max: Option<DateTime<Utc>>,
+        created_before: Option<DateTime<Utc>>,
+        created_after: Option<DateTime<Utc>>,
+        adhoc: Option<bool>,
+        time_independent: Option<bool>,
+        cursor: Option<GetEventsCursor>,
+    ) -> Result<
+        impl Stream<
+            Item = Result<(
+                Event,
+                Option<EventInvite>,
+                Room,
+                Option<SipConfig>,
+                bool,
+                Option<EventSharedFolder>,
+                Tariff,
+            )>,
+        >,
+    > {
+        // Validate that the event is either created by the given user or an invite to the event
+        // exists for the user
+        let event_related_to_user_id = events::created_by
+            .eq(user.id)
+            .or(event_invites::invitee.eq(user.id));
+
+        // Create query which select events and joins into the room of the event
+        let mut query = events::table
+            .left_join(
+                event_invites::table.on(event_invites::event_id
+                    .eq(events::id)
+                    .and(event_invites::invitee.eq(user.id))),
+            )
+            .left_join(
+                event_favorites::table.on(event_favorites::event_id
+                    .eq(events::id)
+                    .and(event_favorites::user_id.eq(user.id))),
+            )
+            .left_join(
+                event_shared_folders::table.on(event_shared_folders::event_id.eq(events::id)),
+            )
+            .inner_join(rooms::table)
+            .left_join(sip_configs::table.on(rooms::id.eq(sip_configs::room)))
+            .inner_join(users::table.on(users::id.eq(events::created_by)))
+            .inner_join(tariffs::table.on(tariffs::id.eq(users::tariff_id)))
+            .select((
+                events::all_columns,
+                event_invites::all_columns.nullable(),
+                rooms::all_columns,
+                sip_configs::all_columns.nullable(),
+                event_favorites::user_id.nullable().is_not_null(),
+                event_shared_folders::all_columns.nullable(),
+                tariffs::all_columns,
+            ))
+            .filter(events::tenant_id.eq(user.tenant_id))
+            .filter(event_related_to_user_id)
+            .filter(users::disabled_since.is_null())
+            .order_by(events::starts_at.nullable().asc().nulls_first())
+            .then_order_by(events::created_at.asc())
+            .then_order_by(events::id.asc())
+            .into_boxed::<Pg>();
+
+        // Consider the start position as specified by the cursor
+        if let Some(cursor) = cursor {
+            if let Some(from_starts_at) = cursor.from_starts_at {
+                let expr =
+                    AsExpression::<Record<(Nullable<Timestamptz>,Timestamptz, Uuid)>>::as_expression((
+                        events::starts_at,
+                        events::created_at,
+                        events::id
+                    ));
+
+                // Get all records that are behind the cursor position.
+                // Records with no start date are considered to be less than the cursor specifies because
+                // they don't pass the '>' comparison below (a comparison with NULL is always NULL).
+                query =
+                    query.filter(expr.gt((from_starts_at, cursor.from_created_at, cursor.from_id)));
+            } else {
+                let expr = AsExpression::<Record<(Timestamptz, Uuid)>>::as_expression((
+                    events::created_at,
+                    events::id,
+                ));
+
+                // Get all records that are behind the cursor position.
+                // Records with a start date are considered to be greater than the cursor
+                // specifies (which has no start date here).
+                // For records without a start date the decision is based on the remaining values.
+                query = query.filter(
+                    events::starts_at.is_not_null().or(events::starts_at
+                        .is_null()
+                        .and(expr.gt((cursor.from_created_at, cursor.from_id)))),
+                );
+            }
+        }
+
+        // Add filters to query depending on the time_(min/max) parameters
+        match (time_min, time_max) {
+            (Some(time_min), Some(time_max)) => {
+                // we have an overlap if any of these conditions matches:
+                // - starts_at is between time_min and time_max
+                // - ends_at is between time_min and time_max
+                // - time_min is between starts_at and ends_at
+                // - time_max is between starts_at and ends_at
+                query = query.filter(
+                    events::starts_at
+                        .between(time_min, time_max)
+                        .or(events::ends_at.between(time_min, time_max))
+                        .or(time_min
+                            .into_sql::<Nullable<Timestamptz>>()
+                            .between(events::starts_at, events::ends_at))
+                        .or(time_max
+                            .into_sql::<Nullable<Timestamptz>>()
+                            .between(events::starts_at, events::ends_at)),
+                );
+            }
+            (Some(time_min), None) => {
+                query = query.filter(events::ends_at.ge(time_min));
+            }
+            (None, Some(time_max)) => {
+                query = query.filter(events::starts_at.le(time_max));
+            }
+            (None, None) => {
+                // no filters to apply
+            }
+        }
+
+        if let Some(created_before) = created_before {
+            query = query.filter(events::created_at.le(created_before));
+        }
+
+        if let Some(created_after) = created_after {
+            query = query.filter(events::created_at.ge(created_after));
+        }
+
+        if only_favorites {
+            query = query.filter(event_favorites::user_id.is_not_null());
+        }
+
+        if let Some(is_adhoc) = adhoc {
+            query = query.filter(events::is_adhoc.eq(is_adhoc));
+        }
+
+        if let Some(is_time_independent) = time_independent {
+            query = query.filter(events::is_time_independent.eq(is_time_independent));
+        }
+
+        if !invite_status_filter.is_empty() {
+            if invite_status_filter.contains(&EventInviteStatus::Accepted) {
+                // edge case to allow event creators to filter created events by 'accepted'
+                query = query.filter(
+                    event_invites::status
+                        .eq_any(invite_status_filter)
+                        .or(event_invites::status.is_null()),
+                );
+            } else {
+                query = query.filter(event_invites::status.eq_any(invite_status_filter));
+            }
+        }
+
+        let stream = query
+            .load_stream::<(
+                Event,
+                Option<EventInvite>,
+                Room,
+                Option<SipConfig>,
+                bool,
+                Option<EventSharedFolder>,
+                Tariff,
+            )>(conn)
+            .await?;
+
+        Ok(convert_diesel_query_results(stream))
+    }
+
+    #[tracing::instrument(err, skip_all)]
+    #[allow(clippy::too_many_arguments, clippy::type_complexity)]
+    pub async fn get_all_exceptions_for_user_paginated_as_stream(
+        conn: &mut DbConnection,
+        user: User,
+        only_favorites: bool,
+        invite_status_filter: Vec<EventInviteStatus>,
+        time_min: Option<DateTime<Utc>>,
+        time_max: Option<DateTime<Utc>>,
+        created_before: Option<DateTime<Utc>>,
+        created_after: Option<DateTime<Utc>>,
+        adhoc: Option<bool>,
+        time_independent: Option<bool>,
+        cursor: Option<GetEventExceptionsCursor>,
+    ) -> Result<impl Stream<Item = Result<(EventException, Event)>>> {
+        // Validate that the event is either created by the given user or an invite to the event
+        // exists for the user
+        let event_related_to_user_id = events::created_by
+            .eq(user.id)
+            .or(event_invites::invitee.eq(user.id));
+
+        let mut query = event_exceptions::table
+            .inner_join(events::table.on(event_exceptions::event_id.eq(events::id)))
+            .left_join(
+                event_invites::table.on(event_invites::event_id
+                    .eq(events::id)
+                    .and(event_invites::invitee.eq(user.id))),
+            )
+            .left_join(
+                event_favorites::table.on(event_favorites::event_id
+                    .eq(events::id)
+                    .and(event_favorites::user_id.eq(user.id))),
+            )
+            .left_join(
+                event_shared_folders::table.on(event_shared_folders::event_id.eq(events::id)),
+            )
+            .inner_join(rooms::table.on(events::room.eq(rooms::id)))
+            .inner_join(users::table.on(users::id.eq(events::created_by)))
+            .select((event_exceptions::all_columns, events::all_columns))
+            .filter(events::tenant_id.eq(user.tenant_id))
+            .filter(event_related_to_user_id)
+            .filter(users::disabled_since.is_null())
+            .order_by(event_exceptions::starts_at.nullable().asc().nulls_first())
+            .then_order_by(event_exceptions::created_at.asc())
+            .then_order_by(event_exceptions::event_id.asc())
+            .then_order_by(event_exceptions::exception_date.asc())
+            .into_boxed::<Pg>();
+
+        // Consider the start position as specified by the cursor
+        if let Some(cursor) = cursor {
+            if let Some(from_starts_at) = cursor.from_starts_at {
+                let expr = AsExpression::<
+                    Record<(Nullable<Timestamptz>, Timestamptz, Uuid, Timestamptz)>,
+                >::as_expression((
+                    event_exceptions::starts_at,
+                    event_exceptions::created_at,
+                    event_exceptions::event_id,
+                    event_exceptions::exception_date,
+                ));
+
+                // Get all records that are behind the cursor position.
+                // Records with no start date are considered to be less than the cursor specifies because
+                // they don't pass the '>' comparison below (a comparison with NULL is always NULL).
+                query = query.filter(expr.gt((
+                    from_starts_at,
+                    cursor.from_created_at,
+                    cursor.from_id,
+                    cursor.from_exception_date,
+                )));
+            } else {
+                let expr =
+                    AsExpression::<Record<(Timestamptz, Uuid, Timestamptz)>>::as_expression((
+                        event_exceptions::created_at,
+                        event_exceptions::event_id,
+                        event_exceptions::exception_date,
+                    ));
+
+                // Get all records that are behind the cursor position.
+                // Records with a start date are considered to be greater than the cursor
+                // specifies (which has no start date here).
+                // For records without a start date the decision is based on the remaining values.
+                query = query.filter(event_exceptions::starts_at.is_not_null().or(
+                    event_exceptions::starts_at.is_null().and(expr.gt((
+                        cursor.from_created_at,
+                        cursor.from_id,
+                        cursor.from_exception_date,
+                    ))),
+                ));
+            }
+        }
+
+        // Add filters to query depending on the time_(min/max) parameters
+        match (time_min, time_max) {
+            (Some(time_min), Some(time_max)) => {
+                // we have an overlap if any of these conditions matches:
+                // - starts_at is between time_min and time_max
+                // - ends_at is between time_min and time_max
+                // - time_min is between starts_at and ends_at
+                // - time_max is between starts_at and ends_at
+                query = query.filter(
+                    events::starts_at
+                        .between(time_min, time_max)
+                        .or(events::ends_at.between(time_min, time_max))
+                        .or(time_min
+                            .into_sql::<Nullable<Timestamptz>>()
+                            .between(events::starts_at, events::ends_at))
+                        .or(time_max
+                            .into_sql::<Nullable<Timestamptz>>()
+                            .between(events::starts_at, events::ends_at)),
+                );
+            }
+            (Some(time_min), None) => {
+                query = query.filter(events::ends_at.ge(time_min));
+            }
+            (None, Some(time_max)) => {
+                query = query.filter(events::starts_at.le(time_max));
+            }
+            (None, None) => {
+                // no filters to apply
+            }
+        }
+
+        if let Some(created_before) = created_before {
+            query = query.filter(events::created_at.le(created_before));
+        }
+
+        if let Some(created_after) = created_after {
+            query = query.filter(events::created_at.ge(created_after));
+        }
+
+        if only_favorites {
+            query = query.filter(event_favorites::user_id.is_not_null());
+        }
+
+        if let Some(is_adhoc) = adhoc {
+            query = query.filter(events::is_adhoc.eq(is_adhoc));
+        }
+
+        if let Some(is_time_independent) = time_independent {
+            query = query.filter(events::is_time_independent.eq(is_time_independent));
+        }
+
+        if !invite_status_filter.is_empty() {
+            if invite_status_filter.contains(&EventInviteStatus::Accepted) {
+                // edge case to allow event creators to filter created events by 'accepted'
+                query = query.filter(
+                    event_invites::status
+                        .eq_any(invite_status_filter)
+                        .or(event_invites::status.is_null()),
+                );
+            } else {
+                query = query.filter(event_invites::status.eq_any(invite_status_filter));
+            }
+        }
+
+        let stream = query.load_stream::<(EventException, Event)>(conn).await?;
+
+        Ok(convert_diesel_query_results(stream))
+    }
+
+    #[tracing::instrument(err, skip_all)]
+    #[allow(clippy::too_many_arguments, clippy::type_complexity)]
     pub async fn get_all_for_user_paginated(
         conn: &mut DbConnection,
         user: User,
@@ -666,6 +1057,7 @@ impl Event {
                 query =
                     query.filter(expr.gt((from_starts_at, cursor.from_created_at, cursor.from_id)));
             } else {
+                // TODO: This doesn't work for records with a start date (compare to get_all_[exceptions_]for_user_paginated_as_stream).
                 let expr = AsExpression::<Record<(Timestamptz, Uuid)>>::as_expression((
                     events::created_at,
                     events::id,

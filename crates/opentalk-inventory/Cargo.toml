@@ -27,6 +27,7 @@ derive_more = { workspace = true, features = [
   "from_str",
   "into",
 ] }
+futures-util.workspace = true
 icu_locid = { workspace = true, features = ["serde"] }
 opentalk-inventory-common.workspace = true
 opentalk-kustos-inventory.workspace = true

@@ -123,7 +123,7 @@ pub async fn get_events(
     query: Query<GetEventsQuery>,
 ) -> DefaultApiResult<Vec<EventOrException>> {
     let (event_resources, before, after) = service
-        .get_events(current_user.into_inner(), query.into_inner())
+        .get_events_and_exceptions_interwoven(current_user.into_inner(), query.into_inner())
         .await?;
 
     Ok(ApiResponse::new(event_resources).with_cursor_pagination(before, after))

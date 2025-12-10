@@ -5213,6 +5213,7 @@ dependencies = [
 name = "opentalk-controller-service"
 version = "0.33.0-alpha"
 dependencies = [
+ "async-stream",
  "async-trait",
  "base64 0.22.1",
  "bincode 2.0.1",
@@ -5223,6 +5224,7 @@ dependencies = [
  "either",
  "futures",
  "futures-core",
+ "futures-util",
  "http 1.4.0",
  "icu_locid",
  "jsonwebtoken 9.3.1",
@@ -5368,6 +5370,7 @@ name = "opentalk-db-storage"
 version = "0.33.0-alpha"
 dependencies = [
  "actix-rt",
+ "async-stream",
  "barrel",
  "bigdecimal",
  "bincode 2.0.1",
@@ -5377,6 +5380,7 @@ dependencies = [
  "derive_more 2.1.0",
  "diesel",
  "diesel-async",
+ "futures-core",
  "icu_locid",
  "kustos-db",
  "log",
@@ -5452,6 +5456,7 @@ dependencies = [
  "chrono-tz",
  "clap",
  "derive_more 2.1.0",
+ "futures-util",
  "icu_locid",
  "opentalk-inventory-common",
  "opentalk-kustos-inventory",
@@ -5475,10 +5480,12 @@ dependencies = [
 name = "opentalk-inventory-database"
 version = "0.33.0-alpha"
 dependencies = [
+ "async-stream",
  "async-trait",
  "bigdecimal",
  "chrono",
  "diesel-async",
+ "futures-util",
  "kustos-db",
  "opentalk-database",
  "opentalk-db-storage",
