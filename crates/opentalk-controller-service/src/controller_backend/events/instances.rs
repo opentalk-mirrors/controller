@@ -15,10 +15,10 @@ use opentalk_types_api_v1::{
     error::ApiError,
     events::{
         EventAndInstanceId, EventInstance, EventInstancePath, EventInstanceQuery, EventInvitee,
-        EventOrInstance, EventRoomInfo, EventStatus, EventType, GetEventInstanceResponseBody,
-        GetEventInstancesCursorData, GetEventInstancesQuery, GetEventInstancesResponseBody,
-        GetEventsAndInstancesQuery, GetEventsCursorData, GetEventsQuery, InstanceId,
-        PatchEventInstanceBody,
+        EventOrInstance, EventResourceDate, EventResourceDateKind, EventRoomInfo, EventStatus,
+        EventType, GetEventInstanceResponseBody, GetEventInstancesCursorData,
+        GetEventInstancesQuery, GetEventInstancesResponseBody, GetEventsAndInstancesQuery,
+        GetEventsCursorData, GetEventsQuery, InstanceId, PatchEventInstanceBody,
     },
     pagination::Cursor,
 };
@@ -82,26 +82,42 @@ impl ControllerBackend {
 
         // TODO: Incorporate instances into overall paging, all sorted by time? See #1088
         for (event_resource, _event_exception_resources) in event_resources {
-            // Return either the event itself (if it's non-recurring or no instances were requested)
-            // or its instances (up to the specified limit).
-            if event_resource.recurrence_pattern.is_empty() || query.instances_max.is_zero() {
+            if query.instances_max.is_zero() {
                 event_or_instance_resources.push(EventOrInstance::Event(event_resource));
-            } else {
-                let instances_query = GetEventInstancesQuery {
-                    invitees_max: query.invitees_max,
-                    time_min: query.time_min,
-                    time_max: query.time_max,
-                    per_page: Some(PageSize::from_i64_clamped(query.instances_max.into())),
-                    after: None,
-                };
+                continue;
+            };
 
-                // TODO: Optimize to get instances for a list of events (not just a single event) with less DB roundtrips? See #1088
-                let instances_response = self
-                    .get_event_instances(&current_user, event_resource.id, instances_query)
-                    .await?;
-                for instance_resource in instances_response.0.0 {
-                    event_or_instance_resources.push(EventOrInstance::Instance(instance_resource));
-                }
+            // A event that is not time-dependent can't be recurring, hence the
+            // early return.
+            let EventResourceDateKind::TimeDependent {
+                is_time_independent: _,
+                ref date,
+            } = event_resource.date
+            else {
+                event_or_instance_resources.push(EventOrInstance::Event(event_resource));
+                continue;
+            };
+
+            let EventResourceDate::Single { .. } = date else {
+                event_or_instance_resources.push(EventOrInstance::Event(event_resource));
+                continue;
+            };
+
+            let instances_query = GetEventInstancesQuery {
+                invitees_max: query.invitees_max,
+                time_min: query.time_min,
+                time_max: query.time_max,
+                per_page: Some(PageSize::from_i64_clamped(query.instances_max.into())),
+                after: None,
+            };
+
+            // TODO: Optimize to get instances for a list of events (not just a single event) with less DB roundtrips? See #1088
+            let instances_response = self
+                .get_event_instances(&current_user, event_resource.id, instances_query)
+                .await?;
+
+            for instance_resource in instances_response.0.0 {
+                event_or_instance_resources.push(EventOrInstance::Instance(instance_resource));
             }
         }
 

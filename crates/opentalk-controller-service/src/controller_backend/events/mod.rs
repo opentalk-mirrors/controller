@@ -34,9 +34,9 @@ use opentalk_types_api_v1::{
     events::{
         CallInInfo, DeleteEventsQuery, EmailOnlyUser, EventAndInstanceId, EventDate, EventDateKind,
         EventExceptionResource, EventInvitee, EventInviteeProfile, EventOptionsQuery,
-        EventOrException, EventResource, EventRoomInfo, EventStatus, EventType, GetEventQuery,
-        GetEventsCursorData, GetEventsQuery, PatchEventBody, PatchEventQuery, PostEventsBody,
-        PublicInviteUserProfile,
+        EventOrException, EventResource, EventResourceDate, EventResourceDateKind, EventRoomInfo,
+        EventStatus, EventType, GetEventQuery, GetEventsCursorData, GetEventsQuery, PatchEventBody,
+        PatchEventQuery, PostEventsBody, PublicInviteUserProfile, TimeDependentMarker,
     },
     pagination::Cursor,
     users::PublicUserProfile,
@@ -336,9 +336,12 @@ impl ControllerBackend {
         // Build a cursor that can be used to fetch the next page
         let ret_cursor_data = vector.last().map(|item| {
             let (event_id, event_created_at, event_starts_at, instance_id) = match item {
-                EventOrException::Event(event) => {
-                    (event.id, event.created_at, event.starts_at, None)
-                }
+                EventOrException::Event(event) => (
+                    event.id,
+                    event.created_at,
+                    event.date.starts_at().cloned(),
+                    None,
+                ),
                 EventOrException::Exception(exception) => (
                     exception.recurring_event_id,
                     exception.created_at,
@@ -522,21 +525,6 @@ impl ControllerBackend {
             room: EventRoomInfo::from_room(settings, room, sip_config, &tariff),
             invitees_truncated,
             invitees,
-            is_time_independent: event.is_time_independent,
-            is_all_day: event.is_all_day,
-            starts_at,
-            ends_at,
-            recurrence_pattern: event
-                .recurrence_pattern
-                .as_ref()
-                .map(|s| s.parse::<RecurrencePattern>().unwrap())
-                .unwrap_or_default(),
-            is_adhoc: event.is_adhoc,
-            type_: if event.recurrence_pattern.is_some() {
-                EventType::Recurring
-            } else {
-                EventType::Single
-            },
             invite_status,
             is_favorite,
             can_edit,
@@ -544,6 +532,31 @@ impl ControllerBackend {
             streaming_targets: Vec::new(),
             show_meeting_details: event.show_meeting_details,
             training_participation_report,
+            date: starts_at
+                .zip(ends_at)
+                .map(|(starts_at, ends_at)| {
+                    let is_all_day = event.is_all_day.unwrap_or_default();
+                    event
+                        .recurrence_pattern
+                        .and_then(|pattern| pattern.parse::<RecurrencePattern>().ok())
+                        .map(|recurrence_pattern| EventResourceDate::Recurring {
+                            is_all_day,
+                            starts_at,
+                            ends_at,
+                            recurrence_pattern,
+                        })
+                        .unwrap_or_else(|| EventResourceDate::Single {
+                            is_all_day,
+                            starts_at,
+                            ends_at,
+                        })
+                })
+                .map(|date| EventResourceDateKind::TimeDependent {
+                    is_time_independent: TimeDependentMarker,
+                    date,
+                })
+                .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT),
+            is_adhoc: event.is_adhoc,
         };
 
         Ok(EventOrException::Event(resource))
@@ -749,20 +762,6 @@ impl ControllerBackend {
                 room: EventRoomInfo::from_room(&settings, room, sip_config, &tariff),
                 invitees_truncated,
                 invitees,
-                is_time_independent: event.is_time_independent,
-                is_all_day: event.is_all_day,
-                starts_at,
-                ends_at,
-                recurrence_pattern: event
-                    .recurrence_pattern
-                    .as_ref()
-                    .map(|s| s.parse::<RecurrencePattern>().unwrap())
-                    .unwrap_or_default(),
-                type_: if event.recurrence_pattern.is_some() {
-                    EventType::Recurring
-                } else {
-                    EventType::Single
-                },
                 invite_status,
                 is_favorite,
                 can_edit,
@@ -771,6 +770,30 @@ impl ControllerBackend {
                 streaming_targets: Vec::new(),
                 show_meeting_details: event.show_meeting_details,
                 training_participation_report,
+                date: starts_at
+                    .zip(ends_at)
+                    .map(|(starts_at, ends_at)| {
+                        let is_all_day = event.is_all_day.unwrap_or_default();
+                        event
+                            .recurrence_pattern
+                            .and_then(|pattern| pattern.parse::<RecurrencePattern>().ok())
+                            .map(|recurrence_pattern| EventResourceDate::Recurring {
+                                is_all_day,
+                                starts_at,
+                                ends_at,
+                                recurrence_pattern,
+                            })
+                            .unwrap_or_else(|| EventResourceDate::Single {
+                                is_all_day,
+                                starts_at,
+                                ends_at,
+                            })
+                    })
+                    .map(|date| EventResourceDateKind::TimeDependent {
+                        is_time_independent: TimeDependentMarker,
+                        date,
+                    })
+                    .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT),
             };
 
             let mut event_exception_resources: Vec<EventExceptionResource> = vec![];
@@ -850,20 +873,6 @@ impl ControllerBackend {
             created_at: event.created_at,
             updated_by: users.get(event.updated_by),
             updated_at: event.updated_at,
-            is_time_independent: event.is_time_independent,
-            is_all_day: event.is_all_day,
-            starts_at,
-            ends_at,
-            recurrence_pattern: event
-                .recurrence_pattern
-                .as_ref()
-                .map(|s| s.parse::<RecurrencePattern>().unwrap())
-                .unwrap_or_default(),
-            type_: if event.recurrence_pattern.is_some() {
-                EventType::Recurring
-            } else {
-                EventType::Single
-            },
             invite_status: invite
                 .map(|inv| inv.status)
                 .unwrap_or(EventInviteStatus::Accepted),
@@ -874,6 +883,30 @@ impl ControllerBackend {
             streaming_targets: room_streaming_targets,
             show_meeting_details: event.show_meeting_details,
             training_participation_report: training_participation_report.map(Into::into),
+            date: starts_at
+                .zip(ends_at)
+                .map(|(starts_at, ends_at)| {
+                    let is_all_day = event.is_all_day.unwrap_or_default();
+                    event
+                        .recurrence_pattern
+                        .and_then(|pattern| pattern.parse::<RecurrencePattern>().ok())
+                        .map(|recurrence_pattern| EventResourceDate::Recurring {
+                            is_all_day,
+                            starts_at,
+                            ends_at,
+                            recurrence_pattern,
+                        })
+                        .unwrap_or_else(|| EventResourceDate::Single {
+                            is_all_day,
+                            starts_at,
+                            ends_at,
+                        })
+                })
+                .map(|date| EventResourceDateKind::TimeDependent {
+                    is_time_independent: TimeDependentMarker,
+                    date,
+                })
+                .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT),
         };
 
         let event_resource = EventResource {
@@ -1087,20 +1120,6 @@ impl ControllerBackend {
             room: EventRoomInfo::from_room(&settings, room, sip_config, &tariff),
             invitees_truncated,
             invitees,
-            is_time_independent: event.is_time_independent,
-            is_all_day: event.is_all_day,
-            starts_at,
-            ends_at,
-            recurrence_pattern: event
-                .recurrence_pattern
-                .as_ref()
-                .map(|s| s.parse::<RecurrencePattern>().unwrap())
-                .unwrap_or_default(),
-            type_: if event.recurrence_pattern.is_some() {
-                EventType::Recurring
-            } else {
-                EventType::Single
-            },
             invite_status: invite
                 .map(|inv| inv.status)
                 .unwrap_or(EventInviteStatus::Accepted),
@@ -1111,6 +1130,30 @@ impl ControllerBackend {
             streaming_targets: streaming_targets.clone(),
             show_meeting_details: event.show_meeting_details,
             training_participation_report: training_participation_report.map(Into::into),
+            date: starts_at
+                .zip(ends_at)
+                .map(|(starts_at, ends_at)| {
+                    let is_all_day = event.is_all_day.unwrap_or_default();
+                    event
+                        .recurrence_pattern
+                        .and_then(|pattern| pattern.parse::<RecurrencePattern>().ok())
+                        .map(|recurrence_pattern| EventResourceDate::Recurring {
+                            is_all_day,
+                            starts_at,
+                            ends_at,
+                            recurrence_pattern,
+                        })
+                        .unwrap_or_else(|| EventResourceDate::Single {
+                            is_all_day,
+                            starts_at,
+                            ends_at,
+                        })
+                })
+                .map(|date| EventResourceDateKind::TimeDependent {
+                    is_time_independent: TimeDependentMarker,
+                    date,
+                })
+                .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT),
         };
 
         if let Some(mail_service) = &mail_service {
@@ -1534,12 +1577,6 @@ async fn create_time_independent_event(
             created_at: event.created_at,
             updated_by: current_user.to_public_user_profile(settings),
             updated_at: event.updated_at,
-            is_time_independent: true,
-            is_all_day: None,
-            starts_at: None,
-            ends_at: None,
-            recurrence_pattern: RecurrencePattern::default(),
-            type_: EventType::Single,
             invite_status: EventInviteStatus::Accepted,
             is_favorite: false,
             can_edit: true, // just created by the current user
@@ -1548,6 +1585,7 @@ async fn create_time_independent_event(
             streaming_targets,
             show_meeting_details,
             training_participation_report,
+            date: EventResourceDateKind::TIME_INDEPENDENT,
         },
         mail_resource,
     ))
@@ -1645,28 +1683,52 @@ async fn create_time_dependent_event(
             created_at: event.created_at,
             updated_by: current_user.to_public_user_profile(settings),
             updated_at: event.updated_at,
-            is_time_independent: event.is_time_independent,
-            is_all_day: event.is_all_day,
-            starts_at: Some(starts_at),
-            ends_at: Some(ends_at),
-            recurrence_pattern: event
-                .recurrence_pattern
-                .as_ref()
-                .map(|s| s.parse::<RecurrencePattern>().unwrap())
-                .unwrap_or_default(),
-            type_: if event.recurrence_pattern.is_some() {
-                EventType::Recurring
-            } else {
-                EventType::Single
-            },
             invite_status: EventInviteStatus::Accepted,
             is_favorite: false,
-            can_edit: true, // just created by the current user
+            can_edit: true, // Just created by the current user.
             is_adhoc,
             shared_folder: None,
             streaming_targets,
             show_meeting_details,
             training_participation_report,
+            date: event
+                .starts_at
+                .zip(event.ends_at)
+                .map(|(created_starts_at, created_ends_at)| {
+                    let is_all_day = event.is_all_day.unwrap_or_default();
+                    event
+                        .recurrence_pattern
+                        .and_then(|pattern| pattern.parse::<RecurrencePattern>().ok())
+                        .map(|recurrence_pattern| EventResourceDate::Recurring {
+                            is_all_day,
+                            starts_at: DateTimeTz {
+                                datetime: created_starts_at.into(),
+                                timezone: starts_at.timezone,
+                            },
+                            ends_at: DateTimeTz {
+                                datetime: created_ends_at.into(),
+                                timezone: ends_at.timezone,
+                            },
+                            recurrence_pattern,
+                        })
+                        .unwrap_or_else(|| EventResourceDate::Single {
+                            is_all_day,
+                            starts_at: DateTimeTz {
+                                datetime: created_starts_at.into(),
+                                timezone: starts_at.timezone,
+                            },
+                            ends_at: DateTimeTz {
+                                datetime: created_ends_at.into(),
+                                timezone: ends_at.timezone,
+                            },
+                        })
+                })
+                .map(|date| EventResourceDateKind::TimeDependent {
+                    is_time_independent: TimeDependentMarker,
+                    date,
+                })
+                // If this gets returned something went wrong.
+                .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT),
         },
         mail_resource,
     ))
@@ -2244,10 +2306,11 @@ mod tests {
     use opentalk_types_common::{
         events::invites::InviteRole,
         rooms::RoomId,
-        time::Timestamp,
+        time::{TimeZone, Timestamp},
         training_participation_report::TimeRange,
         users::{UserId, UserInfo},
     };
+    use pretty_assertions::assert_eq;
     use serde_json::json;
 
     use super::*;
@@ -2308,18 +2371,21 @@ mod tests {
                 }),
                 status: EventInviteStatus::Accepted,
             }],
-            is_time_independent: false,
-            is_all_day: Some(false),
-            starts_at: Some(DateTimeTz {
-                datetime: *unix_epoch,
-                timezone: TimeZone::from(Tz::Europe__Berlin),
-            }),
-            ends_at: Some(DateTimeTz {
-                datetime: *unix_epoch,
-                timezone: TimeZone::from(Tz::Europe__Berlin),
-            }),
-            recurrence_pattern: RecurrencePattern::default(),
-            type_: EventType::Single,
+            date: EventResourceDateKind::TimeDependent {
+                is_time_independent: TimeDependentMarker,
+                date: EventResourceDate::Recurring {
+                    is_all_day: false,
+                    starts_at: DateTimeTz {
+                        datetime: *unix_epoch,
+                        timezone: TimeZone::from(Tz::Europe__Berlin),
+                    },
+                    ends_at: DateTimeTz {
+                        datetime: *unix_epoch,
+                        timezone: TimeZone::from(Tz::Europe__Berlin),
+                    },
+                    recurrence_pattern: RecurrencePattern::default(),
+                },
+            },
             invite_status: EventInviteStatus::Accepted,
             is_favorite: false,
             can_edit: true,
@@ -2397,7 +2463,7 @@ mod tests {
                         "datetime": "1970-01-01T00:00:00Z",
                         "timezone": "Europe/Berlin"
                     },
-                    "type": "single",
+                    "type": "recurring",
                     "invite_status": "accepted",
                     "is_favorite": false,
                     "can_edit": true,
@@ -2464,12 +2530,7 @@ mod tests {
                 }),
                 status: EventInviteStatus::Accepted,
             }],
-            is_time_independent: true,
-            is_all_day: None,
-            starts_at: None,
-            ends_at: None,
-            recurrence_pattern: RecurrencePattern::default(),
-            type_: EventType::Single,
+            date: EventResourceDateKind::TIME_INDEPENDENT,
             invite_status: EventInviteStatus::Accepted,
             is_favorite: true,
             can_edit: false,
@@ -2606,7 +2667,7 @@ mod tests {
             }),
             original_starts_at: DateTimeTz {
                 datetime: *unix_epoch,
-                timezone: TimeZone::from(Tz::Europe__Berlin),
+                timezone: opentalk_types_common::time::TimeZone::from(Tz::Europe__Berlin),
             },
             type_: EventType::Exception,
             status: EventStatus::Ok,

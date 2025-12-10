@@ -3461,7 +3461,7 @@ components:
           initial_checkpoint_delay:
             after: 100
             within: 200
-        type: recurring
+        type: instance
         updated_at: "2024-07-20T14:16:19Z"
         updated_by:
           avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
@@ -3575,6 +3575,9 @@ components:
           lastname: Adams
           title: ""
         description: The Weekly Team Event
+        ends_at:
+          datetime: "2002-04-01T11:41:35Z"
+          timezone: Europe/Berlin
         id: 00000000-0000-0000-0000-004433221100
         invite_status: accepted
         invitees:
@@ -3591,8 +3594,11 @@ components:
             status: accepted
         invitees_truncated: false
         is_adhoc: false
+        is_all_day: true
         is_favorite: false
         is_time_independent: false
+        recurrence_pattern:
+          - FREQ=WEEKLY;INTERVAL=1;BYDAY=MO
         room:
           call_in:
             id: "1234567890"
@@ -3608,7 +3614,7 @@ components:
             url: "https://cloud.example.com/shares/abc123"
         show_meeting_details: true
         starts_at:
-          datetime: "2024-07-05T17:02:42Z"
+          datetime: "2002-04-01T10:41:35Z"
           timezone: Europe/Berlin
         streaming_targets:
           - id: 00000000-0000-0000-0000-000043434343
@@ -3625,7 +3631,7 @@ components:
           initial_checkpoint_delay:
             after: 100
             within: 200
-        type: single
+        type: recurring
         updated_at: "2024-07-20T14:16:19Z"
         updated_by:
           avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
@@ -3636,152 +3642,101 @@ components:
           lastname: Adams
           title: ""
     EventResource:
-      type: object
+      allOf:
+        - $ref: "#/components/schemas/EventResourceDateKind"
+          description: The field containing optional parameter related to the date of the event.
+        - type: object
+          required:
+            - id
+            - created_by
+            - created_at
+            - updated_by
+            - updated_at
+            - title
+            - description
+            - room
+            - invitees_truncated
+            - invitees
+            - is_adhoc
+            - invite_status
+            - is_favorite
+            - can_edit
+            - show_meeting_details
+          properties:
+            can_edit:
+              type: boolean
+              description: Can the current user edit this resource
+            created_at:
+              $ref: "#/components/schemas/Timestamp"
+              description: Timestamp of the event creation
+            created_by:
+              $ref: "#/components/schemas/PublicUserProfile"
+              description: Public user profile of the user which created the event
+            description:
+              $ref: "#/components/schemas/EventDescription"
+              description: |-
+                Description of the event
+
+                For display purposes
+            id:
+              $ref: "#/components/schemas/EventId"
+              description: ID of the event
+            invite_status:
+              $ref: "#/components/schemas/EventInviteStatus"
+              description: The invite status of the current user for this event
+            invitees:
+              type: array
+              items:
+                $ref: "#/components/schemas/EventInvitee"
+              description: "List of event invitees and their invite status. Might not be complete, see `invite_truncated`"
+            invitees_truncated:
+              type: boolean
+              description: |-
+                Flag which indicates if `invitees` contains all invites as far as known to the application
+                May also be true if there are no invitees but no invitees were requested
+            is_adhoc:
+              type: boolean
+              description: Flag indicating whether the event is ad-hoc created.
+            is_favorite:
+              type: boolean
+              description: "Is this event in the current user's favorite list?"
+            room:
+              $ref: "#/components/schemas/EventRoomInfo"
+              description: All information about the room the event takes place in
+            shared_folder:
+              $ref: "#/components/schemas/SharedFolder"
+              description: Information about the shared folder for the event
+            show_meeting_details:
+              type: boolean
+              description: "Indicates whether meeting details should be provided. If absent, no meeting details are made available."
+            streaming_targets:
+              type: array
+              items:
+                $ref: "#/components/schemas/RoomStreamingTarget"
+              description: The streaming targets of the room associated with the event
+            title:
+              $ref: "#/components/schemas/EventTitle"
+              description: |-
+                Title of the event
+
+                For display purposes
+            training_participation_report:
+              $ref: "#/components/schemas/TrainingParticipationReportParameterSet"
+              description: |-
+                The training participation report parameter set for the event.
+
+                When present, the training participation report will be started
+                automatically in the meeting.
+            updated_at:
+              $ref: "#/components/schemas/Timestamp"
+              description: Timestamp of the last update
+            updated_by:
+              $ref: "#/components/schemas/PublicUserProfile"
+              description: Public user profile of the user which last updated the event
       description: |-
         Event Resource representation
 
         Returned from `GET /events/` and `GET /events/{event_id}`
-      required:
-        - id
-        - created_by
-        - created_at
-        - updated_by
-        - updated_at
-        - title
-        - description
-        - room
-        - invitees_truncated
-        - invitees
-        - is_time_independent
-        - is_adhoc
-        - type
-        - invite_status
-        - is_favorite
-        - can_edit
-        - show_meeting_details
-      properties:
-        can_edit:
-          type: boolean
-          description: Can the current user edit this resource
-        created_at:
-          $ref: "#/components/schemas/Timestamp"
-          description: Timestamp of the event creation
-        created_by:
-          $ref: "#/components/schemas/PublicUserProfile"
-          description: Public user profile of the user which created the event
-        description:
-          $ref: "#/components/schemas/EventDescription"
-          description: |-
-            Description of the event
-
-            For display purposes
-        ends_at:
-          $ref: "#/components/schemas/DateTimeTz"
-          description: |-
-            End time of the event.
-
-            Omitted if `is_time_independent` is true
-
-            For events of type `recurring` the datetime contains the time of the first instance.
-            The datetimes of subsequent recurrences are computed using the datetime of the first instance and its timezone.
-        id:
-          $ref: "#/components/schemas/EventId"
-          description: ID of the event
-        invite_status:
-          $ref: "#/components/schemas/EventInviteStatus"
-          description: The invite status of the current user for this event
-        invitees:
-          type: array
-          items:
-            $ref: "#/components/schemas/EventInvitee"
-          description: "List of event invitees and their invite status. Might not be complete, see `invite_truncated`"
-        invitees_truncated:
-          type: boolean
-          description: |-
-            Flag which indicates if `invitees` contains all invites as far as known to the application
-            May also be true if there are no invitees but no invitees were requested
-        is_adhoc:
-          type: boolean
-          description: Flag indicating whether the event is ad-hoc created.
-        is_all_day:
-          type: boolean
-          description: |-
-            Is the event an all day event
-
-            All-day events have no start/end time, they last the entire day(s)
-        is_favorite:
-          type: boolean
-          description: "Is this event in the current user's favorite list?"
-        is_time_independent:
-          type: boolean
-          description: |-
-            Is the event time independent?
-
-            Time independent events are not bound to any time but instead are constantly available to join
-        recurrence_pattern:
-          $ref: "#/components/schemas/RecurrencePattern"
-          description: |-
-            Recurrence pattern(s) for recurring events
-
-            May contain RRULE, EXRULE, RDATE and EXDATE strings
-
-            Requires `type` to be `recurring`
-
-            Contains a list of recurrence rules which describe the occurrences of the event.
-            To get all event instances resolved use the `GET /events/{event_id}/instances` endpoint.
-            Changing this field will always remove all exceptions for the event.
-
-            Allowed are `RRULE`, `RDATE`, `EXRULE` and `EXDATE`.
-            The `DTSTART` and `DTEND` attributes are not allowed as their information is stored
-            in the `starts_at` and `ends_at` fields.
-        room:
-          $ref: "#/components/schemas/EventRoomInfo"
-          description: All information about the room the event takes place in
-        shared_folder:
-          $ref: "#/components/schemas/SharedFolder"
-          description: Information about the shared folder for the event
-        show_meeting_details:
-          type: boolean
-          description: "Indicates whether meeting details should be provided. If absent, no meeting details are made available."
-        starts_at:
-          $ref: "#/components/schemas/DateTimeTz"
-          description: |-
-            Start time of the event.
-
-            Omitted if `is_time_independent` is true
-
-            For events of type `recurring` the datetime contains the time of the first instance.
-            The datetimes of subsequent recurrences are computed using the datetime of the first instance and its timezone.
-        streaming_targets:
-          type: array
-          items:
-            $ref: "#/components/schemas/RoomStreamingTarget"
-          description: The streaming targets of the room associated with the event
-        title:
-          $ref: "#/components/schemas/EventTitle"
-          description: |-
-            Title of the event
-
-            For display purposes
-        training_participation_report:
-          $ref: "#/components/schemas/TrainingParticipationReportParameterSet"
-          description: |-
-            The training participation report parameter set for the event.
-
-            When present, the training participation report will be started
-            automatically in the meeting.
-        type:
-          $ref: "#/components/schemas/EventType"
-          description: |-
-            Type of event
-
-            Time independent events or events without recurrence are `single` while recurring events are `recurring`
-        updated_at:
-          $ref: "#/components/schemas/Timestamp"
-          description: Timestamp of the last update
-        updated_by:
-          $ref: "#/components/schemas/PublicUserProfile"
-          description: Public user profile of the user which last updated the event
       example:
         can_edit: false
         created_at: "2024-07-20T14:16:19Z"
@@ -3794,6 +3749,9 @@ components:
           lastname: Adams
           title: ""
         description: The Weekly Team Event
+        ends_at:
+          datetime: "2002-04-01T11:41:35Z"
+          timezone: Europe/Berlin
         id: 00000000-0000-0000-0000-004433221100
         invite_status: accepted
         invitees:
@@ -3810,8 +3768,11 @@ components:
             status: accepted
         invitees_truncated: false
         is_adhoc: false
+        is_all_day: true
         is_favorite: false
         is_time_independent: false
+        recurrence_pattern:
+          - FREQ=WEEKLY;INTERVAL=1;BYDAY=MO
         room:
           call_in:
             id: "1234567890"
@@ -3827,7 +3788,7 @@ components:
             url: "https://cloud.example.com/shares/abc123"
         show_meeting_details: true
         starts_at:
-          datetime: "2024-07-05T17:02:42Z"
+          datetime: "2002-04-01T10:41:35Z"
           timezone: Europe/Berlin
         streaming_targets:
           - id: 00000000-0000-0000-0000-000043434343
@@ -3844,7 +3805,7 @@ components:
           initial_checkpoint_delay:
             after: 100
             within: 200
-        type: single
+        type: recurring
         updated_at: "2024-07-20T14:16:19Z"
         updated_by:
           avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
@@ -3854,6 +3815,140 @@ components:
           id: 00000000-0000-0000-0000-0000000a11c3
           lastname: Adams
           title: ""
+    EventResourceDate:
+      oneOf:
+        - type: object
+          description: Represents a date without a recurrence pattern.
+          required:
+            - starts_at
+            - ends_at
+            - type
+          properties:
+            ends_at:
+              $ref: "#/components/schemas/DateTimeTz"
+              description: |-
+                End time of the event.
+
+                For recurring events these must contain the datetime of the first instance.
+            is_all_day:
+              type: boolean
+              description: |-
+                Should the event be all-day?
+
+                If true, requires `starts_at.datetime` and `ends_at.datetime` to have a 00:00 time part.
+            starts_at:
+              $ref: "#/components/schemas/DateTimeTz"
+              description: |-
+                Start time of the event.
+
+                For recurring events these must contain the datetime of the first instance.
+            type:
+              type: string
+              enum:
+                - single
+        - type: object
+          description: Represens a date with recurrence pattern.
+          required:
+            - starts_at
+            - ends_at
+            - type
+          properties:
+            ends_at:
+              $ref: "#/components/schemas/DateTimeTz"
+              description: |-
+                End time of the event.
+
+                For recurring events these must contain the datetime of the first instance.
+            is_all_day:
+              type: boolean
+              description: |-
+                Should the event be all-day?
+
+                If true, requires `starts_at.datetime` and `ends_at.datetime` to have a 00:00 time part.
+            recurrence_pattern:
+              $ref: "#/components/schemas/RecurrencePattern"
+              description: |-
+                Recurrence pattern(s) for recurring events.
+
+                Contains a list of recurrence rules which describe the occurrences of the event.
+
+                # Allowed Values
+
+                - `RRULE`
+                - `RDATE`
+                - `EXRULE`
+                - `EXDATE`
+
+                # Forbidden Values
+
+                - `DTSTART`
+                - `DTEND`
+
+                This information is stored in the `starts_at` and `ends_at` fields.
+            starts_at:
+              $ref: "#/components/schemas/DateTimeTz"
+              description: |-
+                Start time of the event.
+
+                For recurring events these must contain the datetime of the first instance.
+            type:
+              type: string
+              enum:
+                - recurring
+      description: Representing event date related information.
+      example:
+        ends_at:
+          datetime: "2002-04-01T11:41:35Z"
+          timezone: Europe/Berlin
+        is_all_day: true
+        recurrence_pattern:
+          - FREQ=WEEKLY;INTERVAL=1;BYDAY=MO
+        starts_at:
+          datetime: "2002-04-01T10:41:35Z"
+          timezone: Europe/Berlin
+        type: recurring
+    EventResourceDateKind:
+      oneOf:
+        - type: object
+          description: Event is not bound to specific times.
+          required:
+            - type
+            - is_time_independent
+          properties:
+            is_time_independent:
+              $ref: "#/components/schemas/TimeIndependentMarker"
+              description: |-
+                Should the created event be time independent?
+
+                If true, all following fields must be null.
+                If false, requires `is_all_day`, `starts_at`, `ends_at`.
+            type:
+              $ref: "#/components/schemas/SingleMarker"
+              description: Indicates that the event has no recurrence_pattern.
+        - allOf:
+            - $ref: "#/components/schemas/EventResourceDate"
+              description: Represents all date related information of the respective event.
+            - type: object
+              required:
+                - is_time_independent
+              properties:
+                is_time_independent:
+                  $ref: "#/components/schemas/TimeDependentMarker"
+                  description: Marker field to identify this variant during deserialization.
+          description: Event is bound to specific times.
+      description: Contains date related parameters for the respective event.
+      example:
+        ends_at:
+          datetime: "2002-04-01T11:41:35Z"
+          timezone: Europe/Berlin
+        is_all_day: true
+        is_time_independent: false
+        recurrence_pattern:
+          - FREQ=WEEKLY;INTERVAL=1;BYDAY=MO
+        starts_at:
+          datetime: "2002-04-01T10:41:35Z"
+          timezone: Europe/Berlin
+        type: recurring
     EventRoomInfo:
       type: object
       description: All information about a room in which an event takes place
@@ -3909,7 +4004,7 @@ components:
         - recurring
         - instance
         - exception
-      example: single
+      example: instance
     FeatureId:
       type: string
       description: A feature identifier
@@ -4002,7 +4097,7 @@ components:
             initial_checkpoint_delay:
               after: 100
               within: 200
-          type: recurring
+          type: instance
           updated_at: "2024-07-20T14:16:19Z"
           updated_by:
             avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
@@ -5060,6 +5155,14 @@ components:
       example:
         password: v3rys3cr3t
         url: "https://cloud.example.com/shares/abc123"
+    SingleMarker:
+      type: string
+      description: |-
+        Marker type that serializes to `"single"`.
+
+        This ensures `type: "single"` appears in JSON for variant.
+      enum:
+        - single
     SipConfigResource:
       type: object
       description: "Response for the `GET /rooms/{room_id}/sip` endpoint"
