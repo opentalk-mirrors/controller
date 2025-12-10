@@ -4,7 +4,7 @@
 
 //! Provides OpenID Connect stuff.
 
-use std::ops::Deref;
+use std::{ops::Deref, str::FromStr};
 
 use chrono::{DateTime, Utc};
 use claims::OpenTalkAdditionalClaims;
@@ -18,7 +18,8 @@ use opentalk_controller_utils::CaptureApiError;
 use opentalk_types_api_v1::error::ApiError;
 use opentalk_types_common::time::TimeZone;
 use provider::ProviderClient;
-use snafu::{ResultExt, Whatever};
+use reqwest11::header::{HeaderMap, HeaderName, HeaderValue};
+use snafu::{OptionExt as _, ResultExt, Whatever};
 use url::Url;
 
 use crate::Result;
@@ -40,6 +41,21 @@ pub struct OidcContext {
     pub provider: ProviderClient,
     /// The HTTP client
     http_client: reqwest11::Client,
+
+    /// The HTTP client for calling the introspection endpoint.
+    ///
+    /// In some cases, e.g. when running in a test setup, the client must send different kinds
+    /// of requests when performing the OIDC introspection (mainly because Keycloak requires
+    /// the introspection request go to the same host as the one that issued the frontend token).
+    ///
+    /// This will be set to a different client if:
+    /// - The `OIDC_INTROSPECT_AND_USERINFO_SET_X_FORWARDED_HOST` environment
+    ///   variable is set to `true` (case-insensitive) or `1`.
+    /// - The `frontend_auth_base_url` differs from the `controller_auth_base_url`.
+    ///
+    /// This client adds a `x-forwarded-host` header derived from the frontend auth base url,
+    /// using its host part, and if present, the port as well.
+    http_introspect_and_userinfo_client: Option<reqwest11::Client>,
 }
 
 impl OidcContext {
@@ -53,7 +69,33 @@ impl OidcContext {
         client_id: ClientId,
         client_secret: ClientSecret,
     ) -> Result<Self> {
-        let http_client = http::make_client().whatever_context("Failed to make http client")?;
+        let http_client = http::make_client(None).whatever_context("Failed to make http client")?;
+
+        let http_introspect_and_userinfo_client =
+            match std::env::var("OIDC_INTROSPECT_AND_USERINFO_SET_X_FORWARDED_HOST").ok() {
+                Some(v) if v.eq_ignore_ascii_case("true") || v == "1" => {
+                    let host = frontend_auth_base_url
+                        .host_str()
+                        .whatever_context("Frontend auth base url doesn't have a host part")?;
+                    let port_appendix = frontend_auth_base_url
+                        .port()
+                        .map(|p| format!(":{p}"))
+                        .unwrap_or_default();
+                    let forwarded_host = format!("{host}{port_appendix}");
+                    let mut default_headers = HeaderMap::new();
+                    _ = default_headers.insert(
+                        HeaderName::from_str("X-Forwarded-Host")
+                            .whatever_context("Invalid header header name for introspect client")?,
+                        HeaderValue::from_str(&forwarded_host)
+                            .whatever_context("Invalid header value for introspect client")?,
+                    );
+                    Some(
+                        http::make_client(Some(default_headers))
+                            .whatever_context("Failed to make oidc introspection http client")?,
+                    )
+                }
+                Some(_) | None => None,
+            };
 
         let client = ProviderClient::discover(
             http_client.clone(),
@@ -68,6 +110,7 @@ impl OidcContext {
             frontend_auth_base_url,
             provider: client,
             http_client,
+            http_introspect_and_userinfo_client,
         })
     }
 
@@ -97,12 +140,16 @@ impl OidcContext {
     /// Call the OIDC's userinfo endpoint to fetch the user data associated with the access token
     #[tracing::instrument(name = "oidc_user_info", skip_all)]
     pub async fn introspect(&self, access_token: AccessToken) -> Result<IntrospectInfo> {
+        let client = self
+            .http_introspect_and_userinfo_client
+            .as_ref()
+            .unwrap_or(&self.http_client);
         let claims = self
             .provider
             .client
             .introspect(&access_token)
             .whatever_context("Failed to build AccessToken introspect request")?
-            .request_async(async_http_client(self.http_client.clone()))
+            .request_async(async_http_client(client.clone()))
             .await
             .whatever_context("AccessToken introspect request failed")?;
 
@@ -118,12 +165,16 @@ impl OidcContext {
         &self,
         access_token: AccessToken,
     ) -> Result<OpenIdConnectUserInfo, CaptureApiError> {
+        let client = self
+            .http_introspect_and_userinfo_client
+            .as_ref()
+            .unwrap_or(&self.http_client);
         let claims: UserInfoClaims<OpenTalkAdditionalClaims, CoreGenderClaim> = self
             .provider
             .client
             .user_info(access_token, None)
             .whatever_context::<_, Whatever>("Failed to build userinfo request")?
-            .request_async(async_http_client(self.http_client.clone()))
+            .request_async(async_http_client(client.clone()))
             .await
             .whatever_context::<_, Whatever>("Failed to fetch userinfo")?;
 

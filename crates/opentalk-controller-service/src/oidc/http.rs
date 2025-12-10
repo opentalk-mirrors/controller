@@ -5,11 +5,17 @@
 use std::{future::Future, pin::Pin};
 
 use openidconnect::{HttpRequest, HttpResponse, reqwest::Error};
+use reqwest11::header::HeaderMap;
 
-pub fn make_client() -> Result<reqwest11::Client, reqwest11::Error> {
-    reqwest11::Client::builder()
-        .redirect(reqwest11::redirect::Policy::none())
-        .build()
+pub fn make_client(
+    default_headers: Option<HeaderMap>,
+) -> Result<reqwest11::Client, reqwest11::Error> {
+    let mut client_builder =
+        reqwest11::Client::builder().redirect(reqwest11::redirect::Policy::none());
+    if let Some(default_headers) = default_headers {
+        client_builder = client_builder.default_headers(default_headers)
+    }
+    client_builder.build()
 }
 
 pub type BoxedHttpResponseFuture =
