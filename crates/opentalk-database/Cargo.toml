@@ -18,7 +18,6 @@ version.workspace = true
 workspace = true
 
 [dependencies]
-async-trait = "0.1"
 deadpool-runtime = { version = "0.1", features = ["tokio_1"] }
 diesel = { workspace = true, features = [
   "chrono",
