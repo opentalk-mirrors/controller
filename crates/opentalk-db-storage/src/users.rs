@@ -429,13 +429,10 @@ impl User {
     pub async fn get_used_storage_u64(conn: &mut DbConnection, user_id: &UserId) -> Result<u64> {
         let used_storage = Self::get_used_storage(conn, user_id).await?;
 
-        Ok(used_storage.to_u64().map_or_else(
-            || {
-                log::warn!("failed to convert used storage: {used_storage} to u64");
-                u64::MAX
-            },
-            |used_storage_u64| used_storage_u64,
-        ))
+        Ok(used_storage.to_u64().unwrap_or_else(|| {
+            log::warn!("failed to convert used storage: {used_storage} to u64");
+            u64::MAX
+        }))
     }
 
     #[tracing::instrument(err, skip_all)]
