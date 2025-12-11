@@ -432,3 +432,7 @@ token_bucket_size = 30
 # The user has booked a specific tariff, but is not allowed to use it, e.g. because
 # it is unpaid. Therefore the user's tariff is downgraded to the fallback tariff.
 #downgraded = ["unpaid"]
+#
+#[reports.typst]
+# The location where typst looks for packages.
+#packages_path = "/usr/share/typst/packages"
