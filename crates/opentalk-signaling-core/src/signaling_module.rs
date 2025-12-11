@@ -29,6 +29,12 @@ pub enum SignalingModuleError {
         source: redis::RedisError,
     },
 
+    #[snafu(display("Redis parsing error: {message}",))]
+    RedisParsingError {
+        message: String,
+        source: redis::ParsingError,
+    },
+
     #[snafu(context(false))]
     UrlParseError { source: url::ParseError },
 

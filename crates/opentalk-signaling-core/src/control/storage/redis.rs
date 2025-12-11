@@ -14,7 +14,7 @@ use opentalk_types_common::{
     rooms::RoomId, tariffs::TariffResource, time::Timestamp, users::UserInfo,
 };
 use opentalk_types_signaling::{ParticipantId, Role};
-use redis::{AsyncCommands, ErrorKind, FromRedisValue, RedisError, ToRedisArgs};
+use redis::{AsyncCommands, FromRedisValue, ParsingError, ToRedisArgs, ToSingleRedisArg};
 use redis_args::{FromRedisValue, ToRedisArgs};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use snafu::ResultExt;
@@ -28,7 +28,9 @@ use super::{
         RoomAttributeId,
     },
 };
-use crate::{RedisConnection, RedisSnafu, SignalingModuleError, SignalingRoomId};
+use crate::{
+    RedisConnection, RedisParsingSnafu, RedisSnafu, SignalingModuleError, SignalingRoomId,
+};
 
 #[async_trait(?Send)]
 impl ControlStorage for RedisConnection {
@@ -489,47 +491,34 @@ impl ToRedisArgs for WrappedAttributeValueJson {
     }
 }
 
+impl ToSingleRedisArg for WrappedAttributeValueJson {}
+
 impl FromRedisValue for WrappedAttributeValueJson {
-    fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
+    fn from_redis_value(v: redis::Value) -> Result<Self, ParsingError> {
         match v {
             redis::Value::Nil => Ok(Self(None)),
             redis::Value::Int(v) => Ok(Self(Some(serde_json::Value::Number(
-                serde_json::Number::from(*v),
+                serde_json::Number::from(v),
             )))),
             redis::Value::BulkString(v) => {
-                let value = serde_json::from_slice(v).map_err(|e| {
-                    redis::RedisError::from((
-                        redis::ErrorKind::ParseError,
-                        "Could not deserialize JSON value",
-                        format!("{e:?}"),
-                    ))
+                let value = serde_json::from_slice(&v).map_err(|e| {
+                    ParsingError::from(format!("Could not deserialize JSON value: {e:?}"))
                 })?;
                 Ok(Self(Some(value)))
             }
             redis::Value::Array(v) | redis::Value::Set(v) => {
                 let values = v
-                    .iter()
+                    .into_iter()
                     .map(WrappedAttributeValueJson::from_redis_value)
-                    .collect::<redis::RedisResult<Vec<WrappedAttributeValueJson>>>()?;
+                    .collect::<Result<Vec<WrappedAttributeValueJson>, ParsingError>>()?;
                 let values: Vec<serde_json::Value> = values
                     .into_iter()
                     .map(|v| serde_json::to_value(v.0).expect("Option<Value> must be serializable"))
                     .collect();
                 Ok(Self(Some(serde_json::Value::Array(values))))
             }
-            v @ (redis::Value::SimpleString(_)
-            | redis::Value::Okay
-            | redis::Value::ServerError(_)
-            | redis::Value::Map(_)
-            | redis::Value::Double(_)
-            | redis::Value::Boolean(_)
-            | redis::Value::BigNumber(_)
-            | redis::Value::VerbatimString { .. }
-            | redis::Value::Attribute { .. }
-            | redis::Value::Push { .. }) => Err(redis::RedisError::from((
-                redis::ErrorKind::TypeError,
-                "Response was of incompatible type",
-                format!("response was {v:?}"),
+            v => Err(ParsingError::from(format!(
+                "Response was of incompatible type, response was {v:?}"
             ))),
         }
     }
@@ -547,20 +536,17 @@ impl<T: Serialize> ToRedisArgs for WrappedAttributeValue<T> {
     }
 }
 
+impl<T: Serialize> ToSingleRedisArg for WrappedAttributeValue<T> {}
+
 impl<T: DeserializeOwned> FromRedisValue for WrappedAttributeValue<T> {
-    fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
+    fn from_redis_value(v: redis::Value) -> Result<Self, ParsingError> {
         let WrappedAttributeValueJson(value) = WrappedAttributeValueJson::from_redis_value(v)?;
         let Some(value) = value else {
             return Ok(Self(None));
         };
 
-        let value = serde_json::from_value(value).map_err(|e| {
-            redis::RedisError::from((
-                redis::ErrorKind::ParseError,
-                "Could not deserialize JSON value",
-                format!("{e:?}"),
-            ))
-        })?;
+        let value = serde_json::from_value(value)
+            .map_err(|e| ParsingError::from(format!("Could not deserialize JSON value: {e:?}")))?;
         Ok(Self(Some(value)))
     }
 }
@@ -675,11 +661,9 @@ impl ControlStorageParticipantAttributesRaw for RedisConnection {
                 message: "Failed to perform bulk attribute actions".to_string(),
             })?
         else {
-            return Err(RedisError::from((ErrorKind::TypeError, "Empty value"))).context(
-                RedisSnafu {
-                    message: "Redis bulk action error",
-                },
-            );
+            return Err(ParsingError::from("Empty value")).context(RedisParsingSnafu {
+                message: "Redis bulk action error",
+            });
         };
         if value == serde_json::Value::Array(Vec::new()) {
             value = serde_json::Value::Null;
