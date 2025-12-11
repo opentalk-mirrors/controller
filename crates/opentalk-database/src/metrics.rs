@@ -13,13 +13,13 @@ use std::{
 };
 
 use diesel::{
-    connection::{Instrumentation, InstrumentationEvent},
+    connection::{CacheSize, Instrumentation, InstrumentationEvent},
     query_builder::{AsQuery, QueryFragment, QueryId},
     result::{ConnectionResult, QueryResult},
 };
 use diesel_async::{
-    AnsiTransactionManager, AsyncConnection, AsyncPgConnection, SimpleAsyncConnection,
-    TransactionManager, pooled_connection::deadpool::Object,
+    AnsiTransactionManager, AsyncConnection, AsyncConnectionCore, AsyncPgConnection,
+    SimpleAsyncConnection, TransactionManager, pooled_connection::deadpool::Object,
 };
 use futures_core::{future::BoxFuture, stream::BoxStream};
 use opentelemetry::{
@@ -127,7 +127,6 @@ fn get_metrics_label_for_error(error: &diesel::result::Error) -> &'static str {
     }
 }
 
-#[async_trait::async_trait]
 impl<Conn> SimpleAsyncConnection for MetricsConnection<Conn>
 where
     Conn: SimpleAsyncConnection + Send,
@@ -142,27 +141,31 @@ where
     }
 }
 
-#[async_trait::async_trait]
-impl AsyncConnection for MetricsConnection<Parent> {
+impl AsyncConnectionCore for MetricsConnection<Parent> {
+    type ExecuteFuture<'conn, 'query> = Instrument<BoxFuture<'query, QueryResult<usize>>>;
     type LoadFuture<'conn, 'query> =
         Instrument<BoxFuture<'query, QueryResult<Self::Stream<'conn, 'query>>>>;
-    type ExecuteFuture<'conn, 'query> = Instrument<BoxFuture<'query, QueryResult<usize>>>;
     type Stream<'conn, 'query> = BoxStream<'static, QueryResult<Self::Row<'conn, 'query>>>;
-    type Row<'conn, 'query> = <Parent as AsyncConnection>::Row<'conn, 'query>;
-    type Backend = <Parent as AsyncConnection>::Backend;
-    type TransactionManager = AnsiTransactionManager;
+    type Row<'conn, 'query> = <Parent as AsyncConnectionCore>::Row<'conn, 'query>;
+    type Backend = <Parent as AsyncConnectionCore>::Backend;
 
-    async fn establish(database_url: &str) -> ConnectionResult<Self> {
-        let mut instrumentation = diesel::connection::get_default_instrumentation();
-        instrumentation.on_connection_event(InstrumentationEvent::start_establish_connection(
-            database_url,
-        ));
+    fn execute_returning_count<'conn, 'query, T>(
+        &'conn mut self,
+        source: T,
+    ) -> Self::ExecuteFuture<'conn, 'query>
+    where
+        T: QueryFragment<Self::Backend> + QueryId + 'query,
+    {
+        log::trace!(
+            "SQL Query:\n{}",
+            diesel::debug_query::<Self::Backend, _>(&source)
+        );
 
-        Parent::establish(database_url).await.map(|conn| Self {
-            metrics: None,
-            conn,
-            instrumentation: Arc::new(Mutex::new(instrumentation)),
-        })
+        Instrument {
+            metrics: self.metrics.clone(),
+            future: self.conn.execute_returning_count(source),
+            start: None,
+        }
     }
 
     #[doc(hidden)]
@@ -183,24 +186,22 @@ impl AsyncConnection for MetricsConnection<Parent> {
             start: None,
         }
     }
+}
 
-    fn execute_returning_count<'conn, 'query, T>(
-        &'conn mut self,
-        source: T,
-    ) -> Self::ExecuteFuture<'conn, 'query>
-    where
-        T: QueryFragment<Self::Backend> + QueryId + 'query,
-    {
-        log::trace!(
-            "SQL Query:\n{}",
-            diesel::debug_query::<Self::Backend, _>(&source)
-        );
+impl AsyncConnection for MetricsConnection<Parent> {
+    type TransactionManager = AnsiTransactionManager;
 
-        Instrument {
-            metrics: self.metrics.clone(),
-            future: self.conn.execute_returning_count(source),
-            start: None,
-        }
+    async fn establish(database_url: &str) -> ConnectionResult<Self> {
+        let mut instrumentation = diesel::connection::get_default_instrumentation();
+        instrumentation.on_connection_event(InstrumentationEvent::start_establish_connection(
+            database_url,
+        ));
+
+        Parent::establish(database_url).await.map(|conn| Self {
+            metrics: None,
+            conn,
+            instrumentation: Arc::new(Mutex::new(instrumentation)),
+        })
     }
 
     /// Get access to the current transaction state of this connection
@@ -224,6 +225,10 @@ impl AsyncConnection for MetricsConnection<Parent> {
 
     fn set_instrumentation(&mut self, instrumentation: impl Instrumentation) {
         self.instrumentation = Arc::new(std::sync::Mutex::new(Some(Box::new(instrumentation))));
+    }
+
+    fn set_prepared_statement_cache_size(&mut self, size: CacheSize) {
+        self.conn.set_prepared_statement_cache_size(size);
     }
 }
 

@@ -11,7 +11,7 @@ use chrono::{DateTime, Utc};
 use derive_more::{AsRef, Display, From, FromStr, Into};
 use diesel::{
     BelongingToDsl, BoolExpressionMethods, ExpressionMethods, GroupedBy, Identifiable, Insertable,
-    OptionalExtension, QueryDsl, Queryable, TextExpressionMethods, dsl::sum, pg::Pg,
+    OptionalExtension, QueryDsl, Queryable, TextExpressionMethods, pg::Pg,
 };
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DbConnection, Result};
@@ -419,7 +419,7 @@ impl User {
         let used_storage: Option<BigDecimal> = assets::table
             .inner_join(room_assets::table.inner_join(rooms::table))
             .filter(rooms::created_by.eq(user_id))
-            .select(sum(assets::size))
+            .select(diesel::dsl::sum(assets::size))
             .first(conn)
             .await?;
 
