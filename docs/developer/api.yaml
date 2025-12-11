@@ -87,7 +87,7 @@ paths:
         - "api::v1::events"
       summary: Get a list of events and exceptions
       description: |-
-        The exceptions are returned immediately following the according event
+        The events and exceptions are sorted chronologically.
 
         Returns a paginated list of events and their exceptions inside the given time range
       operationId: get_events
@@ -257,7 +257,7 @@ paths:
       summary: Get a list of events and instances
       description: |-
         The instances are calculated based on the RRULE of the event. If no RRULE is
-        set for an event, the event instance is returned
+        set for an event, the event itself is returned
 
         Returns a paginated list of events or their instances inside the given time range
       operationId: get_events_and_instances

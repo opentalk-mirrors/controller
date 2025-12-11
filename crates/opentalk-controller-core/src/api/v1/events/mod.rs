@@ -82,7 +82,7 @@ pub async fn new_event(
 
 /// Get a list of events and exceptions
 ///
-/// The exceptions are returned immediately following the according event
+/// The events and exceptions are sorted chronologically.
 ///
 /// Returns a paginated list of events and their exceptions inside the given time range
 #[utoipa::path(
@@ -122,11 +122,11 @@ pub async fn get_events(
     current_user: ReqData<RequestUser>,
     query: Query<GetEventsQuery>,
 ) -> DefaultApiResult<Vec<EventOrException>> {
-    let (event_resources, before, after) = service
+    let (resources, before, after) = service
         .get_events_and_exceptions_interwoven(current_user.into_inner(), query.into_inner())
         .await?;
 
-    Ok(ApiResponse::new(event_resources).with_cursor_pagination(before, after))
+    Ok(ApiResponse::new(resources).with_cursor_pagination(before, after))
 }
 
 /// Get an event

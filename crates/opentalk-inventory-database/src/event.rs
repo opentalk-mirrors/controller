@@ -249,6 +249,17 @@ impl EventInventory for DatabaseConnection {
             )
             .collect())
     }
+    #[tracing::instrument(err, skip_all)]
+    async fn get_all_events_for_user(
+        &mut self,
+        user: User,
+        only_recurring: bool,
+    ) -> Result<Vec<Event>> {
+        let items = db::Event::get_all_for_user(&mut self.inner, user.into(), only_recurring)
+            .await
+            .context(DatabaseSnafu)?;
+        Ok(items.into_iter().map(|event| event.into()).collect())
+    }
 
     async fn get_all_events_for_user_paginated_as_stream<'a>(
         &'a mut self,

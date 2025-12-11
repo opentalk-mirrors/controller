@@ -403,12 +403,15 @@ impl OpenTalkControllerService for ControllerBackend {
         Ok(self.delete_event(current_user, event_id, query).await?)
     }
 
-    async fn get_events_and_instances(
+    /// Get a list of events and instances
+    async fn get_events_and_instances_interwoven(
         &self,
         current_user: RequestUser,
         query: GetEventsAndInstancesQuery,
     ) -> Result<(Vec<EventOrInstance>, Option<String>, Option<String>), ApiError> {
-        Ok(self.get_events_and_instances(current_user, query).await?)
+        Ok(self
+            .get_events_and_instances_interwoven(current_user, query)
+            .await?)
     }
 
     async fn get_event_instances(
