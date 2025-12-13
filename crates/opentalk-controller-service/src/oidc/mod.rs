@@ -4,11 +4,7 @@
 
 //! Provides OpenID Connect stuff.
 
-use claims::OpenTalkAdditionalClaims;
-use provider::ProviderClient;
-
 mod claims;
-mod http;
 mod introspect_info;
 mod jwt;
 mod oidc_context;
@@ -18,10 +14,11 @@ mod provider;
 mod realm_roles;
 
 pub use claims::OnlyExpiryClaim;
-use claims::ServiceClaims;
+use claims::{OpenTalkAdditionalClaims, ServiceClaims};
 use introspect_info::IntrospectInfo;
 pub use jwt::{VerifyError, decode_token};
 use oidc_context::OidcContext;
 pub use oidc_token_handler::{OidcTokenHandler, build_oidc_token_handler};
 pub use open_id_connect_user_info::OpenIdConnectUserInfo;
+use provider::ProviderClient;
 pub use realm_roles::RealmRoles;
