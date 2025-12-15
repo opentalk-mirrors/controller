@@ -4,6 +4,7 @@
 
 use std::{ops::Deref, str::FromStr as _};
 
+use chrono::{DateTime, Utc};
 use icu_locid::LanguageIdentifier;
 use openidconnect::{
     AccessToken, ClientId, ClientSecret, LocalizedClaim, TokenIntrospectionResponse as _,
@@ -17,8 +18,8 @@ use snafu::{OptionExt as _, ResultExt as _, Whatever};
 use url::Url;
 
 use super::{
-    IntrospectInfo, OnlyExpiryClaim, OpenIdConnectUserInfo, OpenTalkAdditionalClaims,
-    ProviderClient, VerifyError, http, jwt,
+    IntrospectInfo, OidcTokenHandler, OnlyExpiryClaim, OpenIdConnectUserInfo,
+    OpenTalkAdditionalClaims, ProviderClient, RealmRoles, VerifyError, http, jwt,
 };
 use crate::Result;
 
@@ -260,5 +261,33 @@ impl OidcContext {
     /// Returns the provider URL
     pub fn provider_url(&self) -> String {
         self.frontend_auth_base_url.to_string()
+    }
+}
+
+#[async_trait::async_trait(?Send)]
+impl OidcTokenHandler for OidcContext {
+    async fn user_info(
+        &self,
+        access_token: AccessToken,
+    ) -> Result<OpenIdConnectUserInfo, CaptureApiError> {
+        OidcContext::user_info(self, access_token).await
+    }
+
+    async fn check_access_token(
+        &self,
+        access_token: &AccessToken,
+    ) -> Result<RealmRoles, CaptureApiError> {
+        OidcContext::check_access_token(self, access_token).await
+    }
+
+    async fn verify_access_token(
+        &self,
+        access_token: &AccessToken,
+    ) -> Result<Option<DateTime<Utc>>, CaptureApiError> {
+        OidcContext::verify_access_token(self, access_token).await
+    }
+
+    fn verify_id_token(&self, id_token: &str) -> Result<(), VerifyError> {
+        OidcContext::verify_id_token(self, id_token)
     }
 }
