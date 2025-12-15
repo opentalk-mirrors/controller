@@ -10,7 +10,7 @@ use opentalk_types_common::{
     rooms::RoomId, tariffs::TariffResource, time::Timestamp, users::UserInfo,
 };
 use opentalk_types_signaling::{ParticipantId, Role};
-use redis::ToRedisArgs;
+use redis::{ToRedisArgs, ToSingleRedisArg};
 use redis_args::ToRedisArgs;
 use serde::{Serialize, de::DeserializeOwned};
 use snafu::ResultExt as _;
@@ -85,6 +85,8 @@ impl ToRedisArgs for RoomAttributeId {
         }
     }
 }
+
+impl ToSingleRedisArg for RoomAttributeId {}
 
 impl From<GlobalRoomAttributeId> for RoomAttributeId {
     fn from(attr_id: GlobalRoomAttributeId) -> Self {

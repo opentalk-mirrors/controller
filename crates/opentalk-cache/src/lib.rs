@@ -7,7 +7,7 @@ use std::{hash::Hash, time::Instant};
 
 use bincode::{Decode, Encode, config};
 use moka::future::Cache as LocalCache;
-use redis::{AsyncCommands, RedisError, ToRedisArgs};
+use redis::{AsyncCommands, RedisError, ToRedisArgs, ToSingleRedisArg};
 use serde::de::DeserializeOwned;
 use siphasher::sip128::{Hasher128, SipHasher24};
 use snafu::Snafu;
@@ -218,6 +218,8 @@ impl<K: Display + Hash> Display for RedisCacheKey<'_, K> {
         }
     }
 }
+
+impl<D: Display + Hash> ToSingleRedisArg for RedisCacheKey<'_, D> {}
 
 impl<D: Display + Hash> ToRedisArgs for RedisCacheKey<'_, D> {
     fn write_redis_args<W>(&self, out: &mut W)

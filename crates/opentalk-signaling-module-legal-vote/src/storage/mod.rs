@@ -8,7 +8,7 @@ mod volatile;
 
 mod legal_vote_storage;
 
-use ::redis::{ErrorKind, FromRedisValue, RedisError, RedisResult, Value};
+use ::redis::{FromRedisValue, ParsingError, Value};
 pub(crate) use legal_vote_storage::{
     LegalVoteAllowTokenStorage, LegalVoteCurrentStorage, LegalVoteHistoryStorage,
     LegalVoteParameterStorage, LegalVoteStorage,
@@ -23,22 +23,20 @@ pub(crate) enum VoteStatus {
 }
 
 impl FromRedisValue for VoteStatus {
-    fn from_redis_value(v: &Value) -> RedisResult<Self> {
+    fn from_redis_value(v: Value) -> Result<Self, ParsingError> {
         if let Value::Int(val) = v {
             match val {
                 0 => Ok(VoteStatus::Active),
                 1 => Ok(VoteStatus::Complete),
                 2 => Ok(VoteStatus::Unknown),
-                _ => Err(RedisError::from((
-                    ErrorKind::TypeError,
+                _ => Err(ParsingError::from(
                     "Vote status script must return int values between 0 an 2",
-                ))),
+                )),
             }
         } else {
-            Err(RedisError::from((
-                ErrorKind::TypeError,
+            Err(ParsingError::from(
                 "Vote status script must return int value",
-            )))
+            ))
         }
     }
 }
@@ -56,7 +54,7 @@ pub(crate) enum VoteScriptResult {
 }
 
 impl FromRedisValue for VoteScriptResult {
-    fn from_redis_value(v: &Value) -> RedisResult<Self> {
+    fn from_redis_value(v: Value) -> Result<Self, ParsingError> {
         if let Value::Int(val) = v {
             match val {
                 0 => Ok(VoteScriptResult::Success),
@@ -64,16 +62,12 @@ impl FromRedisValue for VoteScriptResult {
                 2 => Ok(VoteScriptResult::InvalidVoteId),
                 3 => Ok(VoteScriptResult::Ineligible),
 
-                _ => Err(RedisError::from((
-                    ErrorKind::TypeError,
+                _ => Err(ParsingError::from(
                     "Vote script must return int value between 0 and 3",
-                ))),
+                )),
             }
         } else {
-            Err(RedisError::from((
-                ErrorKind::TypeError,
-                "Vote script must return int value",
-            )))
+            Err(ParsingError::from("Vote script must return int value"))
         }
     }
 }
