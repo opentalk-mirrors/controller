@@ -1810,9 +1810,9 @@ checksum = "9885fa71e26b8ab7855e2ec7cae6e9b380edff76cd052e07c683a0319d51b3a2"
 
 [[package]]
 name = "cookie_store"
-version = "0.21.1"
+version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2eac901828f88a5241ee0600950ab981148a18f2f756900ffba1b125ca6a3ef9"
+checksum = "3fc4bff745c9b4c7fb1e97b25d13153da2bc7796260141df62378998d070207f"
 dependencies = [
  "cookie 0.18.1",
  "document-features",
@@ -2402,7 +2402,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2670,7 +2670,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3630,8 +3630,8 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.6.1",
- "system-configuration 0.6.1",
+ "socket2 0.5.10",
+ "system-configuration",
  "tokio",
  "tower-service",
  "tracing",
@@ -4487,7 +4487,7 @@ dependencies = [
  "pbjson-types",
  "prost 0.12.6",
  "rand 0.9.2",
- "reqwest 0.12.25",
+ "reqwest 0.12.26",
  "scopeguard",
  "serde",
  "serde_json",
@@ -4833,7 +4833,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4954,12 +4954,12 @@ version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51e219e79014df21a225b1860a479e2dcd7cbd9130f4defd4bd0e191ea31d67d"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.21.7",
  "chrono",
  "getrandom 0.2.16",
  "http 1.4.0",
  "rand 0.8.5",
- "reqwest 0.12.25",
+ "reqwest 0.12.26",
  "serde",
  "serde_json",
  "serde_path_to_error",
@@ -5483,7 +5483,7 @@ checksum = "9efaa7dc9640de55d4b4339ccb3b2981212a14772ec7e677287e881f49948685"
 dependencies = [
  "bytes",
  "futures",
- "reqwest 0.12.25",
+ "reqwest 0.12.26",
  "serde",
  "serde_json",
  "serde_repr",
@@ -5582,7 +5582,7 @@ checksum = "0cb46f8d76a7e6bd79b86b2208e0c060224a607eb7e0d092a7ed0b6417fe19b4"
 dependencies = [
  "log",
  "openidconnect 4.0.1",
- "reqwest 0.12.25",
+ "reqwest 0.12.26",
  "serde",
  "serde_json",
  "snafu",
@@ -5650,7 +5650,7 @@ dependencies = [
  "chrono",
  "derive_more 0.99.20",
  "log",
- "reqwest 0.12.25",
+ "reqwest 0.12.26",
  "reqwest_dav",
  "serde",
  "snafu",
@@ -5718,7 +5718,7 @@ dependencies = [
  "opentalk-service-auth",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "reqwest 0.12.25",
+ "reqwest 0.12.26",
  "serde",
  "serde_json",
  "thiserror 2.0.17",
@@ -5764,7 +5764,7 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "reqwest 0.12.25",
+ "reqwest 0.12.26",
  "serde",
  "serde_json",
  "thiserror 2.0.17",
@@ -6070,7 +6070,7 @@ dependencies = [
  "redis",
  "redis-args",
  "reqwest 0.11.27",
- "reqwest 0.12.25",
+ "reqwest 0.12.26",
  "rustc-hash",
  "serde",
  "serde_json",
@@ -6546,7 +6546,7 @@ dependencies = [
  "pretty_assertions",
  "redis",
  "redis-args",
- "reqwest 0.12.25",
+ "reqwest 0.12.26",
  "serde",
  "serial_test",
  "snafu",
@@ -7002,7 +7002,7 @@ dependencies = [
  "bytes",
  "http 1.4.0",
  "opentelemetry",
- "reqwest 0.12.25",
+ "reqwest 0.12.26",
  "tracing",
 ]
 
@@ -7019,7 +7019,7 @@ dependencies = [
  "opentelemetry-proto",
  "opentelemetry_sdk",
  "prost 0.13.5",
- "reqwest 0.12.25",
+ "reqwest 0.12.26",
  "thiserror 2.0.17",
  "tokio",
  "tonic 0.12.3",
@@ -8031,7 +8031,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash",
  "rustls 0.23.35",
- "socket2 0.6.1",
+ "socket2 0.5.10",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -8068,9 +8068,9 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.6.1",
+ "socket2 0.5.10",
  "tracing",
- "windows-sys 0.60.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -8421,7 +8421,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "sync_wrapper 0.1.2",
- "system-configuration 0.5.1",
+ "system-configuration",
  "tokio",
  "tokio-rustls 0.24.1",
  "tower-service",
@@ -8435,9 +8435,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.12.25"
+version = "0.12.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6eff9328d40131d43bd911d42d79eb6a47312002a4daefc9e37f17e74a7701a"
+checksum = "3b4c14b2d9afca6a60277086b0cc6a6ae0b568f6f7916c943a8cdc79f8be240f"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -8494,7 +8494,7 @@ dependencies = [
  "digest_auth",
  "http 1.4.0",
  "httpdate",
- "reqwest 0.12.25",
+ "reqwest 0.12.26",
  "serde",
  "serde-xml-rs",
  "serde_derive",
@@ -8732,7 +8732,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.11.0",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -9253,7 +9253,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19fa04cb481e8bb8d63dcda54bbd34bc408fedf1fc4625d81c528575e7f6faba"
 dependencies = [
  "log",
- "reqwest 0.12.25",
+ "reqwest 0.12.26",
  "service-probe-common",
  "snafu",
  "url",
@@ -9710,18 +9710,7 @@ checksum = "ba3a3adc5c275d719af8cb4272ea1c4a6d668a777f37e115f6d11ddbc1c8e0e7"
 dependencies = [
  "bitflags 1.3.2",
  "core-foundation 0.9.4",
- "system-configuration-sys 0.5.0",
-]
-
-[[package]]
-name = "system-configuration"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c879d448e9d986b661742763247d3693ed13609438cf3d006f51f5368a5ba6b"
-dependencies = [
- "bitflags 2.10.0",
- "core-foundation 0.9.4",
- "system-configuration-sys 0.6.0",
+ "system-configuration-sys",
 ]
 
 [[package]]
@@ -9729,16 +9718,6 @@ name = "system-configuration-sys"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a75fb188eb626b924683e3b95e3a48e63551fcfb51949de2f06a9d91dbee93c9"
-dependencies = [
- "core-foundation-sys",
- "libc",
-]
-
-[[package]]
-name = "system-configuration-sys"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e1d1b10ced5ca923a1fcb8d03e96b8d3268065d724548c0211415ff6ac6bac4"
 dependencies = [
  "core-foundation-sys",
  "libc",
@@ -9793,7 +9772,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.2",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -11449,7 +11428,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
