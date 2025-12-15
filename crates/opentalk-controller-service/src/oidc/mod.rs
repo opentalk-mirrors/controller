@@ -15,10 +15,12 @@ mod http;
 mod jwt;
 mod oidc_context;
 mod provider;
+mod realm_roles;
 
 pub use claims::{OnlyExpiryClaim, ServiceClaims};
 pub use jwt::{VerifyError, decode_token};
 pub use oidc_context::OidcContext;
+pub use realm_roles::RealmRoles;
 
 /// Info returned from the access token introspection
 #[derive(Debug)]

@@ -18,22 +18,10 @@ use actix_web::{
 };
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use openidconnect::AccessToken;
-use opentalk_controller_service::oidc::{OidcContext, ServiceClaims};
+use opentalk_controller_service::oidc::{OidcContext, RealmRoles, ServiceClaims};
 use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use snafu::Report;
 use tracing::Instrument;
-
-/// Contains a list of string representing the service-account's roles in a realm
-///
-/// Roles can be used to represent certain permissions a service-account has
-#[derive(Clone)]
-pub struct RealmRoles(Rc<[String]>);
-
-impl RealmRoles {
-    pub fn contains(&self, role: &str) -> bool {
-        self.0.iter().any(|r| r == role)
-    }
-}
 
 /// Middleware factory for [`ServiceAuthMiddleware`]
 pub struct ServiceAuth {
