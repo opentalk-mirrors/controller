@@ -2,11 +2,15 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::sync::Arc;
+
 use chrono::{DateTime, Utc};
-use openidconnect::AccessToken;
+use openidconnect::{AccessToken, ClientId, ClientSecret};
 use opentalk_controller_utils::CaptureApiError;
+use url::Url;
 
 use super::{OpenIdConnectUserInfo, RealmRoles, VerifyError};
+use crate::{Result, oidc::OidcContext};
 
 /// The handler for OIDC tokens
 #[async_trait::async_trait(?Send)]
@@ -36,4 +40,21 @@ pub trait OidcTokenHandler: Sync + Send {
     ///
     /// Only used by the deprecated login endpoint
     fn verify_id_token(&self, id_token: &str) -> Result<(), VerifyError>;
+}
+
+/// Build the oidc token handler
+pub async fn build_oidc_token_handler(
+    frontend_auth_base_url: Url,
+    controller_auth_base_url: Url,
+    client_id: ClientId,
+    client_secret: ClientSecret,
+) -> Result<Arc<dyn OidcTokenHandler>> {
+    let oidc_context = OidcContext::new(
+        frontend_auth_base_url,
+        controller_auth_base_url,
+        client_id,
+        client_secret,
+    )
+    .await?;
+    Ok(Arc::new(oidc_context))
 }
