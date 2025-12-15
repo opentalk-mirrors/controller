@@ -26,7 +26,7 @@ impl From<Error> for InventoryBackendError {
 
 impl From<Error> for opentalk_inventory::Error {
     fn from(e: Error) -> Self {
-        opentalk_inventory::Error::StorageBackend {
+        opentalk_inventory::Error::InventoryBackend {
             source: InventoryBackendError::from(e),
         }
     }

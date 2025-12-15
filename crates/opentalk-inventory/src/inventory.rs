@@ -12,7 +12,7 @@ use crate::{
     UserInventory,
 };
 
-/// A connection to the storage backend.
+/// A connection to the inventory backend.
 pub trait Inventory:
     Send
     + AssetInventory

@@ -54,7 +54,7 @@ impl From<opentalk_inventory::Error> for CaptureApiError {
             return CaptureApiError(ApiError::not_found());
         }
         log::error!(
-            "REST API threw internal error from data storage backend: {}",
+            "REST API threw internal error from inventory backend: {}",
             snafu::Report::from_error(value)
         );
         CaptureApiError(ApiError::internal())
