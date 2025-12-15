@@ -4,7 +4,6 @@
 
 //! Provides OpenID Connect stuff.
 
-use chrono::{DateTime, Utc};
 use claims::OpenTalkAdditionalClaims;
 use icu_locid::LanguageIdentifier;
 use opentalk_types_common::time::TimeZone;
@@ -12,25 +11,17 @@ use provider::ProviderClient;
 
 mod claims;
 mod http;
+mod introspect_info;
 mod jwt;
 mod oidc_context;
 mod provider;
 mod realm_roles;
 
 pub use claims::{OnlyExpiryClaim, ServiceClaims};
+pub use introspect_info::IntrospectInfo;
 pub use jwt::{VerifyError, decode_token};
 pub use oidc_context::OidcContext;
 pub use realm_roles::RealmRoles;
-
-/// Info returned from the access token introspection
-#[derive(Debug)]
-#[must_use]
-pub struct IntrospectInfo {
-    /// Access token is still active
-    pub active: bool,
-    /// Expire timestamp of the token
-    pub exp: Option<DateTime<Utc>>,
-}
 
 /// Relevant info returned from `userinfo` endpoint.
 #[derive(Debug)]
