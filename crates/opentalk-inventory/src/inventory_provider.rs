@@ -4,7 +4,7 @@
 
 use crate::{Inventory, Result};
 
-/// A provider for connections to the storage backend. Could for example be a
+/// A provider for connections to the inventory backend. Could for example be a
 /// database connection pool.
 #[async_trait::async_trait]
 pub trait InventoryProvider: Sync + Send + std::fmt::Debug {

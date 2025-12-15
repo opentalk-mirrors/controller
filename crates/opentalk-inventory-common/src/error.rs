@@ -10,12 +10,12 @@ use std::fmt::Display;
 
 use snafu::Snafu;
 
-/// The error returned from function calls to the storage facade provider.
+/// The error returned from function calls to the inventory facade provider.
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub))]
 pub enum Error {
-    /// An error happened in the storage backend.
-    StorageBackend {
+    /// An error happened in the inventory backend.
+    InventoryBackend {
         /// The cause of the error
         source: InventoryBackendError,
     },
@@ -48,7 +48,7 @@ impl Error {
     }
 }
 
-/// An error that can be returned from the storage backend.
+/// An error that can be returned from the inventory backend.
 #[derive(Debug)]
 pub struct InventoryBackendError(Box<dyn std::error::Error + Send + Sync>);
 
@@ -75,6 +75,6 @@ impl Display for InventoryBackendError {
 
 impl From<InventoryBackendError> for Error {
     fn from(source: InventoryBackendError) -> Self {
-        Error::StorageBackend { source }
+        Error::InventoryBackend { source }
     }
 }
