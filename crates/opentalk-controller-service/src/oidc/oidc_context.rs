@@ -11,25 +11,23 @@ use openidconnect::{
     UserInfoClaims, core::CoreGenderClaim,
 };
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_types_api_v1::error::ApiError;
+use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use opentalk_types_common::time::TimeZone;
 use reqwest11::header::{HeaderMap, HeaderName, HeaderValue};
-use snafu::{OptionExt as _, ResultExt as _, Whatever};
+use snafu::{OptionExt as _, Report, ResultExt as _, Whatever};
 use url::Url;
 
 use super::{
     IntrospectInfo, OidcTokenHandler, OnlyExpiryClaim, OpenIdConnectUserInfo,
-    OpenTalkAdditionalClaims, ProviderClient, RealmRoles, VerifyError, http, jwt,
+    OpenTalkAdditionalClaims, ProviderClient, RealmRoles, ServiceClaims, VerifyError, http, jwt,
 };
 use crate::Result;
 
 /// The `OidcContext` contains all information about the Oidc provider and permissions matrix.
 #[derive(Debug)]
-pub struct OidcContext {
-    /// The URL used by the frontend for authentication
-    pub frontend_auth_base_url: Url,
+pub(super) struct OidcContext {
     /// The provider client
-    pub provider: ProviderClient,
+    provider: ProviderClient,
     /// The HTTP client
     http_client: reqwest11::Client,
 
@@ -54,7 +52,7 @@ impl OidcContext {
     /// This reads the OIDC provider configuration and tries to fetch the metadata from it.
     /// If a provider is misconfigured or not reachable this function will fail.
     #[tracing::instrument(name = "oidc_discover", skip(client_secret))]
-    pub async fn new(
+    pub(super) async fn new(
         frontend_auth_base_url: Url,
         controller_auth_base_url: Url,
         client_id: ClientId,
@@ -98,18 +96,75 @@ impl OidcContext {
         .whatever_context("Failed to discover provider client")?;
 
         Ok(Self {
-            frontend_auth_base_url,
             provider: client,
             http_client,
             http_introspect_and_userinfo_client,
         })
     }
 
+    #[tracing::instrument(skip_all)]
+    async fn check_access_token(
+        &self,
+        access_token: &AccessToken,
+    ) -> Result<RealmRoles, CaptureApiError> {
+        let claims = match self.verify_jwt_token::<ServiceClaims>(access_token) {
+            Ok(claims) => claims,
+            Err(e) => {
+                log::error!("Invalid access token, {}", Report::from_error(e));
+                return Err(ApiError::unauthorized()
+                    .with_www_authenticate(AuthenticationError::InvalidAccessToken)
+                    .into());
+            }
+        };
+
+        let mut realm_roles = claims.realm_access.roles;
+        realm_roles
+            .iter_mut()
+            .for_each(|role| role.make_ascii_lowercase());
+
+        Ok(RealmRoles(realm_roles.into()))
+    }
+
+    #[tracing::instrument(skip_all)]
+    async fn verify_access_token(
+        &self,
+        access_token: &AccessToken,
+    ) -> Result<Option<DateTime<Utc>>, CaptureApiError> {
+        if self.supports_introspect() {
+            let introspect_info = self.introspect(access_token.clone()).await.map_err(|e| {
+                log::error!(
+                    "Failed to introspect access token: {}",
+                    Report::from_error(e)
+                );
+                ApiError::internal()
+            })?;
+
+            if !introspect_info.active {
+                return Err(ApiError::unauthorized()
+                    .with_www_authenticate(AuthenticationError::AccessTokenInactive)
+                    .into());
+            }
+
+            return Ok(introspect_info.exp);
+        }
+
+        // If there's no introspect endpoint, the token must be a JWT with an exp field.
+        match self.verify_jwt_token::<OnlyExpiryClaim>(access_token) {
+            Ok(jwt_claims) => Ok(Some(jwt_claims.exp)),
+            Err(e) => {
+                log::debug!("Invalid access token (JWT): {}", Report::from_error(e));
+                Err(ApiError::unauthorized()
+                    .with_www_authenticate(AuthenticationError::InvalidAccessToken)
+                    .into())
+            }
+        }
+    }
+
     /// Verifies the signature and expiration of an AccessToken encoded as JWT (Json Web Token)
     ///
     /// This is used if the OpenID Connect Provider does not support introspection endpoints.
     #[tracing::instrument(name = "oidc_verify_access_token", skip(self, access_token))]
-    pub fn verify_jwt_token<C: jwt::VerifyClaims>(
+    fn verify_jwt_token<C: jwt::VerifyClaims>(
         &self,
         access_token: &AccessToken,
     ) -> Result<C, VerifyError> {
@@ -120,7 +175,7 @@ impl OidcContext {
     }
 
     /// Returns if the configured provider support introspection
-    pub fn supports_introspect(&self) -> bool {
+    fn supports_introspect(&self) -> bool {
         self.provider
             .metadata
             .additional_metadata()
@@ -129,8 +184,8 @@ impl OidcContext {
     }
 
     /// Call the OIDC's userinfo endpoint to fetch the user data associated with the access token
-    #[tracing::instrument(name = "oidc_user_info", skip_all)]
-    pub async fn introspect(&self, access_token: AccessToken) -> Result<IntrospectInfo> {
+    #[tracing::instrument(name = "introspect", skip_all)]
+    async fn introspect(&self, access_token: AccessToken) -> Result<IntrospectInfo> {
         let client = self
             .http_introspect_and_userinfo_client
             .as_ref()
@@ -152,7 +207,7 @@ impl OidcContext {
 
     /// Call the OIDC's userinfo endpoint to fetch the user data associated with the access token
     #[tracing::instrument(err, name = "oidc_user_info", skip_all)]
-    pub async fn user_info(
+    async fn user_info(
         &self,
         access_token: AccessToken,
     ) -> Result<OpenIdConnectUserInfo, CaptureApiError> {
@@ -253,14 +308,9 @@ impl OidcContext {
     ///
     /// Only used by the deprecated login endpoint
     #[tracing::instrument(name = "oidc_verify_id_token", skip_all)]
-    pub fn verify_id_token(&self, id_token: &str) -> Result<(), VerifyError> {
+    fn verify_id_token(&self, id_token: &str) -> Result<(), VerifyError> {
         let _ = jwt::verify::<OnlyExpiryClaim>(self.provider.metadata.jwks(), id_token)?;
         Ok(())
-    }
-
-    /// Returns the provider URL
-    pub fn provider_url(&self) -> String {
-        self.frontend_auth_base_url.to_string()
     }
 }
 

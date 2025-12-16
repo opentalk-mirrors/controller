@@ -9,8 +9,8 @@ use openidconnect::{AccessToken, ClientId, ClientSecret};
 use opentalk_controller_utils::CaptureApiError;
 use url::Url;
 
-use super::{OpenIdConnectUserInfo, RealmRoles, VerifyError};
-use crate::{Result, oidc::OidcContext};
+use super::{OidcContext, OpenIdConnectUserInfo, RealmRoles, VerifyError};
+use crate::Result;
 
 /// The handler for OIDC tokens
 #[async_trait::async_trait(?Send)]
