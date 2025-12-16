@@ -379,6 +379,7 @@ skip = [
   { name = "ff", version = "0.12" },
   { name = "fixedbitset", version = "0.4" },
   { name = "float-cmp", version = "0.9" },
+  { name = "foldhash", version = "0.1" },
   { name = "futures-lite", version = "1" },
   { name = "getrandom", version = "0.2" },
   { name = "gif", version = "0.13" },
