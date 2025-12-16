@@ -187,7 +187,7 @@ url = "2"
 utoipa = "5"
 utoipa-swagger-ui = "9"
 uuid = "1"
-yaml-rust2 = "0.10.0"
+yaml-rust2 = "0.11.0"
 
 [workspace.dependencies.casbin]
 default-features = false
