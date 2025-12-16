@@ -18,30 +18,18 @@ use actix_web::{
 };
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use openidconnect::AccessToken;
-use opentalk_controller_service::oidc::{OidcContext, ServiceClaims};
+use opentalk_controller_service::oidc::OidcTokenHandler;
 use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use snafu::Report;
 use tracing::Instrument;
 
-/// Contains a list of string representing the service-account's roles in a realm
-///
-/// Roles can be used to represent certain permissions a service-account has
-#[derive(Clone)]
-pub struct RealmRoles(Rc<[String]>);
-
-impl RealmRoles {
-    pub fn contains(&self, role: &str) -> bool {
-        self.0.iter().any(|r| r == role)
-    }
-}
-
 /// Middleware factory for [`ServiceAuthMiddleware`]
 pub struct ServiceAuth {
-    oidc_ctx: Data<OidcContext>,
+    oidc_ctx: Data<dyn OidcTokenHandler>,
 }
 
 impl ServiceAuth {
-    pub fn new(oidc_ctx: Data<OidcContext>) -> Self {
+    pub fn new(oidc_ctx: Data<dyn OidcTokenHandler>) -> Self {
         Self { oidc_ctx }
     }
 }
@@ -71,7 +59,7 @@ where
 pub struct ServiceAuthMiddleware<S> {
     service: Rc<S>,
 
-    oidc_ctx: Data<OidcContext>,
+    oidc_ctx: Data<dyn OidcTokenHandler>,
 }
 
 type ResultFuture<O, E> = Pin<Box<dyn Future<Output = Result<O, E>>>>;
@@ -113,7 +101,7 @@ where
 
         Box::pin(
             async move {
-                match check_access_token(oidc_ctx, access_token).await {
+                match oidc_ctx.check_access_token(&access_token).await {
                     Ok(realm_roles) => {
                         req.extensions_mut().insert(realm_roles);
                         service.call(req).await
@@ -124,26 +112,4 @@ where
             .instrument(tracing::trace_span!("ServiceAuthMiddleware::async::call")),
         )
     }
-}
-
-#[tracing::instrument(skip_all)]
-async fn check_access_token(
-    oidc_ctx: Data<OidcContext>,
-    access_token: AccessToken,
-) -> Result<RealmRoles, ApiError> {
-    let claims = match oidc_ctx.verify_jwt_token::<ServiceClaims>(&access_token) {
-        Ok(claims) => claims,
-        Err(e) => {
-            log::error!("Invalid access token, {}", Report::from_error(e));
-            return Err(ApiError::unauthorized()
-                .with_www_authenticate(AuthenticationError::InvalidAccessToken));
-        }
-    };
-
-    let mut realm_roles = claims.realm_access.roles;
-    realm_roles
-        .iter_mut()
-        .for_each(|role| role.make_ascii_lowercase());
-
-    Ok(RealmRoles(realm_roles.into()))
 }

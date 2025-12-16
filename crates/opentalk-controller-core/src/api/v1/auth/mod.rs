@@ -10,7 +10,7 @@ use actix_web::{
     get, post,
     web::{Data, Json},
 };
-use opentalk_controller_service::oidc::{OidcContext, VerifyError};
+use opentalk_controller_service::oidc::{OidcTokenHandler, VerifyError};
 use opentalk_controller_service_facade::OpenTalkControllerService;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_types_api_v1::{
@@ -66,14 +66,14 @@ use crate::api::responses::InternalServerError;
 #[post("/auth/login")]
 #[deprecated]
 pub async fn post_login(
-    oidc_ctx: Data<OidcContext>,
+    oidc_ctx: Data<dyn OidcTokenHandler>,
     body: Json<AuthLoginPostRequestBody>,
 ) -> Result<Json<PostLoginResponseBody>, ApiError> {
-    Ok(post_login_inner(&oidc_ctx, body.into_inner().id_token).await?)
+    Ok(post_login_inner(oidc_ctx.as_ref(), body.into_inner().id_token).await?)
 }
 
 async fn post_login_inner(
-    oidc_ctx: &OidcContext,
+    oidc_ctx: &dyn OidcTokenHandler,
     id_token: String,
 ) -> Result<Json<PostLoginResponseBody>, CaptureApiError> {
     if let Err(e) = oidc_ctx.verify_id_token(&id_token) {

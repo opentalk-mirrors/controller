@@ -20,7 +20,7 @@ use actix_web::{
     web::Data,
 };
 use actix_web_httpauth::headers::authorization::Authorization;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use diesel_async::scoped_futures::ScopedFutureExt as _;
 use icu_locid::LanguageIdentifier;
 use kustos::prelude::PoliciesBuilder;
@@ -28,7 +28,7 @@ use openidconnect::AccessToken;
 use opentalk_controller_service::{
     caching::{CacheableApiError, Caches, UserAccessTokenCache},
     controller_backend::RoomsPoliciesBuilderExt,
-    oidc::{OidcContext, OnlyExpiryClaim, OpenIdConnectUserInfo},
+    oidc::{OidcTokenHandler, OpenIdConnectUserInfo},
     phone_numbers::parse_phone_number,
 };
 use opentalk_controller_service_facade::RequestUser;
@@ -67,7 +67,7 @@ pub struct OidcAuth {
     pub settings_provider: SettingsProvider,
     pub inventory_provider: Data<dyn InventoryProvider>,
     pub authz: Data<kustos::Authz>,
-    pub oidc_ctx: Data<OidcContext>,
+    pub oidc_ctx: Data<dyn OidcTokenHandler>,
 }
 
 impl<S> Transform<S, ServiceRequest> for OidcAuth
@@ -101,7 +101,7 @@ pub struct OidcAuthMiddleware<S> {
     settings_provider: SettingsProvider,
     authz: Data<kustos::Authz>,
     inventory_provider: Data<dyn InventoryProvider>,
-    oidc_ctx: Data<OidcContext>,
+    oidc_ctx: Data<dyn OidcTokenHandler>,
 }
 
 type ResultFuture<O, E> = Pin<Box<dyn Future<Output = Result<O, E>>>>;
@@ -180,7 +180,7 @@ where
                         &settings,
                         &authz,
                         inventory_provider.as_ref(),
-                        &oidc_ctx,
+                        oidc_ctx.as_ref(),
                         &caches.user_access_tokens,
                         &access_token,
                         fallback_locale,
@@ -239,7 +239,7 @@ pub async fn check_access_token(
     settings: &Settings,
     authz: &kustos::Authz,
     inventory_provider: &dyn InventoryProvider,
-    oidc_ctx: &OidcContext,
+    oidc_ctx: &dyn OidcTokenHandler,
     cache: &UserAccessTokenCache,
     access_token: &AccessToken,
     fallback_locale: LanguageIdentifier,
@@ -249,7 +249,7 @@ pub async fn check_access_token(
     }
 
     // Miss, verify access token
-    let maybe_expires_at = verify_access_token(oidc_ctx, access_token).await?;
+    let maybe_expires_at = oidc_ctx.verify_access_token(access_token).await?;
 
     let check_result = check_access_token_inner(
         settings,
@@ -316,53 +316,12 @@ async fn get_cached_result(
     }
 }
 
-/// Verify the access token and return it's expiry timestamp.
-///
-/// Uses the introspect endpoint if available (https://www.rfc-editor.org/rfc/rfc7662),
-/// otherwise the token must be a JWT.
-async fn verify_access_token(
-    oidc_ctx: &OidcContext,
-    access_token: &AccessToken,
-) -> Result<Option<DateTime<Utc>>, CaptureApiError> {
-    if oidc_ctx.supports_introspect() {
-        let introspect_info = oidc_ctx
-            .introspect(access_token.clone())
-            .await
-            .map_err(|e| {
-                log::error!(
-                    "Failed to introspect access token: {}",
-                    Report::from_error(e)
-                );
-                ApiError::internal()
-            })?;
-
-        if !introspect_info.active {
-            return Err(ApiError::unauthorized()
-                .with_www_authenticate(AuthenticationError::AccessTokenInactive)
-                .into());
-        }
-
-        return Ok(introspect_info.exp);
-    }
-
-    // If there's no introspect endpoint, the token must be a JWT with an exp field.
-    match oidc_ctx.verify_jwt_token::<OnlyExpiryClaim>(access_token) {
-        Ok(jwt_claims) => Ok(Some(jwt_claims.exp)),
-        Err(e) => {
-            log::debug!("Invalid access token (JWT): {}", Report::from_error(e));
-            Err(ApiError::unauthorized()
-                .with_www_authenticate(AuthenticationError::InvalidAccessToken)
-                .into())
-        }
-    }
-}
-
 /// Fetches all associated user data of the access token
 async fn check_access_token_inner(
     settings: &Settings,
     authz: &kustos::Authz,
     inventory_provider: &dyn InventoryProvider,
-    oidc_ctx: &OidcContext,
+    oidc_ctx: &dyn OidcTokenHandler,
     access_token: &AccessToken,
     fallback_locale: LanguageIdentifier,
 ) -> Result<(Tenant, User), CaptureApiError> {

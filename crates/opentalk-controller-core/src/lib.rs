@@ -19,7 +19,10 @@ use api::signaling::SignalingModules;
 use kustos::Authz;
 use lapin_pool::RabbitMqPool;
 use opentalk_controller_service::{
-    ControllerBackend, Whatever, caching::Caches, oidc::OidcContext, services::MailService,
+    ControllerBackend, Whatever,
+    caching::Caches,
+    oidc::{OidcTokenHandler, build_oidc_token_handler},
+    services::MailService,
 };
 use opentalk_controller_service_facade::OpenTalkControllerService;
 use opentalk_controller_settings::{
@@ -119,7 +122,7 @@ pub struct Controller {
 
     storage: Arc<ObjectStorage>,
 
-    oidc: Arc<OidcContext>,
+    oidc: Arc<dyn OidcTokenHandler>,
 
     user_search_client: Arc<Option<KeycloakAdminClient>>,
 
@@ -227,16 +230,14 @@ impl Controller {
         let oidc_controller = &settings.oidc.controller;
 
         // Discover OIDC Provider
-        let oidc = Arc::new(
-            OidcContext::new(
-                oidc_frontend.authority.clone(),
-                oidc_controller.authority.clone(),
-                oidc_controller.client_id.clone(),
-                oidc_controller.client_secret.clone(),
-            )
-            .await
-            .whatever_context("Failed to initialize OIDC Context")?,
-        );
+        let oidc = build_oidc_token_handler(
+            oidc_frontend.authority.clone(),
+            oidc_controller.authority.clone(),
+            oidc_controller.client_id.clone(),
+            oidc_controller.client_secret.clone(),
+        )
+        .await
+        .whatever_context("Failed to initialize OIDC Context")?;
 
         let user_search_client =
             if let Some(UserSearchBackend::Keycloak(UserSearchBackendKeycloak {
@@ -914,7 +915,7 @@ fn v1_scope(
     settings_provider: SettingsProvider,
     authz: Data<kustos::Authz>,
     inventory_provider: Data<dyn InventoryProvider>,
-    oidc_ctx: Data<OidcContext>,
+    oidc_ctx: Data<dyn OidcTokenHandler>,
     acl: kustos::actix_web::KustosService,
 ) -> Scope {
     // the latest version contains the root services

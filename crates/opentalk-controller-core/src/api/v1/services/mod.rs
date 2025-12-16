@@ -14,9 +14,8 @@ use actix_web::{
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
 };
 use futures::future::Either;
+use opentalk_controller_service::oidc::RealmRoles;
 use opentalk_types_api_v1::error::ApiError;
-
-use super::middleware::service_auth::RealmRoles;
 
 pub mod call_in;
 pub mod recording;
