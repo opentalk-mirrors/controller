@@ -193,8 +193,9 @@ pub struct Event {
     pub ends_at_tz: Option<TimeZone>,
 
     /// Only for recurring events, since ends_at contains the information
-    /// about the last occurrence of the recurring series this duration value
-    /// MUST be used to calculate the event instances length
+    /// about the last occurrence of the recurring series this duration value.
+    ///
+    /// MUST be used to calculate the event instances length.
     pub duration_secs: Option<i32>,
 
     pub recurrence_pattern: Option<String>,
@@ -1258,17 +1259,10 @@ impl From<opentalk_inventory::NewEvent> for NewEvent {
             room,
             created_by,
             updated_by,
-            is_time_independent,
-            is_all_day,
-            starts_at,
-            starts_at_tz,
-            ends_at,
-            ends_at_tz,
-            duration_secs,
-            recurrence_pattern,
             is_adhoc,
             tenant_id,
             show_meeting_details,
+            date,
         }: opentalk_inventory::NewEvent,
     ) -> Self {
         Self {
@@ -1277,14 +1271,20 @@ impl From<opentalk_inventory::NewEvent> for NewEvent {
             room,
             created_by,
             updated_by,
-            is_time_independent,
-            is_all_day,
-            starts_at,
-            starts_at_tz,
-            ends_at,
-            ends_at_tz,
-            duration_secs,
-            recurrence_pattern,
+            is_time_independent: date.is_some(),
+            is_all_day: date.as_ref().map(|date| date.is_all_day),
+            starts_at: date.as_ref().map(|date| date.starts_at),
+            starts_at_tz: date.as_ref().map(|date| date.starts_at_tz),
+            ends_at: date.as_ref().map(|date| date.ends_at),
+            ends_at_tz: date.as_ref().map(|date| date.ends_at_tz),
+            duration_secs: date
+                .as_ref()
+                .and_then(|date| date.recurrence.as_ref())
+                .map(|recurrence| recurrence.duration_secs),
+            recurrence_pattern: date
+                .as_ref()
+                .and_then(|date| date.recurrence.as_ref())
+                .map(|recurrence| recurrence.recurrence_pattern.clone()),
             is_adhoc,
             tenant_id,
             show_meeting_details,

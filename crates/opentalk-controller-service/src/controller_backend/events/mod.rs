@@ -24,9 +24,9 @@ use opentalk_controller_utils::{
 use opentalk_inventory::{
     Event, EventEmailInvite, EventException, EventExceptionKind, EventInvite, EventSharedFolder,
     EventTrainingParticipationReportParameterSet, GetEventExceptionsCursor, GetEventsCursor,
-    Inventory, InventoryProvider, NewEvent, NewRoom, NewRoomSipConfig, Room, RoomSipConfig, Tariff,
-    Tenant, UpdateEvent, UpdateEventTrainingParticipationReportParameterSet, UpdateRoom, User,
-    transaction,
+    Inventory, InventoryProvider, NewEvent, NewEventDate, NewEventRecurrence, NewRoom,
+    NewRoomSipConfig, Room, RoomSipConfig, Tariff, Tenant, UpdateEvent,
+    UpdateEventTrainingParticipationReportParameterSet, UpdateRoom, User, transaction,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
@@ -1533,17 +1533,10 @@ async fn create_time_independent_event(
             room: room.id,
             created_by: current_user.id,
             updated_by: current_user.id,
-            is_time_independent: true,
-            is_all_day: None,
-            starts_at: None,
-            starts_at_tz: None,
-            ends_at: None,
-            ends_at_tz: None,
-            duration_secs: None,
-            recurrence_pattern: None,
             is_adhoc,
             show_meeting_details,
             tenant_id: current_user.tenant_id,
+            date: None,
         })
         .await?;
 
@@ -1639,17 +1632,22 @@ async fn create_time_dependent_event(
             room: room.id,
             created_by: current_user.id,
             updated_by: current_user.id,
-            is_time_independent: false,
-            is_all_day: Some(is_all_day),
-            starts_at: Some(starts_at.to_datetime_tz()),
-            starts_at_tz: Some(starts_at.timezone),
-            ends_at: Some(ends_at_dt),
-            ends_at_tz: Some(ends_at_tz),
-            duration_secs,
-            recurrence_pattern,
             is_adhoc,
             show_meeting_details,
             tenant_id: current_user.tenant_id,
+            date: Some(NewEventDate {
+                is_all_day,
+                starts_at: starts_at.to_datetime_tz(),
+                starts_at_tz: starts_at.timezone,
+                ends_at: ends_at_dt,
+                ends_at_tz,
+                recurrence: duration_secs.zip(recurrence_pattern).map(
+                    |(duration_secs, recurrence_pattern)| NewEventRecurrence {
+                        duration_secs,
+                        recurrence_pattern,
+                    },
+                ),
+            }),
         })
         .await?;
 

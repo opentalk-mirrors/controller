@@ -2,15 +2,14 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use chrono::DateTime;
-use chrono_tz::Tz;
 use opentalk_types_common::{
     events::{EventDescription, EventTitle},
     rooms::RoomId,
     tenants::TenantId,
-    time::TimeZone,
     users::UserId,
 };
+
+use crate::event::new_event_date::NewEventDate;
 
 /// The representation of a new event that is intended to be stored in the inventory.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,34 +29,6 @@ pub struct NewEvent {
     /// The id of the user last updated the event.
     pub updated_by: UserId,
 
-    /// A flag indicating whether the event is time-independent.
-    pub is_time_independent: bool,
-
-    /// A flag indicating whether this is an all-day event.
-    pub is_all_day: Option<bool>,
-
-    /// start datetime of the event
-    pub starts_at: Option<DateTime<Tz>>,
-
-    /// timezone of the start-datetime of the event
-    pub starts_at_tz: Option<TimeZone>,
-
-    /// end datetime of the event
-    ///
-    /// For recurring events contains the timestamp of the last occurrence
-    pub ends_at: Option<DateTime<Tz>>,
-
-    /// timezone of the ends_at datetime
-    pub ends_at_tz: Option<TimeZone>,
-
-    /// Only for recurring events, since ends_at contains the information
-    /// about the last occurrence of the recurring series this duration value
-    /// MUST be used to calculate the event instances length
-    pub duration_secs: Option<i32>,
-
-    /// The recurrence pattern for recurring events.
-    pub recurrence_pattern: Option<String>,
-
     /// A flag indicating whether this is an ad-hoc event.
     pub is_adhoc: bool,
 
@@ -66,4 +37,7 @@ pub struct NewEvent {
 
     /// A flag indicating whether the details should be shown in the meeting.
     pub show_meeting_details: bool,
+
+    /// Contains all date related information about the event.
+    pub date: Option<NewEventDate>,
 }

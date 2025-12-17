@@ -13,7 +13,9 @@ mod event_inventory;
 mod get_event_exceptions_cursor;
 mod get_events_cursor;
 mod new_event;
+mod new_event_date;
 mod new_event_exception;
+mod new_event_recurrence;
 mod update_event;
 mod update_event_exception;
 
@@ -26,6 +28,8 @@ pub use event_inventory::EventInventory;
 pub use get_event_exceptions_cursor::GetEventExceptionsCursor;
 pub use get_events_cursor::GetEventsCursor;
 pub use new_event::NewEvent;
+pub use new_event_date::NewEventDate;
 pub use new_event_exception::NewEventException;
+pub use new_event_recurrence::NewEventRecurrence;
 pub use update_event::UpdateEvent;
 pub use update_event_exception::UpdateEventException;
