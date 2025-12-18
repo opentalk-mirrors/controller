@@ -17,6 +17,18 @@ pub(crate) enum Error {
     JsonOperation { source: JsonOperationError },
 }
 
+impl Error {
+    pub fn is_not_found(&self) -> bool {
+        matches!(
+            self,
+            Error::Database {
+                source: DatabaseError::NotFound,
+                ..
+            }
+        )
+    }
+}
+
 impl From<Error> for InventoryBackendError {
     fn from(e: Error) -> Self {
         let e: Box<dyn std::error::Error + Send + Sync> = Box::new(e);
@@ -26,7 +38,10 @@ impl From<Error> for InventoryBackendError {
 
 impl From<Error> for opentalk_inventory::Error {
     fn from(e: Error) -> Self {
-        opentalk_inventory::Error::InventoryBackend {
+        if e.is_not_found() {
+            return Self::NotFound;
+        }
+        Self::InventoryBackend {
             source: InventoryBackendError::from(e),
         }
     }
