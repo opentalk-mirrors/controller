@@ -377,7 +377,8 @@ package:read-tags:
   stage: package
   needs: []
   rules:
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_PIPELINE_SOURCE == "pipeline"
       when: never
   image:
@@ -443,7 +444,7 @@ trigger-docs:
   rules:
     - if: $CI_PIPELINE_SOURCE == "pipeline"
       when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_NAME !~ /^.*canary$/
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   trigger:
     project: opentalk/backend/docs
 
