@@ -1271,7 +1271,7 @@ impl From<opentalk_inventory::NewEvent> for NewEvent {
             room,
             created_by,
             updated_by,
-            is_time_independent: date.is_some(),
+            is_time_independent: date.is_none(),
             is_all_day: date.as_ref().map(|date| date.is_all_day),
             starts_at: date.as_ref().map(|date| date.starts_at),
             starts_at_tz: date.as_ref().map(|date| date.starts_at_tz),
