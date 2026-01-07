@@ -1252,42 +1252,26 @@ pub struct NewEvent {
 }
 
 impl From<opentalk_inventory::NewEvent> for NewEvent {
-    fn from(
-        opentalk_inventory::NewEvent {
-            title,
-            description,
-            room,
-            created_by,
-            updated_by,
-            is_adhoc,
-            tenant_id,
-            show_meeting_details,
-            date,
-        }: opentalk_inventory::NewEvent,
-    ) -> Self {
+    fn from(new_event: opentalk_inventory::NewEvent) -> Self {
         Self {
-            title,
-            description,
-            room,
-            created_by,
-            updated_by,
-            is_time_independent: date.is_some(),
-            is_all_day: date.as_ref().map(|date| date.is_all_day),
-            starts_at: date.as_ref().map(|date| date.starts_at),
-            starts_at_tz: date.as_ref().map(|date| date.starts_at_tz),
-            ends_at: date.as_ref().map(|date| date.ends_at),
-            ends_at_tz: date.as_ref().map(|date| date.ends_at_tz),
-            duration_secs: date
-                .as_ref()
-                .and_then(|date| date.recurrence.as_ref())
-                .map(|recurrence| recurrence.duration_secs),
-            recurrence_pattern: date
-                .as_ref()
-                .and_then(|date| date.recurrence.as_ref())
-                .map(|recurrence| recurrence.recurrence_pattern.clone()),
-            is_adhoc,
-            tenant_id,
-            show_meeting_details,
+            room: new_event.room,
+            created_by: new_event.created_by,
+            updated_by: new_event.updated_by,
+            is_time_independent: new_event.is_time_independent(),
+            is_all_day: new_event.is_all_day(),
+            starts_at: new_event.starts_at(),
+            starts_at_tz: new_event.starts_at_tz(),
+            ends_at: new_event.ends_at(),
+            ends_at_tz: new_event.ends_at_tz(),
+            duration_secs: new_event.duration_secs(),
+            recurrence_pattern: new_event.recurrence_pattern().map(ToString::to_string),
+            // Note: Title and description are not Copy, value partially moves
+            // after here.
+            title: new_event.title,
+            description: new_event.description,
+            is_adhoc: new_event.is_adhoc,
+            tenant_id: new_event.tenant_id,
+            show_meeting_details: new_event.show_meeting_details,
         }
     }
 }
