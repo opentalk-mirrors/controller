@@ -79,22 +79,6 @@ ignore = [
   #
   # The replacement will be tracked in [#1212](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1212).
   "RUSTSEC-2025-0141",
-
-  # | `IterMut` violates Stacked Borrows by invalidating internal pointer
-  # | Affected versions of this crate contain a soundness issue in the `IterMut`
-  # | iterator implementation. The `IterMut::next` and `IterMut::next_back`
-  # | methods temporarily create an exclusive reference to the key when
-  # | dereferencing the internal node pointer.
-  # |
-  # | This invalidates the shared pointer held by the internal `HashMap`,
-  # | violating Stacked Borrows rules.
-  # | Announcement: https://github.com/jeromefroe/lru-rs/pull/224
-  # | Solution: Upgrade to >=0.16.3 (try `cargo update -p lru`)
-  #
-  # This is a transitional dependency, we need to wait for upstream to update.
-  # Dependency chain:
-  # opentalk-signaling-core -> aws-sdk-s3 v1.119.0 -> lru v0.12.5
-  "RUSTSEC-2026-0002",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
