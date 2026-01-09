@@ -265,12 +265,14 @@ impl ControllerBackend {
 
         let context = EventContext {
             id: event.id,
+            starts_at: event.starts_at().map(Into::into),
+            ends_at: event.ends_at().map(Into::into),
+            is_adhoc: event.is_adhoc,
+            shared_folder,
+            // Note: Title and description do not impl Copy, so they partially
+            // move event.
             title: event.title,
             description: event.description,
-            is_adhoc: event.is_adhoc,
-            starts_at: event.starts_at.map(Into::into),
-            ends_at: event.ends_at.map(Into::into),
-            shared_folder,
         };
 
         Ok(Some(context))

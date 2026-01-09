@@ -4,7 +4,7 @@
 
 //! Handles event instances
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use kustos::policies_builder::PoliciesBuilder;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_utils::{CaptureApiError, event::EventExt};
@@ -310,8 +310,9 @@ impl ControllerBackend {
         }: EventInstancePath,
         query: EventInstanceQuery,
     ) -> Result<GetEventInstanceResponseBody, CaptureApiError> {
-        let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
+
+        let settings = self.settings_provider.get();
 
         let (
             event,
@@ -325,6 +326,7 @@ impl ControllerBackend {
         ) = inventory
             .get_event_with_related_items(current_user.id, event_id)
             .await?;
+
         _ = verify_recurrence_date(&event, instance_id.into())?;
 
         let (invitees, invitees_truncated) = super::get_invitees_for_event(
@@ -405,8 +407,9 @@ impl ControllerBackend {
             return Ok(None);
         }
 
-        let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
+
+        let settings = self.settings_provider.get();
 
         let (
             event,
@@ -421,11 +424,11 @@ impl ControllerBackend {
             .get_event_with_related_items(current_user.id, event_id)
             .await?;
 
-        if event.recurrence_pattern.is_none() {
-            return Err(ApiError::not_found().into());
-        }
-
         _ = verify_recurrence_date(&event, instance_id.into())?;
+
+        let Some(date) = event.date() else {
+            return Err(ApiError::not_found().into());
+        };
 
         let exception = if let Some(exception) = inventory
             .get_event_exception(event_id, instance_id.into())
@@ -434,8 +437,8 @@ impl ControllerBackend {
             let is_all_day = patch
                 .is_all_day
                 .or(exception.is_all_day)
-                .or(event.is_all_day)
-                .unwrap();
+                .unwrap_or(date.is_all_day);
+
             let starts_at = patch
                 .starts_at
                 .or_else(|| DateTimeTz::starts_at_of(&event))
@@ -443,6 +446,7 @@ impl ControllerBackend {
                     DateTimeTz::maybe_from_inventory(exception.starts_at, exception.starts_at_tz)
                 })
                 .unwrap();
+
             let ends_at = patch
                 .ends_at
                 .or_else(|| DateTimeTz::ends_at_of(&event))
@@ -473,7 +477,7 @@ impl ControllerBackend {
                 )
                 .await?
         } else {
-            let is_all_day = patch.is_all_day.or(event.is_all_day).unwrap();
+            let is_all_day = patch.is_all_day.unwrap_or(date.is_all_day);
             let starts_at = patch
                 .starts_at
                 .or_else(|| DateTimeTz::starts_at_of(&event))
@@ -489,7 +493,7 @@ impl ControllerBackend {
                 .create_event_exception(NewEventException {
                     event_id: event.id,
                     exception_date: instance_id.into(),
-                    exception_date_tz: event.starts_at_tz.unwrap(),
+                    exception_date_tz: date.starts_at_tz,
                     created_by: current_user.id,
                     kind: if let Some(EventStatus::Cancelled) = patch.status {
                         EventExceptionKind::Cancelled
@@ -635,29 +639,34 @@ fn create_event_instance(
     shared_folder: Option<SharedFolder>,
     training_participation_report: Option<TrainingParticipationReportParameterSet>,
 ) -> opentalk_database::Result<EventInstance> {
-    let mut status = EventStatus::Ok;
+    let instance_date = event
+        .date()
+        .expect("event instances can only be created for events with a date");
+
+    let instance_duration_secs = event
+        .duration_secs()
+        .expect("event instances can only be created for recurring events");
 
     let mut instance_starts_at = instance_id.into();
-    let mut instance_starts_at_tz = event.starts_at_tz.unwrap();
+    let mut instance_starts_at_tz = instance_date.starts_at_tz;
+    let mut instance_ends_at = instance_id + Duration::seconds(instance_duration_secs as i64);
+    let mut instance_ends_at_tz = instance_date.ends_at_tz;
 
-    let mut instance_ends_at =
-        instance_id + chrono::Duration::seconds(event.duration_secs.unwrap() as i64);
-    let mut instance_ends_at_tz = event.ends_at_tz.unwrap();
+    let is_all_day = instance_date.is_all_day;
+
+    let mut status = EventStatus::Ok;
 
     if let Some(exception) = exception {
+        match exception.kind {
+            EventExceptionKind::Modified => {} // Do nothing for now
+            EventExceptionKind::Cancelled => status = EventStatus::Cancelled,
+        }
+
         event.updated_by = exception.created_by;
         event.updated_at = exception.created_at;
 
         patch(&mut event.title, exception.title);
         patch(&mut event.description, exception.description);
-
-        match exception.kind {
-            EventExceptionKind::Modified => {
-                // Do nothing for now
-            }
-            EventExceptionKind::Cancelled => status = EventStatus::Cancelled,
-        }
-
         patch(&mut instance_starts_at, exception.starts_at);
         patch(&mut instance_starts_at_tz, exception.starts_at_tz);
         patch(
@@ -683,7 +692,7 @@ fn create_event_instance(
         room,
         invitees_truncated,
         invitees,
-        is_all_day: event.is_all_day.unwrap(),
+        is_all_day,
         starts_at: DateTimeTz {
             datetime: instance_starts_at.into(),
             timezone: instance_starts_at_tz,
@@ -716,7 +725,7 @@ fn verify_recurrence_date(
         return Err(ApiError::not_found());
     };
 
-    let requested_dt = requested_dt.with_timezone(event.starts_at_tz.unwrap().as_ref());
+    let requested_dt = requested_dt.with_timezone(event.starts_at_tz().unwrap().as_ref());
 
     // Find date in recurrence, if it does not exist this will return a 404
     // And if it finds it it will break the loop
