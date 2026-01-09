@@ -4,20 +4,22 @@
 
 use core::time::Duration;
 
+use opentalk_cache::{Cache, CacheStorage};
 use opentalk_signaling_core::RedisConnection;
 
-use super::UserAccessTokenCache;
+use super::UserAccessTokenResult;
 
 /// Holds all application level caches
 pub struct Caches {
     /// Cache the results of user access-token checks
-    pub user_access_tokens: UserAccessTokenCache,
+    pub user_access_tokens: Box<dyn CacheStorage<String, UserAccessTokenResult>>,
 }
 
 impl Caches {
     /// Create a new [`Caches`] instance with an optional [`RedisConnection`].
     pub fn create(redis: Option<RedisConnection>) -> Self {
-        let mut user_access_tokens = UserAccessTokenCache::new(Duration::from_secs(300));
+        let mut user_access_tokens =
+            Cache::<String, UserAccessTokenResult>::new(Duration::from_secs(300));
 
         if let Some(redis) = redis {
             let redis = redis.into_manager();
@@ -30,7 +32,9 @@ impl Caches {
             )
         };
 
-        Self { user_access_tokens }
+        Self {
+            user_access_tokens: Box::new(user_access_tokens),
+        }
     }
 }
 

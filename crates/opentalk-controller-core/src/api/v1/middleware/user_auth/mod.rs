@@ -25,8 +25,9 @@ use diesel_async::scoped_futures::ScopedFutureExt as _;
 use icu_locid::LanguageIdentifier;
 use kustos::prelude::PoliciesBuilder;
 use openidconnect::AccessToken;
+use opentalk_cache::CacheStorage;
 use opentalk_controller_service::{
-    caching::{CacheableApiError, Caches, UserAccessTokenCache},
+    caching::{CacheableApiError, Caches, UserAccessTokenResult},
     controller_backend::RoomsPoliciesBuilderExt,
     oidc::{OidcTokenHandler, OpenIdConnectUserInfo},
     phone_numbers::parse_phone_number,
@@ -181,7 +182,7 @@ where
                         &authz,
                         inventory_provider.as_ref(),
                         oidc_ctx.as_ref(),
-                        &caches.user_access_tokens,
+                        caches.user_access_tokens.as_ref(),
                         &access_token,
                         fallback_locale,
                     )
@@ -240,7 +241,7 @@ pub async fn check_access_token(
     authz: &kustos::Authz,
     inventory_provider: &dyn InventoryProvider,
     oidc_ctx: &dyn OidcTokenHandler,
-    cache: &UserAccessTokenCache,
+    cache: &dyn CacheStorage<String, UserAccessTokenResult>,
     access_token: &AccessToken,
     fallback_locale: LanguageIdentifier,
 ) -> Result<(Tenant, User), CaptureApiError> {
@@ -295,7 +296,7 @@ pub async fn check_access_token(
 
 /// Attempt to retrieve cached result
 async fn get_cached_result(
-    cache: &UserAccessTokenCache,
+    cache: &dyn CacheStorage<String, UserAccessTokenResult>,
     access_token: &AccessToken,
 ) -> Result<Option<Result<(Tenant, User), CaptureApiError>>, CaptureApiError> {
     match cache.get(access_token.secret()).await {
