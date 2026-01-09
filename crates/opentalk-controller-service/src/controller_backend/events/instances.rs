@@ -227,7 +227,7 @@ impl ControllerBackend {
 
         let tariff = self.build_tariff_resource(&tariff)?;
 
-        let room = EventRoomInfo::from_room(&settings, room, sip_config, &tariff);
+        let room = EventRoomInfo::from_room(&settings, &room, sip_config.as_ref(), &tariff);
 
         let can_edit = current_user.can_edit(&event);
 
@@ -359,7 +359,7 @@ impl ControllerBackend {
 
         let tariff = self.build_tariff_resource(&tariff)?;
 
-        let room = EventRoomInfo::from_room(&settings, room, sip_config, &tariff);
+        let room = EventRoomInfo::from_room(&settings, &room, sip_config.as_ref(), &tariff);
 
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
         let current_user = inventory.get_user(current_user.id).await?;
@@ -520,7 +520,7 @@ impl ControllerBackend {
         let tariff = self.build_tariff_resource(&tariff)?;
 
         let event_room_info =
-            EventRoomInfo::from_room(&settings, room.clone(), sip_config.clone(), &tariff);
+            EventRoomInfo::from_room(&settings, &room, sip_config.as_ref(), &tariff);
 
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
         let current_user = inventory.get_user(current_user.id).await?;

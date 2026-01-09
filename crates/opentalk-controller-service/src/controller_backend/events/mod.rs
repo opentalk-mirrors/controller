@@ -557,7 +557,7 @@ impl ControllerBackend {
             updated_at: event.updated_at,
             title: event.title,
             description: event.description,
-            room: EventRoomInfo::from_room(settings, room, sip_config, &tariff),
+            room: EventRoomInfo::from_room(settings, &room, sip_config.as_ref(), &tariff),
             invitees_truncated,
             invitees,
             invite_status,
@@ -806,7 +806,7 @@ impl ControllerBackend {
                 updated_at: event.updated_at,
                 title: event.title,
                 description: event.description,
-                room: EventRoomInfo::from_room(&settings, room, sip_config, &tariff),
+                room: EventRoomInfo::from_room(&settings, &room, sip_config.as_ref(), &tariff),
                 invitees_truncated,
                 invitees,
                 invite_status,
@@ -929,7 +929,7 @@ impl ControllerBackend {
             id: event.id,
             title: event.title,
             description: event.description,
-            room: EventRoomInfo::from_room(&settings, room, sip_config, &tariff),
+            room: EventRoomInfo::from_room(&settings, &room, sip_config.as_ref(), &tariff),
             invitees_truncated,
             invitees,
             created_by: users.get(event.created_by),
@@ -1182,7 +1182,7 @@ impl ControllerBackend {
             updated_at: event.updated_at,
             title: event.title.clone(),
             description: event.description.clone(),
-            room: EventRoomInfo::from_room(&settings, room.clone(), sip_config.clone(), &tariff),
+            room: EventRoomInfo::from_room(&settings, &room, sip_config.as_ref(), &tariff),
             invitees_truncated,
             invitees,
             invite_status: invite
@@ -1452,8 +1452,8 @@ impl EventInviteeExt for EventInvitee {
 trait EventRoomInfoExt {
     fn from_room(
         settings: &Settings,
-        room: Room,
-        sip_config: Option<RoomSipConfig>,
+        room: &Room,
+        sip_config: Option<&RoomSipConfig>,
         tariff: &TariffResource,
     ) -> Self;
 }
@@ -1467,8 +1467,8 @@ impl EventRoomInfoExt for EventRoomInfo {
     /// - the `CallIn` feature is not disabled in the settings
     fn from_room(
         settings: &Settings,
-        room: Room,
-        sip_config: Option<RoomSipConfig>,
+        room: &Room,
+        sip_config: Option<&RoomSipConfig>,
         tariff: &TariffResource,
     ) -> Self {
         let call_in_feature_is_enabled = tariff
@@ -1490,7 +1490,7 @@ impl EventRoomInfoExt for EventRoomInfo {
 
         Self {
             id: room.id,
-            password: room.password,
+            password: room.password.clone(),
             waiting_room: room.waiting_room,
             e2e_encryption: room.e2e_encryption,
             call_in,
@@ -1606,12 +1606,7 @@ async fn create_time_independent_event(
         id: event.id,
         title: event.title.clone(),
         description: event.description.clone(),
-        room: EventRoomInfo::from_room(
-            settings,
-            room.clone(),
-            Some(sip_config.clone()),
-            user_tariff,
-        ),
+        room: EventRoomInfo::from_room(settings, &room, Some(&sip_config), user_tariff),
         invitees_truncated: false,
         invitees: vec![],
         created_by: current_user.to_public_user_profile(settings),
@@ -1759,12 +1754,7 @@ async fn create_time_dependent_event(
         id: event.id,
         title: event.title.clone(),
         description: event.description.clone(),
-        room: EventRoomInfo::from_room(
-            settings,
-            room.clone(),
-            Some(sip_config.clone()),
-            user_tariff,
-        ),
+        room: EventRoomInfo::from_room(settings, &room, Some(&sip_config), user_tariff),
         invitees_truncated: false,
         invitees: vec![],
         created_by: current_user.to_public_user_profile(settings),
