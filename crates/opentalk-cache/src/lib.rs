@@ -5,32 +5,23 @@
 use core::{fmt::Display, time::Duration};
 use std::{hash::Hash, time::Instant};
 
-use bincode::{Decode, Encode, config};
+use bincode::{Decode, Encode};
 use moka::future::Cache as LocalCache;
-use redis::{AsyncCommands, RedisError, ToRedisArgs, ToSingleRedisArg};
 use serde::de::DeserializeOwned;
-use siphasher::sip128::{Hasher128, SipHasher24};
 use snafu::Snafu;
 
-type RedisConnection = redis::aio::ConnectionManager;
+pub mod redis;
 
 /// Application level cache which can store entries both in a locally and distributed using redis
 pub struct Cache<K, V> {
     local: LocalCache<K, LocalEntry<V>>,
-    redis: Option<RedisConfig>,
-}
-
-struct RedisConfig {
-    redis: RedisConnection,
-    prefix: String,
-    ttl: Duration,
-    hash_key: bool,
+    redis: Option<redis::Cache<K, V>>,
 }
 
 #[derive(Debug, Snafu)]
 pub enum CacheError {
     #[snafu(display("Redis error: {}", source), context(false))]
-    Redis { source: RedisError },
+    Redis { source: redis::Error },
     #[snafu(display("Encode error: {}", source), context(false))]
     Encode { source: bincode::error::EncodeError },
     #[snafu(display("Decode error: {}", source), context(false))]
@@ -51,18 +42,13 @@ where
 
     pub fn with_redis(
         self,
-        redis: RedisConnection,
+        connection: redis::Connection,
         prefix: impl Into<String>,
         ttl: Duration,
         hash_key: bool,
     ) -> Self {
         Self {
-            redis: Some(RedisConfig {
-                redis,
-                prefix: prefix.into(),
-                ttl,
-                hash_key,
-            }),
+            redis: Some(redis::Cache::new(connection, prefix.into(), ttl, hash_key)),
             ..self
         }
     }
@@ -75,11 +61,10 @@ where
             .time_to_live()
             .expect("local always has a ttl");
 
-        if let Some(redis) = &self.redis {
-            redis.ttl.max(local_ttl)
-        } else {
-            local_ttl
-        }
+        self.redis
+            .as_ref()
+            .map(|c| c.ttl().max(local_ttl))
+            .unwrap_or(local_ttl)
     }
 
     pub async fn get(&self, key: &K) -> Result<Option<V>, CacheError> {
@@ -90,29 +75,8 @@ where
             .filter(|entry| entry.still_valid())
         {
             Ok(Some(entry.value))
-        } else if let Some(RedisConfig {
-            redis,
-            prefix,
-            hash_key,
-            ..
-        }) = &self.redis
-        {
-            let v: Option<Vec<u8>> = redis
-                .clone()
-                .get(RedisCacheKey {
-                    prefix,
-                    key,
-                    hash_key: *hash_key,
-                })
-                .await?;
-
-            if let Some(v) = v {
-                let (v, _) = bincode::decode_from_slice(&v, config::standard())?;
-
-                Ok(Some(v))
-            } else {
-                Ok(None)
-            }
+        } else if let Some(r) = &self.redis {
+            Ok(r.get(key).await?)
         } else {
             Ok(None)
         }
@@ -120,25 +84,8 @@ where
 
     /// Insert a key-value pair with the cache's default TTL
     pub async fn insert(&self, key: K, value: V) -> Result<(), CacheError> {
-        if let Some(RedisConfig {
-            redis,
-            prefix,
-            ttl,
-            hash_key,
-        }) = &self.redis
-        {
-            redis
-                .clone()
-                .set_ex::<_, _, ()>(
-                    RedisCacheKey {
-                        prefix,
-                        key: &key,
-                        hash_key: *hash_key,
-                    },
-                    bincode::encode_to_vec(&value, config::standard())?,
-                    ttl.as_secs(),
-                )
-                .await?;
+        if let Some(r) = &self.redis {
+            r.insert(&key, &value).await?;
         }
 
         self.local
@@ -162,25 +109,8 @@ where
             return self.insert(key, value).await;
         }
 
-        if let Some(RedisConfig {
-            redis,
-            prefix,
-            hash_key,
-            ..
-        }) = &self.redis
-        {
-            redis
-                .clone()
-                .set_ex::<_, _, ()>(
-                    RedisCacheKey {
-                        prefix,
-                        key: &key,
-                        hash_key: *hash_key,
-                    },
-                    bincode::encode_to_vec(&value, config::standard())?,
-                    ttl.as_secs(),
-                )
-                .await?;
+        if let Some(r) = &self.redis {
+            r.insert_with_ttl(&key, &value, ttl).await?;
         }
 
         self.local
@@ -194,39 +124,6 @@ where
             .await;
 
         Ok(())
-    }
-}
-
-/// [`ToRedisArgs`] implementation for the cache-key
-/// Takes the prefix and cache-key to turn them into a redis-key
-struct RedisCacheKey<'a, K> {
-    hash_key: bool,
-    prefix: &'a str,
-    key: &'a K,
-}
-
-impl<K: Display + Hash> Display for RedisCacheKey<'_, K> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.hash_key {
-            let mut h = SipHasher24::new_with_keys(!0x113, 0x311);
-            self.key.hash(&mut h);
-            let hash = h.finish128().as_u128();
-
-            write!(f, "opentalk-cache:{}:{:x}", self.prefix, hash)
-        } else {
-            write!(f, "opentalk-cache:{}:{}", self.prefix, self.key)
-        }
-    }
-}
-
-impl<D: Display + Hash> ToSingleRedisArg for RedisCacheKey<'_, D> {}
-
-impl<D: Display + Hash> ToRedisArgs for RedisCacheKey<'_, D> {
-    fn write_redis_args<W>(&self, out: &mut W)
-    where
-        W: ?Sized + redis::RedisWrite,
-    {
-        out.write_arg_fmt(self)
     }
 }
 
