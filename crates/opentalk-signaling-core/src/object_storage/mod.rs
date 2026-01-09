@@ -2,7 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::collections::BTreeMap;
+mod download_proxy_stream;
+
+use std::{collections::BTreeMap, time::Duration};
 
 use actix_http::error::PayloadError;
 use aws_sdk_s3::{
@@ -11,12 +13,19 @@ use aws_sdk_s3::{
         Builder, Credentials as AwsCred, Region,
         endpoint::{Endpoint, EndpointFuture, Params, ResolveEndpoint},
     },
+    presigning::PresigningConfig,
     primitives::ByteStream,
     types::{CompletedMultipartUpload, CompletedPart},
 };
 use bytes::Bytes;
+pub use download_proxy_stream::DownloadProxyStream;
 use futures::{Stream, StreamExt};
+use http::StatusCode;
 use opentalk_controller_settings::MinIO;
+use opentalk_types_api_v1::{
+    error::{ApiError, ErrorBody},
+    pagination::Cursor,
+};
 use snafu::{OptionExt, ResultExt, Snafu, ensure};
 use url::Url;
 
@@ -85,12 +94,64 @@ impl From<PayloadError> for ObjectStorageError {
 
 type Result<T, E = ObjectStorageError> = std::result::Result<T, E>;
 
+#[derive(Debug, Snafu)]
+pub enum ProxyRequestError {
+    #[snafu(display("Proxy request to object storage failed"))]
+    ServiceUnavailable,
+
+    #[snafu(display("Download link has expired or is invalid"))]
+    Forbidden,
+
+    #[snafu(display("Not found"))]
+    NotFound,
+
+    #[snafu(display("Internal server error"))]
+    Internal,
+}
+
+impl ProxyRequestError {
+    fn status_code(&self) -> http::StatusCode {
+        match self {
+            ProxyRequestError::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
+            ProxyRequestError::Forbidden => StatusCode::FORBIDDEN,
+            ProxyRequestError::NotFound => StatusCode::NOT_FOUND,
+            ProxyRequestError::Internal => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+
+    fn error_code(&self) -> &'static str {
+        match self {
+            ProxyRequestError::ServiceUnavailable => "service_unavailable",
+            ProxyRequestError::Forbidden => "forbidden",
+            ProxyRequestError::NotFound => "not_found",
+            ProxyRequestError::Internal => "internal_server_error",
+        }
+    }
+}
+
+impl From<ProxyRequestError> for ApiError {
+    fn from(error: ProxyRequestError) -> Self {
+        Self {
+            status: error.status_code(),
+            www_authenticate: None,
+            body: ErrorBody::new(error.error_code(), error.to_string()),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ObjectStorage {
     /// The s3 client
     client: Client,
+
     /// The configured bucket
     bucket: String,
+
+    /// The base url for accessing objects
+    base_url: Url,
+
+    /// A reqwest client for sending direct requests
+    reqwest_client: reqwest::Client,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -107,6 +168,15 @@ impl ChunkFormat {
 
 impl ObjectStorage {
     pub async fn new(minio: &MinIO) -> Result<Self> {
+        let base_url: Url =
+            minio
+                .uri
+                .parse()
+                .map_err(Into::into)
+                .context(InvalidSettingsSnafu {
+                    message: "Invalid minio URI",
+                })?;
+
         let credentials = AwsCred::new(
             minio.access_key.clone(),
             minio.secret_key.clone(),
@@ -134,18 +204,13 @@ impl ObjectStorage {
             }
         }
 
-        let conf =
-            Builder::new()
-                .endpoint_resolver(Resolver {
-                    minio_url: minio.uri.parse().map_err(Into::into).context(
-                        InvalidSettingsSnafu {
-                            message: "Invalid minio URI",
-                        },
-                    )?,
-                })
-                .credentials_provider(credentials)
-                .region(Region::new("unknown"))
-                .build();
+        let conf = Builder::new()
+            .endpoint_resolver(Resolver {
+                minio_url: base_url.clone(),
+            })
+            .credentials_provider(credentials)
+            .region(Region::new("unknown"))
+            .build();
 
         let client = Client::from_conf(conf);
 
@@ -172,6 +237,8 @@ impl ObjectStorage {
         Ok(Self {
             client,
             bucket: minio.bucket.clone(),
+            base_url,
+            reqwest_client: reqwest::Client::new(),
         })
     }
 
@@ -195,6 +262,8 @@ impl ObjectStorage {
         Self {
             client,
             bucket: "broken".into(),
+            base_url: "http://localhost".parse().unwrap(),
+            reqwest_client: reqwest::Client::new(),
         }
     }
 
@@ -485,6 +554,129 @@ impl ObjectStorage {
             .context(DeleteSnafu)?;
 
         Ok(())
+    }
+
+    pub fn get_base_url(&self, key: &str) -> Url {
+        let mut url = self.base_url.clone();
+
+        let path = format!("{}/{}", self.bucket, key);
+        url.set_path(&path);
+
+        url
+    }
+
+    pub async fn get_proxy_download_token(
+        &self,
+        key: &str,
+        expires_in: Duration,
+        content_disposition: String,
+    ) -> Result<String> {
+        let get = self
+            .client
+            .get_object()
+            .bucket(&self.bucket)
+            .key(key)
+            .response_content_disposition(content_disposition);
+
+        let presigned = get
+            .presigned(PresigningConfig::expires_in(expires_in).map_err(|e| {
+                ObjectStorageError::Other {
+                    message: "Failed to build presigning config".into(),
+                    source: Some(Box::new(e)),
+                }
+            })?)
+            .await
+            .map_err(|e| ObjectStorageError::Other {
+                message: "Failed to presign get_object".into(),
+                source: Some(Box::new(e)),
+            })?;
+
+        let url: Url = presigned
+            .uri()
+            .parse()
+            .whatever_context::<&str, ObjectStorageError>(
+                "Received an invalid URL from the pre-signing request",
+            )?;
+        let query = url
+            .query_pairs()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect::<BTreeMap<String, String>>();
+
+        Ok(Cursor(query).to_base64())
+    }
+
+    pub async fn get_proxied(
+        &self,
+        key: &str,
+        token: String,
+        range_header: Option<String>,
+    ) -> Result<DownloadProxyStream, ProxyRequestError> {
+        let Cursor(query_params): Cursor<BTreeMap<String, String>> =
+            Cursor::from_base64(&token).map_err(|_| ForbiddenSnafu.build())?;
+
+        let mut url = self.get_base_url(key);
+
+        {
+            let mut query_modifier = url.query_pairs_mut();
+            _ = query_modifier.clear();
+
+            for (k, v) in query_params.iter() {
+                _ = query_modifier.append_pair(k, v);
+            }
+        }
+
+        let mut request = self.reqwest_client.get(url);
+
+        if let Some(range) = range_header
+            && let Ok(v) = reqwest::header::HeaderValue::from_bytes(range.as_bytes())
+        {
+            request = request.header(reqwest::header::RANGE, v);
+        }
+        let response = request.send().await.map_err(|e| {
+            log::error!("Proxy request to object storage failed: {e}");
+            ServiceUnavailableSnafu {}.build()
+        })?;
+
+        let status = response.status();
+
+        if !status.is_success() {
+            return Err(match status {
+                reqwest::StatusCode::FORBIDDEN | reqwest::StatusCode::UNAUTHORIZED => {
+                    ForbiddenSnafu.build()
+                }
+                reqwest::StatusCode::NOT_FOUND => NotFoundSnafu.build(),
+                _ => InternalSnafu.build(),
+            });
+        }
+
+        const HEADERS_TO_FORWARD: [&str; 5] = [
+            "content-type",
+            "content-disposition",
+            "content-length",
+            "accept-ranges",
+            "content-range",
+        ];
+        let headers = HEADERS_TO_FORWARD
+            .iter()
+            .filter_map(|&k| {
+                response
+                    .headers()
+                    .get(k)
+                    .map(|v| (k.to_string(), v.to_str().unwrap().to_string()))
+            })
+            .collect();
+
+        let stream = response.bytes_stream().map(|item| {
+            item.map_err(|e| {
+                let b: Box<dyn std::error::Error + Send + Sync> = Box::new(e);
+                b
+            })
+        });
+        Ok(DownloadProxyStream {
+            status: status.as_u16(),
+            headers,
+            stream: Box::new(stream),
+        })
     }
 }
 

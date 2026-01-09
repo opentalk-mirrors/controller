@@ -5225,6 +5225,7 @@ dependencies = [
  "opentelemetry",
  "opentelemetry_sdk",
  "parking_lot",
+ "percent-encoding",
  "phonenumber",
  "pretty_assertions",
  "redis",
@@ -5973,6 +5974,7 @@ dependencies = [
  "derive_more 2.1.1",
  "either",
  "futures",
+ "http 1.4.0",
  "kustos",
  "lapin",
  "lapin-pool",
@@ -6529,9 +6531,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-api-common"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "705242803186f3d2cccb9d1c210d4cc9e6a99e462d2204447869a70623db445b"
+checksum = "38a94060aa855222985b08f0d68953b8350a17662e13f1d373da4ccbbd236ad3"
 dependencies = [
  "actix-web",
  "axum",
@@ -6551,9 +6553,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-api-v1"
-version = "0.51.0"
+version = "0.51.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0a24ef3236d69ffb757139b580f8be451ca8a4684e475f198fc293e7ad4f5db"
+checksum = "3a25b27b0b6c4bea56e752e8e6d57c866bb1157305f8322de00e380e2ebe2bf5"
 dependencies = [
  "chrono",
  "chrono-tz",

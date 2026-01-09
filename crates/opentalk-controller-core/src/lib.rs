@@ -929,6 +929,7 @@ fn v1_scope(
         .service(api::v1::rooms::roomserver::start_invited)
         .service(api::v1::invites::verify_invite_code)
         .service(api::v1::turn::get)
+        .service(api::v1::assets::proxy_download)
         .service(
             web::scope("/services/roomserver")
                 .wrap(api::v1::middleware::roomserver_auth::RoomserverAuth::new(
@@ -1002,6 +1003,7 @@ fn v1_scope(
                 .service(api::v1::invites::delete_invite)
                 .service(api::v1::assets::room_assets)
                 .service(api::v1::assets::room_asset)
+                .service(api::v1::assets::room_asset_download)
                 .service(api::v1::assets::create)
                 .service(api::v1::assets::delete)
                 .service(api::v1::streaming_targets::get_streaming_targets)

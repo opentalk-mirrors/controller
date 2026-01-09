@@ -25,14 +25,16 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use futures_core::Stream;
 use kustos::Authz;
-use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
+use opentalk_controller_service_facade::{
+    AssetDownloadProxyStream, OpenTalkControllerService, RequestUser,
+};
 use opentalk_controller_settings::SettingsProvider;
 use opentalk_inventory::InventoryProvider;
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_roomserver_client::Client as RoomServerClient;
 use opentalk_signaling_core::{
     ExchangeHandle, ObjectStorage, ObjectStorageError, VolatileStorage,
-    assets::{AssetSaved, ByStreamExt, NewAssetFileName},
+    assets::{AssetSaved, ByStreamExt, NewAssetFileName, asset_key},
 };
 use opentalk_types_api_v1::{
     assets::{AssetResource, AssetSortingQuery},
@@ -306,6 +308,34 @@ impl OpenTalkControllerService for ControllerBackend {
         asset_id: AssetId,
     ) -> Result<ByStreamExt, ApiError> {
         Ok(self.get_room_asset(room_id, asset_id).await?)
+    }
+
+    async fn get_room_asset_proxy_download_token(
+        &self,
+        room_id: RoomId,
+        asset_id: AssetId,
+    ) -> Result<String, ApiError> {
+        Ok(self
+            .get_room_asset_proxy_download_token(room_id, asset_id)
+            .await?)
+    }
+
+    async fn get_asset_proxy_download_stream(
+        &self,
+        asset_id: AssetId,
+        token: String,
+        range_header: Option<String>,
+    ) -> Result<AssetDownloadProxyStream, ApiError> {
+        let stream = self
+            .storage
+            .get_proxied(&asset_key(&asset_id), token, range_header)
+            .await?;
+
+        Ok(AssetDownloadProxyStream {
+            status: stream.status,
+            headers: stream.headers,
+            stream: stream.stream,
+        })
     }
 
     async fn create_room_asset(
