@@ -3,18 +3,18 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use core::{fmt::Display, time::Duration};
-use std::{hash::Hash, time::Instant};
+use std::hash::Hash;
 
 use bincode::{Decode, Encode};
-use moka::future::Cache as LocalCache;
 use serde::de::DeserializeOwned;
 use snafu::Snafu;
 
+pub mod local;
 pub mod redis;
 
 /// Application level cache which can store entries both in a locally and distributed using redis
 pub struct Cache<K, V> {
-    local: LocalCache<K, LocalEntry<V>>,
+    local: local::Cache<K, V>,
     redis: Option<redis::Cache<K, V>>,
 }
 
@@ -35,7 +35,7 @@ where
 {
     pub fn new(ttl: Duration) -> Self {
         Self {
-            local: LocalCache::builder().time_to_live(ttl).build(),
+            local: local::Cache::new(ttl),
             redis: None,
         }
     }
@@ -55,11 +55,7 @@ where
 
     /// Return the longest duration an entry might live for
     pub fn longest_ttl(&self) -> Duration {
-        let local_ttl = self
-            .local
-            .policy()
-            .time_to_live()
-            .expect("local always has a ttl");
+        let local_ttl = self.local.ttl();
 
         self.redis
             .as_ref()
@@ -68,13 +64,8 @@ where
     }
 
     pub async fn get(&self, key: &K) -> Result<Option<V>, CacheError> {
-        if let Some(entry) = self
-            .local
-            .get(key)
-            .await
-            .filter(|entry| entry.still_valid())
-        {
-            Ok(Some(entry.value))
+        if let Some(value) = self.local.get(key).await {
+            Ok(Some(value))
         } else if let Some(r) = &self.redis {
             Ok(r.get(key).await?)
         } else {
@@ -88,15 +79,7 @@ where
             r.insert(&key, &value).await?;
         }
 
-        self.local
-            .insert(
-                key,
-                LocalEntry {
-                    value,
-                    expires_at: None,
-                },
-            )
-            .await;
+        self.local.insert(key, value).await;
 
         Ok(())
     }
@@ -113,34 +96,8 @@ where
             r.insert_with_ttl(&key, &value, ttl).await?;
         }
 
-        self.local
-            .insert(
-                key,
-                LocalEntry {
-                    value,
-                    expires_at: Some(Instant::now() + ttl),
-                },
-            )
-            .await;
+        self.local.insert_with_ttl(key, value, ttl).await;
 
         Ok(())
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-struct LocalEntry<V> {
-    value: V,
-    /// Custom expiration value to work around moka's limitation to set a custom ttl for an entry
-    expires_at: Option<Instant>,
-}
-
-impl<V> LocalEntry<V> {
-    // Check if the custom ttl has expired
-    fn still_valid(&self) -> bool {
-        if let Some(exp) = self.expires_at {
-            exp.saturating_duration_since(Instant::now()) > Duration::ZERO
-        } else {
-            true
-        }
     }
 }
