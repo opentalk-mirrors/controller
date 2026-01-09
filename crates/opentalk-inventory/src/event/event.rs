@@ -59,24 +59,21 @@ pub struct Event {
 }
 
 impl Event {
-    /// Returns the ends_at value of the first occurrence of the event
+    /// Provides the ends_at value of the first occurrence of the event:
+    /// - if the event has no date: returns none
+    /// - if the event is not recurring: returns some `ends_at` and `ends_at_tz` of the event
+    /// - otherwise: returns some `ends_at` and `ends_at_tz` of first occurence
     pub fn ends_at_of_first_occurrence(&self) -> Option<(Timestamp, TimeZone)> {
-        if self.recurrence_pattern().is_some() {
-            // Recurring events have the last occurrence of the recurrence saved in the ends_at fields
-            // So we get the starts_at_dt and add the duration_secs field to it
-            if let (Some(starts_at_dt), Some(dur), Some(tz)) =
-                (self.starts_at(), self.duration_secs(), self.ends_at_tz())
-            {
-                Some((starts_at_dt + chrono::Duration::seconds(i64::from(dur)), tz))
-            } else {
-                None
-            }
-        } else if let (Some(dt), Some(tz)) = (self.ends_at(), self.ends_at_tz()) {
-            // Non recurring events just directly use the ends_at field from the db
-            Some((dt, tz))
-        } else {
-            None
-        }
+        let date = self.date()?;
+
+        let Some(recurrence) = self.recurrence() else {
+            return Some((date.ends_at, date.ends_at_tz));
+        };
+
+        Some((
+            date.starts_at + chrono::Duration::seconds(recurrence.duration_secs as i64),
+            date.ends_at_tz,
+        ))
     }
 
     /// Returns the date of this [`Event`].
