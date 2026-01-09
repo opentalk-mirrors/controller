@@ -24,3 +24,19 @@ pub struct EventDate {
     /// The recurrence pattern for recurring events.
     pub recurrence: Option<EventRecurrence>,
 }
+
+impl EventDate {
+    /// Provides the ends_at value of the first occurrence of the event:
+    /// - if the event is not recurring: returns `ends_at` and `ends_at_tz` of the event
+    /// - otherwise: returns `ends_at` and `ends_at_tz` of first occurence
+    pub fn ends_at_of_first_occurrence(&self) -> (Timestamp, TimeZone) {
+        let Some(recurrence) = self.recurrence.as_ref() else {
+            return (self.ends_at, self.ends_at_tz);
+        };
+
+        (
+            self.starts_at + chrono::Duration::seconds(recurrence.duration_secs as i64),
+            self.ends_at_tz,
+        )
+    }
+}

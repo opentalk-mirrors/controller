@@ -64,16 +64,7 @@ impl Event {
     /// - if the event is not recurring: returns some `ends_at` and `ends_at_tz` of the event
     /// - otherwise: returns some `ends_at` and `ends_at_tz` of first occurence
     pub fn ends_at_of_first_occurrence(&self) -> Option<(Timestamp, TimeZone)> {
-        let date = self.date()?;
-
-        let Some(recurrence) = self.recurrence() else {
-            return Some((date.ends_at, date.ends_at_tz));
-        };
-
-        Some((
-            date.starts_at + chrono::Duration::seconds(recurrence.duration_secs as i64),
-            date.ends_at_tz,
-        ))
+        self.date().map(|date| date.ends_at_of_first_occurrence())
     }
 
     /// Returns the date of this [`Event`].

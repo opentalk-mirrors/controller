@@ -4,7 +4,7 @@
 
 //! Utils for [`Event`]
 use chrono::{DateTime, TimeZone};
-use opentalk_inventory::Event;
+use opentalk_inventory::{Event, EventDate};
 use opentalk_types_api_v1::error::ApiError;
 use rrule::{RRule, RRuleSet, Unvalidated};
 use snafu::{Report, ResultExt, Snafu};
@@ -60,28 +60,7 @@ impl EventExt for Event {
             return Ok(None);
         };
 
-        let Some(recurrence) = self.recurrence() else {
-            return Ok(None);
-        };
-
-        let rrule: RRule<Unvalidated> =
-            recurrence.recurrence_pattern.parse().context(RRuleSnafu)?;
-
-        // rrule uses chrono-tz 0.9 while we have 0.10 already.
-        // as a workaround we convert through a string that we parse.
-        // good enough for this use case, can be romved when chrono-tz
-        // is updated in rrule.
-        let starts_at_tz = date
-            .starts_at_tz
-            .to_string()
-            .parse()
-            .expect("timezone should be parseable");
-
-        let starts_at_with_tz = date.starts_at.with_timezone(&rrule::Tz::Tz(starts_at_tz));
-
-        let rruleset = rrule.build(starts_at_with_tz).context(RRuleSnafu)?;
-
-        Ok(Some(rruleset))
+        date.to_rruleset()
     }
 
     fn has_last_occurrence_before<T: TimeZone>(
@@ -104,5 +83,39 @@ impl EventExt for Event {
         }
 
         Ok(false)
+    }
+}
+
+/// An extension trait for [`EventDate`].
+pub trait EventDateExt {
+    /// Get the [`RRuleSet`] for the [`Event`], will return `Ok(None)` for non
+    /// recurring events.
+    fn to_rruleset(&self) -> Result<Option<RRuleSet>, EventRRuleSetError>;
+}
+
+impl EventDateExt for EventDate {
+    fn to_rruleset(&self) -> Result<Option<RRuleSet>, EventRRuleSetError> {
+        let Some(recurrence) = self.recurrence.as_ref() else {
+            return Ok(None);
+        };
+
+        let rrule: RRule<Unvalidated> =
+            recurrence.recurrence_pattern.parse().context(RRuleSnafu)?;
+
+        // rrule uses chrono-tz 0.9 while we have 0.10 already.
+        // as a workaround we convert through a string that we parse.
+        // good enough for this use case, can be romved when chrono-tz
+        // is updated in rrule.
+        let starts_at_tz = self
+            .starts_at_tz
+            .to_string()
+            .parse()
+            .expect("timezone should be parseable");
+
+        let starts_at_with_tz = self.starts_at.with_timezone(&rrule::Tz::Tz(starts_at_tz));
+
+        let rruleset = rrule.build(starts_at_with_tz).context(RRuleSnafu)?;
+
+        Ok(Some(rruleset))
     }
 }
