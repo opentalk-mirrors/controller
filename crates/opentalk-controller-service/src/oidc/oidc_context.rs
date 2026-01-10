@@ -13,15 +13,24 @@ use openidconnect::{
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use opentalk_types_common::time::TimeZone;
-use reqwest11::header::{HeaderMap, HeaderName, HeaderValue};
+use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use snafu::{OptionExt as _, Report, ResultExt as _, Whatever};
 use url::Url;
 
 use super::{
     IntrospectInfo, OidcTokenHandler, OnlyExpiryClaim, OpenIdConnectUserInfo,
-    OpenTalkAdditionalClaims, ProviderClient, RealmRoles, ServiceClaims, VerifyError, http, jwt,
+    OpenTalkAdditionalClaims, ProviderClient, RealmRoles, ServiceClaims, VerifyError, jwt,
 };
 use crate::Result;
+
+pub fn make_client(default_headers: Option<HeaderMap>) -> Result<reqwest::Client, reqwest::Error> {
+    default_headers
+        .map_or(reqwest::Client::builder(), |headers| {
+            reqwest::Client::builder().default_headers(headers)
+        })
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+}
 
 /// The `OidcContext` contains all information about the Oidc provider and permissions matrix.
 #[derive(Debug)]
@@ -29,7 +38,7 @@ pub(super) struct OidcContext {
     /// The provider client
     provider: ProviderClient,
     /// The HTTP client
-    http_client: reqwest11::Client,
+    http_client: reqwest::Client,
 
     /// The HTTP client for calling the introspection endpoint.
     ///
@@ -44,7 +53,7 @@ pub(super) struct OidcContext {
     ///
     /// This client adds a `x-forwarded-host` header derived from the frontend auth base url,
     /// using its host part, and if present, the port as well.
-    http_introspect_and_userinfo_client: Option<reqwest11::Client>,
+    http_introspect_and_userinfo_client: Option<reqwest::Client>,
 }
 
 impl OidcContext {
@@ -58,7 +67,7 @@ impl OidcContext {
         client_id: ClientId,
         client_secret: ClientSecret,
     ) -> Result<Self> {
-        let http_client = http::make_client(None).whatever_context("Failed to make http client")?;
+        let http_client = make_client(None).whatever_context("Failed to make http client")?;
 
         let http_introspect_and_userinfo_client =
             match std::env::var("OIDC_INTROSPECT_AND_USERINFO_SET_X_FORWARDED_HOST").ok() {
@@ -79,7 +88,7 @@ impl OidcContext {
                             .whatever_context("Invalid header value for introspect client")?,
                     );
                     Some(
-                        http::make_client(Some(default_headers))
+                        make_client(Some(default_headers))
                             .whatever_context("Failed to make oidc introspection http client")?,
                     )
                 }
@@ -194,8 +203,7 @@ impl OidcContext {
             .provider
             .client
             .introspect(&access_token)
-            .whatever_context("Failed to build AccessToken introspect request")?
-            .request_async(http::async_http_client(client.clone()))
+            .request_async(client)
             .await
             .whatever_context("AccessToken introspect request failed")?;
 
@@ -220,7 +228,7 @@ impl OidcContext {
             .client
             .user_info(access_token, None)
             .whatever_context::<_, Whatever>("Failed to build userinfo request")?
-            .request_async(http::async_http_client(client.clone()))
+            .request_async(client)
             .await
             .whatever_context::<_, Whatever>("Failed to fetch userinfo")?;
 

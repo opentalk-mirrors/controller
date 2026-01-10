@@ -64,7 +64,7 @@ parking_lot.workspace = true
 phonenumber.workspace = true
 redis = { workspace = true, features = ["connection-manager", "tokio-comp"] }
 redis-args.workspace = true
-reqwest11 = { workspace = true, features = ["rustls-tls-native-roots"] }
+reqwest = { workspace = true, features = ["rustls-tls-native-roots"] }
 ring.workspace = true
 rrule.workspace = true
 scoped-futures.workspace = true

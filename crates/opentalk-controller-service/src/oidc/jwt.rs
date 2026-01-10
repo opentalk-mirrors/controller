@@ -6,7 +6,7 @@ use std::time::SystemTime;
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
-use jsonwebtoken::{self, Algorithm, DecodingKey, Validation, decode};
+use jsonwebtoken::{self, Algorithm};
 use openidconnect::{
     JsonWebKey,
     core::{CoreJsonWebKeySet, CoreJwsSigningAlgorithm},
@@ -119,18 +119,8 @@ pub fn verify<C: VerifyClaims>(key_set: &CoreJsonWebKeySet, token: &str) -> Resu
 /// Decodes the token
 pub fn decode_token<C: VerifyClaims>(token: &str) -> Result<C, VerifyError> {
     // We can ignore the signature check of jsonwebtokens
-    // TODO use jsonwebtokens validation
-    let mut validation = Validation::default();
-    validation.insecure_disable_signature_validation();
-    // This is done manually at the end currently.
-    validation.validate_exp = false;
-
-    // Ignore `aud` field, this is the same behavior that was present before updating `jsonwebtoken`
-    // to 0.9.x.
-    validation.validate_aud = false;
-
     // Just parse the token out, no verification
-    let token = decode::<C>(token, &DecodingKey::from_secret(&[]), &validation).map_err(|e| {
+    let token = jsonwebtoken::dangerous::insecure_decode::<C>(token).map_err(|e| {
         log::warn!(
             "Unable to decode claims from provided id token, {}",
             Report::from_error(e)
