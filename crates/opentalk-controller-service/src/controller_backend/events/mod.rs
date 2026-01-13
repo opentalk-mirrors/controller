@@ -1330,8 +1330,6 @@ impl ControllerBackend {
 
 pub(crate) trait DateTimeTzFromInventory: Sized {
     fn maybe_from_inventory(utc_dt: Option<Timestamp>, tz: Option<TimeZone>) -> Option<Self>;
-    fn starts_at_of(event: &Event) -> Option<Self>;
-    fn ends_at_of(event: &Event) -> Option<Self>;
     fn to_datetime_tz(self) -> DateTime<Tz>;
 }
 
@@ -1351,24 +1349,6 @@ impl DateTimeTzFromInventory for DateTimeTz {
         } else {
             None
         }
-    }
-
-    /// Creates the `starts_at` DateTimeTz from an event
-    fn starts_at_of(event: &Event) -> Option<Self> {
-        let date = event.date()?;
-
-        Some(Self {
-            datetime: date.starts_at.into(),
-            timezone: date.starts_at_tz,
-        })
-    }
-
-    /// Creates the `ends_at` DateTimeTz from an event
-    fn ends_at_of(event: &Event) -> Option<Self> {
-        event.ends_at_of_first_occurrence().map(|(dt, tz)| Self {
-            datetime: dt.into(),
-            timezone: tz,
-        })
     }
 
     /// Combine the inner UTC time with the inner timezone
@@ -1936,14 +1916,18 @@ async fn patch_time_dependent_event(
 
     let is_all_day = patch.is_all_day.unwrap_or(date.is_all_day);
 
-    let starts_at = patch
-        .starts_at
-        .or_else(|| DateTimeTz::starts_at_of(event))
-        .unwrap();
-    let ends_at = patch
-        .ends_at
-        .or_else(|| DateTimeTz::ends_at_of(event))
-        .unwrap();
+    let starts_at = patch.starts_at.unwrap_or(DateTimeTz {
+        datetime: date.starts_at.into(),
+        timezone: date.starts_at_tz,
+    });
+
+    let ends_at = patch.ends_at.unwrap_or_else(|| {
+        let (ends_at, ends_at_tz) = date.ends_at_of_first_occurrence();
+        DateTimeTz {
+            datetime: ends_at.into(),
+            timezone: ends_at_tz,
+        }
+    });
 
     let (duration_secs, ends_at_dt, ends_at_tz) =
         parse_event_dt_params(is_all_day, starts_at, ends_at, &recurrence_pattern)?;
