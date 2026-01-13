@@ -423,18 +423,11 @@ mod test_common {
             room: room_id,
             created_by: UserId::generate(),
             updated_by: UserId::generate(),
-            is_time_independent: true,
-            is_all_day: None,
-            starts_at: None,
-            starts_at_tz: None,
-            ends_at: None,
-            ends_at_tz: None,
-            duration_secs: None,
-            recurrence_pattern: None,
             is_adhoc: true,
             tenant_id: TenantId::generate(),
             revision: 77,
             show_meeting_details: true,
+            date: None,
         });
 
         let event_2 = Some(Event {
@@ -449,18 +442,11 @@ mod test_common {
             room: room_id,
             created_by: UserId::generate(),
             updated_by: UserId::generate(),
-            is_time_independent: true,
-            is_all_day: None,
-            starts_at: None,
-            starts_at_tz: None,
-            ends_at: None,
-            ends_at_tz: None,
-            duration_secs: None,
-            recurrence_pattern: None,
             is_adhoc: true,
             tenant_id: TenantId::generate(),
             revision: 24,
             show_meeting_details: false,
+            date: None,
         });
 
         assert_eq!(

@@ -221,7 +221,7 @@ impl From<Event> for opentalk_inventory::Event {
             created_at,
             updated_by,
             updated_at,
-            is_time_independent,
+            is_time_independent: _,
             is_all_day,
             starts_at,
             starts_at_tz,
@@ -245,18 +245,25 @@ impl From<Event> for opentalk_inventory::Event {
             created_at: created_at.into(),
             updated_by,
             updated_at: updated_at.into(),
-            is_time_independent,
-            is_all_day,
-            starts_at: starts_at.map(Into::into),
-            starts_at_tz,
-            ends_at: ends_at.map(Into::into),
-            ends_at_tz,
-            duration_secs,
-            recurrence_pattern,
             is_adhoc,
             tenant_id,
             revision,
             show_meeting_details,
+            date: (|| {
+                Some(opentalk_inventory::EventDate {
+                    is_all_day: is_all_day?,
+                    starts_at: starts_at?.into(),
+                    starts_at_tz: starts_at_tz?,
+                    ends_at: ends_at?.into(),
+                    ends_at_tz: ends_at_tz?,
+                    recurrence: recurrence_pattern.zip(duration_secs).map(
+                        |(recurrence_pattern, duration_secs)| opentalk_inventory::EventRecurrence {
+                            recurrence_pattern,
+                            duration_secs,
+                        },
+                    ),
+                })
+            })(),
         }
     }
 }
@@ -268,53 +275,31 @@ impl From<&Event> for opentalk_inventory::Event {
 }
 
 impl From<opentalk_inventory::Event> for Event {
-    fn from(
-        opentalk_inventory::Event {
-            id,
-            id_serial,
-            title,
-            description,
-            room,
-            created_by,
-            created_at,
-            updated_by,
-            updated_at,
-            is_time_independent,
-            is_all_day,
-            starts_at,
-            starts_at_tz,
-            ends_at,
-            ends_at_tz,
-            duration_secs,
-            recurrence_pattern,
-            is_adhoc,
-            tenant_id,
-            revision,
-            show_meeting_details,
-        }: opentalk_inventory::Event,
-    ) -> Self {
+    fn from(event: opentalk_inventory::Event) -> Self {
         Self {
-            id,
-            id_serial: id_serial.into(),
-            title,
-            description,
-            room,
-            created_by,
-            created_at: created_at.into(),
-            updated_by,
-            updated_at: updated_at.into(),
-            is_time_independent,
-            is_all_day,
-            starts_at: starts_at.map(Into::into),
-            starts_at_tz,
-            ends_at: ends_at.map(Into::into),
-            ends_at_tz,
-            duration_secs,
-            recurrence_pattern,
-            is_adhoc,
-            tenant_id,
-            revision,
-            show_meeting_details,
+            id: event.id,
+            id_serial: event.id_serial.into(),
+            room: event.room,
+            created_by: event.created_by,
+            created_at: event.created_at.into(),
+            updated_by: event.updated_by,
+            updated_at: event.updated_at.into(),
+            is_time_independent: event.is_time_independent(),
+            is_all_day: event.is_all_day(),
+            starts_at: event.starts_at().map(Into::into),
+            starts_at_tz: event.starts_at_tz(),
+            ends_at: event.ends_at().map(Into::into),
+            ends_at_tz: event.ends_at_tz(),
+            duration_secs: event.duration_secs(),
+            recurrence_pattern: event.recurrence_pattern().map(ToString::to_string),
+            is_adhoc: event.is_adhoc,
+            tenant_id: event.tenant_id,
+            revision: event.revision,
+            show_meeting_details: event.show_meeting_details,
+            // Note: Title and descrioption are note Copy, event partially moves
+            // after here.
+            title: event.title,
+            description: event.description,
         }
     }
 }

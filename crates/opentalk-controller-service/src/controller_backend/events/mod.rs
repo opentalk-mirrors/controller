@@ -504,15 +504,50 @@ impl ControllerBackend {
             .chain(unregistered_invitees_iter)
             .collect();
 
-        let starts_at = DateTimeTz::starts_at_of(&event);
-        let ends_at = DateTimeTz::ends_at_of(&event);
-
         let can_edit = current_user.can_edit(&event);
 
         let shared_folder =
             shared_folder_for_user(shared_folder, event.created_by, current_user.id);
 
         let tariff = self.build_tariff_resource(&tariff)?;
+
+        let date = event
+            .date()
+            .map(|date| EventResourceDateKind::TimeDependent {
+                is_time_independent: TimeDependentMarker,
+                date: event
+                    .recurrence()
+                    .and_then(|recurrence| {
+                        recurrence
+                            .recurrence_pattern
+                            .parse::<RecurrencePattern>()
+                            .ok()
+                    })
+                    .map(|recurrence_pattern| EventResourceDate::Recurring {
+                        is_all_day: date.is_all_day,
+                        starts_at: DateTimeTz {
+                            datetime: date.starts_at.into(),
+                            timezone: date.starts_at_tz,
+                        },
+                        ends_at: DateTimeTz {
+                            datetime: date.ends_at.into(),
+                            timezone: date.ends_at_tz,
+                        },
+                        recurrence_pattern,
+                    })
+                    .unwrap_or_else(|| EventResourceDate::Single {
+                        starts_at: DateTimeTz {
+                            datetime: date.starts_at.into(),
+                            timezone: date.starts_at_tz,
+                        },
+                        ends_at: DateTimeTz {
+                            datetime: date.ends_at.into(),
+                            timezone: date.ends_at_tz,
+                        },
+                        is_all_day: date.is_all_day,
+                    }),
+            })
+            .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT);
 
         let resource = EventResource {
             id: event.id,
@@ -522,7 +557,7 @@ impl ControllerBackend {
             updated_at: event.updated_at,
             title: event.title,
             description: event.description,
-            room: EventRoomInfo::from_room(settings, room, sip_config, &tariff),
+            room: EventRoomInfo::from_room(settings, &room, sip_config.as_ref(), &tariff),
             invitees_truncated,
             invitees,
             invite_status,
@@ -532,31 +567,8 @@ impl ControllerBackend {
             streaming_targets: Vec::new(),
             show_meeting_details: event.show_meeting_details,
             training_participation_report,
-            date: starts_at
-                .zip(ends_at)
-                .map(|(starts_at, ends_at)| {
-                    let is_all_day = event.is_all_day.unwrap_or_default();
-                    event
-                        .recurrence_pattern
-                        .and_then(|pattern| pattern.parse::<RecurrencePattern>().ok())
-                        .map(|recurrence_pattern| EventResourceDate::Recurring {
-                            is_all_day,
-                            starts_at,
-                            ends_at,
-                            recurrence_pattern,
-                        })
-                        .unwrap_or_else(|| EventResourceDate::Single {
-                            is_all_day,
-                            starts_at,
-                            ends_at,
-                        })
-                })
-                .map(|date| EventResourceDateKind::TimeDependent {
-                    is_time_independent: TimeDependentMarker,
-                    date,
-                })
-                .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT),
             is_adhoc: event.is_adhoc,
+            date,
         };
 
         Ok(EventOrException::Event(resource))
@@ -695,7 +707,7 @@ impl ControllerBackend {
             ret_cursor_data = Some(GetEventsCursorData {
                 event_id: event.id,
                 event_created_at: event.created_at,
-                event_starts_at: event.starts_at,
+                event_starts_at: event.date.as_ref().map(|date| date.starts_at),
                 instance_id: None,
             });
 
@@ -733,9 +745,6 @@ impl ControllerBackend {
                 .chain(unregistered_invitees_iter)
                 .collect();
 
-            let starts_at = DateTimeTz::starts_at_of(&event);
-            let ends_at = DateTimeTz::ends_at_of(&event);
-
             let can_edit = current_user.can_edit(&event);
 
             let shared_folder =
@@ -751,6 +760,44 @@ impl ControllerBackend {
             )
             .await;
 
+            let date = event
+                .date()
+                .map(|date| EventResourceDateKind::TimeDependent {
+                    is_time_independent: TimeDependentMarker,
+                    date: event
+                        .recurrence()
+                        .and_then(|recurrence| {
+                            recurrence
+                                .recurrence_pattern
+                                .parse::<RecurrencePattern>()
+                                .ok()
+                        })
+                        .map(|recurrence_pattern| EventResourceDate::Recurring {
+                            is_all_day: date.is_all_day,
+                            starts_at: DateTimeTz {
+                                datetime: date.starts_at.into(),
+                                timezone: date.starts_at_tz,
+                            },
+                            ends_at: DateTimeTz {
+                                datetime: date.ends_at.into(),
+                                timezone: date.ends_at_tz,
+                            },
+                            recurrence_pattern,
+                        })
+                        .unwrap_or_else(|| EventResourceDate::Single {
+                            starts_at: DateTimeTz {
+                                datetime: date.starts_at.into(),
+                                timezone: date.starts_at_tz,
+                            },
+                            ends_at: DateTimeTz {
+                                datetime: date.ends_at.into(),
+                                timezone: date.ends_at_tz,
+                            },
+                            is_all_day: date.is_all_day,
+                        }),
+                })
+                .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT);
+
             let event_resource = EventResource {
                 id: event.id,
                 created_by,
@@ -759,7 +806,7 @@ impl ControllerBackend {
                 updated_at: event.updated_at,
                 title: event.title,
                 description: event.description,
-                room: EventRoomInfo::from_room(&settings, room, sip_config, &tariff),
+                room: EventRoomInfo::from_room(&settings, &room, sip_config.as_ref(), &tariff),
                 invitees_truncated,
                 invitees,
                 invite_status,
@@ -770,30 +817,7 @@ impl ControllerBackend {
                 streaming_targets: Vec::new(),
                 show_meeting_details: event.show_meeting_details,
                 training_participation_report,
-                date: starts_at
-                    .zip(ends_at)
-                    .map(|(starts_at, ends_at)| {
-                        let is_all_day = event.is_all_day.unwrap_or_default();
-                        event
-                            .recurrence_pattern
-                            .and_then(|pattern| pattern.parse::<RecurrencePattern>().ok())
-                            .map(|recurrence_pattern| EventResourceDate::Recurring {
-                                is_all_day,
-                                starts_at,
-                                ends_at,
-                                recurrence_pattern,
-                            })
-                            .unwrap_or_else(|| EventResourceDate::Single {
-                                is_all_day,
-                                starts_at,
-                                ends_at,
-                            })
-                    })
-                    .map(|date| EventResourceDateKind::TimeDependent {
-                        is_time_independent: TimeDependentMarker,
-                        date,
-                    })
-                    .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT),
+                date,
             };
 
             let mut event_exception_resources: Vec<EventExceptionResource> = vec![];
@@ -823,8 +847,9 @@ impl ControllerBackend {
         event_id: EventId,
         query: GetEventQuery,
     ) -> Result<EventResource, CaptureApiError> {
-        let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
+
+        let settings = self.settings_provider.get();
 
         let (
             event,
@@ -838,7 +863,9 @@ impl ControllerBackend {
         ) = inventory
             .get_event_with_related_items(current_user.id, event_id)
             .await?;
+
         let room_streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
+
         let (invitees, invitees_truncated) =
             get_invitees_for_event(&settings, inventory.as_mut(), event_id, query.invitees_max)
                 .await?;
@@ -850,10 +877,8 @@ impl ControllerBackend {
 
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
         let current_user = inventory.get_user(current_user.id).await?;
-        drop(inventory);
 
-        let starts_at = DateTimeTz::starts_at_of(&event);
-        let ends_at = DateTimeTz::ends_at_of(&event);
+        drop(inventory);
 
         let can_edit = current_user.can_edit(&event);
 
@@ -862,11 +887,49 @@ impl ControllerBackend {
 
         let tariff = self.build_tariff_resource(&tariff)?;
 
+        let date = event
+            .date()
+            .map(|date| EventResourceDateKind::TimeDependent {
+                is_time_independent: TimeDependentMarker,
+                date: event
+                    .recurrence()
+                    .and_then(|recurrence| {
+                        recurrence
+                            .recurrence_pattern
+                            .parse::<RecurrencePattern>()
+                            .ok()
+                    })
+                    .map(|recurrence_pattern| EventResourceDate::Recurring {
+                        is_all_day: date.is_all_day,
+                        starts_at: DateTimeTz {
+                            datetime: date.starts_at.into(),
+                            timezone: date.starts_at_tz,
+                        },
+                        ends_at: DateTimeTz {
+                            datetime: date.ends_at.into(),
+                            timezone: date.ends_at_tz,
+                        },
+                        recurrence_pattern,
+                    })
+                    .unwrap_or_else(|| EventResourceDate::Single {
+                        starts_at: DateTimeTz {
+                            datetime: date.starts_at.into(),
+                            timezone: date.starts_at_tz,
+                        },
+                        ends_at: DateTimeTz {
+                            datetime: date.ends_at.into(),
+                            timezone: date.ends_at_tz,
+                        },
+                        is_all_day: date.is_all_day,
+                    }),
+            })
+            .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT);
+
         let event_resource = EventResource {
             id: event.id,
             title: event.title,
             description: event.description,
-            room: EventRoomInfo::from_room(&settings, room, sip_config, &tariff),
+            room: EventRoomInfo::from_room(&settings, &room, sip_config.as_ref(), &tariff),
             invitees_truncated,
             invitees,
             created_by: users.get(event.created_by),
@@ -883,30 +946,7 @@ impl ControllerBackend {
             streaming_targets: room_streaming_targets,
             show_meeting_details: event.show_meeting_details,
             training_participation_report: training_participation_report.map(Into::into),
-            date: starts_at
-                .zip(ends_at)
-                .map(|(starts_at, ends_at)| {
-                    let is_all_day = event.is_all_day.unwrap_or_default();
-                    event
-                        .recurrence_pattern
-                        .and_then(|pattern| pattern.parse::<RecurrencePattern>().ok())
-                        .map(|recurrence_pattern| EventResourceDate::Recurring {
-                            is_all_day,
-                            starts_at,
-                            ends_at,
-                            recurrence_pattern,
-                        })
-                        .unwrap_or_else(|| EventResourceDate::Single {
-                            is_all_day,
-                            starts_at,
-                            ends_at,
-                        })
-                })
-                .map(|date| EventResourceDateKind::TimeDependent {
-                    is_time_independent: TimeDependentMarker,
-                    date,
-                })
-                .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT),
+            date,
         };
 
         let event_resource = EventResource {
@@ -1035,24 +1075,25 @@ impl ControllerBackend {
             None => training_participation_report,
         };
 
-        // Special case: if the patch only modifies the password do not update the event
+        // Special case: If the patch only modifies the password do not update
+        // the event.
         let event = if patch.only_modifies_room() {
             event
         } else {
-            let update_event = match (event.is_time_independent, patch.is_time_independent) {
+            let update_event = match (event.is_time_independent(), patch.is_time_independent) {
                 (true, Some(false)) => {
-                    // The patch changes the event from an time-independent event
-                    // to a time dependent event
+                    // The patch changes the event from an time-independent
+                    // event to a time dependent event.
                     patch_event_change_to_time_dependent(&current_user, patch)?
                 }
                 (true, _) | (false, Some(true)) => {
-                    // The patch will modify an time-independent event or
-                    // change an event to a time-independent event
+                    // The patch will modify an time-independent event or change
+                    // an event to a time-independent event.
                     patch_time_independent_event(inventory.as_mut(), &current_user, &event, patch)
                         .await?
                 }
                 _ => {
-                    // The patch modifies an time dependent event
+                    // The patch modifies an time dependent event.
                     patch_time_dependent_event(inventory.as_mut(), &current_user, &event, patch)
                         .await?
                 }
@@ -1082,25 +1123,11 @@ impl ControllerBackend {
             .finish();
         self.authz.add_policies(policies).await?;
 
-        let notification_values = UpdateNotificationValues {
-            tenant: current_tenant.clone(),
-            created_by: created_by.clone(),
-            event: event.clone(),
-            event_exception: None,
-            room: room.clone(),
-            sip_config: sip_config.clone(),
-            users_to_notify,
-            invite_for_room,
-        };
-
         let (invitees, invitees_truncated) =
             get_invitees_for_event(&settings, inventory.as_mut(), event_id, query.invitees_max)
                 .await?;
 
         drop(inventory);
-
-        let starts_at = DateTimeTz::starts_at_of(&event);
-        let ends_at = DateTimeTz::ends_at_of(&event);
 
         let can_edit = current_user.can_edit(&event);
 
@@ -1109,15 +1136,53 @@ impl ControllerBackend {
 
         let tariff = self.build_tariff_resource(&tariff)?;
 
+        let date = event
+            .date()
+            .map(|date| EventResourceDateKind::TimeDependent {
+                is_time_independent: TimeDependentMarker,
+                date: event
+                    .recurrence()
+                    .and_then(|recurrence| {
+                        recurrence
+                            .recurrence_pattern
+                            .parse::<RecurrencePattern>()
+                            .ok()
+                    })
+                    .map(|recurrence_pattern| EventResourceDate::Recurring {
+                        is_all_day: date.is_all_day,
+                        starts_at: DateTimeTz {
+                            datetime: date.starts_at.into(),
+                            timezone: date.starts_at_tz,
+                        },
+                        ends_at: DateTimeTz {
+                            datetime: date.ends_at.into(),
+                            timezone: date.ends_at_tz,
+                        },
+                        recurrence_pattern,
+                    })
+                    .unwrap_or_else(|| EventResourceDate::Single {
+                        starts_at: DateTimeTz {
+                            datetime: date.starts_at.into(),
+                            timezone: date.starts_at_tz,
+                        },
+                        ends_at: DateTimeTz {
+                            datetime: date.ends_at.into(),
+                            timezone: date.ends_at_tz,
+                        },
+                        is_all_day: date.is_all_day,
+                    }),
+            })
+            .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT);
+
         let event_resource = EventResource {
             id: event.id,
             created_by: created_by.to_public_user_profile(&settings),
             created_at: event.created_at,
             updated_by: current_user.to_public_user_profile(&settings),
             updated_at: event.updated_at,
-            title: event.title,
-            description: event.description,
-            room: EventRoomInfo::from_room(&settings, room, sip_config, &tariff),
+            title: event.title.clone(),
+            description: event.description.clone(),
+            room: EventRoomInfo::from_room(&settings, &room, sip_config.as_ref(), &tariff),
             invitees_truncated,
             invitees,
             invite_status: invite
@@ -1130,30 +1195,29 @@ impl ControllerBackend {
             streaming_targets: streaming_targets.clone(),
             show_meeting_details: event.show_meeting_details,
             training_participation_report: training_participation_report.map(Into::into),
-            date: starts_at
-                .zip(ends_at)
-                .map(|(starts_at, ends_at)| {
-                    let is_all_day = event.is_all_day.unwrap_or_default();
-                    event
-                        .recurrence_pattern
-                        .and_then(|pattern| pattern.parse::<RecurrencePattern>().ok())
-                        .map(|recurrence_pattern| EventResourceDate::Recurring {
-                            is_all_day,
-                            starts_at,
-                            ends_at,
-                            recurrence_pattern,
-                        })
-                        .unwrap_or_else(|| EventResourceDate::Single {
-                            is_all_day,
-                            starts_at,
-                            ends_at,
-                        })
-                })
-                .map(|date| EventResourceDateKind::TimeDependent {
-                    is_time_independent: TimeDependentMarker,
-                    date,
-                })
-                .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT),
+            date,
+        };
+
+        let event_resource = EventResource {
+            invitees: enrich_invitees_from_optional_user_search(
+                &settings,
+                &self.user_search_client,
+                &current_tenant,
+                event_resource.invitees,
+            )
+            .await,
+            ..event_resource
+        };
+
+        let notification_values = UpdateNotificationValues {
+            tenant: current_tenant,
+            created_by,
+            event,
+            event_exception: None,
+            room,
+            sip_config,
+            users_to_notify,
+            invite_for_room,
         };
 
         if let Some(mail_service) = &mail_service {
@@ -1168,17 +1232,6 @@ impl ControllerBackend {
             )
             .await;
         }
-
-        let event_resource = EventResource {
-            invitees: enrich_invitees_from_optional_user_search(
-                &settings,
-                &self.user_search_client,
-                &current_tenant,
-                event_resource.invitees,
-            )
-            .await,
-            ..event_resource
-        };
 
         Ok(Some(event_resource))
     }
@@ -1277,8 +1330,6 @@ impl ControllerBackend {
 
 pub(crate) trait DateTimeTzFromInventory: Sized {
     fn maybe_from_inventory(utc_dt: Option<Timestamp>, tz: Option<TimeZone>) -> Option<Self>;
-    fn starts_at_of(event: &Event) -> Option<Self>;
-    fn ends_at_of(event: &Event) -> Option<Self>;
     fn to_datetime_tz(self) -> DateTime<Tz>;
 }
 
@@ -1298,26 +1349,6 @@ impl DateTimeTzFromInventory for DateTimeTz {
         } else {
             None
         }
-    }
-
-    /// Creates the `starts_at` DateTimeTz from an event
-    fn starts_at_of(event: &Event) -> Option<Self> {
-        if let (Some(dt), Some(tz)) = (event.starts_at, event.starts_at_tz) {
-            Some(Self {
-                datetime: dt.into(),
-                timezone: tz,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Creates the `ends_at` DateTimeTz from an event
-    fn ends_at_of(event: &Event) -> Option<Self> {
-        event.ends_at_of_first_occurrence().map(|(dt, tz)| Self {
-            datetime: dt.into(),
-            timezone: tz,
-        })
     }
 
     /// Combine the inner UTC time with the inner timezone
@@ -1401,8 +1432,8 @@ impl EventInviteeExt for EventInvitee {
 trait EventRoomInfoExt {
     fn from_room(
         settings: &Settings,
-        room: Room,
-        sip_config: Option<RoomSipConfig>,
+        room: &Room,
+        sip_config: Option<&RoomSipConfig>,
         tariff: &TariffResource,
     ) -> Self;
 }
@@ -1416,8 +1447,8 @@ impl EventRoomInfoExt for EventRoomInfo {
     /// - the `CallIn` feature is not disabled in the settings
     fn from_room(
         settings: &Settings,
-        room: Room,
-        sip_config: Option<RoomSipConfig>,
+        room: &Room,
+        sip_config: Option<&RoomSipConfig>,
         tariff: &TariffResource,
     ) -> Self {
         let call_in_feature_is_enabled = tariff
@@ -1439,7 +1470,7 @@ impl EventRoomInfoExt for EventRoomInfo {
 
         Self {
             id: room.id,
-            password: room.password,
+            password: room.password.clone(),
             waiting_room: room.waiting_room,
             e2e_encryption: room.e2e_encryption,
             call_in,
@@ -1551,37 +1582,36 @@ async fn create_time_independent_event(
 
     let suppress_email_notification = is_adhoc || query.suppress_email_notification;
 
-    let mail_resource = (!suppress_email_notification).then(|| MailResource {
-        current_user: current_user.clone(),
-        event: event.clone(),
-        room: room.clone(),
-        sip_config: Some(sip_config.clone()),
+    let event_resource = EventResource {
+        id: event.id,
+        title: event.title.clone(),
+        description: event.description.clone(),
+        room: EventRoomInfo::from_room(settings, &room, Some(&sip_config), user_tariff),
+        invitees_truncated: false,
+        invitees: vec![],
+        created_by: current_user.to_public_user_profile(settings),
+        created_at: event.created_at,
+        updated_by: current_user.to_public_user_profile(settings),
+        updated_at: event.updated_at,
+        invite_status: EventInviteStatus::Accepted,
+        is_favorite: false,
+        can_edit: true, // just created by the current user
+        is_adhoc,
+        shared_folder: None,
+        streaming_targets,
+        show_meeting_details,
+        training_participation_report,
+        date: EventResourceDateKind::TIME_INDEPENDENT,
+    };
+
+    let mail_resource = (!suppress_email_notification).then_some(MailResource {
+        current_user,
+        event,
+        room,
+        sip_config: Some(sip_config),
     });
 
-    Ok((
-        EventResource {
-            id: event.id,
-            title: event.title,
-            description: event.description,
-            room: EventRoomInfo::from_room(settings, room, Some(sip_config), user_tariff),
-            invitees_truncated: false,
-            invitees: vec![],
-            created_by: current_user.to_public_user_profile(settings),
-            created_at: event.created_at,
-            updated_by: current_user.to_public_user_profile(settings),
-            updated_at: event.updated_at,
-            invite_status: EventInviteStatus::Accepted,
-            is_favorite: false,
-            can_edit: true, // just created by the current user
-            is_adhoc,
-            shared_folder: None,
-            streaming_targets,
-            show_meeting_details,
-            training_participation_report,
-            date: EventResourceDateKind::TIME_INDEPENDENT,
-        },
-        mail_resource,
-    ))
+    Ok((event_resource, mail_resource))
 }
 
 /// Part of `POST /events` endpoint
@@ -1662,74 +1692,74 @@ async fn create_time_dependent_event(
 
     let suppress_email_notification = is_adhoc || query.suppress_email_notification;
 
+    let date = event
+        .date()
+        .map(|date| EventResourceDateKind::TimeDependent {
+            is_time_independent: TimeDependentMarker,
+            date: event
+                .recurrence()
+                .and_then(|recurrence| {
+                    recurrence
+                        .recurrence_pattern
+                        .parse::<RecurrencePattern>()
+                        .ok()
+                })
+                .map(|recurrence_pattern| EventResourceDate::Recurring {
+                    is_all_day: date.is_all_day,
+                    starts_at: DateTimeTz {
+                        datetime: date.starts_at.into(),
+                        timezone: date.starts_at_tz,
+                    },
+                    ends_at: DateTimeTz {
+                        datetime: date.ends_at.into(),
+                        timezone: date.ends_at_tz,
+                    },
+                    recurrence_pattern,
+                })
+                .unwrap_or_else(|| EventResourceDate::Single {
+                    starts_at: DateTimeTz {
+                        datetime: date.starts_at.into(),
+                        timezone: date.starts_at_tz,
+                    },
+                    ends_at: DateTimeTz {
+                        datetime: date.ends_at.into(),
+                        timezone: date.ends_at_tz,
+                    },
+                    is_all_day: date.is_all_day,
+                }),
+        })
+        .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT);
+
+    let event_resource = EventResource {
+        id: event.id,
+        title: event.title.clone(),
+        description: event.description.clone(),
+        room: EventRoomInfo::from_room(settings, &room, Some(&sip_config), user_tariff),
+        invitees_truncated: false,
+        invitees: vec![],
+        created_by: current_user.to_public_user_profile(settings),
+        created_at: event.created_at,
+        updated_by: current_user.to_public_user_profile(settings),
+        updated_at: event.updated_at,
+        invite_status: EventInviteStatus::Accepted,
+        is_favorite: false,
+        can_edit: true, // Just created by the current user.
+        is_adhoc,
+        shared_folder: None,
+        streaming_targets,
+        show_meeting_details,
+        training_participation_report,
+        date,
+    };
+
     let mail_resource = (!suppress_email_notification).then(|| MailResource {
         current_user: current_user.clone(),
-        event: event.clone(),
-        room: room.clone(),
-        sip_config: Some(sip_config.clone()),
+        event,
+        room,
+        sip_config: Some(sip_config),
     });
 
-    Ok((
-        EventResource {
-            id: event.id,
-            title: event.title,
-            description: event.description,
-            room: EventRoomInfo::from_room(settings, room, Some(sip_config), user_tariff),
-            invitees_truncated: false,
-            invitees: vec![],
-            created_by: current_user.to_public_user_profile(settings),
-            created_at: event.created_at,
-            updated_by: current_user.to_public_user_profile(settings),
-            updated_at: event.updated_at,
-            invite_status: EventInviteStatus::Accepted,
-            is_favorite: false,
-            can_edit: true, // Just created by the current user.
-            is_adhoc,
-            shared_folder: None,
-            streaming_targets,
-            show_meeting_details,
-            training_participation_report,
-            date: event
-                .starts_at
-                .zip(event.ends_at)
-                .map(|(created_starts_at, created_ends_at)| {
-                    let is_all_day = event.is_all_day.unwrap_or_default();
-                    event
-                        .recurrence_pattern
-                        .and_then(|pattern| pattern.parse::<RecurrencePattern>().ok())
-                        .map(|recurrence_pattern| EventResourceDate::Recurring {
-                            is_all_day,
-                            starts_at: DateTimeTz {
-                                datetime: created_starts_at.into(),
-                                timezone: starts_at.timezone,
-                            },
-                            ends_at: DateTimeTz {
-                                datetime: created_ends_at.into(),
-                                timezone: ends_at.timezone,
-                            },
-                            recurrence_pattern,
-                        })
-                        .unwrap_or_else(|| EventResourceDate::Single {
-                            is_all_day,
-                            starts_at: DateTimeTz {
-                                datetime: created_starts_at.into(),
-                                timezone: starts_at.timezone,
-                            },
-                            ends_at: DateTimeTz {
-                                datetime: created_ends_at.into(),
-                                timezone: ends_at.timezone,
-                            },
-                        })
-                })
-                .map(|date| EventResourceDateKind::TimeDependent {
-                    is_time_independent: TimeDependentMarker,
-                    date,
-                })
-                // If this gets returned something went wrong.
-                .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT),
-        },
-        mail_resource,
-    ))
+    Ok((event_resource, mail_resource))
 }
 
 /// Part of `PATCH /events/{event_id}` (see [`patch_event`])
@@ -1837,8 +1867,13 @@ async fn patch_time_independent_event(
         return Err(ApiError::unprocessable_entities(entries).into());
     }
 
-    if event.recurrence_pattern.is_some() {
-        // delete all exceptions as the time dependence has been removed
+    if event
+        .date
+        .as_ref()
+        .and_then(|date| date.recurrence.as_ref())
+        .is_some()
+    {
+        // Delete all exceptions as the time dependence has been removed.
         inventory
             .delete_event_exceptions_for_event(event.id)
             .await?;
@@ -1862,9 +1897,9 @@ async fn patch_time_independent_event(
     })
 }
 
-/// Part of `PATCH /events/{event_id}` (see [`patch_event`])
+/// Part of `PATCH /events/{event_id}` (see [`patch_event`]).
 ///
-/// Patch fields on an time dependent event (without changing the time dependence field)
+/// Patch fields on an time dependent event (without changing the time dependence field).
 async fn patch_time_dependent_event(
     inventory: &mut dyn Inventory,
     current_user: &User,
@@ -1873,23 +1908,35 @@ async fn patch_time_dependent_event(
 ) -> Result<UpdateEvent, CaptureApiError> {
     let recurrence_pattern = patch.recurrence_pattern.to_multiline_string();
 
-    let is_all_day = patch.is_all_day.or(event.is_all_day).unwrap();
-    let starts_at = patch
-        .starts_at
-        .or_else(|| DateTimeTz::starts_at_of(event))
-        .unwrap();
-    let ends_at = patch
-        .ends_at
-        .or_else(|| DateTimeTz::ends_at_of(event))
-        .unwrap();
+    let Some(date) = event.date() else {
+        return Err(ApiError::internal()
+            .with_message("tried to patch time depedent event without date")
+            .into());
+    };
+
+    let is_all_day = patch.is_all_day.unwrap_or(date.is_all_day);
+
+    let starts_at = patch.starts_at.unwrap_or(DateTimeTz {
+        datetime: date.starts_at.into(),
+        timezone: date.starts_at_tz,
+    });
+
+    let ends_at = patch.ends_at.unwrap_or_else(|| {
+        let (ends_at, ends_at_tz) = date.ends_at_of_first_occurrence();
+        DateTimeTz {
+            datetime: ends_at.into(),
+            timezone: ends_at_tz,
+        }
+    });
 
     let (duration_secs, ends_at_dt, ends_at_tz) =
         parse_event_dt_params(is_all_day, starts_at, ends_at, &recurrence_pattern)?;
 
-    if event.recurrence_pattern.is_some() {
-        // Delete all exceptions for recurring events as the patch may modify fields that influence the
-        // timestamps at which instances (occurrences) are generated, making it impossible to match the
-        // exceptions to instances
+    if event.is_recurring() {
+        // Delete all exceptions for recurring events as the patch may modify
+        // fields that influence the timestamps at which instances (occurrences)
+        // are generated, making it impossible to match the exceptions to
+        // instances.
         inventory
             .delete_event_exceptions_for_event(event.id)
             .await?;
@@ -1924,9 +1971,9 @@ pub(crate) struct CancellationNotificationValues {
     pub streaming_targets: Vec<RoomStreamingTarget>,
 }
 
-/// Part of `DELETE /events/{event_id}` (see [`delete_event`])
+/// Part of `DELETE /events/{event_id}` (see [`delete_event`]).
 ///
-/// Notify invited users about the event deletion
+/// Notify invited users about the event deletion.
 pub(crate) async fn notify_invitees_about_delete(
     settings: &Settings,
     room_tariff: &TariffResource,
@@ -1934,13 +1981,13 @@ pub(crate) async fn notify_invitees_about_delete(
     mail_service: &MailService,
     user_search_client: &Option<KeycloakAdminClient>,
 ) {
-    // Don't send mails for past events
-    match notification_values.event.ends_at {
-        Some(ends_at) if ends_at < Utc::now().into() => {
-            return;
-        }
-        _ => {}
+    // Don't send mails for past events.
+    if let Some(date) = notification_values.event.date()
+        && date.ends_at < Utc::now().into()
+    {
+        return;
     }
+
     for user in notification_values.users_to_notify {
         let invited_user = enrich_from_optional_user_search(
             settings,
@@ -2254,7 +2301,12 @@ fn compare_inventory_events_or_exceptions(
             _shared_folder,
             _tariff,
             _training_participation_report_parameter_set,
-        )) => (event.starts_at, event.created_at, event.id, None),
+        )) => (
+            event.date().map(|date| date.starts_at),
+            event.created_at,
+            event.id,
+            None,
+        ),
         InventoryEventOrException::Exception((event_exception, _event)) => (
             event_exception.starts_at,
             event_exception.created_at,
@@ -2273,7 +2325,12 @@ fn compare_inventory_events_or_exceptions(
             _shared_folder,
             _tariff,
             _training_participation_report_parameter_set,
-        )) => (event.starts_at, event.created_at, event.id, None),
+        )) => (
+            event.date().map(|date| date.starts_at),
+            event.created_at,
+            event.id,
+            None,
+        ),
         InventoryEventOrException::Exception((event_exception, _event)) => (
             event_exception.starts_at,
             event_exception.created_at,

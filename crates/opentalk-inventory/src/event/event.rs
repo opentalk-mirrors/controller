@@ -10,6 +10,8 @@ use opentalk_types_common::{
     users::UserId,
 };
 
+use crate::{EventDate, EventRecurrence};
+
 /// The representation of an event in the inventory.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Event {
@@ -40,34 +42,6 @@ pub struct Event {
     /// The updated timestamp.
     pub updated_at: Timestamp,
 
-    /// A flag indicating whether the event is time-independent.
-    pub is_time_independent: bool,
-
-    /// A flag indicating whether this is an all-day event.
-    pub is_all_day: Option<bool>,
-
-    /// start datetime of the event
-    pub starts_at: Option<Timestamp>,
-
-    /// timezone of the start-datetime of the event
-    pub starts_at_tz: Option<TimeZone>,
-
-    /// end datetime of the event
-    ///
-    /// For recurring events contains the timestamp of the last occurrence
-    pub ends_at: Option<Timestamp>,
-
-    /// timezone of the ends_at datetime
-    pub ends_at_tz: Option<TimeZone>,
-
-    /// Only for recurring events, since ends_at contains the information
-    /// about the last occurrence of the recurring series this duration value
-    /// MUST be used to calculate the event instances length
-    pub duration_secs: Option<i32>,
-
-    /// The recurrence pattern for recurring events.
-    pub recurrence_pattern: Option<String>,
-
     /// A flag indicating whether this is an ad-hoc event.
     pub is_adhoc: bool,
 
@@ -79,26 +53,187 @@ pub struct Event {
 
     /// A flag indicating whether the details should be shown in the meeting.
     pub show_meeting_details: bool,
+
+    /// Contains all date related information about the event.
+    pub date: Option<EventDate>,
 }
 
 impl Event {
-    /// Returns the ends_at value of the first occurrence of the event
+    /// Provides the ends_at value of the first occurrence of the event:
+    /// - if the event has no date: returns none
+    /// - if the event is not recurring: returns some `ends_at` and `ends_at_tz` of the event
+    /// - otherwise: returns some `ends_at` and `ends_at_tz` of first occurence
     pub fn ends_at_of_first_occurrence(&self) -> Option<(Timestamp, TimeZone)> {
-        if self.recurrence_pattern.is_some() {
-            // Recurring events have the last occurrence of the recurrence saved in the ends_at fields
-            // So we get the starts_at_dt and add the duration_secs field to it
-            if let (Some(starts_at_dt), Some(dur), Some(tz)) =
-                (self.starts_at, self.duration_secs, self.ends_at_tz)
-            {
-                Some((starts_at_dt + chrono::Duration::seconds(i64::from(dur)), tz))
-            } else {
-                None
-            }
-        } else if let (Some(dt), Some(tz)) = (self.ends_at, self.ends_at_tz) {
-            // Non recurring events just directly use the ends_at field from the db
-            Some((dt, tz))
-        } else {
-            None
-        }
+        self.date().map(|date| date.ends_at_of_first_occurrence())
+    }
+
+    /// Returns the date of this [`Event`].
+    pub fn date(&self) -> Option<&EventDate> {
+        self.date.as_ref()
+    }
+
+    /// Returns `false` if the [`Event`] has a date.
+    pub fn is_time_independent(&self) -> bool {
+        self.date().is_none()
+    }
+
+    /// Returns the starts_at of this [`Event`].
+    pub fn starts_at(&self) -> Option<Timestamp> {
+        self.date().map(|date| date.starts_at)
+    }
+
+    /// Returns the ends_at of this [`Event`].
+    pub fn ends_at(&self) -> Option<Timestamp> {
+        self.date().map(|date| date.ends_at)
+    }
+
+    // Note: TimeZone is Copy, so we don't need the ref.
+    /// Returns the starts_at_tz of this [`Event`].
+    pub fn starts_at_tz(&self) -> Option<TimeZone> {
+        self.date().map(|date| date.starts_at_tz)
+    }
+
+    /// Returns the ends_at_tz of this [`Event`].
+    pub fn ends_at_tz(&self) -> Option<TimeZone> {
+        self.date().map(|date| date.ends_at_tz)
+    }
+
+    /// Returns the is_all_day of this [`Event`].
+    pub fn is_all_day(&self) -> Option<bool> {
+        self.date().map(|date| date.is_all_day)
+    }
+
+    /// Returns the recurrence of this [`Event`].
+    pub fn recurrence(&self) -> Option<&EventRecurrence> {
+        self.date().and_then(|date| date.recurrence.as_ref())
+    }
+
+    /// Returns the recurrence_pattern of this [`Event`].
+    pub fn recurrence_pattern(&self) -> Option<&str> {
+        self.recurrence()
+            .map(|recurrence| recurrence.recurrence_pattern.as_ref())
+    }
+
+    /// Returns the duration_secs of this [`Event`].
+    pub fn duration_secs(&self) -> Option<i32> {
+        self.recurrence().map(|recurrence| recurrence.duration_secs)
+    }
+
+    /// Returns `true` if the [`Event`] has a recurrence.
+    pub fn is_recurring(&self) -> bool {
+        self.recurrence().is_some()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use opentalk_types_common::utils::ExampleData;
+
+    use super::*;
+
+    #[test]
+    fn is_time_independent() {
+        let time_independent_event = Event {
+            id: EventId::nil(),
+            id_serial: 0,
+            created_at: Timestamp::example_data(),
+            updated_at: Timestamp::example_data(),
+            title: EventTitle::example_data(),
+            description: EventDescription::example_data(),
+            room: RoomId::example_data(),
+            created_by: UserId::example_data(),
+            updated_by: UserId::example_data(),
+            is_adhoc: false,
+            tenant_id: TenantId::nil(),
+            show_meeting_details: false,
+            date: None,
+            revision: 1,
+        };
+
+        assert!(time_independent_event.is_time_independent());
+
+        let time_dependent_event = Event {
+            id: EventId::nil(),
+            id_serial: 0,
+            created_at: Timestamp::example_data(),
+            updated_at: Timestamp::example_data(),
+            title: EventTitle::example_data(),
+            description: EventDescription::example_data(),
+            room: RoomId::example_data(),
+            created_by: UserId::example_data(),
+            updated_by: UserId::example_data(),
+            is_adhoc: false,
+            tenant_id: TenantId::nil(),
+            show_meeting_details: false,
+            revision: 1,
+            date: Some(EventDate {
+                is_all_day: false,
+                starts_at: Timestamp::example_data(),
+                starts_at_tz: TimeZone::default(),
+                ends_at: Timestamp::example_data(),
+                ends_at_tz: TimeZone::default(),
+                recurrence: None,
+            }),
+        };
+
+        assert!(!time_dependent_event.is_time_independent());
+    }
+
+    #[test]
+    fn is_recurring() {
+        let single_event = Event {
+            id: EventId::nil(),
+            id_serial: 0,
+            created_at: Timestamp::example_data(),
+            updated_at: Timestamp::example_data(),
+            title: EventTitle::example_data(),
+            description: EventDescription::example_data(),
+            room: RoomId::example_data(),
+            created_by: UserId::example_data(),
+            updated_by: UserId::example_data(),
+            is_adhoc: false,
+            tenant_id: TenantId::nil(),
+            show_meeting_details: false,
+            revision: 1,
+            date: Some(EventDate {
+                is_all_day: false,
+                starts_at: Timestamp::example_data(),
+                starts_at_tz: TimeZone::default(),
+                ends_at: Timestamp::example_data(),
+                ends_at_tz: TimeZone::default(),
+                recurrence: None,
+            }),
+        };
+
+        assert!(!single_event.is_recurring());
+
+        let recurring_event = Event {
+            id: EventId::nil(),
+            id_serial: 0,
+            created_at: Timestamp::example_data(),
+            updated_at: Timestamp::example_data(),
+            title: EventTitle::example_data(),
+            description: EventDescription::example_data(),
+            room: RoomId::example_data(),
+            created_by: UserId::example_data(),
+            updated_by: UserId::example_data(),
+            is_adhoc: false,
+            tenant_id: TenantId::nil(),
+            show_meeting_details: false,
+            revision: 1,
+            date: Some(EventDate {
+                is_all_day: false,
+                starts_at: Timestamp::example_data(),
+                starts_at_tz: TimeZone::default(),
+                ends_at: Timestamp::example_data(),
+                ends_at_tz: TimeZone::default(),
+                recurrence: Some(EventRecurrence {
+                    duration_secs: 10000,
+                    recurrence_pattern: "FREQ=DAILY;INTERVAL=1".to_string(),
+                }),
+            }),
+        };
+
+        assert!(recurring_event.is_recurring());
     }
 }

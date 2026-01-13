@@ -127,9 +127,9 @@ fn to_event(
     };
 
     let start_time: Option<v1::Time> = event
-        .starts_at
+        .starts_at()
         .map(DateTime::from)
-        .zip(event.starts_at_tz)
+        .zip(event.starts_at_tz())
         .map(Into::into);
 
     let end_time: Option<v1::Time> = event
@@ -157,12 +157,10 @@ fn to_event(
 
     v1::Event {
         id: Uuid::from(event.id),
-        name: event.title,
-        description: event.description,
+        rrule: event.recurrence_pattern().map(ToString::to_string),
         created_at,
         start_time,
         end_time,
-        rrule: event.recurrence_pattern,
         room: v1::Room {
             id: Uuid::from(room.id),
             password: room.password,
@@ -172,6 +170,10 @@ fn to_event(
         shared_folder,
         adhoc_retention_seconds,
         streaming_targets,
+        // Note: Title and description do not impl Copy, so they partially move
+        // event.
+        name: event.title,
+        description: event.description,
     }
 }
 

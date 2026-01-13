@@ -4,12 +4,15 @@
 
 //! Handles event instances
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use kustos::policies_builder::PoliciesBuilder;
 use opentalk_controller_service_facade::RequestUser;
-use opentalk_controller_utils::{CaptureApiError, event::EventExt};
+use opentalk_controller_utils::{
+    CaptureApiError,
+    event::{EventDateExt, EventExt},
+};
 use opentalk_inventory::{
-    Event, EventException, EventExceptionKind, NewEventException, UpdateEventException,
+    Event, EventDate, EventException, EventExceptionKind, NewEventException, UpdateEventException,
 };
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -26,10 +29,9 @@ use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
     pagination::{Page, PageSize},
     shared_folders::SharedFolder,
-    time::{DateTimeTz, Timestamp},
+    time::{DateTimeTz, TimeZone, Timestamp},
     training_participation_report::TrainingParticipationReportParameterSet,
 };
-use rrule::RRuleSet;
 
 use crate::{
     ControllerBackend,
@@ -44,6 +46,8 @@ use crate::{
     },
     user_profiles::{GetUserProfilesBatched, UserProfilesBatch},
 };
+
+const ONE_HUNDRED_YEARS: Duration = Duration::days(ONE_HUNDRED_YEARS_IN_DAYS as i64);
 
 impl ControllerBackend {
     pub(crate) async fn get_events_and_instances(
@@ -223,7 +227,7 @@ impl ControllerBackend {
 
         let tariff = self.build_tariff_resource(&tariff)?;
 
-        let room = EventRoomInfo::from_room(&settings, room, sip_config, &tariff);
+        let room = EventRoomInfo::from_room(&settings, &room, sip_config.as_ref(), &tariff);
 
         let can_edit = current_user.can_edit(&event);
 
@@ -310,8 +314,9 @@ impl ControllerBackend {
         }: EventInstancePath,
         query: EventInstanceQuery,
     ) -> Result<GetEventInstanceResponseBody, CaptureApiError> {
-        let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
+
+        let settings = self.settings_provider.get();
 
         let (
             event,
@@ -325,7 +330,14 @@ impl ControllerBackend {
         ) = inventory
             .get_event_with_related_items(current_user.id, event_id)
             .await?;
-        _ = verify_recurrence_date(&event, instance_id.into())?;
+
+        let Some(event_date) = event.date() else {
+            return Err(ApiError::not_found().into());
+        };
+
+        let instance_date = DateTime::from(instance_id).with_timezone(&event_date.starts_at_tz);
+
+        verify_instance_date(event_date, instance_date)?;
 
         let (invitees, invitees_truncated) = super::get_invitees_for_event(
             &settings,
@@ -347,7 +359,7 @@ impl ControllerBackend {
 
         let tariff = self.build_tariff_resource(&tariff)?;
 
-        let room = EventRoomInfo::from_room(&settings, room, sip_config, &tariff);
+        let room = EventRoomInfo::from_room(&settings, &room, sip_config.as_ref(), &tariff);
 
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
         let current_user = inventory.get_user(current_user.id).await?;
@@ -405,8 +417,9 @@ impl ControllerBackend {
             return Ok(None);
         }
 
-        let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
+
+        let settings = self.settings_provider.get();
 
         let (
             event,
@@ -421,90 +434,77 @@ impl ControllerBackend {
             .get_event_with_related_items(current_user.id, event_id)
             .await?;
 
-        if event.recurrence_pattern.is_none() {
+        let Some(event_date) = event.date() else {
             return Err(ApiError::not_found().into());
-        }
+        };
 
-        _ = verify_recurrence_date(&event, instance_id.into())?;
+        let instance_date = DateTime::from(instance_id).with_timezone(&event_date.starts_at_tz);
 
-        let exception = if let Some(exception) = inventory
+        verify_instance_date(event_date, instance_date)?;
+
+        let is_all_day = patch.is_all_day.unwrap_or(event_date.is_all_day);
+
+        let starts_at = patch.starts_at.unwrap_or(DateTimeTz {
+            datetime: event_date.starts_at.into(),
+            timezone: event_date.starts_at_tz,
+        });
+
+        let ends_at = patch.ends_at.unwrap_or_else(|| {
+            let (ends_at, ends_at_tz) = event_date.ends_at_of_first_occurrence();
+            DateTimeTz {
+                datetime: ends_at.into(),
+                timezone: ends_at_tz,
+            }
+        });
+
+        super::verify_exception_dt_params(is_all_day, starts_at, ends_at)?;
+
+        let exception = match inventory
             .get_event_exception(event_id, instance_id.into())
             .await?
         {
-            let is_all_day = patch
-                .is_all_day
-                .or(exception.is_all_day)
-                .or(event.is_all_day)
-                .unwrap();
-            let starts_at = patch
-                .starts_at
-                .or_else(|| DateTimeTz::starts_at_of(&event))
-                .or_else(|| {
-                    DateTimeTz::maybe_from_inventory(exception.starts_at, exception.starts_at_tz)
-                })
-                .unwrap();
-            let ends_at = patch
-                .ends_at
-                .or_else(|| DateTimeTz::ends_at_of(&event))
-                .or_else(|| {
-                    DateTimeTz::maybe_from_inventory(exception.ends_at, exception.ends_at_tz)
-                })
-                .unwrap();
-
-            super::verify_exception_dt_params(is_all_day, starts_at, ends_at)?;
-
-            inventory
-                .update_event_exception(
-                    exception.id,
-                    UpdateEventException {
-                        kind: match patch.status {
-                            Some(EventStatus::Ok) => Some(EventExceptionKind::Modified),
-                            Some(EventStatus::Cancelled) => Some(EventExceptionKind::Cancelled),
-                            None => None,
+            Some(exception) => {
+                inventory
+                    .update_event_exception(
+                        exception.id,
+                        UpdateEventException {
+                            kind: match patch.status {
+                                Some(EventStatus::Ok) => Some(EventExceptionKind::Modified),
+                                Some(EventStatus::Cancelled) => Some(EventExceptionKind::Cancelled),
+                                None => None,
+                            },
+                            title: patch.title.map(Some),
+                            description: patch.description.map(Some),
+                            is_all_day: patch.is_all_day.map(Some),
+                            starts_at: patch.starts_at.map(|dt| Some(dt.to_datetime_tz())),
+                            starts_at_tz: patch.starts_at.map(|dt| Some(dt.timezone)),
+                            ends_at: patch.ends_at.map(|dt| Some(dt.to_datetime_tz())),
+                            ends_at_tz: patch.ends_at.map(|dt| Some(dt.timezone)),
                         },
-                        title: patch.title.map(Some),
-                        description: patch.description.map(Some),
-                        is_all_day: patch.is_all_day.map(Some),
-                        starts_at: patch.starts_at.map(|dt| Some(dt.to_datetime_tz())),
-                        starts_at_tz: patch.starts_at.map(|dt| Some(dt.timezone)),
-                        ends_at: patch.ends_at.map(|dt| Some(dt.to_datetime_tz())),
-                        ends_at_tz: patch.ends_at.map(|dt| Some(dt.timezone)),
-                    },
-                )
-                .await?
-        } else {
-            let is_all_day = patch.is_all_day.or(event.is_all_day).unwrap();
-            let starts_at = patch
-                .starts_at
-                .or_else(|| DateTimeTz::starts_at_of(&event))
-                .unwrap();
-            let ends_at = patch
-                .ends_at
-                .or_else(|| DateTimeTz::ends_at_of(&event))
-                .unwrap();
-
-            super::verify_exception_dt_params(is_all_day, starts_at, ends_at)?;
-
-            inventory
-                .create_event_exception(NewEventException {
-                    event_id: event.id,
-                    exception_date: instance_id.into(),
-                    exception_date_tz: event.starts_at_tz.unwrap(),
-                    created_by: current_user.id,
-                    kind: if let Some(EventStatus::Cancelled) = patch.status {
-                        EventExceptionKind::Cancelled
-                    } else {
-                        EventExceptionKind::Modified
-                    },
-                    title: patch.title,
-                    description: patch.description,
-                    is_all_day: patch.is_all_day,
-                    starts_at: patch.starts_at.map(|dt| dt.to_datetime_tz()),
-                    starts_at_tz: patch.starts_at.map(|dt| dt.timezone),
-                    ends_at: patch.ends_at.map(|dt| dt.to_datetime_tz()),
-                    ends_at_tz: patch.ends_at.map(|dt| dt.timezone),
-                })
-                .await?
+                    )
+                    .await?
+            }
+            None => {
+                inventory
+                    .create_event_exception(NewEventException {
+                        event_id: event.id,
+                        exception_date: instance_id.into(),
+                        exception_date_tz: event_date.starts_at_tz,
+                        created_by: current_user.id,
+                        kind: match patch.status {
+                            Some(EventStatus::Cancelled) => EventExceptionKind::Cancelled,
+                            _ => EventExceptionKind::Modified,
+                        },
+                        title: patch.title,
+                        description: patch.description,
+                        is_all_day: patch.is_all_day,
+                        starts_at: patch.starts_at.map(|dt| dt.to_datetime_tz()),
+                        starts_at_tz: patch.starts_at.map(|dt| dt.timezone),
+                        ends_at: patch.ends_at.map(|dt| dt.to_datetime_tz()),
+                        ends_at_tz: patch.ends_at.map(|dt| dt.timezone),
+                    })
+                    .await?
+            }
         };
 
         let (invitees, invitees_truncated) =
@@ -520,7 +520,7 @@ impl ControllerBackend {
         let tariff = self.build_tariff_resource(&tariff)?;
 
         let event_room_info =
-            EventRoomInfo::from_room(&settings, room.clone(), sip_config.clone(), &tariff);
+            EventRoomInfo::from_room(&settings, &room, sip_config.as_ref(), &tariff);
 
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
         let current_user = inventory.get_user(current_user.id).await?;
@@ -635,29 +635,34 @@ fn create_event_instance(
     shared_folder: Option<SharedFolder>,
     training_participation_report: Option<TrainingParticipationReportParameterSet>,
 ) -> opentalk_database::Result<EventInstance> {
-    let mut status = EventStatus::Ok;
+    let instance_date = event
+        .date()
+        .expect("event instances can only be created for events with a date");
+
+    let instance_duration_secs = event
+        .duration_secs()
+        .expect("event instances can only be created for recurring events");
 
     let mut instance_starts_at = instance_id.into();
-    let mut instance_starts_at_tz = event.starts_at_tz.unwrap();
+    let mut instance_starts_at_tz = instance_date.starts_at_tz;
+    let mut instance_ends_at = instance_id + Duration::seconds(instance_duration_secs as i64);
+    let mut instance_ends_at_tz = instance_date.ends_at_tz;
 
-    let mut instance_ends_at =
-        instance_id + chrono::Duration::seconds(event.duration_secs.unwrap() as i64);
-    let mut instance_ends_at_tz = event.ends_at_tz.unwrap();
+    let is_all_day = instance_date.is_all_day;
+
+    let mut status = EventStatus::Ok;
 
     if let Some(exception) = exception {
+        match exception.kind {
+            EventExceptionKind::Modified => {} // Do nothing for now
+            EventExceptionKind::Cancelled => status = EventStatus::Cancelled,
+        }
+
         event.updated_by = exception.created_by;
         event.updated_at = exception.created_at;
 
         patch(&mut event.title, exception.title);
         patch(&mut event.description, exception.description);
-
-        match exception.kind {
-            EventExceptionKind::Modified => {
-                // Do nothing for now
-            }
-            EventExceptionKind::Cancelled => status = EventStatus::Cancelled,
-        }
-
         patch(&mut instance_starts_at, exception.starts_at);
         patch(&mut instance_starts_at_tz, exception.starts_at_tz);
         patch(
@@ -683,7 +688,7 @@ fn create_event_instance(
         room,
         invitees_truncated,
         invitees,
-        is_all_day: event.is_all_day.unwrap(),
+        is_all_day,
         starts_at: DateTimeTz {
             datetime: instance_starts_at.into(),
             timezone: instance_starts_at_tz,
@@ -708,29 +713,31 @@ fn patch<T>(dst: &mut T, value: Option<T>) {
     }
 }
 
-fn verify_recurrence_date(
-    event: &Event,
-    requested_dt: DateTime<Utc>,
-) -> Result<RRuleSet, ApiError> {
-    let Some(rruleset) = event.to_rruleset()? else {
+fn verify_instance_date(
+    event_date: &EventDate,
+    instance_date: DateTime<TimeZone>,
+) -> Result<(), ApiError> {
+    if instance_date > DateTime::from(event_date.starts_at) + ONE_HUNDRED_YEARS {
+        // TODO(t.spamer): I would argue this is a
+        // ApiError::bad_request().with_message("requested date exceeds maximum 100-year range").
+        // Change in follow up MR.
+        return Err(ApiError::not_found());
+    }
+
+    let Some(rruleset) = event_date.to_rruleset()? else {
         return Err(ApiError::not_found());
     };
 
-    let requested_dt = requested_dt.with_timezone(event.starts_at_tz.unwrap().as_ref());
-
-    // Find date in recurrence, if it does not exist this will return a 404
-    // And if it finds it it will break the loop
-    let found = rruleset
+    let has_instance = rruleset
         .into_iter()
-        .take(ONE_HUNDRED_YEARS_IN_DAYS)
-        .take_while(|x| x <= &requested_dt)
-        .any(|x| x == requested_dt);
+        .take_while(|dt| dt <= &instance_date)
+        .any(|x| x == instance_date);
 
-    if found {
-        Ok(rruleset)
-    } else {
-        Err(ApiError::not_found())
-    }
+    if !has_instance {
+        return Err(ApiError::not_found());
+    };
+
+    Ok(())
 }
 
 #[cfg(test)]

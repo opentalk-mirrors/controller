@@ -6,10 +6,12 @@
 
 mod event;
 mod event_and_encryption;
+mod event_date;
 mod event_exception;
 mod event_exception_id;
 mod event_exception_kind;
 mod event_inventory;
+mod event_recurrence;
 mod get_event_exceptions_cursor;
 mod get_events_cursor;
 mod new_event;
@@ -21,10 +23,12 @@ mod update_event_exception;
 
 pub use event::Event;
 pub(crate) use event_and_encryption::EventAndEncryption;
+pub use event_date::EventDate;
 pub use event_exception::EventException;
 pub use event_exception_id::EventExceptionId;
 pub use event_exception_kind::EventExceptionKind;
 pub use event_inventory::EventInventory;
+pub use event_recurrence::EventRecurrence;
 pub use get_event_exceptions_cursor::GetEventExceptionsCursor;
 pub use get_events_cursor::GetEventsCursor;
 pub use new_event::NewEvent;

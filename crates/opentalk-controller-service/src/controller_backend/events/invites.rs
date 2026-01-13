@@ -942,9 +942,9 @@ async fn remove_invitee_permissions(
     Ok(())
 }
 
-/// Part of `DELETE /events/{event_id}/invites/{user_id}` (see [`delete_invite_to_event`])
+/// Part of `DELETE /events/{event_id}/invites/{user_id}` (see [`delete_invite_to_event`]).
 ///
-/// Notify invited users about the event deletion
+/// Notify invited users about the event deletion.
 async fn notify_invitees_about_uninvite(
     settings: &Settings,
     notification_values: UninviteNotificationValues,
@@ -954,13 +954,13 @@ async fn notify_invitees_about_uninvite(
     shared_folder: Option<SharedFolder>,
     streaming_targets: Vec<RoomStreamingTarget>,
 ) {
-    // Don't send mails for past events
-    match notification_values.event.ends_at {
-        Some(ends_at) if ends_at < Utc::now().into() => {
-            return;
-        }
-        _ => {}
+    // Don't send mails for past events.
+    if let Some(date) = notification_values.event.date()
+        && date.ends_at < Utc::now().into()
+    {
+        return;
     }
+
     for user in notification_values.users_to_notify {
         let invited_user = enrich_from_optional_user_search(
             settings,

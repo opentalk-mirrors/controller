@@ -4,10 +4,10 @@
 
 //! Utils for [`Event`]
 use chrono::{DateTime, TimeZone};
-use opentalk_inventory::Event;
+use opentalk_inventory::{Event, EventDate};
 use opentalk_types_api_v1::error::ApiError;
 use rrule::{RRule, RRuleSet, Unvalidated};
-use snafu::{OptionExt as _, Report, ResultExt, Snafu};
+use snafu::{Report, ResultExt, Snafu};
 
 /// Error that can be returned from rrule related functions
 #[derive(Debug, Snafu)]
@@ -41,12 +41,13 @@ impl From<EventRRuleSetError> for ApiError {
     }
 }
 
-/// An extension trait for [`Event`]
+/// An extension trait for [`Event`].
 pub trait EventExt {
-    /// Get the [`RRuleSet`] for the [`Event`], will return `Ok(None)` for non recurring events
+    /// Get the [`RRuleSet`] for the [`Event`], will return `Ok(None)` for non
+    /// recurring events.
     fn to_rruleset(&self) -> Result<Option<RRuleSet>, EventRRuleSetError>;
 
-    /// Check if last occurence starts before a specific date
+    /// Check if last occurence starts before a specific date.
     fn has_last_occurrence_before<T: TimeZone>(
         &self,
         date: DateTime<T>,
@@ -55,43 +56,11 @@ pub trait EventExt {
 
 impl EventExt for Event {
     fn to_rruleset(&self) -> Result<Option<RRuleSet>, EventRRuleSetError> {
-        if self.recurrence_pattern.is_none() {
+        let Some(date) = self.date() else {
             return Ok(None);
-        }
+        };
 
-        let rrule: RRule<Unvalidated> = self
-            .recurrence_pattern
-            .as_ref()
-            .with_context(|| InconsistentEventDataSnafu {
-                message: format!("Recurring event {} is missing recurrence_pattern", self.id),
-            })?
-            .parse()
-            .context(RRuleSnafu)?;
-
-        let starts_at = self.starts_at.with_context(|| InconsistentEventDataSnafu {
-            message: format!("Time dependent event {} is missing starts_at", self.id),
-        })?;
-
-        let starts_at_tz = self
-            .starts_at_tz
-            .with_context(|| InconsistentEventDataSnafu {
-                message: format!("Time dependent event {} is missing starts_at_tz", self.id),
-            })?;
-
-        // rrule uses chrono-tz 0.9 while we have 0.10 already.
-        // as a workaround we convert through a string that we parse.
-        // good enough for this use case, can be romved when chrono-tz
-        // is updated in rrule.
-        let starts_at_tz = starts_at_tz
-            .to_string()
-            .parse()
-            .expect("timezone should be parseable");
-
-        let starts_at_with_tz = starts_at.with_timezone(&rrule::Tz::Tz(starts_at_tz));
-
-        let rruleset = rrule.build(starts_at_with_tz).context(RRuleSnafu)?;
-
-        Ok(Some(rruleset))
+        date.to_rruleset()
     }
 
     fn has_last_occurrence_before<T: TimeZone>(
@@ -114,5 +83,39 @@ impl EventExt for Event {
         }
 
         Ok(false)
+    }
+}
+
+/// An extension trait for [`EventDate`].
+pub trait EventDateExt {
+    /// Get the [`RRuleSet`] for the [`Event`], will return `Ok(None)` for non
+    /// recurring events.
+    fn to_rruleset(&self) -> Result<Option<RRuleSet>, EventRRuleSetError>;
+}
+
+impl EventDateExt for EventDate {
+    fn to_rruleset(&self) -> Result<Option<RRuleSet>, EventRRuleSetError> {
+        let Some(recurrence) = self.recurrence.as_ref() else {
+            return Ok(None);
+        };
+
+        let rrule: RRule<Unvalidated> =
+            recurrence.recurrence_pattern.parse().context(RRuleSnafu)?;
+
+        // rrule uses chrono-tz 0.9 while we have 0.10 already.
+        // as a workaround we convert through a string that we parse.
+        // good enough for this use case, can be romved when chrono-tz
+        // is updated in rrule.
+        let starts_at_tz = self
+            .starts_at_tz
+            .to_string()
+            .parse()
+            .expect("timezone should be parseable");
+
+        let starts_at_with_tz = self.starts_at.with_timezone(&rrule::Tz::Tz(starts_at_tz));
+
+        let rruleset = rrule.build(starts_at_with_tz).context(RRuleSnafu)?;
+
+        Ok(Some(rruleset))
     }
 }

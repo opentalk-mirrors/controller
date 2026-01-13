@@ -33,7 +33,7 @@ impl GetEventsCursor {
         Self {
             from_id: event.id,
             from_created_at: event.created_at,
-            from_starts_at: event.starts_at,
+            from_starts_at: event.starts_at(),
         }
     }
 }

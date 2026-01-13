@@ -289,24 +289,31 @@ impl MeetingReport {
         typst_package_path: &Path,
     ) -> Result<Vec<u8>, SignalingModuleError> {
         let tz = Tz::from(report_timezone);
-        let starts_at = event.starts_at.map(DateTime::from).to_report_date_time(&tz);
-        let ends_at = event
-            .ends_at
-            .map(|timestamp| {
-                let dt: DateTime<Utc> = timestamp.into();
-                if let (Some(starts_at), Some(ends_at)) = (event.starts_at, event.ends_at)
-                    && ends_at.year() - starts_at.year() == 100
-                {
-                    // The `ends_at` date for recurring events defaults to 100
-                    // years in the future.
-                    return dt.with_year(dt.year() - 100).unwrap_or(dt);
+
+        let (starts_at, ends_at) = event
+            .date()
+            .map(|date| {
+                let starts_at_dt = DateTime::from(date.starts_at).to_report_date_time(&tz);
+                let ends_at_dt = {
+                    let dt = DateTime::from(date.ends_at);
+                    // Legacy check due to the missuse of the `starts_at` and
+                    // `ends_at` fields in recurring events.
+                    if date.ends_at.year() - date.starts_at.year() == 100 {
+                        dt.with_year(dt.year() - 100).unwrap_or(dt)
+                    } else {
+                        dt
+                    }
                 }
-                dt
+                .to_report_date_time(&tz);
+
+                (starts_at_dt, ends_at_dt)
             })
-            .to_report_date_time(&tz);
+            .unzip();
+
         let current_time = Local::now();
         let timestamp = current_time.naive_local().format("%Y-%m-%dT%H:%M:%S.%f");
         let report_created_at = current_time.to_report_date_time(&tz);
+
         Self::generate_pdf_report_from_template(
             template,
             &ReportTemplateParameter {
