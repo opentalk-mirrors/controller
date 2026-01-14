@@ -9,8 +9,7 @@ mod caches;
 
 pub use cacheable_api_error::CacheableApiError;
 pub use caches::Caches;
-use opentalk_cache::Cache;
 use opentalk_inventory::{Tenant, User};
 
-/// Cache for user access tokens
-pub type UserAccessTokenCache = Cache<String, Result<(Tenant, User), CacheableApiError>>;
+/// The type that is stored in the user access token cache.
+pub type UserAccessTokenResult = Result<(Tenant, User), CacheableApiError>;

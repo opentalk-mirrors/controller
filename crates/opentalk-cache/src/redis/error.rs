@@ -1,0 +1,25 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
+use snafu::Snafu;
+
+use crate::CacheError;
+
+#[derive(Debug, Snafu)]
+#[snafu(visibility(pub(crate)))]
+pub enum Error {
+    #[snafu(display("Redis error: {}", source))]
+    Redis { source: ::redis::RedisError },
+    #[snafu(display("Encode error: {}", source))]
+    Encode { source: bincode::error::EncodeError },
+    #[snafu(display("Decode error: {}", source))]
+    Decode { source: bincode::error::DecodeError },
+}
+
+impl From<Error> for CacheError {
+    fn from(value: Error) -> Self {
+        let boxed: Box<dyn std::error::Error + Send + Sync> = Box::new(value);
+        CacheError::from(boxed)
+    }
+}

@@ -5125,6 +5125,7 @@ dependencies = [
 name = "opentalk-cache"
 version = "0.33.0-alpha"
 dependencies = [
+ "async-trait",
  "bincode 2.0.1",
  "moka",
  "redis",
@@ -5202,6 +5203,7 @@ dependencies = [
  "md5",
  "mime",
  "openidconnect",
+ "opentalk-cache",
  "opentalk-controller-service",
  "opentalk-controller-service-facade",
  "opentalk-controller-settings",
