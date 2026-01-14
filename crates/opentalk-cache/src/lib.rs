@@ -14,7 +14,7 @@ pub mod redis;
 pub type Result<T, E = CacheError> = std::result::Result<T, E>;
 
 #[async_trait::async_trait(?Send)]
-pub trait CacheStorage<K, V>: Sync + Send {
+pub trait CacheStorage<K, V> {
     fn ttl(&self) -> Duration;
 
     async fn get(&self, key: &K) -> Result<Option<V>>;

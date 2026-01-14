@@ -4,6 +4,10 @@
 
 mod cache;
 mod entry;
+mod key;
+mod value;
 
 pub use cache::Cache;
 use entry::Entry;
+pub use key::Key;
+pub use value::Value;

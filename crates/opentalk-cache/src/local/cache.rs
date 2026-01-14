@@ -4,7 +4,7 @@
 
 use std::time::Duration;
 
-use super::Entry;
+use super::{Entry, Key, Value};
 use crate::{CacheStorage, Result};
 
 pub struct Cache<K, V> {
@@ -14,8 +14,8 @@ pub struct Cache<K, V> {
 
 impl<K, V> Cache<K, V>
 where
-    K: std::hash::Hash + Eq + Send + Sync + 'static,
-    V: Clone + Send + Sync + 'static,
+    K: Key + 'static,
+    V: Value + 'static,
 {
     pub fn new(ttl: Duration) -> Self {
         Self {
@@ -28,8 +28,8 @@ where
 #[async_trait::async_trait(?Send)]
 impl<K, V> CacheStorage<K, V> for Cache<K, V>
 where
-    K: std::hash::Hash + Eq + Send + Sync + 'static,
-    V: Clone + Send + Sync + 'static,
+    K: Key + 'static,
+    V: Value + 'static,
 {
     fn ttl(&self) -> Duration {
         self.ttl

@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{fmt::Display, marker::PhantomData, time::Duration};
-
-use bincode::{Decode, Encode};
-use serde::de::DeserializeOwned;
+use std::{marker::PhantomData, time::Duration};
 
 use crate::{CacheStorage, Result};
 
@@ -52,8 +49,8 @@ impl<K, V, BASE: CacheStorage<K, V>> WithOverlay<K, V> for BASE {
 #[async_trait::async_trait(?Send)]
 impl<K, V, BASE, OVERLAY> CacheStorage<K, V> for Cache<K, V, BASE, OVERLAY>
 where
-    K: Display + std::hash::Hash + Eq + Clone + Send + Sync + 'static,
-    V: Encode + Decode<()> + DeserializeOwned + Clone + Send + Sync + 'static,
+    K: Clone + 'static,
+    V: Clone + 'static,
     BASE: CacheStorage<K, V>,
     OVERLAY: CacheStorage<K, V>,
 {
