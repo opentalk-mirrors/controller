@@ -26,6 +26,6 @@ moka = { version = "0.12", default-features = false, features = [
   "quanta",
 ] }
 redis = { workspace = true, features = ["connection-manager", "tokio-comp"] }
-serde.workspace = true
+rkyv.workspace = true
 siphasher = "1.0"
 snafu.workspace = true

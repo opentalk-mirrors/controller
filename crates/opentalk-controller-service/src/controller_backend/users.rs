@@ -113,7 +113,7 @@ impl ControllerBackend {
                         .user_access_tokens
                         .insert_with_ttl(
                             access_token.to_string(),
-                            Ok((tenant, user)),
+                            Ok((tenant.into(), user.into())),
                             token_ttl_std,
                         )
                         .await?;

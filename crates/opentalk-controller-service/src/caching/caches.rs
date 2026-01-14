@@ -7,7 +7,7 @@ use core::time::Duration;
 use opentalk_cache::{CacheStorage, local, overlay::WithOverlay, redis};
 use opentalk_signaling_core::RedisConnection;
 
-use super::UserAccessTokenResult;
+use super::cacheable::UserAccessTokenResult;
 
 /// Holds all application level caches
 pub struct Caches {
