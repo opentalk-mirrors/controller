@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use bincode::{Decode, Encode};
 use chrono::{DateTime, Utc};
 use derive_more::{AsRef, Display, From, FromStr, Into};
 use diesel::prelude::*;
@@ -23,8 +22,6 @@ use crate::schema::{tenants, users};
     Into,
     Serialize,
     Deserialize,
-    Encode,
-    Decode,
     Debug,
     Clone,
     PartialEq,
@@ -67,12 +64,10 @@ impl From<&opentalk_inventory::OidcTenantId> for OidcTenantId {
     }
 }
 
-#[derive(Debug, Clone, Queryable, Identifiable, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Queryable, Identifiable, Serialize, Deserialize)]
 pub struct Tenant {
     pub id: TenantId,
-    #[bincode(with_serde)]
     pub created_at: DateTime<Utc>,
-    #[bincode(with_serde)]
     pub updated_at: DateTime<Utc>,
     pub oidc_tenant_id: OidcTenantId,
 }

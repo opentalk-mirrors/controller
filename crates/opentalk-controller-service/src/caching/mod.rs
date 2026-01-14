@@ -5,12 +5,6 @@
 //! Caching functionality used by the controller service.
 
 pub mod cacheable;
-mod cacheable_api_error;
 mod caches;
 
-pub use cacheable_api_error::CacheableApiError;
 pub use caches::Caches;
-use opentalk_inventory::{Tenant, User};
-
-/// The type that is stored in the user access token cache.
-pub type UserAccessTokenResult = Result<(Tenant, User), CacheableApiError>;

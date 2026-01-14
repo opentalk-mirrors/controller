@@ -12,16 +12,7 @@ use opentalk_types_common::{
 use crate::Event;
 
 /// The representation of a user in the inventory.
-#[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Eq,
-    serde::Serialize,
-    serde::Deserialize,
-    bincode::Encode,
-    bincode::Decode,
-)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct User {
     /// The id of the user.
     pub id: UserId,
@@ -69,7 +60,6 @@ pub struct User {
     pub tariff_status: TariffStatus,
 
     /// Optional disabled-since timestamp.
-    #[bincode(with_serde)]
     pub disabled_since: Option<Timestamp>,
 
     /// The URL to the avatar of the user.
@@ -79,11 +69,9 @@ pub struct User {
     pub timezone: Option<TimeZone>,
 
     /// The creation timestamp.
-    #[bincode(with_serde)]
     pub created_at: Timestamp,
 
     /// The updated timestamp.
-    #[bincode(with_serde)]
     pub updated_at: Timestamp,
 }
 
