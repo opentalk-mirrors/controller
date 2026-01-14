@@ -65,8 +65,7 @@ where
             return Ok(None);
         };
 
-        let (v, _) = bincode::decode_from_slice(&v, bincode::config::standard())
-            .context(super::error::DecodeSnafu)?;
+        let v = V::decode_from_redis(&v)?;
         Ok(Some(v))
     }
 
@@ -87,8 +86,7 @@ where
                     key: &key,
                     hash_key: self.hash_key,
                 },
-                bincode::encode_to_vec(value, bincode::config::standard())
-                    .context(super::error::EncodeSnafu)?,
+                value.encode_for_redis()?,
                 ttl.as_secs(),
             )
             .await
