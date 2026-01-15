@@ -66,6 +66,7 @@ redis = { workspace = true, features = ["connection-manager", "tokio-comp"] }
 redis-args.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-native-roots"] }
 ring.workspace = true
+rkyv = { workspace = true, features = ["uuid-1"] }
 rrule.workspace = true
 scoped-futures.workspace = true
 serde.workspace = true

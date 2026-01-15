@@ -167,6 +167,7 @@ redis = "1"
 redis-args = "0.22.1"
 reqwest = { version = "0.12", default-features = false }
 ring = "0.17"
+rkyv = "0.8.14"
 rrule = "0.14"
 rustc-hash = "2.0"
 scoped-futures = "0.1.4"

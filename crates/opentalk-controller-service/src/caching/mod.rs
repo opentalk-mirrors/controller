@@ -4,6 +4,7 @@
 
 //! Caching functionality used by the controller service.
 
+pub mod cacheable;
 mod cacheable_api_error;
 mod caches;
 
