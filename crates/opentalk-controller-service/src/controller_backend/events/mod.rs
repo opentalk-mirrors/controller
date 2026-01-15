@@ -1028,9 +1028,11 @@ impl ControllerBackend {
             inventory.get_room_streaming_targets(room.id).await?
         };
 
-        match patch.has_shared_folder {
+        let shared_folder = match patch.has_shared_folder {
             Some(true) => {
-                _ = put_shared_folder(&settings, event_id, inventory.as_mut()).await?;
+                let (shared_folder, _) =
+                    put_shared_folder(&settings, event_id, inventory.as_mut()).await?;
+                Some(shared_folder)
             }
             Some(false) => {
                 if let Some(folder) = inventory.get_event_shared_folder(event_id).await? {
@@ -1038,9 +1040,10 @@ impl ControllerBackend {
                     delete_shared_folders(&settings, shared_folders).await?;
                     inventory.delete_shared_folder_by_event_id(event_id).await?;
                 }
+                None
             }
-            None => {}
-        }
+            None => shared_folder,
+        };
 
         let training_participation_report = match &patch.training_participation_report {
             Some(Some(parameter_set)) => {
