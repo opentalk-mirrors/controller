@@ -14,7 +14,7 @@ pub struct Cache<K, V> {
     connection: Connection,
     prefix: String,
     ttl: Duration,
-    hash_key: bool,
+    use_hashed_keys: bool,
     _phantom: PhantomData<(K, V)>,
 }
 
@@ -23,12 +23,17 @@ where
     K: Key + 'static,
     V: Value + 'static,
 {
-    pub fn new(connection: Connection, prefix: String, ttl: Duration, hash_key: bool) -> Self {
+    pub fn new(
+        connection: Connection,
+        prefix: String,
+        ttl: Duration,
+        use_hashed_keys: bool,
+    ) -> Self {
         Self {
             connection,
             prefix,
             ttl,
-            hash_key,
+            use_hashed_keys,
             _phantom: PhantomData,
         }
     }
@@ -37,10 +42,10 @@ where
         let v = self
             .connection
             .clone()
-            .get(super::CacheKey {
+            .get(super::RedisCacheKey {
                 prefix: &self.prefix,
                 key,
-                hash_key: self.hash_key,
+                use_hashed_key: self.use_hashed_keys,
             })
             .await
             .context(super::error::RedisSnafu)?;
@@ -81,10 +86,10 @@ where
         self.connection
             .clone()
             .set_ex::<_, _, ()>(
-                super::CacheKey {
+                super::RedisCacheKey {
                     prefix: &self.prefix,
                     key: &key,
-                    hash_key: self.hash_key,
+                    use_hashed_key: self.use_hashed_keys,
                 },
                 value.encode_for_redis()?,
                 ttl.as_secs(),
