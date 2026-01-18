@@ -4,7 +4,7 @@
 
 use std::time::Duration;
 
-use super::{Entry, Key, Value};
+use super::{Entry, EntryExpiry, Key, Value};
 use crate::{CacheStorage, Result};
 
 pub struct Cache<K, V> {
@@ -20,7 +20,10 @@ where
     pub fn new(ttl: Duration) -> Self {
         Self {
             ttl,
-            inner: moka::future::Cache::builder().time_to_live(ttl).build(),
+            inner: moka::future::Cache::builder()
+                .time_to_live(ttl)
+                .expire_after(EntryExpiry)
+                .build(),
         }
     }
 }
@@ -36,12 +39,7 @@ where
     }
 
     async fn get(&self, key: &K) -> Result<Option<V>> {
-        Ok(self
-            .inner
-            .get(key)
-            .await
-            .filter(|entry| entry.still_valid())
-            .map(|entry| entry.into_inner()))
+        Ok(self.inner.get(key).await.map(|entry| entry.into_inner()))
     }
 
     async fn insert(&self, key: K, value: V) -> Result<()> {
