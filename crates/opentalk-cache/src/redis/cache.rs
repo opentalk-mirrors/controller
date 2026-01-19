@@ -2,35 +2,38 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{fmt::Display, marker::PhantomData, time::Duration};
+use std::{marker::PhantomData, time::Duration};
 
-use bincode::{Decode, Encode};
 use redis::AsyncCommands as _;
-use serde::de::DeserializeOwned;
 use snafu::ResultExt as _;
 
-use super::{Connection, Error};
+use super::{Connection, Error, Key, Value};
 use crate::{CacheStorage, Result};
 
 pub struct Cache<K, V> {
     connection: Connection,
     prefix: String,
     ttl: Duration,
-    hash_key: bool,
+    use_hashed_keys: bool,
     _phantom: PhantomData<(K, V)>,
 }
 
 impl<K, V> Cache<K, V>
 where
-    K: Display + std::hash::Hash + Eq + Send + Sync + 'static,
-    V: Encode + Decode<()> + DeserializeOwned + Clone + Send + Sync + 'static,
+    K: Key + 'static,
+    V: Value + 'static,
 {
-    pub fn new(connection: Connection, prefix: String, ttl: Duration, hash_key: bool) -> Self {
+    pub fn new(
+        connection: Connection,
+        prefix: String,
+        ttl: Duration,
+        use_hashed_keys: bool,
+    ) -> Self {
         Self {
             connection,
             prefix,
             ttl,
-            hash_key,
+            use_hashed_keys,
             _phantom: PhantomData,
         }
     }
@@ -39,10 +42,10 @@ where
         let v = self
             .connection
             .clone()
-            .get(super::CacheKey {
+            .get(super::RedisCacheKey {
                 prefix: &self.prefix,
                 key,
-                hash_key: self.hash_key,
+                use_hashed_key: self.use_hashed_keys,
             })
             .await
             .context(super::error::RedisSnafu)?;
@@ -53,8 +56,8 @@ where
 #[async_trait::async_trait(?Send)]
 impl<K, V> CacheStorage<K, V> for Cache<K, V>
 where
-    K: Display + std::hash::Hash + Eq + Send + Sync + 'static,
-    V: Encode + Decode<()> + DeserializeOwned + Clone + Send + Sync + 'static,
+    K: Key + 'static,
+    V: Value + 'static,
 {
     fn ttl(&self) -> Duration {
         self.ttl
@@ -67,8 +70,7 @@ where
             return Ok(None);
         };
 
-        let (v, _) = bincode::decode_from_slice(&v, bincode::config::standard())
-            .context(super::error::DecodeSnafu)?;
+        let v = V::decode_from_redis(&v)?;
         Ok(Some(v))
     }
 
@@ -84,13 +86,12 @@ where
         self.connection
             .clone()
             .set_ex::<_, _, ()>(
-                super::CacheKey {
+                super::RedisCacheKey {
                     prefix: &self.prefix,
                     key: &key,
-                    hash_key: self.hash_key,
+                    use_hashed_key: self.use_hashed_keys,
                 },
-                bincode::encode_to_vec(value, bincode::config::standard())
-                    .context(super::error::EncodeSnafu)?,
+                value.encode_for_redis()?,
                 ttl.as_secs(),
             )
             .await

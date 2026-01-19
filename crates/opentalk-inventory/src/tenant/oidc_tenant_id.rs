@@ -18,8 +18,6 @@
     derive_more::Into,
     serde::Serialize,
     serde::Deserialize,
-    bincode::Encode,
-    bincode::Decode,
 )]
 pub struct OidcTenantId(String);
 

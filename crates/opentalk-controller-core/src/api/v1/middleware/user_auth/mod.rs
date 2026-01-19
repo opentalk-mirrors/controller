@@ -27,7 +27,7 @@ use kustos::prelude::PoliciesBuilder;
 use openidconnect::AccessToken;
 use opentalk_cache::CacheStorage;
 use opentalk_controller_service::{
-    caching::{CacheableApiError, Caches, UserAccessTokenResult},
+    caching::{Caches, cacheable::UserAccessTokenResult},
     controller_backend::RoomsPoliciesBuilderExt,
     oidc::{OidcTokenHandler, OpenIdConnectUserInfo},
     phone_numbers::parse_phone_number,
@@ -272,7 +272,7 @@ pub async fn check_access_token(
                     cache
                         .insert_with_ttl(
                             access_token.secret().clone(),
-                            Ok((tenant.clone(), user.clone())),
+                            Ok((tenant.clone().into(), user.clone().into())),
                             token_ttl.to_std().expect("duration was previously checked"),
                         )
                         .await?;
@@ -281,7 +281,7 @@ pub async fn check_access_token(
                     cache
                         .insert_with_ttl(
                             access_token.secret().clone(),
-                            Err(CacheableApiError::from(e)),
+                            Err(e.clone().into()),
                             token_ttl.to_std().expect("duration was previously checked"),
                         )
                         .await?;
@@ -300,17 +300,33 @@ async fn get_cached_result(
     access_token: &AccessToken,
 ) -> Result<Option<Result<(Tenant, User), CaptureApiError>>, CaptureApiError> {
     match cache.get(access_token.secret()).await {
-        Ok(Some(cached_result)) => {
-            let result = cached_result.map_err(|cache_err| {
-                CaptureApiError::try_from(cache_err).unwrap_or_else(|conversion_err| {
-                    log::warn!(
-                        "Error converting cached error: {}",
-                        Report::from_error(conversion_err)
-                    );
-                    CaptureApiError::from(ApiError::internal())
-                })
-            });
-            Ok(Some(result))
+        Ok(Some(Ok((tenant, user)))) => {
+            let tenant = tenant.try_into().map_err(|e| {
+                log::warn!(
+                    "Error when attempting to read tenant information loaded from token cache: {}",
+                    Report::from_error(e)
+                );
+                ApiError::internal()
+            })?;
+            let user = user.try_into().map_err(|e| {
+                log::warn!(
+                    "Error when attempting to read user information loaded from token cache: {}",
+                    Report::from_error(e)
+                );
+                ApiError::internal()
+            })?;
+
+            Ok(Some(Ok((tenant, user))))
+        }
+        Ok(Some(Err(api_error))) => {
+            let api_error = CaptureApiError::try_from(api_error).map_err(|e| {
+                log::warn!(
+                    "Error when attempting to read verification result loaded from token cache: {}",
+                    Report::from_error(e)
+                );
+                ApiError::internal()
+            })?;
+            Ok(Some(Err(api_error)))
         }
         Ok(None) => Ok(None),                        // Cache miss
         Err(cache_error) => Err(cache_error.into()), // Cache access error

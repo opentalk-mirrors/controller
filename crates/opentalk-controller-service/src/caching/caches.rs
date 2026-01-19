@@ -3,46 +3,47 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use core::time::Duration;
-use std::fmt::Display;
 
-use bincode::{Decode, Encode};
-use opentalk_cache::{CacheStorage, overlay::WithOverlay};
+use opentalk_cache::{CacheStorage, local, overlay::WithOverlay, redis};
 use opentalk_signaling_core::RedisConnection;
-use serde::de::DeserializeOwned;
 
-use super::UserAccessTokenResult;
+use super::cacheable::UserAccessTokenResult;
 
 /// Holds all application level caches
 pub struct Caches {
     /// Cache the results of user access-token checks
-    pub user_access_tokens: Box<dyn CacheStorage<String, UserAccessTokenResult>>,
+    pub user_access_tokens: Box<dyn CacheStorage<String, UserAccessTokenResult> + Send + Sync>,
 }
 
 impl Caches {
     /// Create a new [`Caches`] instance with an optional [`RedisConnection`].
     pub fn create(redis: Option<RedisConnection>) -> Self {
         Self {
-            user_access_tokens: Self::build_cache(redis, Duration::from_secs(300)),
+            user_access_tokens: Self::build_cache(
+                redis,
+                "user-access-tokens".to_string(),
+                Duration::from_secs(300),
+            ),
         }
     }
 
     fn build_cache<K, V>(
         redis: Option<RedisConnection>,
+        prefix: String,
         ttl: Duration,
-    ) -> Box<dyn CacheStorage<K, V>>
+    ) -> Box<dyn CacheStorage<K, V> + Send + Sync>
     where
-        K: Display + std::hash::Hash + Eq + Clone + Send + Sync + 'static,
-        V: Encode + Decode<()> + DeserializeOwned + Clone + Send + Sync + 'static,
+        K: redis::Key + local::Key + Clone + 'static,
+        V: redis::Value + local::Value + 'static,
     {
-        let local_cache = opentalk_cache::local::Cache::new(ttl);
+        let local_cache = local::Cache::new(ttl);
 
         let Some(redis) = redis else {
             return Box::new(local_cache);
         };
         let redis = redis.into_manager();
 
-        let redis_cache =
-            opentalk_cache::redis::Cache::new(redis, "user-access-tokens".to_string(), ttl, true);
+        let redis_cache = redis::Cache::new(redis, prefix, ttl, true);
 
         Box::new(redis_cache.with_overlay(local_cache))
     }

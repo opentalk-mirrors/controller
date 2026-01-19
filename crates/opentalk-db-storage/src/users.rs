@@ -6,7 +6,6 @@
 use std::fmt;
 
 use bigdecimal::{BigDecimal, ToPrimitive};
-use bincode::{Decode, Encode};
 use chrono::{DateTime, Utc};
 use derive_more::{AsRef, Display, From, FromStr, Into};
 use diesel::{
@@ -39,8 +38,6 @@ use crate::{levenshtein, lower, newtypes::LanguageIdentifier, paginate::Paginate
     Into,
     Serialize,
     Deserialize,
-    Encode,
-    Decode,
     Debug,
     Clone,
     Copy,

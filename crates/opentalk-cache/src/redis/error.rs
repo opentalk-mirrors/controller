@@ -11,10 +11,12 @@ use crate::CacheError;
 pub enum Error {
     #[snafu(display("Redis error: {}", source))]
     Redis { source: ::redis::RedisError },
-    #[snafu(display("Encode error: {}", source))]
-    Encode { source: bincode::error::EncodeError },
-    #[snafu(display("Decode error: {}", source))]
-    Decode { source: bincode::error::DecodeError },
+
+    #[snafu(display("rkyv encode error: {source}"))]
+    RkyvEncode { source: rkyv::rancor::Error },
+
+    #[snafu(display("rkyv decode error: {source}"))]
+    RkyvDecode { source: rkyv::rancor::Error },
 }
 
 impl From<Error> for CacheError {

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::fmt::Display;
+use std::{fmt::Display, hash::Hash};
 
 use redis::{ToRedisArgs, ToSingleRedisArg};
 use siphasher::sip128::{Hasher128, SipHasher24};
@@ -10,15 +10,15 @@ use siphasher::sip128::{Hasher128, SipHasher24};
 /// A Cache key with a [`ToRedisArgs`] implementation
 ///
 /// Takes the prefix and cache key to turn them into a redis key
-pub(super) struct CacheKey<'a, K> {
-    pub(super) hash_key: bool,
+pub(super) struct RedisCacheKey<'a, K> {
+    pub(super) use_hashed_key: bool,
     pub(super) prefix: &'a str,
     pub(super) key: &'a K,
 }
 
-impl<K: Display + std::hash::Hash> Display for CacheKey<'_, K> {
+impl<K: Display + Hash> Display for RedisCacheKey<'_, K> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.hash_key {
+        if self.use_hashed_key {
             let mut h = SipHasher24::new_with_keys(!0x113, 0x311);
             self.key.hash(&mut h);
             let hash = h.finish128().as_u128();
@@ -30,9 +30,9 @@ impl<K: Display + std::hash::Hash> Display for CacheKey<'_, K> {
     }
 }
 
-impl<D: Display + std::hash::Hash> ToSingleRedisArg for CacheKey<'_, D> {}
+impl<D: Display + Hash> ToSingleRedisArg for RedisCacheKey<'_, D> {}
 
-impl<D: Display + std::hash::Hash> ToRedisArgs for CacheKey<'_, D> {
+impl<D: Display + Hash> ToRedisArgs for RedisCacheKey<'_, D> {
     fn write_redis_args<W>(&self, out: &mut W)
     where
         W: ?Sized + redis::RedisWrite,

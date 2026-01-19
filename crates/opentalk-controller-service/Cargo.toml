@@ -18,7 +18,6 @@ version.workspace = true
 async-stream.workspace = true
 async-trait.workspace = true
 base64.workspace = true
-bincode.workspace = true
 bytes.workspace = true
 chrono.workspace = true
 chrono-tz = { workspace = true, features = ["serde"] }
@@ -66,6 +65,7 @@ redis = { workspace = true, features = ["connection-manager", "tokio-comp"] }
 redis-args.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-native-roots"] }
 ring.workspace = true
+rkyv = { workspace = true, features = ["uuid-1"] }
 rrule.workspace = true
 scoped-futures.workspace = true
 serde.workspace = true
