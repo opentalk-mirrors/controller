@@ -83,4 +83,9 @@ where
             .await?;
         self.overlay.insert_with_ttl(key, value, ttl).await
     }
+
+    async fn invalidate(&self, key: &K) -> Result<()> {
+        self.base.invalidate(key).await?;
+        self.overlay.invalidate(key).await
+    }
 }

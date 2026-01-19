@@ -53,6 +53,11 @@ where
             .await;
         Ok(())
     }
+
+    async fn invalidate(&self, key: &K) -> Result<()> {
+        self.inner.invalidate(key).await;
+        Ok(())
+    }
 }
 
 /// TODO: We could make these tests more generic and move them up to the lib level
@@ -94,6 +99,15 @@ mod tests {
 
         let cached_value = cache.get(&original_key).await.unwrap();
         assert_eq!(Some(original_value), cached_value);
+    }
+
+    #[tokio::test]
+    async fn invalidation() {
+        let (cache, original_key, _original_value) = setup().await;
+
+        cache.invalidate(&original_key).await.unwrap();
+        let cached_value = cache.get(&original_key).await.unwrap();
+        assert_eq!(cached_value, None);
     }
 
     #[tokio::test]

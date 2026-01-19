@@ -98,4 +98,17 @@ where
             .context(super::error::RedisSnafu)?;
         Ok(())
     }
+
+    async fn invalidate(&self, key: &K) -> Result<()> {
+        self.connection
+            .clone()
+            .del::<_, ()>(super::RedisCacheKey {
+                prefix: &self.prefix,
+                key: &key,
+                use_hashed_key: self.use_hashed_keys,
+            })
+            .await
+            .context(super::error::RedisSnafu)?;
+        Ok(())
+    }
 }
