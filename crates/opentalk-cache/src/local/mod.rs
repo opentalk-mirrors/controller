@@ -8,6 +8,6 @@ mod key;
 mod value;
 
 pub use cache::Cache;
-use entry::Entry;
+use entry::{Entry, EntryExpiry};
 pub use key::Key;
 pub use value::Value;

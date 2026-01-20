@@ -22,4 +22,6 @@ pub trait CacheStorage<K, V> {
     async fn insert(&self, key: K, value: V) -> Result<()>;
 
     async fn insert_with_ttl(&self, key: K, value: V, ttl: Duration) -> Result<()>;
+
+    async fn invalidate(&self, key: &K) -> Result<()>;
 }

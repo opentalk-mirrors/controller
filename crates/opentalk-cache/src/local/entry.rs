@@ -4,38 +4,40 @@
 
 use std::time::{Duration, Instant};
 
+use moka::Expiry;
+
 #[derive(Debug, Clone, Copy)]
 pub(super) struct Entry<V> {
     value: V,
-    /// Custom expiration value to work around moka's limitation to set a custom ttl for an entry
-    expires_at: Option<Instant>,
+    ttl: Option<Duration>,
 }
 
 impl<V> Entry<V> {
     pub(super) fn new(value: V) -> Self {
-        Self {
-            value,
-            expires_at: None,
-        }
+        Self { value, ttl: None }
     }
 
     pub(super) fn new_with_ttl(value: V, ttl: Duration) -> Self {
         Self {
             value,
-            expires_at: Some(Instant::now() + ttl),
-        }
-    }
-
-    // Check if the custom ttl has expired
-    pub(super) fn still_valid(&self) -> bool {
-        if let Some(exp) = self.expires_at {
-            exp.saturating_duration_since(Instant::now()) > Duration::ZERO
-        } else {
-            true
+            ttl: Some(ttl),
         }
     }
 
     pub(super) fn into_inner(self) -> V {
         self.value
+    }
+}
+
+pub(super) struct EntryExpiry;
+
+impl<K, V> Expiry<K, Entry<V>> for EntryExpiry {
+    fn expire_after_create(
+        &self,
+        _key: &K,
+        value: &Entry<V>,
+        _created_at: Instant,
+    ) -> Option<Duration> {
+        value.ttl
     }
 }
