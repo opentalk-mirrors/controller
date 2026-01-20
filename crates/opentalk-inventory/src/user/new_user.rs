@@ -29,7 +29,7 @@ pub struct NewUser {
     pub lastname: String,
 
     /// The language of the user.
-    pub language: LanguageIdentifier,
+    pub language: Option<LanguageIdentifier>,
 
     /// The display name of the user.
     pub display_name: DisplayName,

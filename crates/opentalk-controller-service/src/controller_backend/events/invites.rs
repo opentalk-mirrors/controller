@@ -39,7 +39,7 @@ use opentalk_types_common::{
     shared_folders::SharedFolder,
     streaming::RoomStreamingTarget,
     tariffs::TariffResource,
-    users::UserId,
+    users::{Language, UserId},
 };
 use snafu::Report;
 
@@ -238,6 +238,7 @@ impl ControllerBackend {
         query: EventOptionsQuery,
     ) -> Result<(), CaptureApiError> {
         let settings = self.settings_provider.get();
+        let default_user_language = Language(settings.defaults.user_language.clone());
 
         let mail_service = (!query.suppress_email_notification)
             .then(|| self.mail_service.as_ref().clone())
@@ -269,8 +270,12 @@ impl ControllerBackend {
             inventory.get_user(event.created_by).await?
         };
 
-        let invited_users =
-            get_invited_mail_recipients_for_event(inventory.as_mut(), event_id).await?;
+        let invited_users = get_invited_mail_recipients_for_event(
+            inventory.as_mut(),
+            event_id,
+            default_user_language,
+        )
+        .await?;
 
         let (room_id, invite) = transaction(inventory.as_mut(), |inventory| {
             async move {
@@ -342,6 +347,7 @@ impl ControllerBackend {
         query: EventOptionsQuery,
     ) -> Result<(), CaptureApiError> {
         let settings = self.settings_provider.get();
+        let default_user_language = Language(settings.defaults.user_language.clone());
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let email = email.to_lowercase().to_string();
@@ -407,7 +413,7 @@ impl ControllerBackend {
 
             MailRecipient::Registered(RegisteredMailRecipient {
                 email,
-                ..user.into()
+                ..RegisteredMailRecipient::from_inventory_user(user, default_user_language)
             })
         } else if let Ok(Some(user)) = {
             if let Some(user_search_client) = &*self.user_search_client {

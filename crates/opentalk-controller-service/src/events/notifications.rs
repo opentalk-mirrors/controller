@@ -12,7 +12,7 @@ use opentalk_inventory::{
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_common::{
     rooms::RoomId, shared_folders::SharedFolder, streaming::RoomStreamingTarget,
-    tariffs::TariffResource,
+    tariffs::TariffResource, users::Language,
 };
 use snafu::Report;
 
@@ -21,7 +21,7 @@ use crate::{
         enrich_from_optional_user_search, get_invited_mail_recipients_for_event,
         shared_folder_for_user,
     },
-    services::{MailRecipient, MailService},
+    services::{MailRecipient, MailService, RegisteredMailRecipient},
 };
 
 /// Provides information for event update notifications (e.g. via email)
@@ -113,8 +113,14 @@ pub async fn notify_event_invitees_about_update(
     shared_folder_for_user: Option<SharedFolder>,
     streaming_targets: Vec<RoomStreamingTarget>,
 ) -> Result<(), CaptureApiError> {
-    let invited_users = get_invited_mail_recipients_for_event(inventory, event.id).await?;
-    let current_user_mail_recipient = MailRecipient::Registered(current_user.clone().into());
+    let default_user_language = Language(settings.defaults.user_language.clone());
+
+    let invited_users =
+        get_invited_mail_recipients_for_event(inventory, event.id, default_user_language.clone())
+            .await?;
+    let current_user_mail_recipient = MailRecipient::Registered(
+        RegisteredMailRecipient::from_inventory_user(current_user.clone(), default_user_language),
+    );
     let users_to_notify = invited_users
         .into_iter()
         .chain(std::iter::once(current_user_mail_recipient))

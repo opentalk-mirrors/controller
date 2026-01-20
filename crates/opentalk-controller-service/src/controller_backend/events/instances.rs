@@ -31,6 +31,7 @@ use opentalk_types_common::{
     shared_folders::SharedFolder,
     time::{DateTimeTz, TimeZone, Timestamp},
     training_participation_report::TrainingParticipationReportParameterSet,
+    users::Language,
 };
 
 use crate::{
@@ -420,6 +421,7 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let settings = self.settings_provider.get();
+        let default_user_language = Language(settings.defaults.user_language.clone());
 
         let (
             event,
@@ -533,8 +535,12 @@ impl ControllerBackend {
         let streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
 
         if !suppress_email_notification {
-            let invited_users =
-                get_invited_mail_recipients_for_event(inventory.as_mut(), event_id).await?;
+            let invited_users = get_invited_mail_recipients_for_event(
+                inventory.as_mut(),
+                event_id,
+                default_user_language,
+            )
+            .await?;
             let invite_for_room = inventory
                 .get_or_create_valid_invite_for_room(room.id, current_user.id)
                 .await?;

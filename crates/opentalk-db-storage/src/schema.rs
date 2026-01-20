@@ -367,7 +367,7 @@ diesel::table! {
         #[max_length = 255]
         lastname -> Varchar,
         #[max_length = 35]
-        language -> Varchar,
+        language -> Nullable<Varchar>,
         #[max_length = 511]
         display_name -> Varchar,
         dashboard_theme -> Nullable<Theme>,

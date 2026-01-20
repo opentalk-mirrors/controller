@@ -1493,7 +1493,10 @@ impl LegalVote {
             let (_room, owner) = inventory
                 .get_room_with_creator(self.room_id.room_id())
                 .await?;
-            owner.language.into()
+            owner
+                .language
+                .map(Into::into)
+                .unwrap_or(self.system_default_language.clone())
         };
 
         let pdf_data = report::generate(

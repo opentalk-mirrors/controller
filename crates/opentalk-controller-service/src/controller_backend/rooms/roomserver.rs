@@ -220,7 +220,8 @@ impl ControllerBackend {
             .get_user(user_id)
             .await
             .ok()
-            .map(|user| user.language.0)
+            .and_then(|user| user.language)
+            .map(|language| language.0)
             .unwrap_or(settings.defaults.user_language.clone());
         let parameters = RoomParameters {
             created_by,

@@ -22,7 +22,6 @@ use actix_web::{
 use actix_web_httpauth::headers::authorization::Authorization;
 use chrono::Utc;
 use diesel_async::scoped_futures::ScopedFutureExt as _;
-use icu_locid::LanguageIdentifier;
 use kustos::prelude::PoliciesBuilder;
 use openidconnect::AccessToken;
 use opentalk_cache::CacheStorage;
@@ -54,9 +53,7 @@ use uuid::Uuid;
 
 use crate::api::v1::{
     events::EventPoliciesBuilderExt,
-    middleware::{
-        locale::get_request_locale, user_auth::bearer_or_invite_code::BearerOrInviteCode,
-    },
+    middleware::user_auth::bearer_or_invite_code::BearerOrInviteCode,
 };
 
 mod bearer_or_invite_code;
@@ -167,14 +164,9 @@ where
             }
         };
 
-        let requested_locale = get_request_locale(&req);
-
         Box::pin(
             async move {
                 let settings = settings_provider.get();
-
-                let fallback_locale =
-                    requested_locale.unwrap_or_else(|| settings.defaults.user_language.clone());
 
                 match access_token_or_invite_code {
                     AccessTokenOrInviteCode::AccessToken(access_token) => match check_access_token(
@@ -184,7 +176,6 @@ where
                         oidc_ctx.as_ref(),
                         caches.user_access_tokens.as_ref(),
                         &access_token,
-                        fallback_locale,
                     )
                     .await
                     {
@@ -243,7 +234,6 @@ pub async fn check_access_token(
     oidc_ctx: &dyn OidcTokenHandler,
     cache: &dyn CacheStorage<String, UserAccessTokenResult>,
     access_token: &AccessToken,
-    fallback_locale: LanguageIdentifier,
 ) -> Result<(Tenant, User), CaptureApiError> {
     if let Some(cached_result) = get_cached_result(cache, access_token).await? {
         return cached_result;
@@ -252,15 +242,8 @@ pub async fn check_access_token(
     // Miss, verify access token
     let maybe_expires_at = oidc_ctx.verify_access_token(access_token).await?;
 
-    let check_result = check_access_token_inner(
-        settings,
-        authz,
-        inventory_provider,
-        oidc_ctx,
-        access_token,
-        fallback_locale,
-    )
-    .await;
+    let check_result =
+        check_access_token_inner(settings, authz, inventory_provider, oidc_ctx, access_token).await;
 
     // if we have a expiry date that is more then 10 seconds in the future, cache the response.
     if let Some(expires_at) = maybe_expires_at {
@@ -340,7 +323,6 @@ async fn check_access_token_inner(
     inventory_provider: &dyn InventoryProvider,
     oidc_ctx: &dyn OidcTokenHandler,
     access_token: &AccessToken,
-    fallback_locale: LanguageIdentifier,
 ) -> Result<(Tenant, User), CaptureApiError> {
     let info = oidc_ctx.user_info(access_token.clone()).await?;
 
@@ -432,7 +414,6 @@ async fn check_access_token_inner(
                     &groups,
                     tariff,
                     tariff_status,
-                    fallback_locale,
                 )
                 .await
             }
@@ -455,7 +436,6 @@ async fn create_or_update_user(
     groups: &[GroupId],
     tariff: Tariff,
     tariff_status: TariffStatus,
-    fallback_locale: LanguageIdentifier,
 ) -> Result<LoginResult, CaptureApiError> {
     let display_name = build_info_display_name(&info);
     let enforce_display_name = settings.endpoints.disallow_custom_display_name;
@@ -469,8 +449,6 @@ async fn create_or_update_user(
         None
     };
 
-    let language = info.locale.unwrap_or(fallback_locale);
-
     let outcome = inventory
         .create_or_update_user_by_oidc_sub(
             NewUser {
@@ -481,7 +459,7 @@ async fn create_or_update_user(
                 firstname: info.firstname,
                 lastname: info.lastname,
                 avatar_url: info.avatar_url,
-                language,
+                language: info.locale,
                 phone: phone_number,
                 tenant_id: tenant.id,
                 tariff_id: tariff.id,

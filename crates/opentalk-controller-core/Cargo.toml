@@ -27,10 +27,8 @@ bytestring = { workspace = true, features = ["serde"] }
 chrono.workspace = true
 diesel-async.workspace = true
 either.workspace = true
-fluent-langneg.workspace = true
 futures.workspace = true
 http.workspace = true
-icu_locid = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 kustos.workspace = true
 lapin-pool.workspace = true

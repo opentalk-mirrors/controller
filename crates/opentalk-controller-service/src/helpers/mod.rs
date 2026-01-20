@@ -13,7 +13,7 @@ use opentalk_types_api_v1::{
 };
 use opentalk_types_common::{
     time::TimeZone,
-    users::{UserId, UserInfo},
+    users::{Language, UserId, UserInfo},
 };
 
 /// A trait providing conversion of database users to public and private user profiles
@@ -49,6 +49,7 @@ impl ToUserProfile for opentalk_inventory::User {
         used_storage: u64,
     ) -> PrivateUserProfile {
         let default_avatar = email_to_libravatar_url(&settings.avatar.libravatar_url, &self.email);
+        let default_user_language = &settings.defaults.user_language;
 
         PrivateUserProfile {
             id: self.id,
@@ -60,7 +61,10 @@ impl ToUserProfile for opentalk_inventory::User {
             dashboard_theme: self.dashboard_theme,
             conference_theme: self.conference_theme,
             avatar_url: self.avatar_url.clone().unwrap_or(default_avatar),
-            language: self.language.clone(),
+            language: self
+                .language
+                .clone()
+                .unwrap_or(Language(default_user_language.clone())),
             tariff_status: self.tariff_status,
             used_storage,
         }
@@ -90,6 +94,7 @@ impl ToUserProfile for RequestUser {
         used_storage: u64,
     ) -> PrivateUserProfile {
         let default_avatar = email_to_libravatar_url(&settings.avatar.libravatar_url, &self.email);
+        let default_user_language = Language(settings.defaults.user_language.clone());
 
         PrivateUserProfile {
             id: self.id,
@@ -101,7 +106,7 @@ impl ToUserProfile for RequestUser {
             dashboard_theme: self.dashboard_theme,
             conference_theme: self.conference_theme,
             avatar_url: self.avatar_url.clone().unwrap_or(default_avatar),
-            language: self.language.clone(),
+            language: self.language.clone().unwrap_or(default_user_language),
             tariff_status: self.tariff_status,
             used_storage,
         }
