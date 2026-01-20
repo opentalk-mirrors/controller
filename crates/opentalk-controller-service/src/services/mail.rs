@@ -47,15 +47,15 @@ pub struct RegisteredMailRecipient {
     pub language: Language,
 }
 
-impl From<User> for RegisteredMailRecipient {
-    fn from(user: User) -> Self {
+impl RegisteredMailRecipient {
+    pub(crate) fn from_inventory_user(user: User, default_user_language: Language) -> Self {
         Self {
             id: user.id,
             email: user.email,
             title: user.title,
             first_name: user.firstname,
             last_name: user.lastname,
-            language: user.language,
+            language: user.language.unwrap_or(default_user_language),
         }
     }
 }
@@ -300,6 +300,8 @@ impl MailService {
         shared_folder: Option<SharedFolder>,
         streaming_targets: Vec<RoomStreamingTarget>,
     ) -> Result<()> {
+        let default_user_language = Language(settings.defaults.user_language.clone());
+
         let shared_folder = shared_folder.map(|sf| {
             if inviter.id == invitee.id {
                 sf
@@ -310,7 +312,7 @@ impl MailService {
 
         // Create MailTask
         let mail_task = MailTask::registered_event_invite(
-            RegisteredMailRecipient::from(inviter),
+            RegisteredMailRecipient::from_inventory_user(inviter, default_user_language.clone()),
             to_event(
                 settings,
                 event,
@@ -320,7 +322,7 @@ impl MailService {
                 shared_folder,
                 streaming_targets,
             ),
-            RegisteredMailRecipient::from(invitee),
+            RegisteredMailRecipient::from_inventory_user(invitee, default_user_language),
         );
 
         self.send_to_rabbitmq(settings, mail_task).await?;
@@ -341,6 +343,8 @@ impl MailService {
         shared_folder: Option<SharedFolder>,
         streaming_targets: Vec<RoomStreamingTarget>,
     ) -> Result<()> {
+        let default_user_language = Language(settings.defaults.user_language.clone());
+
         let invitee = v1::UnregisteredUser {
             email: invitee.email.into(),
             first_name: invitee.first_name,
@@ -349,7 +353,7 @@ impl MailService {
 
         // Create MailTask
         let mail_task = MailTask::unregistered_event_invite(
-            RegisteredMailRecipient::from(inviter),
+            RegisteredMailRecipient::from_inventory_user(inviter, default_user_language),
             to_event(
                 settings,
                 event,
@@ -381,9 +385,11 @@ impl MailService {
         shared_folder: Option<SharedFolder>,
         streaming_targets: Vec<RoomStreamingTarget>,
     ) -> Result<()> {
+        let default_user_language = Language(settings.defaults.user_language.clone());
+
         // Create MailTask
         let mail_task = MailTask::external_event_invite(
-            RegisteredMailRecipient::from(inviter),
+            RegisteredMailRecipient::from_inventory_user(inviter, default_user_language),
             to_event(
                 settings,
                 event,
@@ -417,6 +423,8 @@ impl MailService {
         shared_folder: Option<SharedFolder>,
         streaming_targets: Vec<RoomStreamingTarget>,
     ) -> Result<()> {
+        let default_user_language = Language(settings.defaults.user_language.clone());
+
         let mail_task = match invitee {
             MailRecipient::Registered(invitee) => {
                 let shared_folder = shared_folder.map(|sf| {
@@ -427,7 +435,7 @@ impl MailService {
                     }
                 });
                 MailTask::registered_event_update(
-                    RegisteredMailRecipient::from(inviter),
+                    RegisteredMailRecipient::from_inventory_user(inviter, default_user_language),
                     to_event(
                         settings,
                         event,
@@ -448,7 +456,7 @@ impl MailService {
                 )
             }
             MailRecipient::Unregistered(invitee) => MailTask::unregistered_event_update(
-                RegisteredMailRecipient::from(inviter),
+                RegisteredMailRecipient::from_inventory_user(inviter, default_user_language),
                 to_event(
                     settings,
                     event,
@@ -466,7 +474,7 @@ impl MailService {
                 },
             ),
             MailRecipient::External(invitee) => MailTask::external_event_update(
-                RegisteredMailRecipient::from(inviter),
+                RegisteredMailRecipient::from_inventory_user(inviter, default_user_language),
                 to_event(
                     settings,
                     event,
@@ -503,6 +511,8 @@ impl MailService {
         shared_folder: Option<SharedFolder>,
         streaming_targets: Vec<RoomStreamingTarget>,
     ) -> Result<()> {
+        let default_user_language = Language(settings.defaults.user_language.clone());
+
         // increment event sequence to satisfy icalendar spec
         event.revision += 1;
 
@@ -516,7 +526,7 @@ impl MailService {
                     }
                 });
                 MailTask::registered_event_cancellation(
-                    RegisteredMailRecipient::from(inviter),
+                    RegisteredMailRecipient::from_inventory_user(inviter, default_user_language),
                     to_event(
                         settings,
                         event,
@@ -536,7 +546,7 @@ impl MailService {
                 )
             }
             MailRecipient::Unregistered(invitee) => MailTask::unregistered_event_cancellation(
-                RegisteredMailRecipient::from(inviter),
+                RegisteredMailRecipient::from_inventory_user(inviter, default_user_language),
                 to_event(
                     settings,
                     event,
@@ -553,7 +563,7 @@ impl MailService {
                 },
             ),
             MailRecipient::External(invitee) => MailTask::external_event_cancellation(
-                RegisteredMailRecipient::from(inviter),
+                RegisteredMailRecipient::from_inventory_user(inviter, default_user_language),
                 to_event(
                     settings,
                     event,
@@ -588,6 +598,8 @@ impl MailService {
         shared_folder: Option<SharedFolder>,
         streaming_targets: Vec<RoomStreamingTarget>,
     ) -> Result<()> {
+        let default_user_language = Language(settings.defaults.user_language.clone());
+
         // increment event sequence to satisfy icalendar spec
         event.revision += 1;
 
@@ -601,7 +613,7 @@ impl MailService {
                     }
                 });
                 MailTask::registered_event_uninvite(
-                    RegisteredMailRecipient::from(inviter),
+                    RegisteredMailRecipient::from_inventory_user(inviter, default_user_language),
                     to_event(
                         settings,
                         event,
@@ -621,7 +633,7 @@ impl MailService {
                 )
             }
             MailRecipient::Unregistered(invitee) => MailTask::unregistered_event_uninvite(
-                RegisteredMailRecipient::from(inviter),
+                RegisteredMailRecipient::from_inventory_user(inviter, default_user_language),
                 to_event(
                     settings,
                     event,
@@ -638,7 +650,7 @@ impl MailService {
                 },
             ),
             MailRecipient::External(invitee) => MailTask::external_event_uninvite(
-                RegisteredMailRecipient::from(inviter),
+                RegisteredMailRecipient::from_inventory_user(inviter, default_user_language),
                 to_event(
                     settings,
                     event,

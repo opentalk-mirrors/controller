@@ -17,23 +17,29 @@ use opentalk_types_common::{
     events::EventId,
     pagination::{Page, PageSize},
     shared_folders::{SharedFolder, SharedFolderAccess},
-    users::UserId,
+    users::{Language, UserId},
 };
 
-use crate::services::{ExternalMailRecipient, MailRecipient, UnregisteredMailRecipient};
+use crate::services::{
+    ExternalMailRecipient, MailRecipient, RegisteredMailRecipient, UnregisteredMailRecipient,
+};
 
 /// Gets the invited mail recipients for an event
 pub async fn get_invited_mail_recipients_for_event(
     inventory: &mut dyn Inventory,
     event_id: EventId,
+    default_user_language: Language,
 ) -> opentalk_inventory::Result<Vec<MailRecipient>> {
     // TODO(w.rabl) Further DB access optimization (replacing call to get_for_event_paginated)?
     let (invites_with_user, _) = inventory
         .get_event_invites_paginated(event_id, PageSize::MAX, Page::DEFAULT, None)
         .await?;
-    let user_invitees = invites_with_user
-        .into_iter()
-        .map(|(_, user)| MailRecipient::Registered(user.into()));
+    let user_invitees = invites_with_user.into_iter().map(|(_, user)| {
+        MailRecipient::Registered(RegisteredMailRecipient::from_inventory_user(
+            user,
+            default_user_language.clone(),
+        ))
+    });
 
     let (email_invites, _) = inventory
         .get_event_email_invites_paginated(event_id, PageSize::MAX, Page::DEFAULT)

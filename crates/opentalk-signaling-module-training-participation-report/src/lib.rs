@@ -878,8 +878,15 @@ impl TrainingParticipationReport {
                 .expect("AVAILABLE_LANGUAGES is not empty");
             let system_default = &self.system_default_language;
 
+            let requested_languages: Vec<_> = room_owner
+                .language
+                .iter()
+                .map(|v| v.as_ref())
+                .chain([system_default])
+                .collect();
+
             negotiate_languages(
-                &[room_owner.language.as_ref(), system_default],
+                &requested_languages,
                 AVAILABLE_LANGUAGES,
                 None,
                 NegotiationStrategy::Lookup,

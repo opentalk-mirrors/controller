@@ -36,7 +36,7 @@ pub struct User {
     pub lastname: String,
 
     /// The language of the user.
-    pub language: Language,
+    pub language: Option<Language>,
 
     /// The display name of the user.
     pub display_name: DisplayName,

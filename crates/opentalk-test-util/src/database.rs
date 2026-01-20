@@ -102,7 +102,7 @@ impl DatabaseContext {
                 lastname: "tester".into(),
                 avatar_url: Some("https://example.com/avatar/abcdef".into()),
                 display_name: "test tester".parse().expect("valid display name"),
-                language: "en".parse().expect("valid language"),
+                language: Some("en".parse().expect("valid language")),
                 phone: None,
                 tenant_id: tenant.id,
                 tariff_id: tariff.id,

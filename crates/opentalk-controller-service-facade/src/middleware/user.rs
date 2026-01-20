@@ -24,7 +24,7 @@ pub struct RequestUser {
     /// The user's last name
     pub lastname: String,
     /// The language the user has chosen
-    pub language: Language,
+    pub language: Option<Language>,
     /// The user's display name
     pub display_name: DisplayName,
     /// The theme the user uses for the dashboard

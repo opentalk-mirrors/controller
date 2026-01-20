@@ -20,7 +20,7 @@ use opentalk_types_common::{
     tariffs::{TariffId, TariffStatus},
     tenants::TenantId,
     time::TimeZone,
-    users::{DisplayName, Theme, UserId, UserTitle},
+    users::{DisplayName, Language, Theme, UserId, UserTitle},
 };
 use serde::{Deserialize, Serialize};
 
@@ -67,7 +67,7 @@ pub struct User {
     pub title: UserTitle,
     pub firstname: String,
     pub lastname: String,
-    pub language: LanguageIdentifier,
+    pub language: Option<LanguageIdentifier>,
     pub display_name: DisplayName,
     pub dashboard_theme: Option<Theme>,
     pub conference_theme: Option<Theme>,
@@ -115,7 +115,7 @@ impl From<User> for opentalk_inventory::User {
             title,
             firstname,
             lastname,
-            language: language.into(),
+            language: language.map(Into::into),
             display_name,
             dashboard_theme,
             conference_theme,
@@ -165,7 +165,7 @@ impl From<opentalk_inventory::User> for User {
             title,
             firstname,
             lastname,
-            language: language.into(),
+            language: language.map(Into::into),
             display_name,
             dashboard_theme,
             conference_theme,
@@ -467,7 +467,7 @@ pub struct NewUser {
     pub title: UserTitle,
     pub firstname: String,
     pub lastname: String,
-    pub language: LanguageIdentifier,
+    pub language: Option<LanguageIdentifier>,
     pub display_name: DisplayName,
     pub phone: Option<String>,
     pub tenant_id: TenantId,
@@ -501,7 +501,7 @@ impl From<opentalk_inventory::NewUser> for NewUser {
             title,
             firstname,
             lastname,
-            language: language.into(),
+            language: language.map(Into::into),
             display_name,
             phone,
             tenant_id,
@@ -531,7 +531,7 @@ impl NewUser {
             title,
             firstname,
             lastname,
-            language,
+            language: _,
             display_name,
             phone,
             tenant_id: _,
@@ -547,7 +547,7 @@ impl NewUser {
             lastname: Some(&lastname),
             phone: Some(phone),
             display_name: enforce_display_name_on_update.then_some(&display_name),
-            language: Some(language),
+            language: None,
             dashboard_theme: None,
             conference_theme: None,
             tariff_id: Some(tariff_id),
@@ -579,7 +579,7 @@ pub struct UpdateUser<'a> {
     pub lastname: Option<&'a str>,
     pub phone: Option<Option<String>>,
     pub display_name: Option<&'a DisplayName>,
-    pub language: Option<LanguageIdentifier>,
+    pub language: Option<Option<LanguageIdentifier>>,
     pub dashboard_theme: Option<Option<Theme>>,
     pub conference_theme: Option<Option<Theme>>,
     // The tenant_id should never be updated!
@@ -619,7 +619,7 @@ impl<'a> From<opentalk_inventory::UpdateUser<'a>> for UpdateUser<'a> {
             lastname,
             phone,
             display_name,
-            language: language.map(|l| l.into()),
+            language: language.map(|l| l.map(Into::into)),
             dashboard_theme: dashboard_theme.map(|t| t.copied()),
             conference_theme: conference_theme.map(|t| t.copied()),
             tariff_id,
@@ -663,14 +663,20 @@ impl UpdateUser<'_> {
     }
 }
 
-impl From<User> for opentalk_mail_worker_protocol::v1::RegisteredUser {
-    fn from(val: User) -> Self {
-        Self {
-            email: val.email.into(),
-            title: val.title,
-            first_name: val.firstname,
-            last_name: val.lastname,
-            language: val.language.into(),
+impl User {
+    pub fn into_mail_worker_registered_user(
+        self,
+        default_user_language: Language,
+    ) -> opentalk_mail_worker_protocol::v1::RegisteredUser {
+        opentalk_mail_worker_protocol::v1::RegisteredUser {
+            email: self.email.into(),
+            title: self.title,
+            first_name: self.firstname,
+            last_name: self.lastname,
+            language: self
+                .language
+                .map(Into::into)
+                .unwrap_or(default_user_language),
         }
     }
 }

@@ -52,6 +52,7 @@ use opentalk_types_common::{
     tariffs::TariffResource,
     time::{DateTimeTz, RecurrencePattern, TimeZone, Timestamp},
     training_participation_report::TrainingParticipationReportParameterSet,
+    users::Language,
 };
 use rrule::{Frequency, RRuleSet};
 use scoped_futures::ScopedFutureExt as _;
@@ -70,7 +71,7 @@ use crate::{
         notifications::{UpdateNotificationValues, notify_invitees_about_update},
         shared_folder_for_user,
     },
-    services::{MailRecipient, MailService},
+    services::{MailRecipient, MailService, RegisteredMailRecipient},
     user_profiles::GetUserProfilesBatched,
 };
 
@@ -975,6 +976,7 @@ impl ControllerBackend {
         }
 
         let settings = self.settings_provider.get();
+        let default_user_language = Language(settings.defaults.user_language.clone());
 
         let mail_service = (!query.suppress_email_notification)
             .then(|| self.mail_service.as_ref().clone())
@@ -1105,9 +1107,17 @@ impl ControllerBackend {
             inventory.update_event(event_id, update_event).await?
         };
 
-        let invited_users =
-            get_invited_mail_recipients_for_event(inventory.as_mut(), event_id).await?;
-        let current_user_mail_recipient = MailRecipient::Registered(current_user.clone().into());
+        let invited_users = get_invited_mail_recipients_for_event(
+            inventory.as_mut(),
+            event_id,
+            default_user_language.clone(),
+        )
+        .await?;
+        let current_user_mail_recipient =
+            MailRecipient::Registered(RegisteredMailRecipient::from_inventory_user(
+                current_user.clone(),
+                default_user_language,
+            ));
         let users_to_notify = invited_users
             .into_iter()
             .chain(std::iter::once(current_user_mail_recipient))
@@ -1249,6 +1259,7 @@ impl ControllerBackend {
         }: DeleteEventsQuery,
     ) -> Result<(), CaptureApiError> {
         let settings = self.settings_provider.get();
+        let default_user_language = Language(settings.defaults.user_language.clone());
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let mail_service = (!suppress_email_notification)
@@ -1282,9 +1293,15 @@ impl ControllerBackend {
             inventory.get_user(event.created_by).await?
         };
 
-        let invited_users =
-            get_invited_mail_recipients_for_event(inventory.as_mut(), event_id).await?;
-        let created_by_mail_recipient = MailRecipient::Registered(created_by.clone().into());
+        let invited_users = get_invited_mail_recipients_for_event(
+            inventory.as_mut(),
+            event_id,
+            default_user_language.clone(),
+        )
+        .await?;
+        let created_by_mail_recipient = MailRecipient::Registered(
+            RegisteredMailRecipient::from_inventory_user(created_by.clone(), default_user_language),
+        );
         let users_to_notify = invited_users
             .into_iter()
             .chain(std::iter::once(created_by_mail_recipient))

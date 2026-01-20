@@ -22,7 +22,7 @@ pub struct User {
     title: String,
     firstname: String,
     lastname: String,
-    language: String,
+    language: Option<String>,
     display_name: String,
     dashboard_theme: Option<String>,
     conference_theme: Option<String>,
@@ -70,7 +70,7 @@ impl From<opentalk_inventory::User> for User {
             title: title.to_string(),
             firstname,
             lastname,
-            language: language.to_string(),
+            language: language.map(|v| v.to_string()),
             display_name: display_name.to_string(),
             dashboard_theme: dashboard_theme.map(|v| v.to_string()),
             conference_theme: conference_theme.map(|v| v.to_string()),
@@ -125,13 +125,15 @@ impl TryFrom<User> for opentalk_inventory::User {
                 .context(ParseSnafu { field: "title" })?,
             firstname,
             lastname,
-            language: language.parse().map_err(|e: icu_locid::ParserError| {
-                ConvertSnafu {
-                    field: "language",
-                    message: e.to_string(),
-                }
-                .build()
-            })?,
+            language: language.map(|v| v.parse()).transpose().map_err(
+                |e: icu_locid::ParserError| {
+                    ConvertSnafu {
+                        field: "language",
+                        message: e.to_string(),
+                    }
+                    .build()
+                },
+            )?,
             display_name: display_name
                 .parse()
                 .map_err(Into::into)
@@ -210,7 +212,7 @@ mod tests {
             title: "Dr.".parse().unwrap(),
             firstname: "Theo".to_string(),
             lastname: "User".to_string(),
-            language: "de".parse().unwrap(),
+            language: Some("de".parse().unwrap()),
             display_name: "Dr. Theo User".parse().unwrap(),
             dashboard_theme: Some("dark".parse().unwrap()),
             conference_theme: Some("system".parse().unwrap()),

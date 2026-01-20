@@ -31,7 +31,7 @@ pub struct UpdateUser<'a> {
     pub display_name: Option<&'a DisplayName>,
 
     /// Update the language.
-    pub language: Option<LanguageIdentifier>,
+    pub language: Option<Option<LanguageIdentifier>>,
 
     /// Update the dashboard theme.
     pub dashboard_theme: Option<Option<&'a Theme>>,
