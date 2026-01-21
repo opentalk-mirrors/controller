@@ -1206,26 +1206,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bincode"
-version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36eaf5d7b090263e8150820482d5d93cd964a81e4019913c972f4edcc6edb740"
-dependencies = [
- "bincode_derive",
- "serde",
- "unty",
-]
-
-[[package]]
-name = "bincode_derive"
-version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf95709a440f45e986983918d0e8a1f30a9b1df04918fc828670606804ac3c09"
-dependencies = [
- "virtue",
-]
-
-[[package]]
 name = "bit-set"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1421,15 +1401,6 @@ dependencies = [
 
 [[package]]
 name = "cargo-platform"
-version = "0.1.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e35af189006b9c0f00a064685c727031e3ed2d8020f7ba284d78cc2671bd36ea"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "cargo-platform"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "87a0c0e6148f11f01f32650a2ea02d532b2ad4e81d8bd41e6e565b5adc5e6082"
@@ -1440,26 +1411,12 @@ dependencies = [
 
 [[package]]
 name = "cargo_metadata"
-version = "0.19.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd5eb614ed4c27c5d706420e4320fbe3216ab31fa1c33cd8246ac36dae4479ba"
-dependencies = [
- "camino",
- "cargo-platform 0.1.9",
- "semver",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
-]
-
-[[package]]
-name = "cargo_metadata"
 version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ef987d17b0a113becdd19d3d0022d04d7ef41f9efe4f3fb63ac44ba61df3ade9"
 dependencies = [
  "camino",
- "cargo-platform 0.3.2",
+ "cargo-platform",
  "semver",
  "serde",
  "serde_json",
@@ -1504,6 +1461,12 @@ dependencies = [
  "libc",
  "shlex",
 ]
+
+[[package]]
+name = "cesu8"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d43a04d8753f35258c91f8ec639f792891f748a1edbd759cf1dcea3382ad83c"
 
 [[package]]
 name = "cff-parser"
@@ -3589,7 +3552,7 @@ dependencies = [
  "httpdate",
  "itoa",
  "pin-project-lite",
- "socket2 0.5.10",
+ "socket2 0.4.10",
  "tokio",
  "tower-service",
  "tracing",
@@ -4153,15 +4116,6 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
@@ -4198,6 +4152,28 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "jni"
+version = "0.21.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a87aa2bb7d2af34197c04845522473242e1aa17c12f4935d5856491a7fb8c97"
+dependencies = [
+ "cesu8",
+ "cfg-if",
+ "combine",
+ "jni-sys",
+ "log",
+ "thiserror 1.0.69",
+ "walkdir",
+ "windows-sys 0.45.0",
+]
+
+[[package]]
+name = "jni-sys"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
 
 [[package]]
 name = "jobserver"
@@ -4542,9 +4518,9 @@ checksum = "11d3d7f243d5c5a8b9bb5d6dd2b1602c0cb0b9db1621bafc7ed66e35ff9fe092"
 
 [[package]]
 name = "livekit-api"
-version = "0.4.11"
+version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15294a53615a753a457cd27534f22de19f2a4800510b8b12fc3e34a63387565e"
+checksum = "d72127ba24841e773fd4311d4e64be727c9707fce1f632c4422c2a4b44441697"
 dependencies = [
  "base64 0.21.7",
  "http 1.4.0",
@@ -4555,7 +4531,7 @@ dependencies = [
  "pbjson-types",
  "prost 0.12.6",
  "rand 0.9.2",
- "reqwest",
+ "reqwest 0.12.28",
  "scopeguard",
  "serde",
  "serde_json",
@@ -5021,12 +4997,12 @@ version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51e219e79014df21a225b1860a479e2dcd7cbd9130f4defd4bd0e191ea31d67d"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.21.7",
  "chrono",
  "getrandom 0.2.17",
  "http 1.4.0",
  "rand 0.8.5",
- "reqwest",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "serde_path_to_error",
@@ -5346,7 +5322,7 @@ dependencies = [
  "pretty_assertions",
  "redis",
  "redis-args",
- "reqwest",
+ "reqwest 0.12.28",
  "ring",
  "rkyv",
  "rrule",
@@ -5523,7 +5499,7 @@ checksum = "9efaa7dc9640de55d4b4339ccb3b2981212a14772ec7e677287e881f49948685"
 dependencies = [
  "bytes",
  "futures",
- "reqwest",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "serde_repr",
@@ -5621,7 +5597,7 @@ checksum = "0cb46f8d76a7e6bd79b86b2208e0c060224a607eb7e0d092a7ed0b6417fe19b4"
 dependencies = [
  "log",
  "openidconnect",
- "reqwest",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "snafu",
@@ -5669,9 +5645,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-mail-worker-protocol"
-version = "0.42.0"
+version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62443dde51e5942bd9ca9d89c4126a147b0da74d39ca04432c328c0f893bbf2c"
+checksum = "03a19b7e20a1b08819f08b0932ddc15d2fe59fe43a4eaad866853d96f5471e6c"
 dependencies = [
  "chrono",
  "opentalk-types-common",
@@ -5689,7 +5665,7 @@ dependencies = [
  "chrono",
  "derive_more 0.99.20",
  "log",
- "reqwest",
+ "reqwest 0.12.28",
  "reqwest_dav",
  "serde",
  "snafu",
@@ -5729,9 +5705,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-client"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "934bda3d455e7269604465364b1ed7ca58034a026ae4fd958674e6ad166e497d"
+checksum = "5b76c102407750febfcf81ce720e8ed37823391067eabf950377f7cbd08d0da8"
 dependencies = [
  "anyhow",
  "bytes",
@@ -5757,7 +5733,7 @@ dependencies = [
  "opentalk-service-auth",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "reqwest",
+ "reqwest 0.13.1",
  "serde",
  "serde_json",
  "thiserror 2.0.17",
@@ -5770,9 +5746,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-common"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "604181a6771a28a188dd300a7d32dc2844f3329073cb4e3df71af738b235e130"
+checksum = "ec1332629bb546bd528efb1729e8a4f6e6ad388aa3923c8a04a283a39b96572f"
 dependencies = [
  "anyhow",
  "cidr",
@@ -5788,9 +5764,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-signaling"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b94983c2befb57baf555606789c85718a71a5f8115437c8c4cd350f015ca5c20"
+checksum = "07ec0c2040d6202bb1990333d5138ffb4bcfdd56612575e1793c393a4f614c28"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5803,7 +5779,7 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "reqwest",
+ "reqwest 0.13.1",
  "serde",
  "serde_json",
  "thiserror 2.0.17",
@@ -5813,9 +5789,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7502c8063671cec10cf31d8a861c92fe0cf20f791ca7a54b8be27e914ed29292"
+checksum = "ecc2566e789b1d0ce560475228f757cf17ec59e3c635b421be75271a25f21b46"
 dependencies = [
  "anyhow",
  "chrono",
@@ -5833,9 +5809,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-automod"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ead8520bbaa0c4a61ed39b4e1f4d648dd97c41838b9590db08335019aff16e9"
+checksum = "1c4662e3aa95d3f4db43ac1789cdc0783300eb584b9aa06ce0505e54082914e0"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5846,9 +5822,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-chat"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b94c74c99a24c85a70e21617d73c6ba98a865c37b10ae253a99c5e47861ffd9"
+checksum = "63bb5cf585a730dcfde86a0fdb59af0af7c9fe2da9ce2dc2a3ffb5432b6f5d4d"
 dependencies = [
  "derive_more 2.1.1",
  "opentalk-roomserver-signaling",
@@ -5861,9 +5837,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-e2ee"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51a42f82a47f1ef15669adc5e4c767dafb78eb9208bf17812fe324e3964d8026"
+checksum = "77aa1ec1172b64f20ef2eec7bd67f12a8d0c135b764d15988b7e53be9e612341"
 dependencies = [
  "bytes",
  "opentalk-roomserver-signaling",
@@ -5875,9 +5851,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-echo"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d77195a6bee8e4e045dd590422035452d0dae523e0d6d3964f02632764d7edb"
+checksum = "9e666c027270a033223efae8062bd2db81a13ebe6e4c667253e0e044a9218faf"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-types-common",
@@ -5886,9 +5862,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-legal-vote"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc46905f777626b3d30c0de547a401ef1ae8b3487c9473683e9d6e2d91ceaa0f"
+checksum = "aa1902e8bfdca1c959c99f36e9b07e98c8616ff63a3da976cea86f1564f4f281"
 dependencies = [
  "basen",
  "chrono",
@@ -5908,9 +5884,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-livekit"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f98f5dca3bc93cadb987d923b85ab8a8fe6b23e96ff8849258eaa0170c466ae8"
+checksum = "e72c695ee9a7474831c7df86d98aad31b2eb68326777f3e593c9793f40db94c5"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5922,9 +5898,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-meeting-notes"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "990dc711acda99165e523d3b5485a75c12ef1f29cf46312c010ea32898b6862e"
+checksum = "8e0842e9815c81a35ae9ed4eaa4f235ea8c434d8a6ac59d4912141181354b5c4"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5936,9 +5912,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-meeting-report"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bd1b9421b0d7e2a1fca87e60bd35cddcb6c8accfaf4af72642fcd4b4d09a7a6"
+checksum = "81181860b5fe3df43507a9a459afdf11cb5642a7959f4a8225c2fb77e95a3ab0"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5948,9 +5924,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-moderation"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aece766c84af007132b4ec306545ecca08178fe94ba3642fb334d5c43e9cd7a7"
+checksum = "ed1bf518eecc712a00c5373ca626bab9feca0e662e3886d16f4620efbff8dc4b"
 dependencies = [
  "chrono",
  "opentalk-roomserver-signaling",
@@ -5963,9 +5939,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-polls"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0af595e06305f132d33234c0ff3395da4e00d5641d480e0341321e41ea9d2951"
+checksum = "4db5583b7bc9b2d593c3b71ade9ca1db0370d1bc12d95db28bc0dcf8e09a5071"
 dependencies = [
  "chrono",
  "derive_more 2.1.1",
@@ -5979,9 +5955,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-raise-hands"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfd37e10c417adadf6838e8ce34c69268b518849faa4314d1d51017e2e12a42b"
+checksum = "a881903402620986baddc448abfbd14bc45b6ea8324a58c0db0b71eb9ae6ec96"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5992,9 +5968,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-shared-folder"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ef4492ec7e40759ecbe6c742dd5ebe72d71c7a441759cd992f17ef048f359bc"
+checksum = "4c948b7d4d477e4f4d0ab16d273ca4462080df384e99d59174886a81d1b9299b"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-types-common",
@@ -6004,9 +5980,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-subroom-audio"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78f7b47d83d45102cc59e4a72af77fb8f615b729b7336aff20b74b8fe46051f8"
+checksum = "ac136d88a6db7fb9903a405f2875a334e1540418427a0cacfa2965d12f6ce2fe"
 dependencies = [
  "derive_more 2.1.1",
  "opentalk-roomserver-signaling",
@@ -6019,9 +5995,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-timer"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c54338df170504130ff58bdd41352d57102c29ba291d00226c9f610e0b96704f"
+checksum = "70d996fdf56d0b53f7817c812eb26e5d288cde40cb075d3c98b34202fa7d6079"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -6034,9 +6010,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-training-participation-report"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e46abea8608d631dab50537aaa2d1cae668498b87f0e8991648bdabca213dee"
+checksum = "098afd5ef053610437d3243142a681b510bd46af2152072aefcad3c50357beb4"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -6047,9 +6023,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-whiteboard"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66f346e3d9df861d242df526f81a61636c27b3d75b114bf25c16726527b70309"
+checksum = "c9979e0ea5cb4c35cdf35ebe383ec14436e7182b6f846bef660379b032c08793"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -6061,9 +6037,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-service-auth"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b51fbf4059975c64731505ce365b93a50dcd5aa54ae2528238cd0d9f7e69f0bd"
+checksum = "c25e60fe5f8db778320b03dbdf68237fea56ffa6f575537f461e62a71d3c8682"
 dependencies = [
  "axum",
  "futures",
@@ -6108,7 +6084,7 @@ dependencies = [
  "pretty_assertions",
  "redis",
  "redis-args",
- "reqwest",
+ "reqwest 0.12.28",
  "rustc-hash",
  "serde",
  "serde_json",
@@ -6584,7 +6560,7 @@ dependencies = [
  "pretty_assertions",
  "redis",
  "redis-args",
- "reqwest",
+ "reqwest 0.12.28",
  "serde",
  "serial_test",
  "snafu",
@@ -6646,19 +6622,19 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-api-common"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93bc07ff7932e55499529a7a45c1fe2c54a1578920d3b7c399379781b05b2ef4"
+checksum = "705242803186f3d2cccb9d1c210d4cc9e6a99e462d2204447869a70623db445b"
 dependencies = [
  "actix-web",
  "axum",
  "base64 0.22.1",
- "bincode 2.0.1",
  "derive_more 2.1.1",
  "http 0.2.12",
  "http 1.4.0",
  "log",
  "opentalk-types-common",
+ "postcard",
  "serde",
  "serde_json",
  "snafu",
@@ -6668,9 +6644,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-api-v1"
-version = "0.50.1"
+version = "0.51.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a0487f003d0fab90bf8f201606a8ae0a1f1d3e6b8565ba498d871fb62d2f619"
+checksum = "f0a24ef3236d69ffb757139b580f8be451ca8a4684e475f198fc293e7ad4f5db"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -6686,13 +6662,12 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-common"
-version = "0.41.1"
+version = "0.42.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3829394448c205200cbc70d158cf347d31529c689bfcf5c2214ec3f9ca3e51d1"
+checksum = "5ff78e229f3abbdc940f9d2c10081ca90d2e38fb3f55ace83347889fd2caedb1"
 dependencies = [
  "actix-http",
  "actix-web-httpauth",
- "bincode 2.0.1",
  "bytes",
  "chrono",
  "chrono-tz",
@@ -6751,9 +6726,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling"
-version = "0.43.0"
+version = "0.44.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "974cce15eb2798430a53ef872bc70f391da30438c853f787741a02681a5aea20"
+checksum = "e737e933f9b77dfe74d51179304c69a4f364057d48e53cf52562dc2a0fc89e37"
 dependencies = [
  "derive_more 2.1.1",
  "opentalk-types-common",
@@ -6767,9 +6742,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-asset-storage"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34c2acf8745a379c27a41d8532d192814b8ff6db8215f48b344c4dce693338f1"
+checksum = "b89f6987631c2d081917a9262dbbd8d9004e699f663e89b37a04d690745cd4a8"
 dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -6778,9 +6753,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-automod"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cb44d5416af6e8c09a6cc49812eaf9fa43bf43bfd4bc958ac0ecd6ed9ebd61e"
+checksum = "abe61434db7379fa3341b1fcdd50cd312550effc7acf318b7c2787eaaf5f2a2f"
 dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -6789,9 +6764,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-breakout"
-version = "0.42.0"
+version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bdb087f256345ed72c4eb58d23fbbcae0e3121c1e3d812d2248f46de9a430c76"
+checksum = "0f0397fb598ebf48eb82fd31d8c3b6bb39dffe350470df7722229ab4ec16fe5f"
 dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -6800,9 +6775,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-chat"
-version = "0.43.0"
+version = "0.44.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcb7d7346e9c9f11b51c83be2449fa943e9ec03b1bfdb0f99a72414ab5c47bdc"
+checksum = "e0ed9098aa6a1696c94a8e2b78a4620d7318322b323f3cbb46190651e79a2993"
 dependencies = [
  "derive_more 2.1.1",
  "opentalk-types-common",
@@ -6814,9 +6789,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-control"
-version = "0.43.0"
+version = "0.44.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9035071c8d189187e602d284effc791c77922b517600c7a60af37afa93af583c"
+checksum = "aaddf7f51c097bffc3a71ea0682d3e32518db7a9168d71e61842cc4307814a61"
 dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -6826,9 +6801,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-e2ee"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f96f7804873b947f63609503f5c0d9a12579a1dab446e00758b642d490864e1c"
+checksum = "fd1fd9fe42739c3bf421093bbeb238883ae696fb33930d387c688457d63f30a1"
 dependencies = [
  "bytes",
  "opentalk-types-common",
@@ -6838,9 +6813,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-legal-vote"
-version = "0.14.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "631a907a392efb66c2a21144c1d6cf022cdfe002e2942a06459988fe39197516"
+checksum = "9a6d86aa8d869f76e04290ed1051b408ecfeaf8215464f6d6827c850037a261c"
 dependencies = [
  "basen",
  "chrono",
@@ -6857,9 +6832,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-livekit"
-version = "0.44.0"
+version = "0.45.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5e0b73ac72311639d06f0a19f8063a81dbce019931c9854869dffb4ebc4b976"
+checksum = "db69dae47cf25b510d18d41d8d5ef4e4227a96b305dd9147f903dfb5d8f0fdc7"
 dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -6868,9 +6843,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-meeting-notes"
-version = "0.42.0"
+version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31d690d3f41797de39bb8496683d8df14ea5b7357a93852a99afa619701837ed"
+checksum = "ddb9cb668274611c4eb2182410f028bf31b1813a724be77cd5519d9f73076e80"
 dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -6879,9 +6854,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-meeting-report"
-version = "0.42.0"
+version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e40057ed07e40378f8c0642839371391c49211c28c1455585fbb51ca957382b"
+checksum = "a2a8bd9cdacecb7992b403fe9eff9e03132765c8df942056ab7d818eb2a0f427"
 dependencies = [
  "opentalk-types-common",
  "serde",
@@ -6889,9 +6864,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-moderation"
-version = "0.42.0"
+version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c35ec59e8e87a9189f008b6388c111e54a5a78e5d1d8b15d22e77906bc7fd18"
+checksum = "d33c2d2b6d9a7a416511837514e909d14bc3b0dd287224529bb33eff81ac9ebc"
 dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -6900,9 +6875,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-polls"
-version = "0.42.0"
+version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc0f9ff3944f63e821f19158c51df8e1e2bd09df5aecfbf2f797a064e8a3d904"
+checksum = "6551df7a41f38346b630300d2034eef7f4272dde740616ecf0b383597f7b47d7"
 dependencies = [
  "chrono",
  "derive_more 2.1.1",
@@ -6915,9 +6890,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-recording"
-version = "0.42.0"
+version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45f45d925f5d40d219cf8494c8b240ede13103ca0f703bb07c41ccc79720350b"
+checksum = "aebfef9be0b96bc5f95548351d1d41f4ddbcdf89331bba068f3da37a9bf6f1d2"
 dependencies = [
  "derive_more 2.1.1",
  "opentalk-types-common",
@@ -6929,9 +6904,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-recording-service"
-version = "0.42.0"
+version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef0380b21f1d30d857e3204feba3465ffed96354a51c144669943bd4114ac705"
+checksum = "715df7c28d3cdaa02afc34cc445a8b8c1ecbe7676ac6e011cb3f924a082cbbe7"
 dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -6943,9 +6918,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-shared-folder"
-version = "0.42.0"
+version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ca37961bc32ee9ad696ea22d3d8b2a7a0fdf9a6a7d98e30342f26db681b66ce"
+checksum = "accd5db36b6893be6c88318290e0386b9ed885ab7c006bc47f412459cf3da685"
 dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -6954,9 +6929,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-subroom-audio"
-version = "0.42.0"
+version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52b8b48270437f3b2f309894331e703608eb1cee2b30400fb59a3bbb4daa5b71"
+checksum = "eeb746561c0f0d55b19cd84286f995f7c21b33d387f563bc729eae07ded0b70c"
 dependencies = [
  "derive_more 2.1.1",
  "opentalk-types-common",
@@ -6969,9 +6944,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-timer"
-version = "0.42.0"
+version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "389528d07298d500a90de7fc86401a53f6779674843e89585a14afb55d07707d"
+checksum = "512c13f77383f2fbf160bbbd1cc0f7758f975554794231c3dce7b7b29408079c"
 dependencies = [
  "derive_more 2.1.1",
  "opentalk-types-common",
@@ -6983,9 +6958,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-training-participation-report"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4c7e1dff49b5341b0e8e363a08a6fdac12780aa739a3b884200e02ac5a235b8"
+checksum = "a4834826d006157ec97b417bc849d1c86bc027911feeaffb76dc5ab4e50c2280"
 dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -6994,9 +6969,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-whiteboard"
-version = "0.42.0"
+version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6688239a2eeb6207607e559ac9717d4082c67d62aec9db3a3c11c90e141d13e"
+checksum = "58449c926f1ef0d083e2a75b24edb5e7a3bcaaee1b0664bf98bbb5439ae4386f"
 dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -7006,9 +6981,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-version"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69187d486998b989a25cb2a0336c95aac6f10c80bf15648c4c267b8ac1ec8857"
+checksum = "bf288dddc839f669710b7cc1746af56803cf793748bb47580077b55090f23f03"
 dependencies = [
  "anyhow",
  "clap",
@@ -7040,7 +7015,7 @@ dependencies = [
  "bytes",
  "http 1.4.0",
  "opentelemetry",
- "reqwest",
+ "reqwest 0.12.28",
  "tracing",
 ]
 
@@ -7057,7 +7032,7 @@ dependencies = [
  "opentelemetry-proto",
  "opentelemetry_sdk",
  "prost 0.13.5",
- "reqwest",
+ "reqwest 0.12.28",
  "thiserror 2.0.17",
  "tokio",
  "tonic 0.12.3",
@@ -7845,7 +7820,7 @@ checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes",
  "heck 0.5.0",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "log",
  "multimap",
  "once_cell",
@@ -7886,7 +7861,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn",
@@ -8094,6 +8069,7 @@ version = "0.11.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1906b49b0c3bc04b5fe5d86a77925ae6524a19b816ae38ce1e426255f1d8a31"
 dependencies = [
+ "aws-lc-rs",
  "bytes",
  "getrandom 0.3.4",
  "lru-slab",
@@ -8520,6 +8496,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "reqwest"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04e9018c9d814e5f30cc16a0f03271aeab3571e609612d9fe78c1aa8d11c2f62"
+dependencies = [
+ "base64 0.22.1",
+ "bytes",
+ "encoding_rs",
+ "futures-core",
+ "h2 0.4.13",
+ "http 1.4.0",
+ "http-body 1.0.1",
+ "http-body-util",
+ "hyper 1.8.1",
+ "hyper-rustls 0.27.7",
+ "hyper-util",
+ "js-sys",
+ "log",
+ "mime",
+ "percent-encoding",
+ "pin-project-lite",
+ "quinn",
+ "rustls 0.23.36",
+ "rustls-pki-types",
+ "rustls-platform-verifier",
+ "serde",
+ "serde_json",
+ "sync_wrapper",
+ "tokio",
+ "tokio-rustls 0.26.4",
+ "tower 0.5.2",
+ "tower-http",
+ "tower-service",
+ "url",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "reqwest_dav"
 version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8530,7 +8546,7 @@ dependencies = [
  "digest_auth",
  "http 1.4.0",
  "httpdate",
- "reqwest",
+ "reqwest 0.12.28",
  "serde",
  "serde-xml-rs",
  "serde_derive",
@@ -8859,6 +8875,33 @@ dependencies = [
  "web-time",
  "zeroize",
 ]
+
+[[package]]
+name = "rustls-platform-verifier"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d99feebc72bae7ab76ba994bb5e121b8d83d910ca40b36e0921f53becc41784"
+dependencies = [
+ "core-foundation 0.10.1",
+ "core-foundation-sys",
+ "jni",
+ "log",
+ "once_cell",
+ "rustls 0.23.36",
+ "rustls-native-certs",
+ "rustls-platform-verifier-android",
+ "rustls-webpki 0.103.8",
+ "security-framework 3.5.1",
+ "security-framework-sys",
+ "webpki-root-certs",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "rustls-platform-verifier-android"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f87165f0995f63a9fbeea62b64d10b4d9d8e78ec6d7d51fb2125fda7bb36788f"
 
 [[package]]
 name = "rustls-webpki"
@@ -9299,7 +9342,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19fa04cb481e8bb8d63dcda54bbd34bc408fedf1fc4625d81c528575e7f6faba"
 dependencies = [
  "log",
- "reqwest",
+ "reqwest 0.12.28",
  "service-probe-common",
  "snafu",
  "url",
@@ -9720,7 +9763,7 @@ version = "5.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "656b45c05d95a5704399aeef6bd0ddec7b2b3531b7c9e900abbf7c4d2190c925"
 dependencies = [
- "bincode 1.3.3",
+ "bincode",
  "fancy-regex",
  "flate2",
  "fnv",
@@ -9891,9 +9934,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.44"
+version = "0.3.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91e7d9e3bb61134e77bde20dd4825b97c010155709965fedf0f49bb138e52a9d"
+checksum = "f9e442fc33d7fdb45aa9bfeb312c095964abdf596f7567261062b2a7107aaabd"
 dependencies = [
  "deranged",
  "itoa",
@@ -9901,22 +9944,22 @@ dependencies = [
  "num-conv",
  "num_threads",
  "powerfmt",
- "serde",
+ "serde_core",
  "time-core",
  "time-macros",
 ]
 
 [[package]]
 name = "time-core"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40868e7c1d2f0b8d73e4a8c7f0ff63af4f6d19be117e90bd73eb1d62cf831c6b"
+checksum = "8b36ee98fd31ec7426d599183e8fe26932a8dc1fb76ddb6214d05493377d34ca"
 
 [[package]]
 name = "time-macros"
-version = "0.2.24"
+version = "0.2.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30cfb0125f12d9c277f35663a0a33f8c30190f4e4574868a330595412d34ebf3"
+checksum = "71e552d1249bf61ac2a52db88179fd0673def1e1ad8243a00d9ec9ed71fee3dd"
 dependencies = [
  "num-conv",
  "time-core",
@@ -11056,12 +11099,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
-name = "unty"
-version = "0.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d49784317cd0d1ee7ec5c716dd598ec5b4483ea832a2dced265471cc0f690ae"
-
-[[package]]
 name = "url"
 version = "2.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11190,12 +11227,12 @@ checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "vergen"
-version = "9.0.6"
+version = "9.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b2bf58be11fc9414104c6d3a2e464163db5ef74b12296bda593cac37b6e4777"
+checksum = "b849a1f6d8639e8de261e81ee0fc881e3e3620db1af9f2e0da015d4382ceaf75"
 dependencies = [
  "anyhow",
- "cargo_metadata 0.19.2",
+ "cargo_metadata",
  "derive_builder",
  "regex",
  "rustc_version",
@@ -11206,9 +11243,9 @@ dependencies = [
 
 [[package]]
 name = "vergen-git2"
-version = "1.0.7"
+version = "9.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f6ee511ec45098eabade8a0750e76eec671e7fb2d9360c563911336bea9cac1"
+checksum = "d51ab55ddf1188c8d679f349775362b0fa9e90bd7a4ac69838b2a087623f0d57"
 dependencies = [
  "anyhow",
  "derive_builder",
@@ -11221,9 +11258,9 @@ dependencies = [
 
 [[package]]
 name = "vergen-lib"
-version = "0.1.6"
+version = "9.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b07e6010c0f3e59fcb164e0163834597da68d1f864e2b8ca49f74de01e9c166"
+checksum = "b34a29ba7e9c59e62f229ae1932fb1b8fb8a6fdcc99215a641913f5f5a59a569"
 dependencies = [
  "anyhow",
  "derive_builder",
@@ -11235,12 +11272,6 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
-
-[[package]]
-name = "virtue"
-version = "0.0.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "051eb1abcf10076295e815102942cc58f9d5e3b4560e46e53c21e8ff6f3af7b1"
 
 [[package]]
 name = "vsimd"
@@ -11432,6 +11463,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "webpki-root-certs"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36a29fc0408b113f68cf32637857ab740edfafdf460c326cd2afaa2d84cc05dc"
+dependencies = [
+ "rustls-pki-types",
+]
+
+[[package]]
 name = "webpki-roots"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11479,7 +11519,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -11627,6 +11667,15 @@ dependencies = [
 
 [[package]]
 name = "windows-sys"
+version = "0.45.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75283be5efb2831d37ea142365f009c02ec203cd29a3ebecbc093d52315b66d0"
+dependencies = [
+ "windows-targets 0.42.2",
+]
+
+[[package]]
+name = "windows-sys"
 version = "0.48.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "677d2418bec65e3338edb076e806bc1ec15693c5d0104683f2efe857f61056a9"
@@ -11668,6 +11717,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc"
 dependencies = [
  "windows-link 0.2.1",
+]
+
+[[package]]
+name = "windows-targets"
+version = "0.42.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e5180c00cd44c9b1c88adb3693291f1cd93605ded80c250a75d472756b4d071"
+dependencies = [
+ "windows_aarch64_gnullvm 0.42.2",
+ "windows_aarch64_msvc 0.42.2",
+ "windows_i686_gnu 0.42.2",
+ "windows_i686_msvc 0.42.2",
+ "windows_x86_64_gnu 0.42.2",
+ "windows_x86_64_gnullvm 0.42.2",
+ "windows_x86_64_msvc 0.42.2",
 ]
 
 [[package]]
@@ -11729,6 +11793,12 @@ dependencies = [
 
 [[package]]
 name = "windows_aarch64_gnullvm"
+version = "0.42.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "597a5118570b68bc08d8d59125332c54f1ba9d9adeedeef5b99b02ba2b0698f8"
+
+[[package]]
+name = "windows_aarch64_gnullvm"
 version = "0.48.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b38e32f0abccf9987a4e3079dfb67dcd799fb61361e53e2882c3cbaf0d905d8"
@@ -11747,6 +11817,12 @@ checksum = "a9d8416fa8b42f5c947f8482c43e7d89e73a173cead56d044f6a56104a6d1b53"
 
 [[package]]
 name = "windows_aarch64_msvc"
+version = "0.42.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e08e8864a60f06ef0d0ff4ba04124db8b0fb3be5776a5cd47641e942e58c4d43"
+
+[[package]]
+name = "windows_aarch64_msvc"
 version = "0.48.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc35310971f3b2dbbf3f0690a219f40e2d9afcf64f9ab7cc1be722937c26b4bc"
@@ -11762,6 +11838,12 @@ name = "windows_aarch64_msvc"
 version = "0.53.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9d782e804c2f632e395708e99a94275910eb9100b2114651e04744e9b125006"
+
+[[package]]
+name = "windows_i686_gnu"
+version = "0.42.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c61d927d8da41da96a81f029489353e68739737d3beca43145c8afec9a31a84f"
 
 [[package]]
 name = "windows_i686_gnu"
@@ -11795,6 +11877,12 @@ checksum = "fa7359d10048f68ab8b09fa71c3daccfb0e9b559aed648a8f95469c27057180c"
 
 [[package]]
 name = "windows_i686_msvc"
+version = "0.42.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44d840b6ec649f480a41c8d80f9c65108b92d89345dd94027bfe06ac444d1060"
+
+[[package]]
+name = "windows_i686_msvc"
 version = "0.48.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f55c233f70c4b27f66c523580f78f1004e8b5a8b659e05a4eb49d4166cca406"
@@ -11810,6 +11898,12 @@ name = "windows_i686_msvc"
 version = "0.53.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e7ac75179f18232fe9c285163565a57ef8d3c89254a30685b57d83a38d326c2"
+
+[[package]]
+name = "windows_x86_64_gnu"
+version = "0.42.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8de912b8b8feb55c064867cf047dda097f92d51efad5b491dfb98f6bbb70cb36"
 
 [[package]]
 name = "windows_x86_64_gnu"
@@ -11831,6 +11925,12 @@ checksum = "9c3842cdd74a865a8066ab39c8a7a473c0778a3f29370b5fd6b4b9aa7df4a499"
 
 [[package]]
 name = "windows_x86_64_gnullvm"
+version = "0.42.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "26d41b46a36d453748aedef1486d5c7a85db22e56aff34643984ea85514e94a3"
+
+[[package]]
+name = "windows_x86_64_gnullvm"
 version = "0.48.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b7b52767868a23d5bab768e390dc5f5c55825b6d30b86c844ff2dc7414044cc"
@@ -11846,6 +11946,12 @@ name = "windows_x86_64_gnullvm"
 version = "0.53.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ffa179e2d07eee8ad8f57493436566c7cc30ac536a3379fdf008f47f6bb7ae1"
+
+[[package]]
+name = "windows_x86_64_msvc"
+version = "0.42.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9aec5da331524158c6d1a4ac0ab1541149c0b9505fde06423b02f5ef0106b9f0"
 
 [[package]]
 name = "windows_x86_64_msvc"
@@ -11933,7 +12039,7 @@ checksum = "ce9e2f4a404d9ebffc0a9832cf4f50907220ba3d7fffa9099261a5cab52f2dd7"
 name = "xtask"
 version = "0.1.0"
 dependencies = [
- "cargo_metadata 0.23.1",
+ "cargo_metadata",
  "clap",
  "devx-cmd",
  "diesel",

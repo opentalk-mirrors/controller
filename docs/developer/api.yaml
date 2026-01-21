@@ -582,7 +582,7 @@ paths:
           schema:
             $ref: "#/components/schemas/GetEventInstancesCursorData"
             description: |-
-              Opaque token which represents T as a base64 string (where T is encoded using bincode)
+              Opaque token which represents T as a base64 string (where T is encoded using postcard)
 
               Used for cursor based pagination
         - name: event_id
@@ -2932,17 +2932,17 @@ components:
       type: string
       description: A cursor pointing to an event instance
       examples:
-        - BAAAAAAAAAA
+        - CA
     Cursor_GetEventsAndInstancesCursorData:
       type: string
       description: A cursor pointing to an event instance
       examples:
-        - EAAAAAAAAAAAAAAAAAAAAAAAAEQzIhEAFAAAAAAAAAAyMDI0LTA3LTIwVDE0OjE2OjE5WgA
+        - EAAAAAAAAAAAAAAARDMiEQAUMjAyNC0wNy0yMFQxNDoxNjoxOVoA
     Cursor_GetEventsCursorData:
       type: string
       description: A cursor pointing to an event instance
       examples:
-        - EAAAAAAAAAAAAAAAAAAAAAAAAEQzIhEAFAAAAAAAAAAyMDI0LTA3LTIwVDE0OjE2OjE5WgAA
+        - EAAAAAAAAAAAAAAARDMiEQAUMjAyNC0wNy0yMFQxNDoxNjoxOVoAAA
     DateTimeTz:
       type: object
       description: Representation of a datetime timezone
@@ -4032,7 +4032,7 @@ components:
       type: string
       description: A cursor pointing to an event instance
       examples:
-        - BAAAAAAAAAA
+        - CA
     GetEventInstancesResponseBody:
       type: array
       items:
@@ -4124,12 +4124,12 @@ components:
       type: string
       description: A cursor pointing to an event instance
       examples:
-        - EAAAAAAAAAAAAAAAAAAAAAAAAEQzIhEAFAAAAAAAAAAyMDI0LTA3LTIwVDE0OjE2OjE5WgA
+        - EAAAAAAAAAAAAAAARDMiEQAUMjAyNC0wNy0yMFQxNDoxNjoxOVoA
     GetEventsCursorData:
       type: string
       description: A cursor pointing to an event instance
       examples:
-        - EAAAAAAAAAAAAAAAAAAAAAAAAEQzIhEAFAAAAAAAAAAyMDI0LTA3LTIwVDE0OjE2OjE5WgAA
+        - EAAAAAAAAAAAAAAARDMiEQAUMjAyNC0wNy0yMFQxNDoxNjoxOVoAAA
     GetFindResponseBody:
       type: array
       items:
