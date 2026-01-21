@@ -92,8 +92,7 @@ impl ControllerBackend {
                 continue;
             };
 
-            // A event that is not time-dependent can't be recurring, hence the
-            // early return.
+            // An event that is not time-dependent can't be recurring, hence the early return.
             let EventResourceDateKind::TimeDependent {
                 is_time_independent: _,
                 ref date,
@@ -103,7 +102,7 @@ impl ControllerBackend {
                 continue;
             };
 
-            let EventResourceDate::Single { .. } = date else {
+            if let EventResourceDate::Single { .. } = date {
                 event_or_instance_resources.push(EventOrInstance::Event(event_resource));
                 continue;
             };
