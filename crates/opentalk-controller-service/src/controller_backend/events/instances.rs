@@ -155,8 +155,9 @@ impl ControllerBackend {
             .clamp(PageSize::ONE, PageSize::from_i64_clamped(100));
         let page = after.map(|c| c.page).unwrap_or(Page::ONE).max(Page::ONE);
 
-        let skip = per_page.into();
-        let offset: usize = page.saturating_previous().into();
+        let items_per_page = per_page.into();
+        let page_index = page.as_zero_based_usize();
+        let offset = items_per_page * page_index;
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
@@ -205,8 +206,8 @@ impl ControllerBackend {
         }
 
         let datetimes: Vec<Timestamp> = iter
-            .skip(skip * offset)
-            .take(skip)
+            .skip(offset)
+            .take(items_per_page)
             .map(|dt| dt.with_timezone(&Utc).into())
             .collect();
 
