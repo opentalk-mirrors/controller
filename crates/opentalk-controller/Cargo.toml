@@ -42,7 +42,7 @@ opentalk-types-common.workspace = true
 opentalk-version.workspace = true
 parse-size.workspace = true
 serde_json.workspace = true
-service-probe-client = "0.3"
+service-probe-client = "0.4"
 snafu.workspace = true
 strum.workspace = true
 sysinfo = { version = "0.37", default-features = false, features = ["system"] }

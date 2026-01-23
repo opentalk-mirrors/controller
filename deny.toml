@@ -411,7 +411,6 @@ skip = [
   { name = "kurbo", version = "0.11" },
   { name = "linux-raw-sys", version = "0.3" },
   { name = "litemap", version = "0.7" },
-  { name = "openssl-probe", version = "0.1" },
   { name = "p256", version = "0.11" },
   { name = "petgraph", version = "0.6" },
   { name = "phf", version = "0.12" },
