@@ -57,6 +57,15 @@ impl UserInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err, skip_all)]
+    async fn set_last_authenticated_at_to_now(&mut self, user_id: UserId) -> Result<()> {
+        Ok(
+            db::User::update_last_authenticated_at_by_id(&mut self.inner, user_id)
+                .await
+                .context(DatabaseSnafu)?,
+        )
+    }
+
+    #[tracing::instrument(err, skip_all)]
     async fn get_all_users(&mut self) -> Result<Vec<User>> {
         Ok(db::User::get_all(&mut self.inner)
             .await

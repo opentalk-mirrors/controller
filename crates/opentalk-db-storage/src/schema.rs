@@ -384,6 +384,7 @@ diesel::table! {
         timezone -> Nullable<Varchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        last_authenticated_at -> Nullable<Timestamptz>,
     }
 }
 

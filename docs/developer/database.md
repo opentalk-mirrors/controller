@@ -229,6 +229,7 @@ users {
     character_varying firstname
     bigint id_serial
     character_varying language
+    timestamp_with_time_zone last_authenticated_at
     character_varying lastname
     character_varying oidc_sub
     character_varying phone
