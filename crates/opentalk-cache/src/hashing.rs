@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 //
 // SPDX-License-Identifier: EUPL-1.2
-use std::{fmt::Display, hash::Hash, marker::PhantomData, time::Duration};
+use std::{hash::Hash, marker::PhantomData, time::Duration};
 
 use siphasher::sip128::{Hasher128, SipHasher24};
 
@@ -9,8 +9,8 @@ use crate::{CacheStorage, Result};
 
 pub struct HashedCache<K, V, C>
 where
-    K: Display + Hash + From<String>,
-    C: CacheStorage<K, V>,
+    K: Hash,
+    C: CacheStorage<u128, V>,
 {
     inner: C,
     _phantom: PhantomData<(K, V)>,
@@ -18,8 +18,8 @@ where
 
 impl<K, V, C> HashedCache<K, V, C>
 where
-    K: Display + Hash + From<String>,
-    C: CacheStorage<K, V>,
+    K: Hash,
+    C: CacheStorage<u128, V>,
 {
     pub fn new(inner: C) -> Self {
         Self {
@@ -28,23 +28,22 @@ where
         }
     }
 
-    pub fn hash_key(&self, raw: &K) -> K {
+    pub fn hash_key(&self, raw: &K) -> u128 {
         let mut h = SipHasher24::new_with_keys(!0x113, 0x311);
         raw.hash(&mut h);
-        let hashed_string = format!("{:x}", h.finish128().as_u128());
-        K::from(hashed_string)
+        h.finish128().as_u128()
     }
 }
 
-pub trait WithHashing<K, V>: CacheStorage<K, V> + Sized {
+pub trait WithHashing<K, V>: CacheStorage<u128, V> + Sized {
     fn with_hashing(self) -> HashedCache<K, V, Self>
     where
-        K: Display + Hash + From<String>;
+        K: Hash;
 }
 
-impl<K, V, CACHE: CacheStorage<K, V>> WithHashing<K, V> for CACHE
+impl<K, V, CACHE: CacheStorage<u128, V>> WithHashing<K, V> for CACHE
 where
-    K: Display + Hash + From<String>,
+    K: Hash,
 {
     fn with_hashing(self) -> HashedCache<K, V, Self> {
         HashedCache::new(self)
@@ -54,9 +53,9 @@ where
 #[async_trait::async_trait(?Send)]
 impl<K, V, C> CacheStorage<K, V> for HashedCache<K, V, C>
 where
-    K: Display + Hash + From<String> + 'static,
+    K: Hash + 'static,
     V: Clone + 'static,
-    C: CacheStorage<K, V>,
+    C: CacheStorage<u128, V>,
 {
     fn ttl(&self) -> Duration {
         self.inner.ttl()
@@ -115,8 +114,8 @@ mod tests {
 
     #[tokio::test]
     async fn insertion_overlay() {
-        let base: Cache<String, String> = Cache::new(DEFAULT_TTL);
-        let overlay: Cache<String, String> = Cache::new(DEFAULT_TTL);
+        let base: Cache<u128, String> = Cache::new(DEFAULT_TTL);
+        let overlay: Cache<u128, String> = Cache::new(DEFAULT_TTL);
         let cache = base.with_overlay(overlay).with_hashing();
 
         let raw_key = String::from(JWT_KEY);

@@ -34,7 +34,7 @@ impl Caches {
         ttl: Duration,
     ) -> Box<dyn CacheStorage<K, V> + Send + Sync>
     where
-        K: redis::Key + local::Key + Clone + Display + Hash + From<String> + 'static,
+        K: redis::Key + local::Key + Clone + Display + Hash + 'static,
         V: redis::Value + local::Value + 'static,
     {
         let local_cache = local::Cache::new(ttl);
