@@ -3,8 +3,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use core::time::Duration;
+use std::{fmt::Display, hash::Hash};
 
-use opentalk_cache::{CacheStorage, local, overlay::WithOverlay, redis};
+use opentalk_cache::{CacheStorage, hashing::WithHashing, local, overlay::WithOverlay, redis};
 use opentalk_signaling_core::RedisConnection;
 
 use super::cacheable::UserAccessTokenResult;
@@ -33,19 +34,19 @@ impl Caches {
         ttl: Duration,
     ) -> Box<dyn CacheStorage<K, V> + Send + Sync>
     where
-        K: redis::Key + local::Key + Clone + 'static,
+        K: redis::Key + local::Key + Clone + Display + Hash + 'static,
         V: redis::Value + local::Value + 'static,
     {
         let local_cache = local::Cache::new(ttl);
 
         let Some(redis) = redis else {
-            return Box::new(local_cache);
+            return Box::new(local_cache.with_hashing());
         };
         let redis = redis.into_manager();
 
-        let redis_cache = redis::Cache::new(redis, prefix, ttl, true);
+        let redis_cache = redis::Cache::new(redis, prefix, ttl);
 
-        Box::new(redis_cache.with_overlay(local_cache))
+        Box::new(redis_cache.with_overlay(local_cache).with_hashing())
     }
 }
 

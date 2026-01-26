@@ -7,6 +7,7 @@ use core::time::Duration;
 pub use cache_error::CacheError;
 
 mod cache_error;
+pub mod hashing;
 pub mod local;
 pub mod overlay;
 pub mod redis;
