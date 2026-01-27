@@ -110,7 +110,7 @@ impl ControllerBackend {
             match token_ttl.to_std() {
                 Ok(token_ttl_std) => {
                     self.oidc_cache
-                        .user_access_tokens
+                        .access_tokens
                         .insert_with_ttl(
                             access_token.to_string(),
                             Ok((tenant.into(), user.into())),

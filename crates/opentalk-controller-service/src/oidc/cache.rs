@@ -8,19 +8,19 @@ use std::{fmt::Display, hash::Hash};
 use opentalk_cache::{CacheStorage, hashing::WithHashing, local, overlay::WithOverlay, redis};
 use opentalk_signaling_core::RedisConnection;
 
-use crate::caching::cacheable::UserAccessTokenResult;
+use crate::caching::cacheable::AccessTokenResult;
 
 /// Cache for OpenID Connect related data
 pub struct Cache {
     /// Cache storage for access tokens
-    pub user_access_tokens: Box<dyn CacheStorage<String, UserAccessTokenResult> + Send + Sync>,
+    pub access_tokens: Box<dyn CacheStorage<String, AccessTokenResult> + Send + Sync>,
 }
 
 impl Cache {
     /// Create a new [`Cache`] instance with an optional [`RedisConnection`].
     pub fn create(redis: Option<RedisConnection>) -> Self {
         Self {
-            user_access_tokens: Self::build_cache(
+            access_tokens: Self::build_cache(
                 redis,
                 "user-access-tokens".to_string(),
                 Duration::from_secs(300),

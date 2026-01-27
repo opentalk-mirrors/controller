@@ -26,7 +26,7 @@ use kustos::prelude::PoliciesBuilder;
 use openidconnect::AccessToken;
 use opentalk_cache::CacheStorage;
 use opentalk_controller_service::{
-    caching::cacheable::UserAccessTokenResult,
+    caching::cacheable::AccessTokenResult,
     controller_backend::RoomsPoliciesBuilderExt,
     oidc::{Cache, OidcTokenHandler, OpenIdConnectUserInfo},
     phone_numbers::parse_phone_number,
@@ -174,7 +174,7 @@ where
                         &authz,
                         inventory_provider.as_ref(),
                         oidc_ctx.as_ref(),
-                        oidc_cache.user_access_tokens.as_ref(),
+                        oidc_cache.access_tokens.as_ref(),
                         &access_token,
                     )
                     .await
@@ -232,7 +232,7 @@ pub async fn check_access_token(
     authz: &kustos::Authz,
     inventory_provider: &dyn InventoryProvider,
     oidc_ctx: &dyn OidcTokenHandler,
-    cache: &dyn CacheStorage<String, UserAccessTokenResult>,
+    cache: &dyn CacheStorage<String, AccessTokenResult>,
     access_token: &AccessToken,
 ) -> Result<(Tenant, User), CaptureApiError> {
     if let Some(cached_result) = get_cached_result(cache, access_token).await? {
@@ -279,7 +279,7 @@ pub async fn check_access_token(
 
 /// Attempt to retrieve cached result
 async fn get_cached_result(
-    cache: &dyn CacheStorage<String, UserAccessTokenResult>,
+    cache: &dyn CacheStorage<String, AccessTokenResult>,
     access_token: &AccessToken,
 ) -> Result<Option<Result<(Tenant, User), CaptureApiError>>, CaptureApiError> {
     match cache.get(access_token.secret()).await {

@@ -23,4 +23,4 @@ pub use user::User;
 use validation_error_entry::ValidationErrorEntry;
 
 /// The result of analyzing an access token.
-pub type UserAccessTokenResult = Result<(Tenant, User), ApiError>;
+pub type AccessTokenResult = Result<(Tenant, User), ApiError>;
