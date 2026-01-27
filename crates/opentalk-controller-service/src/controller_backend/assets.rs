@@ -2,13 +2,16 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::time::Duration;
+
 use bytes::Bytes;
 use futures_core::Stream;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_signaling_core::{
     ChunkFormat, ObjectStorageError,
     assets::{
-        AssetError, AssetSaved, ByStreamExt, NewAssetFileName, delete_asset, get_asset, save_asset,
+        AssetError, AssetSaved, ByStreamExt, NewAssetFileName, asset_key, delete_asset, get_asset,
+        save_asset,
     },
 };
 use opentalk_types_api_v1::{
@@ -51,6 +54,37 @@ impl ControllerBackend {
         let stream = get_asset(&self.storage, &asset.id).await?;
 
         Ok(stream)
+    }
+
+    pub(crate) async fn get_room_asset_proxy_download_token(
+        &self,
+        room_id: RoomId,
+        asset_id: AssetId,
+    ) -> Result<String, CaptureApiError> {
+        let mut inventory = self.inventory_provider.get_inventory().await?;
+        let asset = inventory.get_asset_for_room(room_id, asset_id).await?;
+
+        let encoded_filename = percent_encoding::utf8_percent_encode(
+            &asset.filename,
+            percent_encoding::NON_ALPHANUMERIC,
+        )
+        .to_string();
+
+        let content_disposition = format!(
+            "attachment; filename=\"{}\"; filename*=UTF-8''{}",
+            asset.filename, encoded_filename
+        );
+
+        let token = self
+            .storage
+            .get_proxy_download_token(
+                &asset_key(&asset.id),
+                Duration::from_secs(30),
+                content_disposition,
+            )
+            .await?;
+
+        Ok(token)
     }
 
     #[tracing::instrument(level = "debug", skip(self, data))]

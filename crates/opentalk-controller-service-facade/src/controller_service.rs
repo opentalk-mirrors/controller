@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+mod asset_download_proxy_stream;
+
+pub use asset_download_proxy_stream::AssetDownloadProxyStream;
 use async_trait::async_trait;
 use bytes::Bytes;
 use futures_core::Stream;
@@ -180,6 +183,21 @@ pub trait OpenTalkControllerService: Send + Sync {
         room_id: RoomId,
         asset_id: AssetId,
     ) -> Result<ByStreamExt, ApiError>;
+
+    /// Get a short-lived download URL for a specific asset.
+    async fn get_room_asset_proxy_download_token(
+        &self,
+        room_id: RoomId,
+        asset_id: AssetId,
+    ) -> Result<String, ApiError>;
+
+    /// Get a proxied asset data stream
+    async fn get_asset_proxy_download_stream(
+        &self,
+        asset_id: AssetId,
+        token: String,
+        range_header: Option<String>,
+    ) -> Result<AssetDownloadProxyStream, ApiError>;
 
     /// Create an asset for a room from an uploaded file.
     async fn create_room_asset(

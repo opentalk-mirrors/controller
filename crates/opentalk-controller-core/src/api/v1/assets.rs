@@ -4,20 +4,22 @@
 
 use actix_http::StatusCode;
 use actix_web::{
-    HttpResponse, delete, get, post,
+    HttpRequest, HttpResponse, delete, get, post,
     web::{Data, Path, Payload, Query},
 };
 use futures::TryStreamExt;
-use opentalk_controller_service_facade::OpenTalkControllerService;
+use opentalk_controller_service_facade::{AssetDownloadProxyStream, OpenTalkControllerService};
 use opentalk_signaling_core::{ObjectStorageError, assets::NewAssetFileName};
 use opentalk_types_api_v1::{
     error::ApiError,
     pagination::PagePaginationQuery,
     rooms::by_room_id::assets::{
-        PostAssetQuery, PostAssetResponseBody, RoomsByRoomIdAssetsGetResponseBody,
+        AssetDownloadQuery, AssetDownloadResponseBody, PostAssetQuery, PostAssetResponseBody,
+        RoomsByRoomIdAssetsGetResponseBody,
     },
 };
 use opentalk_types_common::{assets::AssetId, rooms::RoomId, time::Timestamp};
+use serde::{Deserialize, Serialize};
 
 use super::{ApiResponse, DefaultApiResult, response::NoContent};
 use crate::api::responses::{BinaryData, Forbidden, InternalServerError, NotFound, Unauthorized};
@@ -122,6 +124,149 @@ pub async fn room_asset(
     let stream = service.get_room_asset(room_id, asset_id).await?;
 
     Ok(HttpResponse::build(StatusCode::OK).streaming(stream))
+}
+
+/// Get the controller download path for an asset.
+///
+/// Returns a path for downloading the asset via the controller.
+#[utoipa::path(
+    params(
+        ("room_id" = RoomId, description = "The id of the room"),
+        ("asset_id" = AssetId, description = "The id of the asset"),
+    ),
+    responses(
+        (
+            status = StatusCode::OK,
+            description = "Returns JSON with the controller download path",
+            body = AssetDownloadResponseBody,
+        ),
+        (
+            status = StatusCode::FOUND,
+            description = "Redirects to the controller download path",
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            response = Unauthorized,
+        ),
+        (
+            status = StatusCode::FORBIDDEN,
+            response = Forbidden,
+        ),
+        (
+            status = StatusCode::NOT_FOUND,
+            response = NotFound,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(
+        ("BearerAuth" = []),
+    ),
+)]
+#[get("/rooms/{room_id}/assets/{asset_id}/download")]
+pub async fn room_asset_download(
+    service: Data<dyn OpenTalkControllerService>,
+    path: Path<(RoomId, AssetId)>,
+    query: Query<AssetDownloadQuery>,
+) -> Result<HttpResponse, ApiError> {
+    let (room_id, asset_id) = path.into_inner();
+    let query = query.into_inner();
+
+    let token = service
+        .get_room_asset_proxy_download_token(room_id, asset_id)
+        .await?;
+    let url = format!("proxy?token={token}");
+
+    let mut response = if query.redirect.unwrap_or(true) {
+        let mut res = HttpResponse::build(StatusCode::FOUND);
+
+        res.insert_header((actix_web::http::header::LOCATION, url.clone()));
+
+        res
+    } else {
+        HttpResponse::build(StatusCode::OK)
+    };
+
+    Ok(response.json(AssetDownloadResponseBody { url }))
+}
+
+/// Query parameters for *GET /rooms/{room_id}/assets/{asset_id}/proxy*
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+struct AssetProxyDownloadQuery {
+    /// The token required for the asset download
+    token: String,
+}
+
+/// Stream an asset via the controller proxy.
+///
+/// This endpoint forwards the request to object storage using the object storage
+/// query parameters supplied by the client.
+#[utoipa::path(
+    params(
+        ("room_id" = RoomId, description = "The id of the room"),
+        ("asset_id" = AssetId, description = "The id of the asset"),
+    ),
+    responses(
+        (
+            status = StatusCode::OK,
+            response = BinaryData,
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            response = Unauthorized,
+        ),
+        (
+            status = StatusCode::FORBIDDEN,
+            response = Forbidden,
+        ),
+        (
+            status = StatusCode::NOT_FOUND,
+            response = NotFound,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(("BearerAuth" = [])),
+)]
+#[get("/rooms/{room_id}/assets/{asset_id}/proxy")]
+pub async fn proxy_download(
+    service: Data<dyn OpenTalkControllerService>,
+    path: Path<(RoomId, AssetId)>,
+    req: HttpRequest,
+    query: Query<AssetProxyDownloadQuery>,
+) -> Result<HttpResponse, ApiError> {
+    let (_room_id, asset_id) = path.into_inner();
+    let query = query.into_inner();
+
+    let range_header = req
+        .headers()
+        .get(actix_web::http::header::RANGE)
+        .map(|v| v.to_str())
+        .transpose()
+        .unwrap()
+        .map(ToString::to_string);
+
+    let AssetDownloadProxyStream {
+        status,
+        headers,
+        stream,
+    } = service
+        .get_asset_proxy_download_stream(asset_id, query.token, range_header)
+        .await?;
+
+    let mut response = HttpResponse::build(
+        actix_web::http::StatusCode::from_u16(status).unwrap_or(actix_web::http::StatusCode::OK),
+    );
+
+    for (k, v) in headers {
+        response.append_header((k, v));
+    }
+
+    Ok(response.streaming(stream.map_err(actix_web::error::ErrorInternalServerError)))
 }
 
 /// Create an asset for a room from an uploaded file

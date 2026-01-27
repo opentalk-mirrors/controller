@@ -479,6 +479,10 @@ where
                 [AccessMethod::Get],
             )
             .add_resource(
+                room_id.resource_id().with_suffix("/assets/*/download"),
+                [AccessMethod::Get],
+            )
+            .add_resource(
                 room_id.resource_id().with_suffix("/roomserver/start"),
                 [AccessMethod::Post],
             )

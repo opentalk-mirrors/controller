@@ -30,6 +30,7 @@ derive_more = { workspace = true, features = [
 ] }
 either.workspace = true
 futures.workspace = true
+http.workspace = true
 kustos.workspace = true
 lapin.workspace = true
 lapin-pool.workspace = true
