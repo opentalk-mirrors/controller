@@ -20,8 +20,7 @@ use kustos::Authz;
 use lapin_pool::RabbitMqPool;
 use opentalk_controller_service::{
     ControllerBackend, Whatever,
-    caching::Caches,
-    oidc::{OidcTokenHandler, build_oidc_token_handler},
+    oidc::{Cache, OidcTokenHandler, build_oidc_token_handler},
     services::MailService,
 };
 use opentalk_controller_service_facade::OpenTalkControllerService;
@@ -118,7 +117,7 @@ pub struct Controller {
 
     inventory_provider: Arc<dyn InventoryProvider>,
 
-    caches: Arc<Caches>,
+    oidc_cache: Arc<Cache>,
 
     storage: Arc<ObjectStorage>,
 
@@ -279,7 +278,7 @@ impl Controller {
         };
         let redis_conn =
             redis_conn.map(|c| RedisConnection::new(c).with_metrics(metrics.redis.clone()));
-        let caches = Arc::new(Caches::create(redis_conn.clone()));
+        let oidc_cache = Arc::new(Cache::create(redis_conn.clone()));
         let volatile = match redis_conn {
             Some(redis) => VolatileStorage::Right(redis),
             None => VolatileStorage::Left(VolatileStaticMemoryStorage),
@@ -349,7 +348,7 @@ impl Controller {
                 settings_provider.clone(),
                 authz.clone(),
                 inventory_provider.clone(),
-                caches.clone(),
+                oidc_cache.clone(),
                 oidc_provider,
                 storage.clone(),
                 volatile.clone(),
@@ -369,7 +368,7 @@ impl Controller {
             settings_provider,
             optional_config_path,
             inventory_provider,
-            caches,
+            oidc_cache,
             storage,
             oidc,
             user_search_client,
@@ -431,7 +430,7 @@ impl Controller {
 
             let metrics = Data::new(self.metrics);
 
-            let caches = Data::from(self.caches.clone());
+            let caches = Data::from(self.oidc_cache.clone());
             let service = Data::from(self.service);
 
             HttpServer::new(move || {

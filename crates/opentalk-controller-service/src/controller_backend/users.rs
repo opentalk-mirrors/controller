@@ -109,7 +109,7 @@ impl ControllerBackend {
         if token_ttl > chrono::Duration::seconds(10) {
             match token_ttl.to_std() {
                 Ok(token_ttl_std) => {
-                    self.caches
+                    self.oidc_cache
                         .user_access_tokens
                         .insert_with_ttl(
                             access_token.to_string(),

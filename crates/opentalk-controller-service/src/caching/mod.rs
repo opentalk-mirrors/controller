@@ -2,9 +2,5 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! Caching functionality used by the controller service.
-
+/// Cacheable variants of datatypes
 pub mod cacheable;
-mod caches;
-
-pub use caches::Caches;

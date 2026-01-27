@@ -22,6 +22,7 @@
     unused_qualifications
 )]
 
+/// Caching utilities
 pub mod caching;
 pub mod controller_backend;
 pub mod events;

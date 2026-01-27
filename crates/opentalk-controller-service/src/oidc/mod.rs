@@ -4,6 +4,7 @@
 
 //! Provides OpenID Connect stuff.
 
+mod cache;
 mod claims;
 mod introspect_info;
 mod jwt;
@@ -13,6 +14,7 @@ mod open_id_connect_user_info;
 mod provider;
 mod realm_roles;
 
+pub use cache::Cache;
 pub use claims::OnlyExpiryClaim;
 use claims::{OpenTalkAdditionalClaims, ServiceClaims};
 use introspect_info::IntrospectInfo;

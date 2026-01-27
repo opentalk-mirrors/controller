@@ -97,14 +97,14 @@ pub use crate::controller_backend::{
     events::shared_folder::{delete_shared_folders, put_shared_folder},
     rooms::RoomsPoliciesBuilderExt,
 };
-use crate::{caching::Caches, services::MailService};
+use crate::{oidc::Cache, services::MailService};
 
 /// The default [`OpenTalkControllerService`] implementation.
 pub struct ControllerBackend {
     settings_provider: SettingsProvider,
     authz: Authz,
     inventory_provider: Arc<dyn InventoryProvider>,
-    caches: Arc<Caches>,
+    oidc_cache: Arc<Cache>,
     frontend_oidc_provider: OidcProvider,
     storage: Arc<ObjectStorage>,
     volatile: VolatileStorage,
@@ -122,7 +122,7 @@ impl ControllerBackend {
         settings_provider: SettingsProvider,
         authz: Authz,
         inventory_provider: Arc<dyn InventoryProvider>,
-        caches: Arc<Caches>,
+        oidc_cache: Arc<Cache>,
         frontend_oidc_provider: OidcProvider,
         storage: Arc<ObjectStorage>,
         volatile: VolatileStorage,
@@ -136,7 +136,7 @@ impl ControllerBackend {
             settings_provider,
             authz,
             inventory_provider,
-            caches,
+            oidc_cache,
             frontend_oidc_provider,
             storage,
             volatile,

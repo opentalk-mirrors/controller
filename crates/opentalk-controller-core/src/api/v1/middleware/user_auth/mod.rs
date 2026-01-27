@@ -26,9 +26,9 @@ use kustos::prelude::PoliciesBuilder;
 use openidconnect::AccessToken;
 use opentalk_cache::CacheStorage;
 use opentalk_controller_service::{
-    caching::{Caches, cacheable::UserAccessTokenResult},
+    caching::cacheable::UserAccessTokenResult,
     controller_backend::RoomsPoliciesBuilderExt,
-    oidc::{OidcTokenHandler, OpenIdConnectUserInfo},
+    oidc::{Cache, OidcTokenHandler, OpenIdConnectUserInfo},
     phone_numbers::parse_phone_number,
 };
 use opentalk_controller_service_facade::RequestUser;
@@ -123,8 +123,8 @@ where
         let authz = self.authz.clone();
         let inventory_provider = self.inventory_provider.clone();
         let oidc_ctx = self.oidc_ctx.clone();
-        let caches = req
-            .app_data::<Data<Caches>>()
+        let oidc_cache = req
+            .app_data::<Data<Cache>>()
             .expect("Caches must be provided as AppData")
             .clone();
 
@@ -174,7 +174,7 @@ where
                         &authz,
                         inventory_provider.as_ref(),
                         oidc_ctx.as_ref(),
-                        caches.user_access_tokens.as_ref(),
+                        oidc_cache.user_access_tokens.as_ref(),
                         &access_token,
                     )
                     .await
