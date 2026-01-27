@@ -26,7 +26,7 @@ itertools.workspace = true
 kustos.workspace = true
 lapin-pool.workspace = true
 log.workspace = true
-nix = { version = "0.30", features = ["signal"] }
+nix = { version = "0.31", features = ["signal"] }
 opentalk-controller-core.workspace = true
 opentalk-controller-service.workspace = true
 opentalk-controller-settings.workspace = true
