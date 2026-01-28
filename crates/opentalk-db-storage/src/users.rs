@@ -80,6 +80,7 @@ pub struct User {
     pub timezone: Option<TimeZone>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub last_authenticated_at: Option<DateTime<Utc>>,
 }
 
 impl From<User> for opentalk_inventory::User {
@@ -105,6 +106,7 @@ impl From<User> for opentalk_inventory::User {
             timezone,
             created_at,
             updated_at,
+            last_authenticated_at: _,
         }: User,
     ) -> Self {
         Self {
@@ -166,6 +168,7 @@ impl From<opentalk_inventory::User> for User {
             firstname,
             lastname,
             language: language.map(Into::into),
+            last_authenticated_at: None,
             display_name,
             dashboard_theme,
             conference_theme,
@@ -451,6 +454,22 @@ impl User {
         let query = diesel::delete(users::table.filter(users::id.eq(user_id)));
 
         query.execute(conn).await?;
+
+        Ok(())
+    }
+
+    /// Updates the last_authenticated_ab flag using the given id
+    #[tracing::instrument(err, skip_all)]
+    pub async fn update_last_authenticated_at_by_id(
+        conn: &mut DbConnection,
+        user_id: UserId,
+    ) -> Result<()> {
+        let update_statement = diesel::update(users::table.filter(users::id.eq(user_id))).set((
+            crate::users::users::last_authenticated_at.eq(diesel::dsl::now),
+            crate::users::users::updated_at.eq(diesel::dsl::now),
+        ));
+
+        update_statement.execute(conn).await?;
 
         Ok(())
     }

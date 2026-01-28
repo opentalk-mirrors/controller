@@ -470,6 +470,11 @@ async fn create_or_update_user(
         )
         .await?;
 
+    // Set last_authenticated_at field to now for each new access token
+    inventory
+        .set_last_authenticated_at_to_now(outcome.clone().into_inner().id)
+        .await?;
+
     match outcome {
         UpsertOutcome::Inserted(user) => {
             let groups = inventory.add_user_to_groups(user.id, groups).await?;

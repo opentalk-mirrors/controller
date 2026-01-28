@@ -29,6 +29,9 @@ pub trait UserInventory {
     /// Delete a user.
     async fn delete_user(&mut self, user_id: UserId) -> Result<()>;
 
+    /// Set last_authenticated_at to now
+    async fn set_last_authenticated_at_to_now(&mut self, user_id: UserId) -> Result<()>;
+
     /// Get all users.
     async fn get_all_users(&mut self) -> Result<Vec<User>>;
 
