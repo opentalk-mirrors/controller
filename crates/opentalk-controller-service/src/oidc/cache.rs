@@ -5,10 +5,34 @@
 use core::time::Duration;
 use std::{fmt::Display, hash::Hash};
 
-use opentalk_cache::{CacheStorage, hashing::WithHashing, local, overlay::WithOverlay, redis};
+use chrono::TimeDelta;
+use opentalk_cache::{
+    CacheError, CacheStorage, hashing::WithHashing, local, overlay::WithOverlay, redis,
+};
 use opentalk_signaling_core::RedisConnection;
+use snafu::Snafu;
 
 use crate::caching::cacheable::AccessTokenResult;
+
+#[derive(Debug, Snafu)]
+pub enum AccesTokenCacheError {
+    #[snafu(display("cache error: {source}"))]
+    Cache { source: CacheError },
+
+    #[snafu(display("token expires soon and will not be cached (ttl={ttl:?})"))]
+    TokenTtlTooShort { ttl: TimeDelta },
+
+    #[snafu(display("token has no expiry and will not be cached"))]
+    NoExpiryForToken,
+}
+
+pub type Result<T, E = AccesTokenCacheError> = std::result::Result<T, E>;
+
+impl From<CacheError> for AccesTokenCacheError {
+    fn from(source: CacheError) -> Self {
+        Self::Cache { source }
+    }
+}
 
 /// Cache for OpenID Connect related data
 pub struct Cache {

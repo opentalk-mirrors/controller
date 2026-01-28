@@ -20,7 +20,6 @@ use actix_web::{
     web::Data,
 };
 use actix_web_httpauth::headers::authorization::Authorization;
-use chrono::Utc;
 use diesel_async::scoped_futures::ScopedFutureExt as _;
 use kustos::prelude::PoliciesBuilder;
 use openidconnect::AccessToken;
@@ -28,7 +27,7 @@ use opentalk_cache::CacheStorage;
 use opentalk_controller_service::{
     caching::cacheable::AccessTokenResult,
     controller_backend::RoomsPoliciesBuilderExt,
-    oidc::{Cache, OidcTokenHandler, OpenIdConnectUserInfo},
+    oidc::{Cache, OidcTokenHandler, OpenIdConnectUserInfo, insert_access_token},
     phone_numbers::parse_phone_number,
 };
 use opentalk_controller_service_facade::RequestUser;
@@ -174,7 +173,7 @@ where
                         &authz,
                         inventory_provider.as_ref(),
                         oidc_ctx.as_ref(),
-                        oidc_cache.access_tokens.as_ref(),
+                        oidc_cache.as_ref(),
                         &access_token,
                     )
                     .await
@@ -232,49 +231,31 @@ pub async fn check_access_token(
     authz: &kustos::Authz,
     inventory_provider: &dyn InventoryProvider,
     oidc_ctx: &dyn OidcTokenHandler,
-    cache: &dyn CacheStorage<String, AccessTokenResult>,
+    oidc_cache: &Cache,
     access_token: &AccessToken,
 ) -> Result<(Tenant, User), CaptureApiError> {
-    if let Some(cached_result) = get_cached_result(cache, access_token).await? {
+    if let Some(cached_result) =
+        get_cached_result(oidc_cache.access_tokens.as_ref(), access_token).await?
+    {
         return cached_result;
     }
 
-    // Miss, verify access token
     let maybe_expires_at = oidc_ctx.verify_access_token(access_token).await?;
 
-    let check_result =
+    let result =
         check_access_token_inner(settings, authz, inventory_provider, oidc_ctx, access_token).await;
 
-    // if we have a expiry date that is more then 10 seconds in the future, cache the response.
-    if let Some(expires_at) = maybe_expires_at {
-        let token_ttl = expires_at - Utc::now();
-
-        if token_ttl > chrono::Duration::seconds(10) {
-            match &check_result {
-                Ok((tenant, user)) => {
-                    cache
-                        .insert_with_ttl(
-                            access_token.secret().clone(),
-                            Ok((tenant.clone().into(), user.clone().into())),
-                            token_ttl.to_std().expect("duration was previously checked"),
-                        )
-                        .await?;
-                }
-                Err(e) if e.status_code().is_server_error() => {
-                    cache
-                        .insert_with_ttl(
-                            access_token.secret().clone(),
-                            Err(e.clone().into()),
-                            token_ttl.to_std().expect("duration was previously checked"),
-                        )
-                        .await?;
-                }
-                _ => {}
-            }
-        }
+    if (result.is_ok()
+        || result
+            .as_ref()
+            .is_err_and(|e| e.status_code().is_server_error()))
+        && let Err(e) =
+            insert_access_token(oidc_cache, access_token, result.clone(), maybe_expires_at).await
+    {
+        log::warn!("Failed to cache access token: {e}");
     }
 
-    check_result
+    result
 }
 
 /// Attempt to retrieve cached result
