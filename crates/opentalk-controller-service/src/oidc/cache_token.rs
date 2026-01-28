@@ -15,6 +15,8 @@ use crate::{
     oidc::cache::AccesTokenCacheError,
 };
 
+const MIN_TOKEN_TTL_SECS: i64 = 10;
+
 /// Insert an access token into the cache with a specific expiry date
 /// Cache will reject a token, which has no expiry date or its ttl is too short
 /// Cache stores either a valid token metadata or an error
@@ -31,7 +33,7 @@ pub async fn insert_access_token(
 
     let token_ttl = expires_at - Utc::now();
 
-    if token_ttl <= chrono::Duration::seconds(10) {
+    if token_ttl <= chrono::Duration::seconds(MIN_TOKEN_TTL_SECS) {
         return Err(AccesTokenCacheError::TokenTtlTooShort { ttl: token_ttl });
     }
 
@@ -65,7 +67,7 @@ pub async fn upsert_access_token_patch_me(
     )?;
 
     let token_ttl = claim.exp - Utc::now();
-    if token_ttl > chrono::Duration::seconds(10) {
+    if token_ttl > chrono::Duration::seconds(MIN_TOKEN_TTL_SECS) {
         match token_ttl.to_std() {
             Ok(token_ttl_std) => {
                 cache
