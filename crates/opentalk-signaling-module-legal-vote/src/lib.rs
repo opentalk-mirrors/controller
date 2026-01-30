@@ -1395,7 +1395,7 @@ impl LegalVote {
         })?;
 
         let add_protocol = ModuleResourceOperation::Add {
-            path: "/".into(),
+            path: "".into(),
             value: protocol,
         };
 

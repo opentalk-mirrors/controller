@@ -524,18 +524,36 @@ mod tests {
             value: Value::String("bar".into()),
         }];
 
-        match ModuleResource::patch(
+        let mut updated = ModuleResource::patch(
             &mut db_conn,
             Filter::new().with_namespace("test".into()),
             operations,
         )
         .await
-        {
-            Err(JsonOperationError::JsonPatch { source }) => {
-                assert_eq!(JsonPatchErrorCode::InvalidPath, source.error_code)
-            }
-            unexpected => panic!("Expected invalid_path error, got {unexpected:?}"),
-        }
+        .unwrap();
+
+        assert_eq!(json!(updated.remove(0).data), json!("bar"));
+    }
+
+    #[actix_rt::test]
+    #[serial]
+    async fn serial_test_root_path() {
+        let (_id, mut db_conn) = init_empty_resource().await;
+
+        let operations = vec![ModuleResourceOperation::Add {
+            path: "/".into(),
+            value: Value::String("bar".into()),
+        }];
+
+        let mut updated = ModuleResource::patch(
+            &mut db_conn,
+            Filter::new().with_namespace("test".into()),
+            operations,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(json!(updated.remove(0).data), json!({"": "bar"}));
     }
 
     #[actix_rt::test]
@@ -603,7 +621,7 @@ mod tests {
         let (_id, mut db_conn) = init_empty_resource().await;
 
         let operations = vec![ModuleResourceOperation::Add {
-            path: "/".into(),
+            path: "".into(),
             value: Value::String("bar".into()),
         }];
 
@@ -617,6 +635,28 @@ mod tests {
         assert_eq!(updated.len(), 1);
 
         assert_eq!(json!(updated.remove(0).data), json!("bar"));
+    }
+
+    #[actix_rt::test]
+    #[serial]
+    async fn serial_test_add_single_root() {
+        let (_id, mut db_conn) = init_empty_resource().await;
+
+        let operations = vec![ModuleResourceOperation::Add {
+            path: "/".into(),
+            value: Value::String("bar".into()),
+        }];
+
+        let mut updated = ModuleResource::patch(
+            &mut db_conn,
+            Filter::new().with_namespace("test".into()),
+            operations,
+        )
+        .await
+        .unwrap();
+        assert_eq!(updated.len(), 1);
+
+        assert_eq!(json!(updated.remove(0).data), json!({"": "bar"}));
     }
 
     #[actix_rt::test]
@@ -817,6 +857,30 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
+    async fn serial_test_remove_document() {
+        let initial_json = json!({
+            "foo": 1,
+            "bar": 2
+        });
+
+        let (_id, mut db_conn) = init_resource(initial_json).await;
+
+        let operations = vec![ModuleResourceOperation::Remove { path: "".into() }];
+
+        let mut updated = ModuleResource::patch(
+            &mut db_conn,
+            Filter::new().with_namespace("test".into()),
+            operations,
+        )
+        .await
+        .unwrap();
+        assert_eq!(updated.len(), 1);
+
+        assert_eq!(json!(updated.remove(0).data), json!({}));
+    }
+
+    #[actix_rt::test]
+    #[serial]
     async fn serial_test_remove_by_index() {
         let initial_json = json!({
             "foo": ["a", "b", "c"],
@@ -955,6 +1019,37 @@ mod tests {
         let (_id, mut db_conn) = init_resource(initial_json).await;
 
         let operations = vec![ModuleResourceOperation::Move {
+            from: "".into(),
+            path: "/bar/qux".into(),
+        }];
+
+        match ModuleResource::patch(
+            &mut db_conn,
+            Filter::new().with_namespace("test".into()),
+            operations,
+        )
+        .await
+        {
+            Err(JsonOperationError::JsonPatch { source }) => {
+                assert_eq!(JsonPatchErrorCode::InvalidFromPath, source.error_code)
+            }
+            unexpected => panic!("Expected invalid_from_path error, got {unexpected:?}"),
+        }
+    }
+
+    #[actix_rt::test]
+    #[serial]
+    async fn serial_test_move_root() {
+        let initial_json = json!({
+            "foo": { "qux": 1 },
+            "bar": {
+                "baz": 2,
+            },
+        });
+
+        let (_id, mut db_conn) = init_resource(initial_json).await;
+
+        let operations = vec![ModuleResourceOperation::Move {
             from: "/".into(),
             path: "/bar/qux".into(),
         }];
@@ -971,6 +1066,42 @@ mod tests {
             }
             unexpected => panic!("Expected invalid_from_path error, got {unexpected:?}"),
         }
+    }
+
+    #[actix_rt::test]
+    #[serial]
+    async fn serial_test_move_null_value() {
+        let initial_json = json!({
+            "foo": null,
+            "bar": {
+                "baz": 2,
+            },
+        });
+
+        let (_id, mut db_conn) = init_resource(initial_json).await;
+
+        let operations = vec![ModuleResourceOperation::Move {
+            from: "/foo".into(),
+            path: "/bar/qux".into(),
+        }];
+
+        let mut updated = ModuleResource::patch(
+            &mut db_conn,
+            Filter::new().with_namespace("test".into()),
+            operations,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            json!(updated.remove(0).data),
+            json!({
+                "bar": {
+                    "baz": 2,
+                    "qux": null,
+                },
+            })
+        );
     }
 
     #[actix_rt::test]
