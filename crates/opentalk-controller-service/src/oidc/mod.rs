@@ -5,7 +5,6 @@
 //! Provides OpenID Connect stuff.
 
 mod cache;
-mod cache_token;
 mod claims;
 mod introspect_info;
 mod jwt;
@@ -16,7 +15,6 @@ mod provider;
 mod realm_roles;
 
 pub use cache::Cache;
-pub use cache_token::{insert_access_token, upsert_access_token_patch_me};
 pub use claims::OnlyExpiryClaim;
 use claims::{OpenTalkAdditionalClaims, ServiceClaims};
 use introspect_info::IntrospectInfo;

@@ -27,7 +27,7 @@ use opentalk_cache::CacheStorage;
 use opentalk_controller_service::{
     caching::cacheable::AccessTokenResult,
     controller_backend::RoomsPoliciesBuilderExt,
-    oidc::{Cache, OidcTokenHandler, OpenIdConnectUserInfo, insert_access_token},
+    oidc::{Cache, OidcTokenHandler, OpenIdConnectUserInfo},
     phone_numbers::parse_phone_number,
 };
 use opentalk_controller_service_facade::RequestUser;
@@ -249,8 +249,9 @@ pub async fn check_access_token(
         || result
             .as_ref()
             .is_err_and(|e| e.status_code().is_server_error()))
-        && let Err(e) =
-            insert_access_token(oidc_cache, access_token, result.clone(), maybe_expires_at).await
+        && let Err(e) = oidc_cache
+            .insert_access_token(access_token, result.clone(), maybe_expires_at)
+            .await
     {
         log::warn!("Failed to cache access token: {e}");
     }

@@ -29,7 +29,6 @@ use snafu::{ResultExt, Whatever};
 
 use crate::{
     ControllerBackend, ToUserProfile, email_to_libravatar_url, helpers::asset_to_asset_resource,
-    oidc::upsert_access_token_patch_me,
 };
 
 impl ControllerBackend {
@@ -86,7 +85,10 @@ impl ControllerBackend {
 
         // Update the access token cache as well to reflect the changes immediately.
         let tenant = inventory.get_tenant(user.tenant_id).await?;
-        upsert_access_token_patch_me(self.oidc_cache.as_ref(), user, tenant, access_token).await?;
+
+        self.oidc_cache
+            .upsert_access_token_patch_me(user, tenant, access_token)
+            .await?;
 
         Ok(Some(user_profile))
     }
