@@ -4,7 +4,6 @@
 
 use std::{ops::Deref, str::FromStr as _};
 
-use chrono::{DateTime, Utc};
 use icu_locid::LanguageIdentifier;
 use openidconnect::{
     AccessToken, ClientId, ClientSecret, LocalizedClaim, TokenIntrospectionResponse as _,
@@ -18,8 +17,9 @@ use snafu::{OptionExt as _, Report, ResultExt as _, Whatever};
 use url::Url;
 
 use super::{
-    IntrospectInfo, OidcTokenHandler, OnlyExpiryClaim, OpenIdConnectUserInfo,
-    OpenTalkAdditionalClaims, ProviderClient, RealmRoles, ServiceClaims, VerifyError, jwt,
+    IntrospectInfo, IntrospectStrippedInfo, OidcTokenHandler, OnlyExpiryClaim,
+    OpenIdConnectUserInfo, OpenTalkAdditionalClaims, ProviderClient, RealmRoles, ServiceClaims,
+    VerifyError, jwt,
 };
 use crate::Result;
 
@@ -138,7 +138,7 @@ impl OidcContext {
     async fn verify_access_token(
         &self,
         access_token: &AccessToken,
-    ) -> Result<Option<DateTime<Utc>>, CaptureApiError> {
+    ) -> Result<IntrospectStrippedInfo, CaptureApiError> {
         if self.supports_introspect() {
             let introspect_info = self.introspect(access_token.clone()).await.map_err(|e| {
                 log::error!(
@@ -154,12 +154,17 @@ impl OidcContext {
                     .into());
             }
 
-            return Ok(introspect_info.exp);
+            return Ok(IntrospectStrippedInfo::from(introspect_info));
         }
 
         // If there's no introspect endpoint, the token must be a JWT with an exp field.
+        // Here we only verify the acces token by checking the expiration field.
+        // If the sub has not been provided by intrpspection we don't decode it here.
         match self.verify_jwt_token::<OnlyExpiryClaim>(access_token) {
-            Ok(jwt_claims) => Ok(Some(jwt_claims.exp)),
+            Ok(claims) => Ok(IntrospectStrippedInfo {
+                exp: Some(claims.exp),
+                sub: None,
+            }),
             Err(e) => {
                 log::debug!("Invalid access token (JWT): {}", Report::from_error(e));
                 Err(ApiError::unauthorized()
@@ -210,6 +215,7 @@ impl OidcContext {
         Ok(IntrospectInfo {
             active: claims.active(),
             exp: claims.exp(),
+            sub: claims.sub().map(|s| s.to_string()),
         })
     }
 
@@ -341,7 +347,7 @@ impl OidcTokenHandler for OidcContext {
     async fn verify_access_token(
         &self,
         access_token: &AccessToken,
-    ) -> Result<Option<DateTime<Utc>>, CaptureApiError> {
+    ) -> Result<IntrospectStrippedInfo, CaptureApiError> {
         OidcContext::verify_access_token(self, access_token).await
     }
 

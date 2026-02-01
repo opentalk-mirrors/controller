@@ -19,7 +19,7 @@ pub use cache::Cache;
 pub use cacheable::AccessTokenResult;
 pub use claims::OnlyExpiryClaim;
 use claims::{OpenTalkAdditionalClaims, ServiceClaims};
-use introspect_info::IntrospectInfo;
+use introspect_info::{IntrospectInfo, IntrospectStrippedInfo};
 pub use jwt::{VerifyError, decode_token};
 use oidc_context::OidcContext;
 pub use oidc_token_handler::{OidcTokenHandler, build_oidc_token_handler};

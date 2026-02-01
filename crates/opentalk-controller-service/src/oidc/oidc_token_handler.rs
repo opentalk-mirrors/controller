@@ -4,12 +4,11 @@
 
 use std::sync::Arc;
 
-use chrono::{DateTime, Utc};
 use openidconnect::{AccessToken, ClientId, ClientSecret};
 use opentalk_controller_utils::CaptureApiError;
 use url::Url;
 
-use super::{OidcContext, OpenIdConnectUserInfo, RealmRoles, VerifyError};
+use super::{IntrospectStrippedInfo, OidcContext, OpenIdConnectUserInfo, RealmRoles, VerifyError};
 use crate::Result;
 
 /// The handler for OIDC tokens
@@ -34,7 +33,7 @@ pub trait OidcTokenHandler: Sync + Send {
     async fn verify_access_token(
         &self,
         access_token: &AccessToken,
-    ) -> Result<Option<DateTime<Utc>>, CaptureApiError>;
+    ) -> Result<IntrospectStrippedInfo, CaptureApiError>;
 
     /// Verifies the signature and expiration of an ID Token encoded as JWT (Json Web Token)
     ///
