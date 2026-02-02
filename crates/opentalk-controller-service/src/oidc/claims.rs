@@ -41,6 +41,40 @@ impl jwt::VerifyClaims for OnlyExpiryClaim {
     }
 }
 
+/// Mandatory claims for JWT access token as specified in
+/// [rfc9068](https://datatracker.ietf.org/doc/html/rfc9068#section-2.2)
+#[derive(Deserialize, Debug)]
+pub struct JWTAccessTokenClaims {
+    /// Issuer (URL to the OIDC Provider)
+    #[allow(unused)]
+    pub iss: String,
+    /// Expires at
+    #[serde(with = "time")]
+    pub exp: DateTime<Utc>,
+    /// Audience claim
+    #[allow(unused)]
+    pub aud: String,
+    /// Subject
+    pub sub: String,
+    /// Client identifier
+    /// For some reason Keycloak does not include this claim in the JWT access token
+    // #[allow(unused)]
+    // pub client_id: String,
+    /// Issued at
+    #[allow(unused)]
+    #[serde(with = "time")]
+    pub iat: DateTime<Utc>,
+    // JWT ID
+    #[allow(unused)]
+    pub jti: String,
+}
+
+impl jwt::VerifyClaims for JWTAccessTokenClaims {
+    fn exp(&self) -> DateTime<Utc> {
+        self.exp
+    }
+}
+
 /// Service claims
 #[derive(Deserialize, Debug)]
 pub struct ServiceClaims {

@@ -17,9 +17,9 @@ use snafu::{OptionExt as _, Report, ResultExt as _, Whatever};
 use url::Url;
 
 use super::{
-    IntrospectInfo, IntrospectStrippedInfo, OidcTokenHandler, OnlyExpiryClaim,
-    OpenIdConnectUserInfo, OpenTalkAdditionalClaims, ProviderClient, RealmRoles, ServiceClaims,
-    VerifyError, jwt,
+    IntrospectInfo, IntrospectStrippedInfo, JWTAccessTokenClaims, OidcTokenHandler,
+    OnlyExpiryClaim, OpenIdConnectUserInfo, OpenTalkAdditionalClaims, ProviderClient, RealmRoles,
+    ServiceClaims, VerifyError, jwt,
 };
 use crate::Result;
 
@@ -157,13 +157,12 @@ impl OidcContext {
             return Ok(IntrospectStrippedInfo::from(introspect_info));
         }
 
-        // If there's no introspect endpoint, the token must be a JWT with an exp field.
-        // Here we only verify the acces token by checking the expiration field.
-        // If the sub has not been provided by intrpspection we don't decode it here.
-        match self.verify_jwt_token::<OnlyExpiryClaim>(access_token) {
+        // If there's no introspect endpoint, the token must be a self-contained JWT access-token
+        // as per [rfc9068](https://datatracker.ietf.org/doc/html/rfc9068)
+        match self.verify_jwt_token::<JWTAccessTokenClaims>(access_token) {
             Ok(claims) => Ok(IntrospectStrippedInfo {
                 exp: Some(claims.exp),
-                sub: None,
+                sub: Some(claims.sub),
             }),
             Err(e) => {
                 log::debug!("Invalid access token (JWT): {}", Report::from_error(e));

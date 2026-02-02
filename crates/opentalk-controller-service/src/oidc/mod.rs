@@ -18,7 +18,7 @@ mod realm_roles;
 pub use cache::Cache;
 pub use cacheable::AccessTokenResult;
 pub use claims::OnlyExpiryClaim;
-use claims::{OpenTalkAdditionalClaims, ServiceClaims};
+use claims::{JWTAccessTokenClaims, OpenTalkAdditionalClaims, ServiceClaims};
 use introspect_info::{IntrospectInfo, IntrospectStrippedInfo};
 pub use jwt::{VerifyError, decode_token};
 use oidc_context::OidcContext;
