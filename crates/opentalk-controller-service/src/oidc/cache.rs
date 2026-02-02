@@ -15,10 +15,13 @@ use opentalk_inventory::{Tenant, User};
 use opentalk_signaling_core::RedisConnection;
 use snafu::{Report, ResultExt, Snafu, Whatever};
 
-use super::{OnlyExpiryClaim, jwt::decode_token};
-use crate::caching::cacheable::{
-    AccessTokenResult, ApiError as CacheableApiError, Tenant as CacheableTenant,
-    User as CacheableUser,
+use super::{
+    OnlyExpiryClaim,
+    cacheable::{
+        AccessTokenResult, ApiError as CacheableApiError, Tenant as CacheableTenant,
+        User as CacheableUser,
+    },
+    jwt::decode_token,
 };
 
 #[derive(Debug, Snafu)]

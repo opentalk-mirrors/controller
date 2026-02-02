@@ -25,9 +25,8 @@ use kustos::prelude::PoliciesBuilder;
 use openidconnect::AccessToken;
 use opentalk_cache::CacheStorage;
 use opentalk_controller_service::{
-    caching::cacheable::AccessTokenResult,
     controller_backend::RoomsPoliciesBuilderExt,
-    oidc::{Cache, OidcTokenHandler, OpenIdConnectUserInfo},
+    oidc::{AccessTokenResult, Cache, OidcTokenHandler, OpenIdConnectUserInfo},
     phone_numbers::parse_phone_number,
 };
 use opentalk_controller_service_facade::RequestUser;
