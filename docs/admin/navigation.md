@@ -17,6 +17,7 @@
     - [Operator Information](core/operator_information.md)
     - [Message Queue (RabbitMQ)](core/rabbitmq.md)
     - [Session Data (Redis)](core/redis.md)
+    - [RoomServer](core/roomserver.md)
     - [STUN and TURN (Deprecated)](core/stun_turn.md)
     - [Subroom Audio](core/subroom_audio.md)
     - [User Search](core/user_search.md)
