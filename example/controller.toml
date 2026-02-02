@@ -241,6 +241,10 @@ api_secret = "your-livekit-api-secret"
 
 #The Modules that are enabled in the roomserver
 #[roomserver.modules.chat]
+#[roomserver.modules.chat.rate_limit]
+#tokens_per_second = 3
+#token_bucket_size = 10
+#slow_down_threshold = 0.8
 #[roomserver.modules.e2ee]
 #[roomserver.modules.livekit]
 #api_key = "devkey"
