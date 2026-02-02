@@ -2,14 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use chrono::Utc;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::{
     TenantAssignment, UserSearchBackend, UserSearchBackendKeycloak,
     settings_file::UsersFindBehavior,
 };
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_inventory::{Inventory, Tenant, UpdateUser, User};
+use opentalk_inventory::{Inventory, UpdateUser};
 use opentalk_types_api_v1::{
     assets::AssetSortingQuery,
     error::ApiError,
@@ -26,12 +25,10 @@ use opentalk_types_common::{
     time::Timestamp,
     users::UserId,
 };
-use snafu::{Report, ResultExt, Whatever};
+use snafu::{ResultExt, Whatever};
 
 use crate::{
-    ControllerBackend, ToUserProfile, email_to_libravatar_url,
-    helpers::asset_to_asset_resource,
-    oidc::{OnlyExpiryClaim, decode_token},
+    ControllerBackend, ToUserProfile, email_to_libravatar_url, helpers::asset_to_asset_resource,
 };
 
 impl ControllerBackend {
@@ -88,45 +85,12 @@ impl ControllerBackend {
 
         // Update the access token cache as well to reflect the changes immediately.
         let tenant = inventory.get_tenant(user.tenant_id).await?;
-        self.update_access_token_cache(user, tenant, access_token)
+
+        self.oidc_cache
+            .upsert_access_token_patch_me(user, tenant, access_token)
             .await?;
 
         Ok(Some(user_profile))
-    }
-
-    async fn update_access_token_cache(
-        &self,
-        user: User,
-        tenant: Tenant,
-        access_token: &str,
-    ) -> Result<(), CaptureApiError> {
-        let claim = decode_token::<OnlyExpiryClaim>(access_token)
-            .whatever_context::<&str, Whatever>(
-                "failed to decode access token for user profile update",
-            )?;
-
-        let token_ttl = claim.exp - Utc::now();
-        if token_ttl > chrono::Duration::seconds(10) {
-            match token_ttl.to_std() {
-                Ok(token_ttl_std) => {
-                    self.caches
-                        .user_access_tokens
-                        .insert_with_ttl(
-                            access_token.to_string(),
-                            Ok((tenant.into(), user.into())),
-                            token_ttl_std,
-                        )
-                        .await?;
-                }
-                Err(e) => {
-                    log::debug!(
-                        "abort user profile cache update due to invalid token TTL, {}",
-                        Report::from_error(e)
-                    );
-                }
-            }
-        }
-        Ok(())
     }
 
     pub(crate) async fn get_me(
