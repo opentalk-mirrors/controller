@@ -33,7 +33,6 @@ Functionality that can be configured through the configuration file:
 - [RabbitMQ](./rabbitmq.md)
     - The recording service is enabled/disabled by configuring the queue name
 - [Redis](./redis.md)
-- [Room server](./room_server.md)
 - [Shared folders on external storage systems](../advanced/additional_services/shared_folder.md)
 - [SpaceDeck](../advanced/additional_services/spacedeck.md)
 - [Subroom Audio](./subroom_audio.md)
