@@ -693,7 +693,7 @@ impl ModulesRegistrar for Controller {
         v1::users::me::event_favorites::by_id::delete,
         v1::events::by_id::get,
         v1::events::get,
-        api::v1::events::instances::get_event_instance,
+        v1::events::by_id::instances::by_id::get,
         api::v1::events::instances::get_event_instances,
         v1::events::instances::get,
         api::v1::events::instances::patch_event_instance,
@@ -980,7 +980,7 @@ fn v1_scope(
                 .service(v1::events::by_id::delete)
                 .service(v1::users::me::event_favorites::by_id::put)
                 .service(v1::users::me::event_favorites::by_id::delete)
-                .service(api::v1::events::instances::get_event_instance)
+                .service(v1::events::by_id::instances::by_id::get)
                 .service(api::v1::events::instances::get_event_instances)
                 .service(api::v1::events::instances::patch_event_instance)
                 .service(api::v1::events::invites::create_invite_to_event)

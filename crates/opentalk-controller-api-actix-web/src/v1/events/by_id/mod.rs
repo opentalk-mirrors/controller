@@ -21,6 +21,8 @@ use crate::{
     v1::response::ApiResponse,
 };
 
+pub mod instances;
+
 /// Get an event
 ///
 /// Returns the event resource for the given id
