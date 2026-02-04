@@ -5257,7 +5257,6 @@ dependencies = [
  "serde_json",
  "serial_test",
  "snafu",
- "strum 0.27.2",
  "tokio",
  "tracing",
  "url",
@@ -5274,6 +5273,8 @@ dependencies = [
  "opentalk-signaling-core",
  "opentalk-types-api-v1",
  "opentalk-types-common",
+ "pretty_assertions",
+ "strum 0.27.2",
 ]
 
 [[package]]
@@ -5321,6 +5322,7 @@ dependencies = [
  "kustos-shared",
  "log",
  "opentalk-cache",
+ "opentalk-controller-service-facade",
  "opentalk-controller-settings",
  "opentalk-database",
  "opentalk-inventory",

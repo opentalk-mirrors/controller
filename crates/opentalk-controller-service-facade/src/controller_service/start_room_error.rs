@@ -4,7 +4,6 @@
 
 //! Provides error information regarding starting a room session
 
-use opentalk_controller_utils::CaptureApiError;
 use opentalk_types_api_v1::error::ApiError;
 use strum::AsRefStr;
 
@@ -57,12 +56,6 @@ impl From<StartRoomError> for ApiError {
                 "The roomserver is not configured on this controller, use legacy signaling instead",
             ),
         }
-    }
-}
-
-impl From<StartRoomError> for CaptureApiError {
-    fn from(value: StartRoomError) -> Self {
-        ApiError::from(value).into()
     }
 }
 

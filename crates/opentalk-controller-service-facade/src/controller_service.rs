@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 mod asset_download_proxy_stream;
+mod start_room_error;
 
 pub use asset_download_proxy_stream::AssetDownloadProxyStream;
 use async_trait::async_trait;
@@ -67,6 +68,7 @@ use opentalk_types_common::{
     tariffs::TariffResource,
     users::UserId,
 };
+pub use start_room_error::StartRoomError;
 
 use crate::RequestUser;
 

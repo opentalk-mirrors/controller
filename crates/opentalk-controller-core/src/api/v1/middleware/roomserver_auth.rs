@@ -17,7 +17,7 @@ use actix_web::{
 };
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use openidconnect::AccessToken;
-use opentalk_controller_service::controller_backend::rooms::start_room_error::StartRoomError;
+use opentalk_controller_service_facade::StartRoomError;
 use opentalk_controller_settings::SettingsProvider;
 use opentalk_roomserver_types::room_parameters::AssetStorageConfig;
 use opentalk_types_api_v1::error::{ApiError, AuthenticationError};

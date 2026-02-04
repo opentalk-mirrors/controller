@@ -4,6 +4,7 @@
 
 use std::fmt::Display;
 
+use opentalk_controller_service_facade::StartRoomError;
 use opentalk_database::DatabaseError;
 use opentalk_signaling_core::{ObjectStorageError, assets::AssetError};
 use opentalk_types_api_v1::error::ApiError;
@@ -71,6 +72,12 @@ impl From<kustos::Error> for CaptureApiError {
     fn from(value: kustos::Error) -> Self {
         log::error!("REST API threw internal error from kustos error: {value}");
         CaptureApiError(ApiError::internal())
+    }
+}
+
+impl From<StartRoomError> for CaptureApiError {
+    fn from(value: StartRoomError) -> Self {
+        CaptureApiError(ApiError::from(value))
     }
 }
 

@@ -26,5 +26,5 @@
 mod controller_service;
 mod middleware;
 
-pub use controller_service::{AssetDownloadProxyStream, OpenTalkControllerService};
+pub use controller_service::{AssetDownloadProxyStream, OpenTalkControllerService, StartRoomError};
 pub use middleware::user::RequestUser;
