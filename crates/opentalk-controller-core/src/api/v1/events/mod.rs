@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use actix_web::{
-    Either, delete, patch, post,
+    delete, post,
     web::{Data, Json, Path, Query, ReqData},
 };
 use chrono::{DateTime, Utc};
@@ -13,10 +13,7 @@ use kustos::{
     prelude::{AccessMethod, IsSubject},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
-use opentalk_types_api_v1::{
-    error::ApiError,
-    events::{DeleteEventsQuery, EventResource, PatchEventBody, PatchEventQuery},
-};
+use opentalk_types_api_v1::{error::ApiError, events::DeleteEventsQuery};
 use opentalk_types_common::{events::EventId, time::RecurrencePattern};
 use serde::Deserialize;
 
@@ -27,70 +24,6 @@ pub mod favorites;
 pub mod instances;
 pub mod invites;
 pub mod shared_folder;
-
-/// Patch an event
-///
-/// Fields that are not provided in the request body will remain unchanged.
-#[utoipa::path(
-    request_body = PatchEventBody,
-    params(
-        PatchEventQuery,
-        ("event_id" = EventId, description = "The id of the event"),
-    ),
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "The event was successfully updated",
-            body = EventResource
-        ),
-        (
-            status = StatusCode::NO_CONTENT,
-            description = "The patch was empty",
-        ),
-        (
-            status = StatusCode::BAD_REQUEST,
-            description = r"Could not modify the specified event due to wrong
-                syntax or bad values, for example an invalid timestamp string",
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[patch("/events/{event_id}")]
-pub async fn patch_event(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-    event_id: Path<EventId>,
-    query: Query<PatchEventQuery>,
-    patch: Json<PatchEventBody>,
-) -> Result<Either<ApiResponse<EventResource>, NoContent>, ApiError> {
-    let event_resource = service
-        .patch_event(
-            current_user.into_inner(),
-            event_id.into_inner(),
-            query.into_inner(),
-            patch.into_inner(),
-        )
-        .await?;
-
-    match event_resource {
-        Some(event_resource) => Ok(Either::Left(ApiResponse::new(event_resource))),
-        _ => Ok(Either::Right(NoContent)),
-    }
-}
 
 /// Delete an event and its owned resources, including the associated room.
 ///
