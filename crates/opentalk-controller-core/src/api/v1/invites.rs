@@ -5,15 +5,13 @@
 //! Contains invite related REST endpoints.
 use actix_web::{
     delete, get, post, put,
-    web::{Data, Json, Path, Query, ReqData},
+    web::{Data, Json, Path, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
     error::ApiError,
-    pagination::PagePaginationQuery,
     rooms::by_room_id::invites::{
-        GetRoomsInvitesResponseBody, InviteResource, PostInviteRequestBody, PutInviteRequestBody,
-        RoomIdAndInviteCode,
+        InviteResource, PostInviteRequestBody, PutInviteRequestBody, RoomIdAndInviteCode,
     },
 };
 use opentalk_types_common::rooms::RoomId;
@@ -80,59 +78,6 @@ pub async fn add_invite(
         .await?;
 
     Ok(ApiResponse::new(invite_resource))
-}
-
-/// Get all invites for a room
-///
-/// This returns all invites that are available for a room. If no
-/// pagination query is added, the default page size is used.
-#[utoipa::path(
-    params(
-        ("room_id" = RoomId, description = "The id of the room"),
-        PagePaginationQuery,
-    ),
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "The invites could be loaded successfully",
-            body = GetRoomsInvitesResponseBody,
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[get("/rooms/{room_id}/invites")]
-pub async fn get_invites(
-    service: Data<dyn OpenTalkControllerService>,
-    room_id: Path<RoomId>,
-    pagination: Query<PagePaginationQuery>,
-) -> DefaultApiResult<GetRoomsInvitesResponseBody> {
-    let room_id = room_id.into_inner();
-
-    let (invite_resources, invite_count) = service.get_invites(room_id, &pagination).await?;
-
-    Ok(ApiResponse::new(invite_resources).with_page_pagination(
-        pagination.per_page,
-        pagination.page,
-        invite_count,
-    ))
 }
 
 /// Get a room invite
