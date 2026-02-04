@@ -20,6 +20,7 @@ use crate::utoipa::responses::{Forbidden, InternalServerError, Unauthorized};
 pub mod assets;
 pub mod event;
 pub mod roomserver;
+pub mod start;
 pub mod start_invited;
 pub mod tariff;
 
