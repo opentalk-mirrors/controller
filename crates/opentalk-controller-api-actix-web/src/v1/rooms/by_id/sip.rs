@@ -5,7 +5,7 @@
 //! API endpoints under `v1/rooms/{room_id}/sip`
 
 use actix_web::{
-    HttpResponse, get, put,
+    HttpResponse, delete, get, put,
     web::{Data, Json, Path},
 };
 use opentalk_controller_service_facade::OpenTalkControllerService;
@@ -15,7 +15,10 @@ use opentalk_types_api_v1::{
 };
 use opentalk_types_common::rooms::RoomId;
 
-use crate::utoipa::responses::{Forbidden, InternalServerError, NotFound, Unauthorized};
+use crate::{
+    response::NoContent,
+    utoipa::responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
+};
 
 /// Get the sip config for the specified room.
 ///
@@ -121,4 +124,49 @@ pub async fn put(
     };
 
     Ok(response.json(sip_config_resource))
+}
+
+/// Delete the SIP configuration of a room.
+///
+/// This removes the dial-in functionality from the room.
+#[utoipa::path(
+    operation_id = "delete_room_sip",
+    tag = "api::v1::sip_configs",
+    params(
+        ("room_id" = RoomId, description = "The id of the room"),
+    ),
+    responses(
+        (
+            status = StatusCode::NO_CONTENT,
+            description = "The SIP configuration was successfully deleted",
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            response = Unauthorized,
+        ),
+        (
+            status = StatusCode::FORBIDDEN,
+            response = Forbidden,
+        ),
+        (
+            status = StatusCode::NOT_FOUND,
+            response = NotFound,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(
+        ("BearerAuth" = []),
+    ),
+)]
+#[delete("/rooms/{room_id}/sip")]
+pub async fn delete(
+    service: Data<dyn OpenTalkControllerService>,
+    room_id: Path<RoomId>,
+) -> Result<NoContent, ApiError> {
+    service.delete_sip_config(room_id.into_inner()).await?;
+
+    Ok(NoContent)
 }

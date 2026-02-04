@@ -12,5 +12,4 @@ pub mod invites;
 pub mod middleware;
 pub mod response;
 pub mod services;
-pub mod sip_configs;
 pub mod streaming_targets;

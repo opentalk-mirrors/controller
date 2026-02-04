@@ -730,7 +730,7 @@ impl ModulesRegistrar for Controller {
         api::v1::services::recording::get_recording_upload,
         api::v1::services::recording::post_recording_start,
         api::v1::services::roomserver::post_roomserver_asset,
-        api::v1::sip_configs::delete,
+        v1::rooms::by_id::sip::delete,
         v1::rooms::by_id::sip::get,
         v1::rooms::by_id::sip::put,
         api::v1::streaming_targets::delete_streaming_target,
@@ -996,7 +996,7 @@ fn v1_scope(
                 .service(v1::events::by_id::shared_folder::delete)
                 .service(v1::rooms::by_id::sip::get)
                 .service(v1::rooms::by_id::sip::put)
-                .service(api::v1::sip_configs::delete)
+                .service(v1::rooms::by_id::sip::delete)
                 .service(api::v1::invites::get_invites)
                 .service(api::v1::invites::add_invite)
                 .service(api::v1::invites::get_invite)
