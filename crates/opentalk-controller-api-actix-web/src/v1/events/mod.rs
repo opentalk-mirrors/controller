@@ -19,6 +19,7 @@ use crate::{
     v1::response::{ApiResponse, headers::CursorLink},
 };
 
+pub mod by_id;
 pub mod instances;
 
 /// Create a new event

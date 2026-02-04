@@ -691,7 +691,7 @@ impl ModulesRegistrar for Controller {
         api::v1::events::delete_event,
         api::v1::events::favorites::add_event_to_favorites,
         api::v1::events::favorites::remove_event_from_favorites,
-        api::v1::events::get_event,
+        v1::events::by_id::get,
         v1::events::get,
         api::v1::events::instances::get_event_instance,
         api::v1::events::instances::get_event_instances,
@@ -975,7 +975,7 @@ fn v1_scope(
                 .service(v1::events::get)
                 // "/events/instances" conflicts with "/events/{event_id}" and thus must be listed before
                 .service(v1::events::instances::get)
-                .service(api::v1::events::get_event)
+                .service(v1::events::by_id::get)
                 .service(api::v1::events::patch_event)
                 .service(api::v1::events::delete_event)
                 .service(api::v1::events::favorites::add_event_to_favorites)
