@@ -4,75 +4,18 @@
 
 use actix_web::{
     delete, get, patch,
-    web::{Data, Json, Path, ReqData},
+    web::{Data, Path, ReqData},
 };
 use opentalk_controller_api_actix_web::v1::response::ApiResponse;
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
-use opentalk_types_api_v1::{
-    error::ApiError, events::PatchInviteBody, users::GetEventInvitesPendingResponseBody,
-};
-use opentalk_types_common::{events::EventId, users::UserId};
+use opentalk_types_api_v1::{error::ApiError, users::GetEventInvitesPendingResponseBody};
+use opentalk_types_common::events::EventId;
 use serde::Deserialize;
 
 use crate::api::{
     responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
     v1::{DefaultApiResult, response::NoContent},
 };
-
-/// Patch an event invite with the provided fields
-///
-/// Fields that are not provided in the request body will remain unchanged.
-#[utoipa::path(
-    request_body = PatchInviteBody,
-    params(
-        ("event_id" = EventId, description = "The id of the event to be modified"),
-        ("user_id" = UserId, description = "The id of the invited user to be modified"),
-    ),
-    responses(
-        (
-            status = StatusCode::NO_CONTENT,
-            description = "Invite was successfully updated",
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            description = r"The requesting user does not have the required permissions to update the invite.
-              Only the creator of an event can update the invites.",
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[patch("/events/{event_id}/invites/{user_id}")]
-pub async fn update_invite_to_event(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-    path_parameters: Path<(EventId, UserId)>,
-    update_invite: Json<PatchInviteBody>,
-) -> Result<NoContent, ApiError> {
-    service
-        .update_invite_to_event(
-            &current_user,
-            path_parameters.0,
-            path_parameters.1,
-            &update_invite,
-        )
-        .await?;
-
-    Ok(NoContent)
-}
 
 /// Query parameters for the `DELETE /events/{event_id}/invites/{user_id}` endpoint
 #[derive(Deserialize, Debug, PartialEq, Eq)]
