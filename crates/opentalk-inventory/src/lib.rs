@@ -52,7 +52,8 @@ pub use asset::{Asset, AssetInventory, NewAsset, UpdateAsset};
 pub use event::{
     Event, EventDate, EventException, EventExceptionId, EventExceptionKind, EventInventory,
     EventRecurrence, GetEventExceptionsCursor, GetEventsCursor, NewEvent, NewEventDate,
-    NewEventException, NewEventRecurrence, UpdateEvent, UpdateEventException,
+    NewEventException, NewEventRecurrence, UpdateEvent, UpdateEventDate, UpdateEventException,
+    UpdateEventRecurrence,
 };
 pub use event_invite::{
     EventEmailInvite, EventInvite, EventInviteId, EventInviteInventory, NewEventEmailInvite,

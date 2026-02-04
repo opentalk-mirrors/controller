@@ -163,16 +163,9 @@ mod tests {
                     description: None,
                     updated_by: user,
                     updated_at: Timestamp::now(),
-                    is_time_independent: None,
-                    is_all_day: None,
-                    starts_at: None,
-                    starts_at_tz: None,
-                    ends_at: None,
-                    ends_at_tz: None,
-                    duration_secs: None,
-                    recurrence_pattern: None,
                     is_adhoc: None,
                     show_meeting_details: None,
+                    date: None,
                 },
             )
             .await

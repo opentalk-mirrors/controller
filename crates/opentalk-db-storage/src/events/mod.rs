@@ -1292,39 +1292,22 @@ pub struct UpdateEvent {
 }
 
 impl From<opentalk_inventory::UpdateEvent> for UpdateEvent {
-    fn from(
-        opentalk_inventory::UpdateEvent {
-            title,
-            description,
-            updated_by,
-            updated_at,
-            is_time_independent,
-            is_all_day,
-            starts_at,
-            starts_at_tz,
-            ends_at,
-            ends_at_tz,
-            duration_secs,
-            recurrence_pattern,
-            is_adhoc,
-            show_meeting_details,
-        }: opentalk_inventory::UpdateEvent,
-    ) -> Self {
+    fn from(update_event: opentalk_inventory::UpdateEvent) -> Self {
         Self {
-            title,
-            description,
-            updated_by,
-            updated_at: updated_at.into(),
-            is_time_independent,
-            is_all_day,
-            starts_at,
-            starts_at_tz,
-            ends_at,
-            ends_at_tz,
-            duration_secs,
-            recurrence_pattern,
-            is_adhoc,
-            show_meeting_details,
+            updated_by: update_event.updated_by,
+            updated_at: update_event.updated_at.into(),
+            is_time_independent: Some(update_event.is_time_independent()),
+            is_all_day: Some(update_event.is_all_day()),
+            starts_at: Some(update_event.starts_at()),
+            starts_at_tz: Some(update_event.starts_at_tz()),
+            ends_at: Some(update_event.ends_at()),
+            ends_at_tz: Some(update_event.ends_at_tz()),
+            duration_secs: Some(update_event.duration_secs()),
+            recurrence_pattern: Some(update_event.recurrence_pattern().map(ToString::to_string)),
+            is_adhoc: update_event.is_adhoc,
+            show_meeting_details: update_event.show_meeting_details,
+            title: update_event.title,
+            description: update_event.description,
         }
     }
 }

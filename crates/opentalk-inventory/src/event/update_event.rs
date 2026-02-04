@@ -10,6 +10,8 @@ use opentalk_types_common::{
     users::UserId,
 };
 
+use crate::{UpdateEventRecurrence, event::UpdateEventDate};
+
 /// Representation of an update to an [`super::Event`] in the inventory.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UpdateEvent {
@@ -25,37 +27,66 @@ pub struct UpdateEvent {
     /// The updated timestamp.
     pub updated_at: Timestamp,
 
-    /// A flag indicating whether the event is time-independent.
-    pub is_time_independent: Option<bool>,
-
-    /// A flag indicating whether this is an all-day event.
-    pub is_all_day: Option<Option<bool>>,
-
-    /// start datetime of the event
-    pub starts_at: Option<Option<DateTime<Tz>>>,
-
-    /// timezone of the start-datetime of the event
-    pub starts_at_tz: Option<Option<TimeZone>>,
-
-    /// end datetime of the event
-    ///
-    /// For recurring events contains the timestamp of the last occurrence
-    pub ends_at: Option<Option<DateTime<Tz>>>,
-
-    /// timezone of the ends_at datetime
-    pub ends_at_tz: Option<Option<TimeZone>>,
-
-    /// Only for recurring events, since ends_at contains the information
-    /// about the last occurrence of the recurring series this duration value
-    /// MUST be used to calculate the event instances length
-    pub duration_secs: Option<Option<i32>>,
-
-    /// The recurrence pattern for recurring events.
-    pub recurrence_pattern: Option<Option<String>>,
-
     /// A flag indicating whether this is an ad-hoc event.
     pub is_adhoc: Option<bool>,
 
     /// A flag indicating whether the details should be shown in the meeting.
     pub show_meeting_details: Option<bool>,
+
+    /// Contains all date related information about the event.
+    pub date: Option<UpdateEventDate>,
+}
+
+impl UpdateEvent {
+    /// Returns `true` if this [`UpdateEvent`] has no date field associated.
+    pub fn is_time_independent(&self) -> bool {
+        self.date.is_none()
+    }
+
+    /// Returns the `date` of this [`UpdateEvent`].
+    pub fn date(&self) -> Option<&UpdateEventDate> {
+        self.date.as_ref()
+    }
+
+    /// Returns the `is_all_day` of this [`UpdateEvent`].
+    pub fn is_all_day(&self) -> Option<bool> {
+        self.date().and_then(|date| date.is_all_day)
+    }
+
+    /// Returns the `starts_at` of this [`UpdateEvent`].
+    pub fn starts_at(&self) -> Option<DateTime<Tz>> {
+        self.date().and_then(|date| date.starts_at)
+    }
+
+    /// Returns the `ends_at` of this [`UpdateEvent`].
+    pub fn ends_at(&self) -> Option<DateTime<Tz>> {
+        self.date().and_then(|date| date.ends_at)
+    }
+
+    /// Returns the `starts_at_tz` of this [`UpdateEvent`].
+    pub fn starts_at_tz(&self) -> Option<TimeZone> {
+        self.date().and_then(|date| date.starts_at_tz)
+    }
+
+    /// Returns the `ends_at_tz` of this [`UpdateEvent`].
+    pub fn ends_at_tz(&self) -> Option<TimeZone> {
+        self.date().and_then(|date| date.ends_at_tz)
+    }
+
+    /// Returns the `recurrence` of this [`UpdateEvent`].
+    pub fn recurrence(&self) -> Option<&UpdateEventRecurrence> {
+        self.date().and_then(|date| date.recurrence.as_ref())
+    }
+
+    /// Returns the `duration_secs` of this [`UpdateEvent`].
+    pub fn duration_secs(&self) -> Option<i32> {
+        self.recurrence()
+            .and_then(|recurrence| recurrence.duration_secs)
+    }
+
+    /// Returns the `recurrence_pattern` of this [`UpdateEvent`].
+    pub fn recurrence_pattern(&self) -> Option<&str> {
+        self.recurrence()
+            .and_then(|recurrence| recurrence.recurrence_pattern.as_deref())
+    }
 }
