@@ -5106,6 +5106,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-controller-api-actix-web"
+version = "0.33.0-alpha"
+
+[[package]]
 name = "opentalk-controller-core"
 version = "0.33.0-alpha"
 dependencies = [

@@ -16,6 +16,7 @@ version = "0.33.0-alpha"
 kustos = { path = "crates/kustos", version = "0.33.0-alpha" }
 kustos-db = { path = "crates/kustos-db", version = "0.33.0-alpha" }
 opentalk-cache = { path = "crates/opentalk-cache", version = "0.33.0-alpha" }
+opentalk-controller-api-actix-web = { path = "crates/opentalk-controller-api-actix-web", version = "0.33.0-alpha" }
 opentalk-controller-core = { path = "crates/opentalk-controller-core", version = "0.33.0-alpha" }
 opentalk-controller-service = { path = "crates/opentalk-controller-service", version = "0.33.0-alpha" }
 opentalk-controller-service-facade = { path = "crates/opentalk-controller-service-facade", version = "0.33.0-alpha" }
