@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+//! API endpoints under `v1/users/me/event_favorites/{event_id}`
+
 use actix_web::{
     Either, delete, put,
     web::{Data, Path, ReqData},
@@ -10,15 +12,17 @@ use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser}
 use opentalk_types_api_v1::error::ApiError;
 use opentalk_types_common::events::EventId;
 
-use crate::api::{
-    responses::{InternalServerError, NotFound, Unauthorized},
-    v1::response::{Created, NoContent},
+use crate::{
+    response::{Created, NoContent},
+    utoipa::responses::{InternalServerError, NotFound, Unauthorized},
 };
 
 /// Add an event to the current user's favorites
 ///
 /// The event will be marked as favorited by the calling user.
 #[utoipa::path(
+    operation_id = "add_event_to_favorites",
+    tag = "api::v1::events::favorites",
     params(
         ("event_id" = EventId, description = "The id of the event that gets marked as favorite"),
     ),
@@ -49,7 +53,7 @@ use crate::api::{
     ),
 )]
 #[put("/users/me/event_favorites/{event_id}")]
-pub async fn add_event_to_favorites(
+pub async fn put(
     service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     event_id: Path<EventId>,
@@ -68,6 +72,8 @@ pub async fn add_event_to_favorites(
 ///
 /// The event will be marked as non-favorited by the calling user.
 #[utoipa::path(
+    operation_id = "remove_event_from_favorites",
+    tag = "api::v1::events::favorites",
     params(
         ("event_id" = EventId, description = "The id of the event that gets marked as non-favorited"),
     ),
@@ -94,7 +100,7 @@ pub async fn add_event_to_favorites(
     ),
 )]
 #[delete("/users/me/event_favorites/{event_id}")]
-pub async fn remove_event_from_favorites(
+pub async fn delete(
     service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     event_id: Path<EventId>,

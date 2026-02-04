@@ -5,6 +5,7 @@
 //! API endpoints under `v1/users/me`
 
 pub mod assets;
+pub mod event_favorites;
 pub mod tariff;
 
 use actix_web::{
