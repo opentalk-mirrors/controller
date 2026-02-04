@@ -5108,6 +5108,10 @@ dependencies = [
 [[package]]
 name = "opentalk-controller-api-actix-web"
 version = "0.33.0-alpha"
+dependencies = [
+ "actix-web",
+ "opentalk-types-common",
+]
 
 [[package]]
 name = "opentalk-controller-core"
@@ -5136,6 +5140,7 @@ dependencies = [
  "mime",
  "openidconnect",
  "opentalk-cache",
+ "opentalk-controller-api-actix-web",
  "opentalk-controller-service",
  "opentalk-controller-service-facade",
  "opentalk-controller-settings",

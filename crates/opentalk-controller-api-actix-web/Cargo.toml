@@ -16,3 +16,5 @@ version.workspace = true
 workspace = true
 
 [dependencies]
+actix-web.workspace = true
+opentalk-types-common.workspace = true

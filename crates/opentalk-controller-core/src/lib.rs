@@ -18,6 +18,7 @@ use actix_web::{App, HttpServer, Scope, web, web::Data};
 use api::signaling::SignalingModules;
 use kustos::Authz;
 use lapin_pool::RabbitMqPool;
+use opentalk_controller_api_actix_web::well_known;
 use opentalk_controller_service::{
     ControllerBackend, Whatever,
     oidc::{Cache, OidcTokenHandler, build_oidc_token_handler},
@@ -470,7 +471,7 @@ impl Controller {
                     .app_data(SignalingProtocols::data())
                     .app_data(signaling_metrics.clone())
                     .app_data(metrics.clone())
-                    .service(api::well_known::well_known_api)
+                    .service(well_known::opentalk::api::get)
                     .service(api::signaling::ws_service)
                     .service(metrics::metrics)
                     .with_swagger_service_if(swagger_service_enabled)
