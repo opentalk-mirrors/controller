@@ -969,7 +969,7 @@ fn v1_scope(
                 .service(v1::rooms::by_id::event::get)
                 .service(v1::rooms::by_id::tariff::get)
                 .service(v1::rooms::by_id::start::post)
-                .service(api::v1::rooms::roomserver::start)
+                .service(v1::rooms::by_id::roomserver::start::post)
                 .service(api::v1::rooms::delete)
                 .service(api::v1::events::new_event)
                 .service(api::v1::events::get_events)

@@ -4,4 +4,5 @@
 
 //! API endpoints under `v1/rooms/{room_id}/roomserver`
 
+pub mod start;
 pub mod start_invited;

@@ -18,8 +18,6 @@ use opentalk_types_common::rooms::RoomId;
 use super::response::NoContent;
 use crate::api::responses::{Forbidden, InternalServerError, Unauthorized};
 
-pub(crate) mod roomserver;
-
 /// Delete a room and its owned resources.
 ///
 /// Deletes the room by the id if found. See the query parameters for affecting

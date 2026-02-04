@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! Roomserver related API structs and Endpoints
-//!
-//! The defined structs are exposed to the REST API and will be serialized/deserialized. Similar
-//! structs are defined in the Database crate [`opentalk_db_storage`] for database operations.
+//! API endpoints under `v1/rooms/{room_id}/roomserver/start`
 
 use actix_web::{
     post,
@@ -18,7 +15,7 @@ use opentalk_types_api_v1::{
 };
 use opentalk_types_common::rooms::RoomId;
 
-use crate::api::v1::rooms::InternalServerError;
+use crate::utoipa::responses::InternalServerError;
 
 /// Start a signaling session with the roomserver as a registered user
 ///
@@ -26,6 +23,8 @@ use crate::api::v1::rooms::InternalServerError;
 /// and the corresponding roomserver address. Call the  *GET `<roomserver_address>/signaling/<token>`* endpoint to
 /// establish the websocket connection with the roomserver.
 #[utoipa::path(
+    operation_id = "roomserver_start",
+    tag = "api::v1::rooms",
     params(
         ("room_id" = RoomId, description = "The id of the room"),
     ),
@@ -85,9 +84,10 @@ use crate::api::v1::rooms::InternalServerError;
     ),
 )]
 #[post("/rooms/{room_id}/roomserver/start")]
-pub async fn start(
+pub async fn post(
     service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
+
     room_id: Path<RoomId>,
     request: Json<PostRoomsRoomserverStartRequestBody>,
 ) -> Result<Json<RoomserverStartResponseBody>, ApiError> {
