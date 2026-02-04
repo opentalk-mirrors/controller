@@ -11,9 +11,8 @@ use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser}
 use opentalk_types_api_v1::{
     error::ApiError,
     events::{
-        EventInstance, EventInstancePath, EventInstanceQuery, EventOrInstance,
-        GetEventInstanceResponseBody, GetEventInstancesQuery, GetEventInstancesResponseBody,
-        GetEventsAndInstancesQuery, PatchEventInstanceBody,
+        EventInstance, EventInstancePath, EventInstanceQuery, GetEventInstanceResponseBody,
+        GetEventInstancesQuery, GetEventInstancesResponseBody, PatchEventInstanceBody,
     },
 };
 use opentalk_types_common::events::EventId;
@@ -23,59 +22,6 @@ use crate::api::{
     responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
     v1::response::NoContent,
 };
-
-/// Get a list of events and instances
-///
-/// The instances are calculated based on the RRULE of the event. If no RRULE is
-/// set for an event, the event itself is returned
-///
-/// Returns a paginated list of events or their instances inside the given time range
-#[utoipa::path(
-    params(
-        GetEventsAndInstancesQuery,
-    ),
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "List of events and instances successfully returned",
-            body = GetEventInstancesResponseBody,
-            headers(
-                ("link" = PageLink, description = "Links for paging through the results"),
-            ),
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[get("/events/instances")]
-pub async fn get_events_and_instances(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-    query: Query<GetEventsAndInstancesQuery>,
-) -> DefaultApiResult<Vec<EventOrInstance>> {
-    let (resources, before, after) = service
-        .get_events_and_instances_interwoven(current_user.into_inner(), query.into_inner())
-        .await?;
-
-    Ok(ApiResponse::new(resources).with_cursor_pagination(before, after))
-}
 
 /// Get a list of the instances of an event
 ///

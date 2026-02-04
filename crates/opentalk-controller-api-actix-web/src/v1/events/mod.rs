@@ -19,6 +19,8 @@ use crate::{
     v1::response::{ApiResponse, headers::CursorLink},
 };
 
+pub mod instances;
+
 /// Create a new event
 ///
 /// Create a new event with the fields sent in the body.

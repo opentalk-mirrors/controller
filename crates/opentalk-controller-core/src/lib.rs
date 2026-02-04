@@ -695,7 +695,7 @@ impl ModulesRegistrar for Controller {
         v1::events::get,
         api::v1::events::instances::get_event_instance,
         api::v1::events::instances::get_event_instances,
-        api::v1::events::instances::get_events_and_instances,
+        v1::events::instances::get,
         api::v1::events::instances::patch_event_instance,
         api::v1::events::invites::accept_event_invite,
         api::v1::events::invites::create_invite_to_event,
@@ -974,7 +974,7 @@ fn v1_scope(
                 .service(v1::events::post)
                 .service(v1::events::get)
                 // "/events/instances" conflicts with "/events/{event_id}" and thus must be listed before
-                .service(api::v1::events::instances::get_events_and_instances)
+                .service(v1::events::instances::get)
                 .service(api::v1::events::get_event)
                 .service(api::v1::events::patch_event)
                 .service(api::v1::events::delete_event)
