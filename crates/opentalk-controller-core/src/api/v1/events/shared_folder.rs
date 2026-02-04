@@ -4,7 +4,7 @@
 
 use actix_http::StatusCode;
 use actix_web::{
-    CustomizeResponder, Responder as _, delete, get, put,
+    CustomizeResponder, Responder as _, delete, put,
     web::{Data, Json, Path, Query, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
@@ -18,53 +18,6 @@ use crate::api::{
     responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
     v1::response::NoContent,
 };
-
-/// Get the shared folder for an event
-///
-/// Returns the shared folder for an event if available
-#[utoipa::path(
-    params(
-        ("event_id" = EventId, description = "The id of the event"),
-    ),
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "Shared folder returned",
-            body = SharedFolder,
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[get("/events/{event_id}/shared_folder")]
-pub async fn get_shared_folder_for_event(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-    event_id: Path<EventId>,
-) -> Result<Json<SharedFolder>, ApiError> {
-    let shared_folder = service
-        .get_shared_folder_for_event(current_user.into_inner(), event_id.into_inner())
-        .await?;
-
-    Ok(Json(shared_folder))
-}
 
 /// Create a shared folder for an event
 ///

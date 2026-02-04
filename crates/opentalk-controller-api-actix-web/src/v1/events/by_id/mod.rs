@@ -24,6 +24,7 @@ use crate::{
 pub mod instances;
 pub mod invite;
 pub mod invites;
+pub mod shared_folder;
 
 /// Get an event
 ///
