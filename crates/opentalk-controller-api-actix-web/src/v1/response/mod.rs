@@ -7,5 +7,7 @@
 mod api_output_link_header;
 mod api_response;
 
+pub mod headers;
+
 pub use api_output_link_header::ApiOutputLinkHeader;
 pub use api_response::ApiResponse;

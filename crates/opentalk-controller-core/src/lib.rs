@@ -717,7 +717,7 @@ impl ModulesRegistrar for Controller {
         api::v1::invites::get_invites,
         api::v1::invites::update_invite,
         v1::invite::verify::post,
-        api::v1::rooms::accessible,
+        v1::rooms::get,
         api::v1::rooms::delete,
         api::v1::rooms::get,
         api::v1::rooms::get_room_event,
@@ -749,7 +749,7 @@ impl ModulesRegistrar for Controller {
     components(
         schemas(
             api::headers::CursorLink,
-            api::headers::PageLink,
+            v1::response::headers::PageLink,
             opentalk_types_api_v1::error::ErrorBody,
             opentalk_types_api_v1::error::ValidationErrorEntry,
             opentalk_types_api_v1::pagination::Cursor::<opentalk_types_api_v1::events::GetEventInstancesCursorData>,
@@ -962,7 +962,7 @@ fn v1_scope(
                 .service(v1::users::me::tariff::get)
                 .service(v1::users::me::assets::get)
                 .service(v1::users::by_id::get)
-                .service(api::v1::rooms::accessible)
+                .service(v1::rooms::get)
                 .service(api::v1::rooms::new)
                 .service(api::v1::rooms::patch)
                 .service(api::v1::rooms::get)
