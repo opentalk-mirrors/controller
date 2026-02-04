@@ -12,8 +12,7 @@ use opentalk_types_api_v1::{
     error::ApiError,
     pagination::PagePaginationQuery,
     rooms::by_room_id::invites::{
-        GetRoomsInvitesResponseBody, InviteResource, PostInviteRequestBody,
-        PostInviteVerifyRequestBody, PostInviteVerifyResponseBody, PutInviteRequestBody,
+        GetRoomsInvitesResponseBody, InviteResource, PostInviteRequestBody, PutInviteRequestBody,
         RoomIdAndInviteCode,
     },
 };
@@ -278,46 +277,4 @@ pub async fn delete_invite(
         .await?;
 
     Ok(NoContent)
-}
-
-/// Verify an invite code
-///
-/// Verifies the invite and returns the room url for the invite code
-#[utoipa::path(
-    request_body = PostInviteVerifyRequestBody,
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "Invite is valid, the response body tells the room id",
-            body = PostInviteVerifyResponseBody,
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
-            status = StatusCode::UNPROCESSABLE_ENTITY,
-            description = "Invalid body contents received",
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(),
-)]
-#[post("/invite/verify")]
-pub async fn verify_invite_code(
-    service: Data<dyn OpenTalkControllerService>,
-    verify_request: Json<PostInviteVerifyRequestBody>,
-) -> DefaultApiResult<PostInviteVerifyResponseBody> {
-    let verify_request = verify_request.into_inner();
-
-    let verify_response = service.verify_invite_code(verify_request).await?;
-
-    Ok(ApiResponse::new(verify_response))
 }

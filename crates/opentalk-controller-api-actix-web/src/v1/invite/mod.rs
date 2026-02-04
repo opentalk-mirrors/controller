@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! API endpoints under `v1`
+//! API endpoints under `v1/invite`
 
-pub mod auth;
-pub mod invite;
-pub mod rooms;
+pub mod verify;
