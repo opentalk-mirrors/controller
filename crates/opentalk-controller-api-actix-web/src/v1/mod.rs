@@ -8,3 +8,4 @@ pub mod auth;
 pub mod invite;
 pub mod rooms;
 pub mod turn;
+pub mod users;

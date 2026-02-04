@@ -18,8 +18,7 @@ use opentalk_types_api_v1::{
     error::ApiError,
     pagination::PagePaginationQuery,
     users::{
-        GetFindQuery, GetFindResponseBody, GetUserAssetsResponseBody, PrivateUserProfile,
-        PublicUserProfile, me::PatchMeRequestBody,
+        GetUserAssetsResponseBody, PrivateUserProfile, PublicUserProfile, me::PatchMeRequestBody,
     },
 };
 use opentalk_types_common::{tariffs::TariffResource, users::UserId};
@@ -234,42 +233,4 @@ pub async fn get_user(
             .await?,
     );
     Ok(user_profile)
-}
-
-/// Find users
-///
-/// Query users for autocomplete fields
-#[utoipa::path(
-    params(GetFindQuery),
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "Search results",
-            body = GetFindResponseBody,
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[get("/users/find")]
-pub async fn find(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-    query: Query<GetFindQuery>,
-) -> Result<Json<GetFindResponseBody>, ApiError> {
-    let result = Json(
-        service
-            .find_users(current_user.into_inner(), query.into_inner())
-            .await?,
-    );
-    Ok(result)
 }
