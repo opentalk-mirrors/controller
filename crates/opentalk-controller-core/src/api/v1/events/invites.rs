@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use actix_web::{
-    Either, delete, get, patch, post,
+    delete, get, patch,
     web::{Data, Json, Path, Query, ReqData},
 };
 use opentalk_controller_api_actix_web::v1::response::{ApiResponse, headers::CursorLink};
@@ -12,8 +12,8 @@ use opentalk_types_api_v1::{
     error::ApiError,
     events::{
         DeleteEmailInviteBody, DeleteEventInvitePath, EventInvitee, EventOptionsQuery,
-        EventResource, GetEventInstanceResponseBody, PatchEmailInviteBody, PatchInviteBody,
-        PostEventInviteBody, PostEventInviteQuery, by_event_id::invites::GetEventsInvitesQuery,
+        GetEventInstanceResponseBody, PatchEmailInviteBody, PatchInviteBody,
+        by_event_id::invites::GetEventsInvitesQuery,
     },
     users::GetEventInvitesPendingResponseBody,
 };
@@ -21,11 +21,8 @@ use opentalk_types_common::{events::EventId, users::UserId};
 use serde::Deserialize;
 
 use crate::api::{
-    responses::{BadRequest, Forbidden, InternalServerError, NotFound, Unauthorized},
-    v1::{
-        DefaultApiResult,
-        response::{Created, NoContent},
-    },
+    responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
+    v1::{DefaultApiResult, response::NoContent},
 };
 
 /// Get the invites for an event
@@ -85,69 +82,6 @@ pub async fn get_invites_for_event(
         .await?;
 
     Ok(ApiResponse::new(invitees).with_page_pagination(per_page, page, total))
-}
-
-/// Create a new invite to an event
-///
-/// Create a new invite to an event with the fields sent in the body.
-#[utoipa::path(
-    params(
-        PostEventInviteQuery,
-        ("event_id" = EventId, description = "The id of the event"),
-    ),
-    request_body = PostEventInviteBody,
-    responses(
-        (
-            status = StatusCode::CREATED,
-            description = "The user or email has been invited to the event",
-            body = Vec<EventResource>,
-        ),
-        (
-            status = StatusCode::NO_CONTENT,
-            description = "The user or email was already invited before, or the user is the creator of the event, in which case they have been invited implicitly",
-        ),
-        (
-            status = StatusCode::BAD_REQUEST,
-            response = BadRequest,
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[post("/events/{event_id}/invites")]
-pub async fn create_invite_to_event(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-    event_id: Path<EventId>,
-    query: Query<PostEventInviteQuery>,
-    create_invite: Json<PostEventInviteBody>,
-) -> Result<Either<Created, NoContent>, ApiError> {
-    let created = service
-        .create_invite_to_event(
-            current_user.into_inner(),
-            event_id.into_inner(),
-            query.into_inner(),
-            create_invite.into_inner(),
-        )
-        .await?;
-
-    match created {
-        true => Ok(Either::Left(Created)),
-        false => Ok(Either::Right(NoContent)),
-    }
 }
 
 /// Patch an event invite with the provided fields

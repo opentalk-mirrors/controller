@@ -698,7 +698,7 @@ impl ModulesRegistrar for Controller {
         v1::events::instances::get,
         v1::events::by_id::instances::by_id::patch,
         api::v1::events::invites::accept_event_invite,
-        api::v1::events::invites::create_invite_to_event,
+        v1::events::by_id::invites::post,
         api::v1::events::invites::decline_event_invite,
         api::v1::events::invites::delete_email_invite_to_event,
         api::v1::events::invites::delete_invite_to_event,
@@ -983,7 +983,7 @@ fn v1_scope(
                 .service(v1::events::by_id::instances::by_id::get)
                 .service(v1::events::by_id::instances::get)
                 .service(v1::events::by_id::instances::by_id::patch)
-                .service(api::v1::events::invites::create_invite_to_event)
+                .service(v1::events::by_id::invites::post)
                 .service(api::v1::events::invites::get_invites_for_event)
                 .service(api::v1::events::invites::delete_email_invite_to_event)
                 .service(api::v1::events::invites::delete_invite_to_event)
