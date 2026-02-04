@@ -5,16 +5,22 @@
 //! API endpoints under `v1/events/{event_id}/shared_folder`
 
 use actix_web::{
-    CustomizeResponder, Responder as _, get,
+    CustomizeResponder, Responder as _, delete, get,
     http::StatusCode,
     put,
     web::{Data, Json, Path, Query, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
-use opentalk_types_api_v1::{error::ApiError, events::PutSharedFolderQuery};
+use opentalk_types_api_v1::{
+    error::ApiError,
+    events::{DeleteSharedFolderQuery, PutSharedFolderQuery},
+};
 use opentalk_types_common::{events::EventId, shared_folders::SharedFolder};
 
-use crate::utoipa::responses::{Forbidden, InternalServerError, NotFound, Unauthorized};
+use crate::{
+    response::NoContent,
+    utoipa::responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
+};
 
 /// Get the shared folder for an event
 ///
@@ -127,4 +133,58 @@ pub async fn put(
     } else {
         StatusCode::OK
     }))
+}
+
+/// Delete the shared folder of an event
+///
+/// Will delete the shared folder from the external system and remove the reference to it
+#[utoipa::path(
+    operation_id = "delete_shared_folder_for_event",
+    tag = "api::v1::events::shared_folder",
+    params(
+        ("event_id" = EventId, description = "The id of the event"),
+        DeleteSharedFolderQuery,
+    ),
+    responses(
+        (
+            status = StatusCode::NO_CONTENT,
+            description = "Shared folder was successfully deleted, or no shared folder had been present",
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            response = Unauthorized,
+        ),
+        (
+            status = StatusCode::FORBIDDEN,
+            response = Forbidden,
+        ),
+        (
+            status = StatusCode::NOT_FOUND,
+            response = NotFound,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(
+        ("BearerAuth" = []),
+    ),
+)]
+#[delete("/events/{event_id}/shared_folder")]
+pub async fn delete(
+    service: Data<dyn OpenTalkControllerService>,
+    current_user: ReqData<RequestUser>,
+    event_id: Path<EventId>,
+    query: Query<DeleteSharedFolderQuery>,
+) -> Result<NoContent, ApiError> {
+    service
+        .delete_shared_folder_for_event(
+            current_user.into_inner(),
+            event_id.into_inner(),
+            query.into_inner(),
+        )
+        .await?;
+
+    Ok(NoContent)
 }

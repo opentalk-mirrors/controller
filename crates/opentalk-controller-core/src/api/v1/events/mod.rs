@@ -16,7 +16,6 @@ use opentalk_types_common::{events::EventId, time::RecurrencePattern};
 use serde::Deserialize;
 
 pub mod invites;
-pub mod shared_folder;
 
 #[derive(Deserialize)]
 pub struct EventRescheduleBody {
