@@ -21,6 +21,7 @@ pub mod assets;
 pub mod event;
 pub mod roomserver;
 pub mod start_invited;
+pub mod tariff;
 
 /// Get a room
 ///

@@ -8,7 +8,7 @@
 //! structs are defined in the Database crate [`opentalk_db_storage`] for database operations.
 
 use actix_web::{
-    delete, get, post,
+    delete, post,
     web::{self, Data, Json, Path, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser, StartRoomError};
@@ -16,10 +16,7 @@ use opentalk_types_api_v1::{
     error::{ApiError, ErrorBody},
     rooms::by_room_id::{DeleteRoomQuery, PostRoomsStartRequestBody, RoomsStartResponseBody},
 };
-use opentalk_types_common::{
-    rooms::{RoomId, invite_codes::InviteCode},
-    tariffs::TariffResource,
-};
+use opentalk_types_common::rooms::RoomId;
 
 use super::response::NoContent;
 use crate::api::responses::{Forbidden, InternalServerError, Unauthorized};
@@ -76,51 +73,6 @@ pub async fn delete(
         .await?;
 
     Ok(NoContent)
-}
-
-/// Get a room's tariff
-///
-/// This returns the tariff that applies to the room, typically the tariff of
-/// the room creator.
-#[utoipa::path(
-    params(
-        ("room_id" = RoomId, description = "The id of the room"),
-    ),
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "The room's tariff was successfully retrieved",
-            body = TariffResource
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-        ("InviteCode" = []),
-    ),
-)]
-#[get("/rooms/{room_id}/tariff")]
-pub async fn get_room_tariff(
-    service: Data<dyn OpenTalkControllerService>,
-    room_id: Path<RoomId>,
-    invite_code: ReqData<Option<InviteCode>>,
-) -> Result<Json<TariffResource>, ApiError> {
-    Ok(Json(
-        service
-            .get_room_tariff(&room_id, invite_code.into_inner())
-            .await?,
-    ))
 }
 
 /// Start a signaling session as a registered user
