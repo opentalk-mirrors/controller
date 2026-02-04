@@ -24,6 +24,8 @@ use crate::{
     v1::response::{ApiResponse, headers::CursorLink},
 };
 
+pub mod email;
+
 /// Create a new invite to an event
 ///
 /// Create a new invite to an event with the fields sent in the body.
