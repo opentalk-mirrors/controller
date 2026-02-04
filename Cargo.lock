@@ -5110,7 +5110,13 @@ name = "opentalk-controller-api-actix-web"
 version = "0.33.0-alpha"
 dependencies = [
  "actix-web",
+ "opentalk-controller-service-facade",
+ "opentalk-types-api-v1",
  "opentalk-types-common",
+ "serde",
+ "serde_json",
+ "url",
+ "utoipa",
 ]
 
 [[package]]

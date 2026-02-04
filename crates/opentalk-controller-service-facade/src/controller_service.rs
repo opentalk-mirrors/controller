@@ -14,7 +14,7 @@ use opentalk_signaling_core::{
 };
 use opentalk_types_api_v1::{
     assets::{AssetResource, AssetSortingQuery},
-    auth::GetLoginResponseBody,
+    auth::{GetLoginResponseBody, PostLoginResponseBody, login::AuthLoginPostRequestBody},
     error::ApiError,
     events::{
         DeleteEventInvitePath, DeleteEventsQuery, DeleteSharedFolderQuery, EventInstance,
@@ -75,6 +75,12 @@ use crate::RequestUser;
 pub trait OpenTalkControllerService: Send + Sync {
     /// Get the configured OIDC provider
     async fn get_login(&self) -> GetLoginResponseBody;
+
+    /// Post a login request.
+    async fn post_login(
+        &self,
+        body: AuthLoginPostRequestBody,
+    ) -> Result<PostLoginResponseBody, ApiError>;
 
     /// Get all accessible rooms
     async fn get_rooms(

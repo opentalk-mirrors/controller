@@ -18,7 +18,7 @@ use actix_web::{App, HttpServer, Scope, web, web::Data};
 use api::signaling::SignalingModules;
 use kustos::Authz;
 use lapin_pool::RabbitMqPool;
-use opentalk_controller_api_actix_web::well_known;
+use opentalk_controller_api_actix_web::{v1, well_known};
 use opentalk_controller_service::{
     ControllerBackend, Whatever,
     oidc::{Cache, OidcTokenHandler, build_oidc_token_handler},
@@ -350,6 +350,7 @@ impl Controller {
                 authz.clone(),
                 inventory_provider.clone(),
                 oidc_cache.clone(),
+                oidc.clone(),
                 oidc_provider,
                 storage.clone(),
                 volatile.clone(),
@@ -686,7 +687,7 @@ impl ModulesRegistrar for Controller {
         api::v1::assets::create,
         api::v1::assets::delete,
         api::v1::auth::get_login,
-        api::v1::auth::post_login,
+        v1::auth::login::post,
         api::v1::events::delete_event,
         api::v1::events::favorites::add_event_to_favorites,
         api::v1::events::favorites::remove_event_from_favorites,
@@ -923,7 +924,7 @@ fn v1_scope(
     let scope = web::scope("/v1");
 
     scope
-        .service(api::v1::auth::post_login)
+        .service(v1::auth::login::post)
         .service(api::v1::auth::get_login)
         .service(api::v1::rooms::start_invited)
         .service(api::v1::rooms::roomserver::start_invited)

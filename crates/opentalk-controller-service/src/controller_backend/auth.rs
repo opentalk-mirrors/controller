@@ -2,14 +2,42 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_types_api_v1::auth::GetLoginResponseBody;
+use opentalk_types_api_v1::{
+    auth::{GetLoginResponseBody, PostLoginResponseBody, login::AuthLoginPostRequestBody},
+    error::{ApiError, AuthenticationError},
+};
 
-use crate::ControllerBackend;
+use crate::{ControllerBackend, oidc::VerifyError};
 
 impl ControllerBackend {
     pub(crate) async fn get_login(&self) -> GetLoginResponseBody {
         GetLoginResponseBody {
             oidc: self.frontend_oidc_provider.clone(),
         }
+    }
+
+    pub(crate) async fn post_login(
+        &self,
+        body: AuthLoginPostRequestBody,
+    ) -> Result<PostLoginResponseBody, ApiError> {
+        if let Err(e) = self.oidc_token_handler.verify_id_token(&body.id_token) {
+            return match e {
+                VerifyError::InvalidClaims => Err(ApiError::bad_request()
+                    .with_code("invalid_claims")
+                    .with_message("some required attributes are missing or malformed")),
+                VerifyError::Expired { .. } => Err(ApiError::unauthorized()
+                    .with_www_authenticate(AuthenticationError::SessionExpired)),
+                VerifyError::MissingKeyID
+                | VerifyError::UnknownKeyID
+                | VerifyError::MalformedSignature
+                | VerifyError::InvalidJwt { .. }
+                | VerifyError::InvalidSignature => Err(ApiError::unauthorized()
+                    .with_www_authenticate(AuthenticationError::InvalidIdToken)),
+            };
+        };
+
+        Ok(PostLoginResponseBody {
+            permissions: Default::default(),
+        })
     }
 }

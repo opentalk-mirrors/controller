@@ -11,6 +11,7 @@
 #[macro_use]
 pub mod signaling;
 pub mod headers;
-pub mod responses;
 pub mod upload;
 pub mod v1;
+
+pub use opentalk_controller_api_actix_web::utoipa::responses;
