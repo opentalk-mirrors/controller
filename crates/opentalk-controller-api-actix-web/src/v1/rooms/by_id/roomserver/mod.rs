@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! API endpoints under `v1/rooms/{room_id}`
+//! API endpoints under `v1/rooms/{room_id}/roomserver`
 
-pub mod roomserver;
 pub mod start_invited;

@@ -927,7 +927,7 @@ fn v1_scope(
         .service(v1::auth::login::post)
         .service(v1::auth::login::get)
         .service(v1::rooms::by_id::start_invited::post)
-        .service(api::v1::rooms::roomserver::start_invited)
+        .service(v1::rooms::by_id::roomserver::start_invited::post)
         .service(api::v1::invites::verify_invite_code)
         .service(api::v1::turn::get)
         .service(api::v1::assets::proxy_download)
