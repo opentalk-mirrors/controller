@@ -5,13 +5,13 @@
 //! API endpoints under `v1/events/{event_id}`
 
 use actix_web::{
-    Either, get, patch,
+    Either, delete, get, patch,
     web::{Data, Json, Path, Query, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
     error::ApiError,
-    events::{EventResource, GetEventQuery, PatchEventBody, PatchEventQuery},
+    events::{DeleteEventsQuery, EventResource, GetEventQuery, PatchEventBody, PatchEventQuery},
 };
 use opentalk_types_common::events::EventId;
 
@@ -140,4 +140,60 @@ pub async fn patch(
         Some(event_resource) => Ok(Either::Left(ApiResponse::new(event_resource))),
         _ => Ok(Either::Right(NoContent)),
     }
+}
+
+/// Delete an event and its owned resources, including the associated room.
+///
+/// Deletes the event by the id if found. See the query parameters for affecting
+/// the behavior of this endpoint, such as mail notification suppression, or
+/// succeding even if external resources cannot be successfully deleted.
+#[utoipa::path(
+    operation_id = "delete_event",
+    tag = "api::v1::events",
+    params(
+        DeleteEventsQuery,
+        ("event_id" = EventId, description = "The id of the event"),
+    ),
+    responses(
+        (
+            status = StatusCode::NO_CONTENT,
+            description = "The event was successfully deleted",
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            response = Unauthorized,
+        ),
+        (
+            status = StatusCode::FORBIDDEN,
+            response = Forbidden,
+        ),
+        (
+            status = StatusCode::NOT_FOUND,
+            response = NotFound,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(
+        ("BearerAuth" = []),
+    ),
+)]
+#[delete("/events/{event_id}")]
+pub async fn delete(
+    service: Data<dyn OpenTalkControllerService>,
+    current_user: ReqData<RequestUser>,
+    event_id: Path<EventId>,
+    query: Query<DeleteEventsQuery>,
+) -> Result<NoContent, ApiError> {
+    service
+        .delete_event(
+            current_user.into_inner(),
+            event_id.into_inner(),
+            query.into_inner(),
+        )
+        .await?;
+
+    Ok(NoContent)
 }

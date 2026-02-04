@@ -6,7 +6,7 @@ use actix_web::{
     Either, get, patch,
     web::{Data, Json, Path, Query, ReqData},
 };
-use opentalk_controller_api_actix_web::v1::response::headers::PageLink;
+use opentalk_controller_api_actix_web::v1::response::{ApiResponse, headers::PageLink};
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -17,10 +17,9 @@ use opentalk_types_api_v1::{
 };
 use opentalk_types_common::events::EventId;
 
-use super::{ApiResponse, DefaultApiResult};
 use crate::api::{
     responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
-    v1::response::NoContent,
+    v1::{DefaultApiResult, response::NoContent},
 };
 
 /// Get a list of the instances of an event

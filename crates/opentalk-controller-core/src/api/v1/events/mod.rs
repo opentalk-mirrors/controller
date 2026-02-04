@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use actix_web::{
-    delete, post,
-    web::{Data, Json, Path, Query, ReqData},
+    post,
+    web::{Json, Path},
 };
 use chrono::{DateTime, Utc};
 use kustos::{
@@ -12,72 +12,13 @@ use kustos::{
     policies_builder::{GrantingAccess, PoliciesBuilder},
     prelude::{AccessMethod, IsSubject},
 };
-use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
-use opentalk_types_api_v1::{error::ApiError, events::DeleteEventsQuery};
 use opentalk_types_common::{events::EventId, time::RecurrencePattern};
 use serde::Deserialize;
-
-use super::{ApiResponse, DefaultApiResult, response::NoContent};
-use crate::api::responses::{Forbidden, InternalServerError, NotFound, Unauthorized};
 
 pub mod favorites;
 pub mod instances;
 pub mod invites;
 pub mod shared_folder;
-
-/// Delete an event and its owned resources, including the associated room.
-///
-/// Deletes the event by the id if found. See the query parameters for affecting
-/// the behavior of this endpoint, such as mail notification suppression, or
-/// succeding even if external resources cannot be successfully deleted.
-#[utoipa::path(
-    params(
-        DeleteEventsQuery,
-        ("event_id" = EventId, description = "The id of the event"),
-    ),
-    responses(
-        (
-            status = StatusCode::NO_CONTENT,
-            description = "The event was successfully deleted",
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[delete("/events/{event_id}")]
-pub async fn delete_event(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-    event_id: Path<EventId>,
-    query: Query<DeleteEventsQuery>,
-) -> Result<NoContent, ApiError> {
-    service
-        .delete_event(
-            current_user.into_inner(),
-            event_id.into_inner(),
-            query.into_inner(),
-        )
-        .await?;
-
-    Ok(NoContent)
-}
 
 #[derive(Deserialize)]
 pub struct EventRescheduleBody {

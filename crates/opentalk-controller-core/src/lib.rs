@@ -688,7 +688,7 @@ impl ModulesRegistrar for Controller {
         api::v1::assets::delete,
         v1::auth::login::get,
         v1::auth::login::post,
-        api::v1::events::delete_event,
+        v1::events::by_id::delete,
         api::v1::events::favorites::add_event_to_favorites,
         api::v1::events::favorites::remove_event_from_favorites,
         v1::events::by_id::get,
@@ -977,7 +977,7 @@ fn v1_scope(
                 .service(v1::events::instances::get)
                 .service(v1::events::by_id::get)
                 .service(v1::events::by_id::patch)
-                .service(api::v1::events::delete_event)
+                .service(v1::events::by_id::delete)
                 .service(api::v1::events::favorites::add_event_to_favorites)
                 .service(api::v1::events::favorites::remove_event_from_favorites)
                 .service(api::v1::events::instances::get_event_instance)
