@@ -102,6 +102,7 @@ livekit-protocol = "0.6.0"
 livekit-runtime = { version = "0.4", default-features = false }
 log = "0.4"
 md5 = "0.8"
+oauth2 = "5.0.0"
 openidconnect = "4"
 opentalk-diesel-newtype = "0.13"
 opentalk-etherpad-client = { version = "0.4.0", default-features = false, features = [

@@ -8,79 +8,22 @@
 //! structs are defined in the Database crate [`opentalk_db_storage`] for database operations.
 
 use actix_web::{
-    Either, get, patch,
+    get,
     web::{Data, Json, Path, Query, ReqData},
 };
-use openidconnect::AccessToken;
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
     assets::AssetSortingQuery,
     error::ApiError,
     pagination::PagePaginationQuery,
-    users::{
-        GetUserAssetsResponseBody, PrivateUserProfile, PublicUserProfile, me::PatchMeRequestBody,
-    },
+    users::{GetUserAssetsResponseBody, PrivateUserProfile, PublicUserProfile},
 };
 use opentalk_types_common::{tariffs::TariffResource, users::UserId};
 
-use super::response::NoContent;
 use crate::api::{
     responses::{Forbidden, InternalServerError, Unauthorized},
     v1::ApiResponse,
 };
-
-/// Patch the current user's profile
-///
-/// Fields that are not provided in the request body will remain unchanged.
-#[utoipa::path(
-    request_body = PatchMeRequestBody,
-    operation_id = "patch_users_me",
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "User profile was successfully updated",
-            body = PrivateUserProfile
-        ),
-        (
-            status = StatusCode::BAD_REQUEST,
-            description = r"Could not modify the user's profile due to wrong
-                syntax or bad values",
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[patch("/users/me")]
-pub async fn patch_me(
-    service: Data<dyn OpenTalkControllerService>,
-    access_token: ReqData<AccessToken>,
-    current_user: ReqData<RequestUser>,
-    patch: Json<PatchMeRequestBody>,
-) -> Result<Either<Json<PrivateUserProfile>, NoContent>, ApiError> {
-    let current_user = current_user.into_inner();
-
-    let user_profile = service
-        .patch_me(
-            current_user.clone(),
-            patch.into_inner(),
-            access_token.secret(),
-        )
-        .await?;
-
-    match user_profile {
-        Some(user_profile) => Ok(Either::Left(Json(user_profile))),
-        _ => Ok(Either::Right(NoContent)),
-    }
-}
 
 /// Get the current user's profile
 ///

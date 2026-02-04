@@ -5111,6 +5111,7 @@ version = "0.33.0-alpha"
 dependencies = [
  "actix-web",
  "futures",
+ "oauth2",
  "opentalk-controller-service-facade",
  "opentalk-types-api-v1",
  "opentalk-types-common",

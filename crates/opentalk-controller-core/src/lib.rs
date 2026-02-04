@@ -744,7 +744,7 @@ impl ModulesRegistrar for Controller {
         api::v1::users::get_me_assets,
         api::v1::users::get_me_tariff,
         api::v1::users::get_user,
-        api::v1::users::patch_me,
+        v1::users::me::patch,
     ),
     components(
         schemas(
@@ -957,7 +957,7 @@ fn v1_scope(
                     oidc_ctx,
                 })
                 .service(v1::users::find::get)
-                .service(api::v1::users::patch_me)
+                .service(v1::users::me::patch)
                 .service(api::v1::users::get_me)
                 .service(api::v1::users::get_me_tariff)
                 .service(api::v1::users::get_me_assets)
