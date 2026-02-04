@@ -4,6 +4,8 @@
 
 //! API endpoints under `v1/users/me`
 
+pub mod tariff;
+
 use actix_web::{
     Either, get, patch,
     web::{Data, Json, ReqData},

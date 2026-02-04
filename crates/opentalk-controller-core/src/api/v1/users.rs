@@ -18,44 +18,12 @@ use opentalk_types_api_v1::{
     pagination::PagePaginationQuery,
     users::{GetUserAssetsResponseBody, PublicUserProfile},
 };
-use opentalk_types_common::{tariffs::TariffResource, users::UserId};
+use opentalk_types_common::users::UserId;
 
 use crate::api::{
     responses::{Forbidden, InternalServerError, Unauthorized},
     v1::ApiResponse,
 };
-
-/// Get the current user tariff information.
-///
-/// Returns the tariff information for the currently logged in user.
-#[utoipa::path(
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "Information about the tariff of the current user",
-            body = TariffResource,
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[get("/users/me/tariff")]
-pub async fn get_me_tariff(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-) -> Result<Json<TariffResource>, ApiError> {
-    let resource = service.get_my_tariff(current_user.into_inner()).await?;
-    Ok(Json(resource))
-}
 
 /// Get the assets associated with the user.
 ///
