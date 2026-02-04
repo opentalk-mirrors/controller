@@ -697,7 +697,7 @@ impl ModulesRegistrar for Controller {
         v1::events::by_id::instances::get,
         v1::events::instances::get,
         v1::events::by_id::instances::by_id::patch,
-        api::v1::events::invites::accept_event_invite,
+        v1::events::by_id::invite::patch,
         v1::events::by_id::invites::post,
         api::v1::events::invites::decline_event_invite,
         v1::events::by_id::invites::email::delete,
@@ -989,7 +989,7 @@ fn v1_scope(
                 .service(v1::events::by_id::invites::by_id::delete)
                 .service(v1::events::by_id::invites::email::patch)
                 .service(v1::events::by_id::invites::by_id::patch)
-                .service(api::v1::events::invites::accept_event_invite)
+                .service(v1::events::by_id::invite::patch)
                 .service(api::v1::events::invites::decline_event_invite)
                 .service(api::v1::events::shared_folder::get_shared_folder_for_event)
                 .service(api::v1::events::shared_folder::put_shared_folder_for_event)

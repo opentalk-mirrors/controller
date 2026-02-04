@@ -22,6 +22,7 @@ use crate::{
 };
 
 pub mod instances;
+pub mod invite;
 pub mod invites;
 
 /// Get an event
