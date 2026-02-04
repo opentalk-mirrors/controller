@@ -743,7 +743,7 @@ impl ModulesRegistrar for Controller {
         v1::users::me::get,
         v1::users::me::assets::get,
         v1::users::me::tariff::get,
-        api::v1::users::get_user,
+        v1::users::by_id::get,
         v1::users::me::patch,
     ),
     components(
@@ -961,7 +961,7 @@ fn v1_scope(
                 .service(v1::users::me::get)
                 .service(v1::users::me::tariff::get)
                 .service(v1::users::me::assets::get)
-                .service(api::v1::users::get_user)
+                .service(v1::users::by_id::get)
                 .service(api::v1::rooms::accessible)
                 .service(api::v1::rooms::new)
                 .service(api::v1::rooms::patch)

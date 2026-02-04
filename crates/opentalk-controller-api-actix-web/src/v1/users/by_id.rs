@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! User related API structs and Endpoints
-//!
-//! The defined structs are exposed to the REST API and will be serialized/deserialized. Similar
-//! structs are defined in the Database crate [`opentalk_db_storage`] for database operations.
+//! API endpoints under `v1/users/{user_id}`
 
 use actix_web::{
     get,
@@ -15,12 +12,14 @@ use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser}
 use opentalk_types_api_v1::{error::ApiError, users::PublicUserProfile};
 use opentalk_types_common::users::UserId;
 
-use crate::api::responses::{Forbidden, InternalServerError, Unauthorized};
+use crate::utoipa::responses::{Forbidden, InternalServerError, Unauthorized};
 
 /// Get a user's public profile
 ///
 /// Returns the public profile of a user.
 #[utoipa::path(
+    tag = "api::v1::users",
+    operation_id = "get_user",
     params(
         ("user_id" = UserId, description = "The id of the user"),
     ),
@@ -48,7 +47,7 @@ use crate::api::responses::{Forbidden, InternalServerError, Unauthorized};
     ),
 )]
 #[get("/users/{user_id}")]
-pub async fn get_user(
+pub async fn get(
     service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     user_id: Path<UserId>,

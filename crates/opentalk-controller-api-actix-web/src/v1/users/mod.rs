@@ -4,5 +4,6 @@
 
 //! API endpoints under `v1/users`
 
+pub mod by_id;
 pub mod find;
 pub mod me;
