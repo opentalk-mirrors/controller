@@ -740,7 +740,7 @@ impl ModulesRegistrar for Controller {
         api::v1::streaming_targets::post_streaming_target,
         v1::turn::get,
         v1::users::find::get,
-        api::v1::users::get_me,
+        v1::users::me::get,
         api::v1::users::get_me_assets,
         api::v1::users::get_me_tariff,
         api::v1::users::get_user,
@@ -958,7 +958,7 @@ fn v1_scope(
                 })
                 .service(v1::users::find::get)
                 .service(v1::users::me::patch)
-                .service(api::v1::users::get_me)
+                .service(v1::users::me::get)
                 .service(api::v1::users::get_me_tariff)
                 .service(api::v1::users::get_me_assets)
                 .service(api::v1::users::get_user)

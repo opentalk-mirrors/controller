@@ -5,7 +5,7 @@
 //! API endpoints under `v1/users/me`
 
 use actix_web::{
-    Either, patch,
+    Either, get, patch,
     web::{Data, Json, ReqData},
 };
 use oauth2::AccessToken;
@@ -72,4 +72,39 @@ pub async fn patch(
         Some(user_profile) => Ok(Either::Left(Json(user_profile))),
         _ => Ok(Either::Right(NoContent)),
     }
+}
+
+/// Get the current user's profile
+///
+/// Returns the private user profile of the currently logged-in user. This
+/// private profile contains information that is not visible in the public
+/// profile, such as tariff status or the used storage.
+#[utoipa::path(
+    operation_id = "get_users_me",
+    tag = "api::v1::users",
+    responses(
+        (
+            status = StatusCode::OK,
+            description = "Information about the logged in user",
+            body = PrivateUserProfile,
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            response = Unauthorized,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(
+        ("BearerAuth" = []),
+    ),
+)]
+#[get("/users/me")]
+pub async fn get(
+    service: Data<dyn OpenTalkControllerService>,
+    current_user: ReqData<RequestUser>,
+) -> Result<Json<PrivateUserProfile>, ApiError> {
+    Ok(Json(service.get_me(current_user.into_inner()).await?))
 }
