@@ -30,13 +30,14 @@ use opentalk_inventory::{
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
-    error::{ApiError, ERROR_CODE_IGNORED_VALUE, ERROR_CODE_VALUE_REQUIRED, ValidationErrorEntry},
+    error::ApiError,
     events::{
         CallInInfo, DeleteEventsQuery, EmailOnlyUser, EventAndInstanceId, EventDate, EventDateKind,
         EventExceptionResource, EventInvitee, EventInviteeProfile, EventOptionsQuery,
         EventOrException, EventResource, EventResourceDate, EventResourceDateKind, EventRoomInfo,
         EventStatus, EventType, GetEventQuery, GetEventsCursorData, GetEventsQuery, PatchEventBody,
-        PatchEventQuery, PostEventsBody, PublicInviteUserProfile, TimeDependentMarker,
+        PatchEventDateKind, PatchEventQuery, PostEventsBody, PublicInviteUserProfile,
+        TimeDependentMarker,
     },
     pagination::Cursor,
     users::PublicUserProfile,
@@ -1085,22 +1086,122 @@ impl ControllerBackend {
         let event = if patch.only_modifies_room() {
             event
         } else {
-            let update_event = match (event.is_time_independent(), patch.is_time_independent) {
-                (true, Some(false)) => {
+            let update_event = match patch.date {
+                PatchEventDateKind::SetTimeDependent { date, .. } => {
                     // The patch changes the event from an time-independent
                     // event to a time dependent event.
-                    patch_event_change_to_time_dependent(&current_user, patch)?
+                    let recurrence_pattern = date.recurrence_pattern.to_multiline_string();
+
+                    let (duration_secs, ends_at_dt, ends_at_tz) = parse_event_dt_params(
+                        date.is_all_day,
+                        date.starts_at,
+                        date.ends_at,
+                        &recurrence_pattern,
+                    )?;
+
+                    UpdateEvent {
+                        title: patch.title,
+                        description: patch.description,
+                        updated_by: current_user.id,
+                        updated_at: Timestamp::now(),
+                        is_time_independent: Some(false),
+                        is_all_day: Some(Some(date.is_all_day)),
+                        starts_at: Some(Some(date.starts_at.to_datetime_tz())),
+                        starts_at_tz: Some(Some(date.starts_at.timezone)),
+                        ends_at: Some(Some(ends_at_dt)),
+                        ends_at_tz: Some(Some(ends_at_tz)),
+                        duration_secs: Some(duration_secs),
+                        recurrence_pattern: Some(recurrence_pattern),
+                        is_adhoc: patch.is_adhoc,
+                        show_meeting_details: patch.show_meeting_details,
+                    }
                 }
-                (true, _) | (false, Some(true)) => {
+                PatchEventDateKind::SetTimeIndependent { .. } => {
                     // The patch will modify an time-independent event or change
                     // an event to a time-independent event.
-                    patch_time_independent_event(inventory.as_mut(), &current_user, &event, patch)
-                        .await?
+                    if event
+                        .date
+                        .as_ref()
+                        .and_then(|date| date.recurrence.as_ref())
+                        .is_some()
+                    {
+                        // Delete all exceptions as the time dependence has been removed.
+                        inventory
+                            .delete_event_exceptions_for_event(event.id)
+                            .await?;
+                    }
+
+                    UpdateEvent {
+                        title: patch.title,
+                        description: patch.description,
+                        updated_by: current_user.id,
+                        updated_at: Timestamp::now(),
+                        is_time_independent: Some(true),
+                        is_all_day: Some(None),
+                        starts_at: Some(None),
+                        starts_at_tz: Some(None),
+                        ends_at: Some(None),
+                        ends_at_tz: Some(None),
+                        duration_secs: Some(None),
+                        recurrence_pattern: Some(None),
+                        is_adhoc: patch.is_adhoc,
+                        show_meeting_details: patch.show_meeting_details,
+                    }
                 }
-                _ => {
+                PatchEventDateKind::PatchTimeDependent { date, .. } => {
                     // The patch modifies an time dependent event.
-                    patch_time_dependent_event(inventory.as_mut(), &current_user, &event, patch)
-                        .await?
+                    let recurrence_pattern = date.recurrence_pattern.to_multiline_string();
+
+                    let Some(event_date) = event.date() else {
+                        return Err(ApiError::internal()
+                            .with_message("tried to patch time depedent event without date")
+                            .into());
+                    };
+
+                    let is_all_day = date.is_all_day.unwrap_or(event_date.is_all_day);
+
+                    let starts_at = date.starts_at.unwrap_or(DateTimeTz {
+                        datetime: event_date.starts_at.into(),
+                        timezone: event_date.starts_at_tz,
+                    });
+
+                    let ends_at = date.ends_at.unwrap_or_else(|| {
+                        let (ends_at, ends_at_tz) = event_date.ends_at_of_first_occurrence();
+                        DateTimeTz {
+                            datetime: ends_at.into(),
+                            timezone: ends_at_tz,
+                        }
+                    });
+
+                    let (duration_secs, ends_at_dt, ends_at_tz) =
+                        parse_event_dt_params(is_all_day, starts_at, ends_at, &recurrence_pattern)?;
+
+                    if event.is_recurring() {
+                        // Delete all exceptions for recurring events as the patch may modify
+                        // fields that influence the timestamps at which instances (occurrences)
+                        // are generated, making it impossible to match the exceptions to
+                        // instances.
+                        inventory
+                            .delete_event_exceptions_for_event(event.id)
+                            .await?;
+                    }
+
+                    UpdateEvent {
+                        title: patch.title,
+                        description: patch.description,
+                        updated_by: current_user.id,
+                        updated_at: Timestamp::now(),
+                        is_time_independent: Some(false),
+                        is_all_day: Some(Some(is_all_day)),
+                        starts_at: Some(Some(starts_at.to_datetime_tz())),
+                        starts_at_tz: Some(Some(starts_at.timezone)),
+                        ends_at: Some(Some(ends_at_dt)),
+                        ends_at_tz: Some(Some(ends_at_tz)),
+                        duration_secs: Some(duration_secs),
+                        is_adhoc: patch.is_adhoc,
+                        recurrence_pattern: Some(recurrence_pattern),
+                        show_meeting_details: patch.show_meeting_details,
+                    }
                 }
             };
 
@@ -1780,204 +1881,6 @@ async fn create_time_dependent_event(
     });
 
     Ok((event_resource, mail_resource))
-}
-
-/// Part of `PATCH /events/{event_id}` (see [`patch_event`])
-///
-/// Patch event which is time independent into a time dependent event
-fn patch_event_change_to_time_dependent(
-    current_user: &User,
-    patch: PatchEventBody,
-) -> Result<UpdateEvent, ApiError> {
-    if let (Some(is_all_day), Some(starts_at), Some(ends_at)) =
-        (patch.is_all_day, patch.starts_at, patch.ends_at)
-    {
-        let recurrence_pattern = patch.recurrence_pattern.to_multiline_string();
-
-        let (duration_secs, ends_at_dt, ends_at_tz) =
-            parse_event_dt_params(is_all_day, starts_at, ends_at, &recurrence_pattern)?;
-
-        Ok(UpdateEvent {
-            title: patch.title,
-            description: patch.description,
-            updated_by: current_user.id,
-            updated_at: Timestamp::now(),
-            is_time_independent: Some(false),
-            is_all_day: Some(Some(is_all_day)),
-            starts_at: Some(Some(starts_at.to_datetime_tz())),
-            starts_at_tz: Some(Some(starts_at.timezone)),
-            ends_at: Some(Some(ends_at_dt)),
-            ends_at_tz: Some(Some(ends_at_tz)),
-            duration_secs: Some(duration_secs),
-            recurrence_pattern: Some(recurrence_pattern),
-            is_adhoc: patch.is_adhoc,
-            show_meeting_details: patch.show_meeting_details,
-        })
-    } else {
-        const MSG: Option<&str> = Some("Must be provided when changing to time dependent events");
-
-        let mut entries = vec![];
-
-        if patch.is_all_day.is_some() {
-            entries.push(ValidationErrorEntry::new(
-                "is_all_day",
-                ERROR_CODE_VALUE_REQUIRED,
-                MSG,
-            ))
-        }
-
-        if patch.starts_at.is_some() {
-            entries.push(ValidationErrorEntry::new(
-                "starts_at",
-                ERROR_CODE_VALUE_REQUIRED,
-                MSG,
-            ))
-        }
-
-        if patch.ends_at.is_some() {
-            entries.push(ValidationErrorEntry::new(
-                "ends_at",
-                ERROR_CODE_VALUE_REQUIRED,
-                MSG,
-            ))
-        }
-
-        Err(ApiError::unprocessable_entities(entries))
-    }
-}
-
-/// Part of `PATCH /events/{event_id}` (see [`patch_event`])
-///
-/// Patch event which is time dependent into a time independent event
-async fn patch_time_independent_event(
-    inventory: &mut dyn Inventory,
-    current_user: &User,
-    event: &Event,
-    patch: PatchEventBody,
-) -> Result<UpdateEvent, CaptureApiError> {
-    if patch.is_all_day.is_some() || patch.starts_at.is_some() || patch.ends_at.is_some() {
-        const MSG: Option<&str> = Some("Value would be ignored in this request");
-
-        let mut entries = vec![];
-
-        if patch.is_all_day.is_some() {
-            entries.push(ValidationErrorEntry::new(
-                "is_all_day",
-                ERROR_CODE_IGNORED_VALUE,
-                MSG,
-            ))
-        }
-
-        if patch.starts_at.is_some() {
-            entries.push(ValidationErrorEntry::new(
-                "starts_at",
-                ERROR_CODE_IGNORED_VALUE,
-                MSG,
-            ))
-        }
-
-        if patch.ends_at.is_some() {
-            entries.push(ValidationErrorEntry::new(
-                "ends_at",
-                ERROR_CODE_IGNORED_VALUE,
-                MSG,
-            ))
-        }
-
-        return Err(ApiError::unprocessable_entities(entries).into());
-    }
-
-    if event
-        .date
-        .as_ref()
-        .and_then(|date| date.recurrence.as_ref())
-        .is_some()
-    {
-        // Delete all exceptions as the time dependence has been removed.
-        inventory
-            .delete_event_exceptions_for_event(event.id)
-            .await?;
-    }
-
-    Ok(UpdateEvent {
-        title: patch.title,
-        description: patch.description,
-        updated_by: current_user.id,
-        updated_at: Timestamp::now(),
-        is_time_independent: Some(true),
-        is_all_day: Some(None),
-        starts_at: Some(None),
-        starts_at_tz: Some(None),
-        ends_at: Some(None),
-        ends_at_tz: Some(None),
-        duration_secs: Some(None),
-        recurrence_pattern: Some(None),
-        is_adhoc: patch.is_adhoc,
-        show_meeting_details: patch.show_meeting_details,
-    })
-}
-
-/// Part of `PATCH /events/{event_id}` (see [`patch_event`]).
-///
-/// Patch fields on an time dependent event (without changing the time dependence field).
-async fn patch_time_dependent_event(
-    inventory: &mut dyn Inventory,
-    current_user: &User,
-    event: &Event,
-    patch: PatchEventBody,
-) -> Result<UpdateEvent, CaptureApiError> {
-    let recurrence_pattern = patch.recurrence_pattern.to_multiline_string();
-
-    let Some(date) = event.date() else {
-        return Err(ApiError::internal()
-            .with_message("tried to patch time depedent event without date")
-            .into());
-    };
-
-    let is_all_day = patch.is_all_day.unwrap_or(date.is_all_day);
-
-    let starts_at = patch.starts_at.unwrap_or(DateTimeTz {
-        datetime: date.starts_at.into(),
-        timezone: date.starts_at_tz,
-    });
-
-    let ends_at = patch.ends_at.unwrap_or_else(|| {
-        let (ends_at, ends_at_tz) = date.ends_at_of_first_occurrence();
-        DateTimeTz {
-            datetime: ends_at.into(),
-            timezone: ends_at_tz,
-        }
-    });
-
-    let (duration_secs, ends_at_dt, ends_at_tz) =
-        parse_event_dt_params(is_all_day, starts_at, ends_at, &recurrence_pattern)?;
-
-    if event.is_recurring() {
-        // Delete all exceptions for recurring events as the patch may modify
-        // fields that influence the timestamps at which instances (occurrences)
-        // are generated, making it impossible to match the exceptions to
-        // instances.
-        inventory
-            .delete_event_exceptions_for_event(event.id)
-            .await?;
-    }
-
-    Ok(UpdateEvent {
-        title: patch.title,
-        description: patch.description,
-        updated_by: current_user.id,
-        updated_at: Timestamp::now(),
-        is_time_independent: Some(false),
-        is_all_day: Some(Some(is_all_day)),
-        starts_at: Some(Some(starts_at.to_datetime_tz())),
-        starts_at_tz: Some(Some(starts_at.timezone)),
-        ends_at: Some(Some(ends_at_dt)),
-        ends_at_tz: Some(Some(ends_at_tz)),
-        duration_secs: Some(duration_secs),
-        is_adhoc: patch.is_adhoc,
-        recurrence_pattern: Some(recurrence_pattern),
-        show_meeting_details: patch.show_meeting_details,
-    })
 }
 
 pub(crate) struct CancellationNotificationValues {

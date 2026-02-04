@@ -4244,7 +4244,7 @@ components:
       type: string
       description: An event instance id
       examples:
-        - "2024-07-20T15:23:42+00:00"
+        - 20240720T152342Z
     InviteCode:
       type: string
       format: uuid
@@ -4424,76 +4424,166 @@ components:
             - $ref: "#/components/schemas/EmailInviteRole"
               description: Invite role of the user
     PatchEventBody:
-      type: object
+      allOf:
+        - $ref: "#/components/schemas/PatchEventDateKind"
+          description: |-
+            Patch the date of the event.
+
+            - If `is_time_independent` is `false` the body **must** have
+              `is_all_day`, `starts_at` and `ends_at`
+            - If `is_time_independent` is `true` the body **can** have
+              `is_all_day, `starts_at` and `ends_at`
+        - type: object
+          properties:
+            description:
+              $ref: "#/components/schemas/EventDescription"
+              description: Patch the description of the event
+            e2e_encryption:
+              type: boolean
+              description: Patch whether the event is encrypted
+            has_shared_folder:
+              type: boolean
+              description: "Either add a shared folder to the event, if none existed before or delete the shared folder"
+            is_adhoc:
+              type: boolean
+              description: Patch the adhoc flag.
+            password:
+              $ref: "#/components/schemas/RoomPassword"
+              description: "Patch the password of the event's room"
+            show_meeting_details:
+              type: boolean
+              description: Patch wether the meeting details are displayed or not
+            streaming_targets:
+              type: array
+              items:
+                $ref: "#/components/schemas/StreamingTarget"
+              description: The streaming targets of the room associated with the event
+            title:
+              $ref: "#/components/schemas/EventTitle"
+              description: Patch the title of th event
+            training_participation_report:
+              $ref: "#/components/schemas/TrainingParticipationReportParameterSet"
+              description: |-
+                The training participation report parameter set for the event.
+
+                When present, the training participation report will be started
+                automatically in the meeting.
+            waiting_room:
+              type: boolean
+              description: Patch the presence of a waiting room
       description: "Body for the `PATCH /events/{event_id}` endpoint"
-      properties:
-        description:
-          $ref: "#/components/schemas/EventDescription"
-          description: Patch the description of the event
-        e2e_encryption:
-          type: boolean
-          description: Patch whether the event is encrypted
-        ends_at:
-          $ref: "#/components/schemas/DateTimeTz"
-          description: Patch the end time of the event
-        has_shared_folder:
-          type: boolean
-          description: "Either add a shared folder to the event, if none existed before or delete the shared folder"
-        is_adhoc:
-          type: boolean
-          description: Patch the adhoc flag.
-        is_all_day:
-          type: boolean
-          description: |-
-            Patch if the event is an all-day event
-
-            If it changes the value from false to true this request must ensure
-            that the `starts_at.datetime` and `ends_at.datetime` have a 00:00 time part.
-        is_time_independent:
-          type: boolean
-          description: |-
-            Patch the time independence of the event
-
-            If it changes the independence from true false this body has to have
-            `is_all_day`, `starts_at` and `ends_at` set
-        password:
-          $ref: "#/components/schemas/RoomPassword"
-          description: "Patch the password of the event's room"
-        recurrence_pattern:
-          $ref: "#/components/schemas/RecurrencePattern"
-          description: |-
-            Patch the events recurrence patterns
-
-            If this list is non empty it override the events current one
-        show_meeting_details:
-          type: boolean
-          description: Patch wether the meeting details are displayed or not
-        starts_at:
-          $ref: "#/components/schemas/DateTimeTz"
-          description: Patch the start time of the event
-        streaming_targets:
-          type: array
-          items:
-            $ref: "#/components/schemas/StreamingTarget"
-          description: The streaming targets of the room associated with the event
-        title:
-          $ref: "#/components/schemas/EventTitle"
-          description: Patch the title of th event
-        training_participation_report:
-          $ref: "#/components/schemas/TrainingParticipationReportParameterSet"
-          description: |-
-            The training participation report parameter set for the event.
-
-            When present, the training participation report will be started
-            automatically in the meeting.
-        waiting_room:
-          type: boolean
-          description: Patch the presence of a waiting room
       example:
         description: The new description
         has_shared_folder: true
+        is_time_independent: true
         show_meeting_details: false
         title: The new title
+    PatchEventDate:
+      type: object
+      description: Representing event date related information.
+      properties:
+        ends_at:
+          $ref: "#/components/schemas/DateTimeTz"
+          description: |-
+            End time of the event.
+
+            For recurring events these must contain the datetime of the first instance.
+        is_all_day:
+          type: boolean
+          description: |-
+            Should the event be all-day?
+
+            If true, requires `starts_at.datetime` and `ends_at.datetime` to have a 00:00 time part.
+        recurrence_pattern:
+          $ref: "#/components/schemas/RecurrencePattern"
+          description: |-
+            Recurrence pattern(s) for recurring events.
+
+            Contains a list of recurrence rules which describe the occurrences of the event.
+
+            # Allowed Values
+
+            - `RRULE`
+            - `RDATE`
+            - `EXRULE`
+            - `EXDATE`
+
+            # Forbidden Values
+
+            - `DTSTART`
+            - `DTEND`
+
+            This information is stored in the `starts_at` and `ends_at` fields.
+        starts_at:
+          $ref: "#/components/schemas/DateTimeTz"
+          description: |-
+            Start time of the event.
+
+            For recurring events these must contain the datetime of the first instance.
+      example:
+        ends_at:
+          datetime: "2002-04-01T11:41:35Z"
+          timezone: Europe/Berlin
+        is_all_day: true
+        recurrence_pattern:
+          - FREQ=WEEKLY;INTERVAL=1;BYDAY=MO
+        starts_at:
+          datetime: "2002-04-01T10:41:35Z"
+          timezone: Europe/Berlin
+    PatchEventDateKind:
+      oneOf:
+        - type: object
+          description: |-
+            Change an event that was previously bound to a specific date to be time
+            independent.
+
+            If this is set, remove all date related fields from exisisting event.
+          required:
+            - is_time_independent
+          properties:
+            is_time_independent:
+              $ref: "#/components/schemas/TimeIndependentMarker"
+              description: Is the event time independent.
+        - allOf:
+            - $ref: "#/components/schemas/EventDate"
+              description: Represents all date related information of the respective event.
+            - type: object
+              required:
+                - is_time_independent
+              properties:
+                is_time_independent:
+                  $ref: "#/components/schemas/TimeDependentMarker"
+                  description: |-
+                    Marker field to identify this variant as time dependent during
+                    deserialization.
+          description: |-
+            Change an event that was previouusly not bound to a specific date to be
+            time dependent.
+        - allOf:
+            - $ref: "#/components/schemas/PatchEventDate"
+              description: |-
+                Represents all optional date related information of the respective
+                event.
+            - type: object
+              properties:
+                is_time_independent:
+                  $ref: "#/components/schemas/TimeDependentMarker"
+                  description: |-
+                    Optional marker field to identify this variant as time dependent
+                    during deserialization.
+          description: Patch an event that is already time dependent.
+      description: Contains date related parameters for the respective event.
+      example:
+        ends_at:
+          datetime: "2002-04-01T11:41:35Z"
+          timezone: Europe/Berlin
+        is_all_day: true
+        is_time_independent: false
+        recurrence_pattern:
+          - FREQ=WEEKLY;INTERVAL=1;BYDAY=MO
+        starts_at:
+          datetime: "2002-04-01T10:41:35Z"
+          timezone: Europe/Berlin
     PatchEventInstanceBody:
       type: object
       description: "Request body for the `PATCH /events/{event_id}/{instance_id}` endpoint"
