@@ -26,6 +26,7 @@ use crate::{
 pub mod assets;
 pub mod event;
 pub mod roomserver;
+pub mod sip;
 pub mod start;
 pub mod start_invited;
 pub mod tariff;

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use actix_web::{
-    HttpResponse, delete, get, put,
+    HttpResponse, delete, put,
     web::{Data, Json, Path},
 };
 use opentalk_controller_service_facade::OpenTalkControllerService;
@@ -17,50 +17,6 @@ use crate::api::{
     responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
     v1::response::NoContent,
 };
-
-/// Get the sip config for the specified room.
-///
-/// Returns the sip config if available for the room, otherwise `404 NOT_FOUND`
-/// is returned.
-#[utoipa::path(
-    operation_id = "get_room_sip",
-    params(
-        ("room_id" = RoomId, description = "The id of the room"),
-    ),
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "The SIP config is successfully returned",
-            body = SipConfigResource,
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[get("/rooms/{room_id}/sip")]
-pub async fn get(
-    service: Data<dyn OpenTalkControllerService>,
-    room_id: Path<RoomId>,
-) -> Result<Json<SipConfigResource>, ApiError> {
-    Ok(Json(service.get_sip_config(room_id.into_inner()).await?))
-}
 
 /// Modify the sip configuration of a room. A new sip configuration is created
 /// if none was set before.
