@@ -2,12 +2,14 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+//! API endpoints under `v1/turn`
+
 //! TURN related API structs and Endpoints
 #![allow(deprecated)]
 
 use actix_web::get;
 
-use crate::api::v1::response::NoContent;
+use crate::response::NoContent;
 
 /// Deprecated endpoint, only available for backwards compatibility.
 ///
@@ -15,6 +17,7 @@ use crate::api::v1::response::NoContent;
 /// It returns an empty answer regardless any configuration.
 #[utoipa::path(
     operation_id = "get_turn",
+    tag="api::v1::turn",
     responses(
         (
             status = StatusCode::NO_CONTENT,

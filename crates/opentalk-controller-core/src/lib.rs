@@ -738,7 +738,7 @@ impl ModulesRegistrar for Controller {
         api::v1::streaming_targets::get_streaming_targets,
         api::v1::streaming_targets::patch_streaming_target,
         api::v1::streaming_targets::post_streaming_target,
-        api::v1::turn::get,
+        v1::turn::get,
         api::v1::users::find,
         api::v1::users::get_me,
         api::v1::users::get_me_assets,
@@ -929,7 +929,7 @@ fn v1_scope(
         .service(v1::rooms::by_id::start_invited::post)
         .service(v1::rooms::by_id::roomserver::start_invited::post)
         .service(v1::invite::verify::post)
-        .service(api::v1::turn::get)
+        .service(v1::turn::get)
         .service(api::v1::assets::proxy_download)
         .service(
             web::scope("/services/roomserver")
