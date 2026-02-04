@@ -20,6 +20,7 @@
     unused_results
 )]
 
+pub mod response;
 pub mod utoipa;
 pub mod v1;
 pub mod well_known;
