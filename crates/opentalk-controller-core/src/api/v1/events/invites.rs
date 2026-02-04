@@ -9,9 +9,7 @@ use actix_web::{
 use opentalk_controller_api_actix_web::v1::response::ApiResponse;
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
-    error::ApiError,
-    events::{PatchEmailInviteBody, PatchInviteBody},
-    users::GetEventInvitesPendingResponseBody,
+    error::ApiError, events::PatchInviteBody, users::GetEventInvitesPendingResponseBody,
 };
 use opentalk_types_common::{events::EventId, users::UserId};
 use serde::Deserialize;
@@ -71,55 +69,6 @@ pub async fn update_invite_to_event(
             path_parameters.1,
             &update_invite,
         )
-        .await?;
-
-    Ok(NoContent)
-}
-
-/// Patch an event email invite with the provided fields
-///
-/// Fields that are not provided in the request body will remain unchanged.
-#[utoipa::path(
-    request_body = PatchEmailInviteBody,
-    params(
-        ("event_id" = EventId, description = "The id of the event to be modified"),
-    ),
-    responses(
-        (
-            status = StatusCode::NO_CONTENT,
-            description = "Invite was successfully updated",
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            description = r"The requesting user does not have the required permissions to update the invite.
-              Only the creator of an event can update the invites.",
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[patch("/events/{event_id}/invites/email")]
-pub async fn update_email_invite_to_event(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-    path_parameters: Path<EventId>,
-    update_invite: Json<PatchEmailInviteBody>,
-) -> Result<NoContent, ApiError> {
-    service
-        .update_email_invite_to_event(&current_user, path_parameters.into_inner(), &update_invite)
         .await?;
 
     Ok(NoContent)
