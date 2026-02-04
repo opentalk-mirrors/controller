@@ -7,12 +7,12 @@
 #![allow(deprecated)]
 
 use actix_web::{
-    post,
+    get, post,
     web::{Data, Json},
 };
 use opentalk_controller_service_facade::OpenTalkControllerService;
 use opentalk_types_api_v1::{
-    auth::{PostLoginResponseBody, login::AuthLoginPostRequestBody},
+    auth::{GetLoginResponseBody, PostLoginResponseBody, login::AuthLoginPostRequestBody},
     error::{ApiError, AuthenticationError, ErrorBody},
 };
 
@@ -70,4 +70,29 @@ pub async fn post(
     body: Json<AuthLoginPostRequestBody>,
 ) -> Result<Json<PostLoginResponseBody>, ApiError> {
     Ok(Json(service.post_login(body.into_inner()).await?))
+}
+
+/// Get the configured OIDC provider
+///
+/// Returns the relevant information for a frontend to authenticate against the
+/// configured OIDC provider for the OpenTalk service.
+#[utoipa::path(
+    tag = "api::v1::auth",
+    operation_id = "get_login",
+    responses(
+        (
+            status = StatusCode::OK,
+            description = "Get information about the OIDC provider",
+            body = GetLoginResponseBody,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(),
+)]
+#[get("/auth/login")]
+pub async fn get(service: Data<dyn OpenTalkControllerService>) -> Json<GetLoginResponseBody> {
+    Json(service.get_login().await)
 }

@@ -7,7 +7,6 @@
 pub use response::{ApiResponse, DefaultApiResult};
 
 pub mod assets;
-pub mod auth;
 pub mod events;
 pub mod invites;
 pub mod middleware;

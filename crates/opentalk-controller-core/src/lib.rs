@@ -686,7 +686,7 @@ impl ModulesRegistrar for Controller {
         api::v1::assets::room_assets,
         api::v1::assets::create,
         api::v1::assets::delete,
-        api::v1::auth::get_login,
+        v1::auth::login::get,
         v1::auth::login::post,
         api::v1::events::delete_event,
         api::v1::events::favorites::add_event_to_favorites,
@@ -925,7 +925,7 @@ fn v1_scope(
 
     scope
         .service(v1::auth::login::post)
-        .service(api::v1::auth::get_login)
+        .service(v1::auth::login::get)
         .service(api::v1::rooms::start_invited)
         .service(api::v1::rooms::roomserver::start_invited)
         .service(api::v1::invites::verify_invite_code)
