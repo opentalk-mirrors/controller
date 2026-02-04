@@ -5,11 +5,13 @@
 //! API endpoints under `v1/events/{event_id}/shared_folder`
 
 use actix_web::{
-    get,
-    web::{Data, Json, Path, ReqData},
+    CustomizeResponder, Responder as _, get,
+    http::StatusCode,
+    put,
+    web::{Data, Json, Path, Query, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
-use opentalk_types_api_v1::error::ApiError;
+use opentalk_types_api_v1::{error::ApiError, events::PutSharedFolderQuery};
 use opentalk_types_common::{events::EventId, shared_folders::SharedFolder};
 
 use crate::utoipa::responses::{Forbidden, InternalServerError, NotFound, Unauthorized};
@@ -61,4 +63,68 @@ pub async fn get(
         .await?;
 
     Ok(Json(shared_folder))
+}
+
+/// Create a shared folder for an event
+///
+/// Returns the shared folder for an event if created
+#[utoipa::path(
+    operation_id = "put_shared_folder_for_event",
+    tag = "api::v1::events::shared_folder",
+    params(
+        PutSharedFolderQuery,
+        ("event_id" = EventId, description = "The id of the event"),
+    ),
+    responses(
+        (
+            status = StatusCode::OK,
+            description = "Shared folder created",
+            body = SharedFolder,
+        ),
+        (
+            status = StatusCode::NOT_MODIFIED,
+            description = "Shared folder was already present",
+            body = SharedFolder,
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            response = Unauthorized,
+        ),
+        (
+            status = StatusCode::FORBIDDEN,
+            response = Forbidden,
+        ),
+        (
+            status = StatusCode::NOT_FOUND,
+            response = NotFound,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(
+        ("BearerAuth" = []),
+    ),
+)]
+#[put("/events/{event_id}/shared_folder")]
+pub async fn put(
+    service: Data<dyn OpenTalkControllerService>,
+    current_user: ReqData<RequestUser>,
+    event_id: Path<EventId>,
+    query: Query<PutSharedFolderQuery>,
+) -> Result<CustomizeResponder<Json<SharedFolder>>, ApiError> {
+    let (shared_folder, created) = service
+        .put_shared_folder_for_event(
+            current_user.into_inner(),
+            event_id.into_inner(),
+            query.into_inner(),
+        )
+        .await?;
+
+    Ok(Json(shared_folder).customize().with_status(if created {
+        StatusCode::CREATED
+    } else {
+        StatusCode::OK
+    }))
 }
