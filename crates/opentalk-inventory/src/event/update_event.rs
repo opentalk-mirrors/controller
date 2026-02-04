@@ -90,3 +90,53 @@ impl UpdateEvent {
             .and_then(|recurrence| recurrence.recurrence_pattern.as_deref())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use chrono::TimeZone as _;
+    use opentalk_types_common::utils::ExampleData;
+
+    use super::*;
+
+    #[test]
+    fn is_time_independent() {
+        let time_independent_event = UpdateEvent {
+            title: Some(EventTitle::example_data()),
+            description: Some(EventDescription::example_data()),
+            updated_by: UserId::example_data(),
+            updated_at: Timestamp::example_data(),
+            is_adhoc: Some(false),
+            show_meeting_details: Some(false),
+            date: None,
+        };
+
+        assert!(time_independent_event.is_time_independent());
+
+        let time_dependent_event = UpdateEvent {
+            title: Some(EventTitle::example_data()),
+            description: Some(EventDescription::example_data()),
+            updated_by: UserId::example_data(),
+            updated_at: Timestamp::example_data(),
+            is_adhoc: Some(false),
+            show_meeting_details: Some(false),
+            date: Some(UpdateEventDate {
+                is_all_day: Some(false),
+                starts_at: Some(
+                    Tz::default()
+                        .with_ymd_and_hms(2024, 7, 20, 14, 16, 19)
+                        .unwrap(),
+                ),
+                starts_at_tz: Some(TimeZone::default()),
+                ends_at: Some(
+                    Tz::default()
+                        .with_ymd_and_hms(2024, 7, 20, 14, 16, 19)
+                        .unwrap(),
+                ),
+                ends_at_tz: Some(TimeZone::default()),
+                recurrence: None,
+            }),
+        };
+
+        assert!(!time_dependent_event.is_time_independent());
+    }
+}
