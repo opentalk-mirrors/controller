@@ -15,6 +15,7 @@ use opentalk_roomserver_types::{
     module_settings::ModuleSettings,
     public_user_profile::PublicUserProfile,
     room_parameters::{AssetStorageConfig, EventContext, RoomParameters},
+    tariff_details::TariffDetails,
 };
 use opentalk_roomserver_types_training_participation_report::settings::TrainingParticipationReportSettings;
 use opentalk_types_api_v1::{
@@ -198,12 +199,25 @@ impl ControllerBackend {
             .await?
             .map(|invite| invite.invite_code);
 
-        let tariff = self.get_tariff_for_room(room.id).await?;
+        let tariff = inventory.get_tariff_for_user(room.created_by.id).await?;
 
         let mut module_settings = room_server_settings.modules.clone();
-
         Self::override_module_settings(inventory.as_mut(), room.id, &mut module_settings).await?;
-        module_settings.retain(|module_id, _| tariff.modules.contains_key(module_id));
+
+        let disabled_modules = tariff.disabled_modules();
+        module_settings.retain(|module_id, _| !disabled_modules.contains(module_id));
+
+        let disabled_features = tariff
+            .disabled_features()
+            .into_iter()
+            .chain(settings.defaults.disabled_features.iter().cloned())
+            .collect();
+        let tariff = TariffDetails {
+            id: tariff.id,
+            name: tariff.name,
+            quotas: tariff.quotas,
+            disabled_features,
+        };
 
         let user_id = room.created_by.id;
         let timezone = get_user_timezone(user_id, inventory.as_mut(), &settings).await;
