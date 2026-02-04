@@ -6,6 +6,7 @@ use actix_web::{
     Either, delete, get, patch, post,
     web::{Data, Json, Path, Query, ReqData},
 };
+use opentalk_controller_api_actix_web::v1::response::headers::CursorLink;
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -21,7 +22,6 @@ use serde::Deserialize;
 
 use super::{ApiResponse, DefaultApiResult};
 use crate::api::{
-    headers::CursorLink,
     responses::{BadRequest, Forbidden, InternalServerError, NotFound, Unauthorized},
     v1::response::{Created, NoContent},
 };

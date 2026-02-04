@@ -5,16 +5,19 @@
 //! API endpoints under `v1/events`
 
 use actix_web::{
-    post,
+    get, post,
     web::{Data, Json, Query, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
     error::ApiError,
-    events::{EventOptionsQuery, EventResource, PostEventsBody},
+    events::{EventOptionsQuery, EventOrException, EventResource, GetEventsQuery, PostEventsBody},
 };
 
-use crate::utoipa::responses::{BadRequest, InternalServerError, Unauthorized};
+use crate::{
+    utoipa::responses::{BadRequest, InternalServerError, Unauthorized},
+    v1::response::{ApiResponse, headers::CursorLink},
+};
 
 /// Create a new event
 ///
@@ -62,4 +65,55 @@ pub async fn post(
         .await?;
 
     Ok(Json(event_resource))
+}
+
+/// Get a list of events and exceptions
+///
+/// The events and exceptions are sorted chronologically.
+///
+/// Returns a paginated list of events and their exceptions inside the given time range
+#[utoipa::path(
+    operation_id = "get_events",
+    tag = "api::v1::events",
+    params(GetEventsQuery),
+    responses(
+        (
+            status = StatusCode::OK,
+            description = "List of the events and exceptions",
+            body = Vec<EventOrException>,
+            headers(
+                (
+                    "link" = CursorLink,
+                    description = "Links for paging through the results"
+                ),
+            ),
+        ),
+        (
+            status = StatusCode::BAD_REQUEST,
+            response = BadRequest,
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            response = Unauthorized,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(
+        ("BearerAuth" = []),
+    ),
+)]
+#[get("/events")]
+pub async fn get(
+    service: Data<dyn OpenTalkControllerService>,
+    current_user: ReqData<RequestUser>,
+    query: Query<GetEventsQuery>,
+) -> Result<ApiResponse<Vec<EventOrException>>, ApiError> {
+    let (resources, before, after) = service
+        .get_events_and_exceptions_interwoven(current_user.into_inner(), query.into_inner())
+        .await?;
+
+    Ok(ApiResponse::new(resources).with_cursor_pagination(before, after))
 }

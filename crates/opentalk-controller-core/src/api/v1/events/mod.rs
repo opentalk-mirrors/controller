@@ -15,73 +15,18 @@ use kustos::{
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
     error::ApiError,
-    events::{
-        DeleteEventsQuery, EventOrException, EventResource, GetEventQuery, GetEventsQuery,
-        PatchEventBody, PatchEventQuery,
-    },
+    events::{DeleteEventsQuery, EventResource, GetEventQuery, PatchEventBody, PatchEventQuery},
 };
 use opentalk_types_common::{events::EventId, time::RecurrencePattern};
 use serde::Deserialize;
 
 use super::{ApiResponse, DefaultApiResult, response::NoContent};
-use crate::api::{
-    headers::CursorLink,
-    responses::{BadRequest, Forbidden, InternalServerError, NotFound, Unauthorized},
-};
+use crate::api::responses::{Forbidden, InternalServerError, NotFound, Unauthorized};
 
 pub mod favorites;
 pub mod instances;
 pub mod invites;
 pub mod shared_folder;
-
-/// Get a list of events and exceptions
-///
-/// The events and exceptions are sorted chronologically.
-///
-/// Returns a paginated list of events and their exceptions inside the given time range
-#[utoipa::path(
-    params(GetEventsQuery),
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "List of the events and exceptions",
-            body = Vec<EventOrException>,
-            headers(
-                (
-                    "link" = CursorLink,
-                    description = "Links for paging through the results"
-                ),
-            ),
-        ),
-        (
-            status = StatusCode::BAD_REQUEST,
-            response = BadRequest,
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[get("/events")]
-pub async fn get_events(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-    query: Query<GetEventsQuery>,
-) -> DefaultApiResult<Vec<EventOrException>> {
-    let (resources, before, after) = service
-        .get_events_and_exceptions_interwoven(current_user.into_inner(), query.into_inner())
-        .await?;
-
-    Ok(ApiResponse::new(resources).with_cursor_pagination(before, after))
-}
 
 /// Get an event
 ///

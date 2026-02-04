@@ -692,7 +692,7 @@ impl ModulesRegistrar for Controller {
         api::v1::events::favorites::add_event_to_favorites,
         api::v1::events::favorites::remove_event_from_favorites,
         api::v1::events::get_event,
-        api::v1::events::get_events,
+        v1::events::get,
         api::v1::events::instances::get_event_instance,
         api::v1::events::instances::get_event_instances,
         api::v1::events::instances::get_events_and_instances,
@@ -748,7 +748,7 @@ impl ModulesRegistrar for Controller {
     ),
     components(
         schemas(
-            api::headers::CursorLink,
+            v1::response::headers::CursorLink,
             v1::response::headers::PageLink,
             opentalk_types_api_v1::error::ErrorBody,
             opentalk_types_api_v1::error::ValidationErrorEntry,
@@ -972,7 +972,7 @@ fn v1_scope(
                 .service(v1::rooms::by_id::roomserver::start::post)
                 .service(v1::rooms::by_id::delete)
                 .service(v1::events::post)
-                .service(api::v1::events::get_events)
+                .service(v1::events::get)
                 // "/events/instances" conflicts with "/events/{event_id}" and thus must be listed before
                 .service(api::v1::events::instances::get_events_and_instances)
                 .service(api::v1::events::get_event)

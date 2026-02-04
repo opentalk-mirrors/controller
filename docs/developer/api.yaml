@@ -2927,6 +2927,7 @@ components:
       description: The password for authenticating call-in participation
     CursorLink:
       type: string
+      description: Headers for referencing to related cursors.
       example: "<https://api.example.org/resource?after=urlencodednextpagetoken>; rel='next'"
     Cursor_GetEventInstancesCursorData:
       type: string
