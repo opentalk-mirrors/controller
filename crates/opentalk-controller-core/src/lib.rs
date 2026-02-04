@@ -930,7 +930,7 @@ fn v1_scope(
         .service(v1::rooms::by_id::roomserver::start_invited::post)
         .service(v1::invite::verify::post)
         .service(v1::turn::get)
-        .service(api::v1::assets::proxy_download)
+        .service(v1::rooms::by_id::assets::by_id::proxy::get)
         .service(
             web::scope("/services/roomserver")
                 .wrap(api::v1::middleware::roomserver_auth::RoomserverAuth::new(

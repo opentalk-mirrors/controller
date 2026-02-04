@@ -4,5 +4,6 @@
 
 //! API endpoints under `v1/rooms/{room_id}`
 
+pub mod assets;
 pub mod roomserver;
 pub mod start_invited;

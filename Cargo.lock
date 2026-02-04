@@ -5110,6 +5110,7 @@ name = "opentalk-controller-api-actix-web"
 version = "0.33.0-alpha"
 dependencies = [
  "actix-web",
+ "futures",
  "opentalk-controller-service-facade",
  "opentalk-types-api-v1",
  "opentalk-types-common",
