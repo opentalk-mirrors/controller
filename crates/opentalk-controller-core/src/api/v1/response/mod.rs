@@ -7,10 +7,11 @@
 use opentalk_types_api_v1::error::ApiError;
 
 pub mod error;
-mod ok;
 
-pub use ok::ApiResponse;
-pub use opentalk_controller_api_actix_web::response::{Created, NoContent, NotModified};
+pub use opentalk_controller_api_actix_web::{
+    response::{Created, NoContent, NotModified},
+    v1::response::ApiResponse,
+};
 
 /// The default API Result
 pub type DefaultApiResult<T, E = ApiError> = Result<ApiResponse<T>, E>;

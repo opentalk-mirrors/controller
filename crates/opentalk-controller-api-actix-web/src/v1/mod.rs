@@ -4,6 +4,8 @@
 
 //! API endpoints under `v1`
 
+pub mod response;
+
 pub mod auth;
 pub mod invite;
 pub mod rooms;

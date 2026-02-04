@@ -741,7 +741,7 @@ impl ModulesRegistrar for Controller {
         v1::turn::get,
         v1::users::find::get,
         v1::users::me::get,
-        api::v1::users::get_me_assets,
+        v1::users::me::assets::get,
         v1::users::me::tariff::get,
         api::v1::users::get_user,
         v1::users::me::patch,
@@ -960,7 +960,7 @@ fn v1_scope(
                 .service(v1::users::me::patch)
                 .service(v1::users::me::get)
                 .service(v1::users::me::tariff::get)
-                .service(api::v1::users::get_me_assets)
+                .service(v1::users::me::assets::get)
                 .service(api::v1::users::get_user)
                 .service(api::v1::rooms::accessible)
                 .service(api::v1::rooms::new)

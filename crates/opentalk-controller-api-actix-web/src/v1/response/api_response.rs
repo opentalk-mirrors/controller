@@ -2,29 +2,26 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! Success response types for REST APIv1
+//! API response type for paginated responses.
 //!
-//! These all implement the [`Responder`] trait.
-//! The current Pagination support follows the GitHub REST APIv3, i.e. page hints are included inside the Link HTTP header.
+//! The current Pagination support follows the GitHub REST APIv3, i.e. page
+//! hints are included inside the Link HTTP header.
 
 use actix_web::{
     HttpResponse, Responder,
     body::BoxBody,
     http::header::{self, HeaderMap},
+    mime,
 };
 use either::Either;
-use opentalk_controller_service::Whatever;
-use opentalk_types_api_v1::pagination::{CursorPagination, PagePagination, PagingLinkHeader};
+use opentalk_types_api_v1::pagination::{CursorPagination, PagePagination, PagingLinkHeader as _};
 use opentalk_types_common::pagination::{ItemCount, Page, PageSize};
 use serde::Serialize;
-use snafu::ResultExt;
 use url::Url;
 
-#[derive(Debug, Clone)]
-pub struct ApiOutputLinkHeader {
-    pagination: Option<Either<PagePagination, CursorPagination>>,
-}
+use crate::v1::response::ApiOutputLinkHeader;
 
+/// An API response with pagination link headers.
 #[derive(Debug, Clone)]
 pub struct ApiResponse<T: Serialize> {
     links: ApiOutputLinkHeader,
@@ -76,22 +73,22 @@ impl<T: Serialize> Responder for ApiResponse<T> {
 
                 let mut headers = HeaderMap::new();
                 if let Some(links) = match url {
-                    Ok(url) => self.links.pagination.map(|links| {
+                    Some(url) => self.links.pagination.map(|links| {
                         links.either(
                             |l| l.build_paging_link_header(&url),
                             |r| r.build_paging_link_header(&url),
                         )
                     }),
-                    Err(_) => return HttpResponse::InternalServerError().finish(),
+                    None => return HttpResponse::InternalServerError().finish(),
                 } {
-                    headers.insert(header::LINK, links);
+                    _ = headers.insert(header::LINK, links);
                 }
 
                 let mut response = HttpResponse::Ok();
-                response.content_type(mime::APPLICATION_JSON);
+                _ = response.content_type(mime::APPLICATION_JSON);
 
                 for pair in headers {
-                    response.insert_header(pair);
+                    _ = response.insert_header(pair);
                 }
 
                 response.body(body)
@@ -103,7 +100,7 @@ impl<T: Serialize> Responder for ApiResponse<T> {
     }
 }
 
-fn extract_full_url_from_request(req: &actix_web::HttpRequest) -> Result<Url, Whatever> {
+fn extract_full_url_from_request(req: &actix_web::HttpRequest) -> Option<Url> {
     let conn = req.connection_info();
 
     let url = Url::parse(&format!(
@@ -111,8 +108,10 @@ fn extract_full_url_from_request(req: &actix_web::HttpRequest) -> Result<Url, Wh
         scheme = conn.scheme(),
         host = conn.host()
     ))
-    .whatever_context("Failed to parse URL")?;
+    .inspect_err(|e| log::warn!("Failed to extract full url for API response: {e}"))
+    .ok()?;
 
     url.join(&req.uri().to_string())
-        .whatever_context("Failed to build URL")
+        .inspect_err(|e| log::warn!("Failed to extract full url for API response: {e}"))
+        .ok()
 }

@@ -5110,7 +5110,9 @@ name = "opentalk-controller-api-actix-web"
 version = "0.33.0-alpha"
 dependencies = [
  "actix-web",
+ "either",
  "futures",
+ "log",
  "oauth2",
  "opentalk-controller-service-facade",
  "opentalk-types-api-v1",
@@ -5145,7 +5147,6 @@ dependencies = [
  "lapin-pool",
  "log",
  "md5",
- "mime",
  "openidconnect",
  "opentalk-cache",
  "opentalk-controller-api-actix-web",
@@ -5194,7 +5195,6 @@ dependencies = [
  "tracing-futures",
  "tracing-opentelemetry",
  "tracing-subscriber",
- "url",
  "utoipa",
  "utoipa-swagger-ui",
  "uuid",
