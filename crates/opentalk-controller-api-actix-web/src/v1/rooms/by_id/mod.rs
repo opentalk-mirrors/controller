@@ -5,7 +5,7 @@
 //! API endpoints under `v1/rooms/{room_id}`
 
 use actix_web::{
-    patch,
+    get, patch,
     web::{Data, Json, Path, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
@@ -15,11 +15,51 @@ use opentalk_types_api_v1::{
 };
 use opentalk_types_common::rooms::RoomId;
 
-use crate::utoipa::responses::{InternalServerError, Unauthorized};
+use crate::utoipa::responses::{Forbidden, InternalServerError, Unauthorized};
 
 pub mod assets;
 pub mod roomserver;
 pub mod start_invited;
+
+/// Get a room
+///
+/// Returns the room resource including additional information such as the creator profile.
+#[utoipa::path(
+    operation_id = "get_room",
+    tag = "api::v1::rooms",
+    params(
+        ("room_id" = RoomId, description = "The id of the room"),
+    ),
+    responses(
+        (
+            status = StatusCode::OK,
+            description = "Room was successfully retrieved",
+            body = RoomResource
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            response = Unauthorized,
+        ),
+        (
+            status = StatusCode::FORBIDDEN,
+            response = Forbidden,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(
+        ("BearerAuth" = []),
+    ),
+)]
+#[get("/rooms/{room_id}")]
+pub async fn get(
+    service: Data<dyn OpenTalkControllerService>,
+    room_id: Path<RoomId>,
+) -> Result<Json<RoomResource>, ApiError> {
+    Ok(Json(service.get_room(&room_id).await?))
+}
 
 /// Patch a room with the provided fields
 ///

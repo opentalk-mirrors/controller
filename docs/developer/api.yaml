@@ -1258,7 +1258,7 @@ paths:
         - "api::v1::rooms"
       summary: Get a room
       description: Returns the room resource including additional information such as the creator profile.
-      operationId: get
+      operationId: get_room
       parameters:
         - name: room_id
           in: path

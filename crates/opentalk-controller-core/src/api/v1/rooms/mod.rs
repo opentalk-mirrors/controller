@@ -14,12 +14,9 @@ use actix_web::{
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser, StartRoomError};
 use opentalk_types_api_v1::{
     error::{ApiError, ErrorBody},
-    rooms::{
-        RoomResource,
-        by_room_id::{
-            DeleteRoomQuery, GetRoomEventResponseBody, PostRoomsStartRequestBody,
-            RoomsStartResponseBody,
-        },
+    rooms::by_room_id::{
+        DeleteRoomQuery, GetRoomEventResponseBody, PostRoomsStartRequestBody,
+        RoomsStartResponseBody,
     },
 };
 use opentalk_types_common::{
@@ -83,44 +80,6 @@ pub async fn delete(
         .await?;
 
     Ok(NoContent)
-}
-
-/// Get a room
-///
-/// Returns the room resource including additional information such as the creator profile.
-#[utoipa::path(
-    params(
-        ("room_id" = RoomId, description = "The id of the room"),
-    ),
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "Room was successfully retrieved",
-            body = RoomResource
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[get("/rooms/{room_id}")]
-pub async fn get(
-    service: Data<dyn OpenTalkControllerService>,
-    room_id: Path<RoomId>,
-) -> Result<Json<RoomResource>, ApiError> {
-    Ok(Json(service.get_room(&room_id).await?))
 }
 
 /// Get a room's tariff

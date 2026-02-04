@@ -719,7 +719,7 @@ impl ModulesRegistrar for Controller {
         v1::invite::verify::post,
         v1::rooms::get,
         api::v1::rooms::delete,
-        api::v1::rooms::get,
+        v1::rooms::by_id::get,
         api::v1::rooms::get_room_event,
         api::v1::rooms::get_room_tariff,
         v1::rooms::post,
@@ -965,7 +965,7 @@ fn v1_scope(
                 .service(v1::rooms::get)
                 .service(v1::rooms::post)
                 .service(v1::rooms::by_id::patch)
-                .service(api::v1::rooms::get)
+                .service(v1::rooms::by_id::get)
                 .service(api::v1::rooms::get_room_event)
                 .service(api::v1::rooms::get_room_tariff)
                 .service(api::v1::rooms::start)
