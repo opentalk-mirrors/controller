@@ -39,7 +39,7 @@ use opentalk_report_generation::GenerateOptions;
 use opentalk_signaling_core::{
     ChunkFormat, CleanupScope, DestroyContext, Event, InitContext, ModuleContext, ObjectStorage,
     ObjectStorageError, SignalingModule, SignalingModuleDescription, SignalingModuleError,
-    SignalingModuleFeatureDescription, SignalingModuleInitData, VolatileStorage,
+    SignalingModuleFeatureDescription, SignalingModuleInitData, SignalingRoomId, VolatileStorage,
     assets::{AssetError, AssetSaved, NewAssetFileName, save_asset},
     control::{
         self, ControlStorageProvider,
@@ -105,14 +105,8 @@ pub struct TrainingParticipationReport {
     participant: ParticipantId,
     inventory_provider: Arc<dyn InventoryProvider>,
     storage: Arc<ObjectStorage>,
-    checkpoint_runner_data: Option<CheckpointRunnerData>,
-    is_room_owner: bool,
-}
-
-#[derive(Debug, Default, Clone)]
-struct CheckpointRunnerData {
-    other_present_participants: BTreeSet<ParticipantId>,
     timeout_id: Option<u32>,
+    is_room_owner: bool,
 }
 
 trait TrainingParticipationReportStorageProvider {
@@ -177,7 +171,7 @@ impl SignalingModule for TrainingParticipationReport {
             storage: ctx.storage().clone(),
             // The data required for the checkpoint runner  is only available on join,
             // so we will store it when the join is handled.
-            checkpoint_runner_data: None,
+            timeout_id: None,
             is_room_owner: false,
         }))
     }
@@ -199,13 +193,6 @@ impl SignalingModule for TrainingParticipationReport {
             Event::WsMessage(msg) => {
                 self.handle_ws_message(&mut ctx, msg).await?;
             }
-            Event::ParticipantJoined(participant, ..) => {
-                self.handle_participant_joined(&mut ctx, participant)
-                    .await?;
-            }
-            Event::ParticipantLeft(participant) => {
-                self.handle_participant_left(&mut ctx, participant).await?
-            }
             Event::Ext(TimeoutEvent(timeout_id)) => {
                 self.handle_timeout(&mut ctx, timeout_id).await?
             }
@@ -213,6 +200,8 @@ impl SignalingModule for TrainingParticipationReport {
             Event::Leaving => self.handle_leaving(&mut ctx).await?,
             Event::RaiseHand
             | Event::LowerHand
+            | Event::ParticipantJoined(_, _)
+            | Event::ParticipantLeft(_)
             | Event::ParticipantUpdated(_, _)
             | Event::RoleUpdated(_) => {}
         }
@@ -265,18 +254,14 @@ impl TrainingParticipationReport {
             .get_participation_logging_state(self.room, self.participant)
             .await?;
 
+        let participants = participants.keys().cloned().collect();
         let other_present_participants = self
-            .get_other_present_participants(participants, ctx.volatile.control_storage())
+            .filter_other_present_participants(participants, ctx.volatile.control_storage())
             .await?;
 
-        let checkpoint_runner_data = CheckpointRunnerData {
-            other_present_participants,
-            timeout_id: None,
-        };
-        self.checkpoint_runner_data = Some(checkpoint_runner_data.clone());
         self.is_room_owner = control_data.is_room_owner;
 
-        if checkpoint_runner_data.other_present_participants.is_empty() {
+        if other_present_participants.is_empty() {
             // This is the first checkpoint runner in the room, use it for generating checkpoints
 
             if let Some(TrainingParticipationReportParameterSet {
@@ -293,7 +278,7 @@ impl TrainingParticipationReport {
                         TrainingReportState::WaitingForInitialTimeout,
                         initial_checkpoint_delay.clone(),
                         checkpoint_interval.clone(),
-                        checkpoint_runner_data.other_present_participants.clone(),
+                        other_present_participants.clone(),
                     )
                     .await?;
 
@@ -360,24 +345,35 @@ impl TrainingParticipationReport {
 
     async fn get_other_present_participants(
         &self,
-        participants: &HashMap<ParticipantId, Option<()>>,
         control_storage: &mut dyn ControlStorage,
     ) -> Result<BTreeSet<ParticipantId>, SignalingModuleError> {
-        let participants = Vec::from_iter(
-            participants
-                .keys()
-                .filter(|k| **k != self.participant)
-                .cloned(),
-        );
+        let participants = control_storage
+            .get_all_participants(SignalingRoomId::new_for_room(self.room))
+            .await?
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>();
+
+        self.filter_other_present_participants(participants, control_storage)
+            .await
+    }
+
+    async fn filter_other_present_participants(
+        &self,
+        participants: Vec<ParticipantId>,
+        control_storage: &mut dyn ControlStorage,
+    ) -> Result<BTreeSet<ParticipantId>, SignalingModuleError> {
         let is_present: Vec<Option<bool>> = control_storage
             .get_global_attribute_for_participants(&participants, self.room, IS_PRESENT)
             .await?;
+
         let is_present = is_present.into_iter().map(|p| p.unwrap_or_default());
         let mut other_present_participants = BTreeSet::new();
         for participant in participants
             .into_iter()
             .zip(is_present)
             .filter_map(|(participant, is_present)| is_present.then_some(participant))
+            .filter(|participant| *participant != self.participant)
         {
             _ = other_present_participants.insert(participant);
         }
@@ -424,9 +420,9 @@ impl TrainingParticipationReport {
             return Ok(());
         }
 
-        let Some(checkpoint_runner_data) = self.checkpoint_runner_data.as_mut() else {
-            unreachable!("data should be set on join");
-        };
+        let other_present_participants = self
+            .get_other_present_participants(ctx.volatile.control_storage())
+            .await?;
 
         let storage = ctx.volatile.storage();
 
@@ -465,7 +461,7 @@ impl TrainingParticipationReport {
                 TrainingReportState::WaitingForInitialTimeout,
                 initial_checkpoint_delay.clone(),
                 checkpoint_interval,
-                checkpoint_runner_data.other_present_participants.clone(),
+                other_present_participants,
             )
             .await?;
 
@@ -493,17 +489,9 @@ impl TrainingParticipationReport {
         initial_checkpoint_delay: TimeRange,
         reason: PresenceLoggingStartedReason,
     ) -> Result<(), SignalingModuleError> {
-        let Some(checkpoint_runner_data) = self.checkpoint_runner_data.as_mut() else {
-            unreachable!("data should be set on join");
-        };
-
-        let first_checkpoint = Self::switch_to_next_checkpoint(
-            checkpoint_runner_data,
-            self.room,
-            ctx,
-            &initial_checkpoint_delay,
-        )
-        .await?;
+        let first_checkpoint = self
+            .switch_to_next_checkpoint(ctx, &initial_checkpoint_delay)
+            .await?;
 
         ctx.exchange_publish(
             control::exchange::global_room_all_participants(self.room),
@@ -517,8 +505,7 @@ impl TrainingParticipationReport {
     }
 
     async fn switch_to_next_checkpoint(
-        checkpoint_runner_data: &mut CheckpointRunnerData,
-        room: RoomId,
+        &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         time_range: &TimeRange,
     ) -> Result<Timestamp, SignalingModuleError> {
@@ -528,23 +515,19 @@ impl TrainingParticipationReport {
                 .with_whatever_context::<_, _, SignalingModuleError>(|e| {
                     format!("Duration out of range: {e}")
                 })?;
-        Self::start_checkpoint_timer(checkpoint_runner_data, ctx, checkpoint);
+        self.start_checkpoint_timer(ctx, checkpoint);
 
         ctx.volatile
             .storage()
-            .switch_to_next_checkpoint(room, checkpoint)
+            .switch_to_next_checkpoint(self.room, checkpoint)
             .await?;
 
         Ok(checkpoint)
     }
 
-    fn start_checkpoint_timer(
-        checkpoint_runner_data: &mut CheckpointRunnerData,
-        ctx: &mut ModuleContext<'_, Self>,
-        checkpoint: Timestamp,
-    ) {
+    fn start_checkpoint_timer(&mut self, ctx: &mut ModuleContext<'_, Self>, checkpoint: Timestamp) {
         let timeout_id = rand::rng().random();
-        checkpoint_runner_data.timeout_id = Some(timeout_id);
+        self.timeout_id = Some(timeout_id);
 
         let duration = checkpoint
             .signed_duration_since(Utc::now())
@@ -621,38 +604,6 @@ impl TrainingParticipationReport {
         Ok(())
     }
 
-    async fn handle_participant_joined(
-        &mut self,
-        _ctx: &mut ModuleContext<'_, Self>,
-        participant: ParticipantId,
-    ) -> Result<(), SignalingModuleError> {
-        let Some(checkpoint_runner_data) = self.checkpoint_runner_data.as_mut() else {
-            unreachable!("data should be set on join");
-        };
-
-        _ = checkpoint_runner_data
-            .other_present_participants
-            .insert(participant);
-
-        Ok(())
-    }
-
-    async fn handle_participant_left(
-        &mut self,
-        _ctx: &mut ModuleContext<'_, Self>,
-        participant: ParticipantId,
-    ) -> Result<(), SignalingModuleError> {
-        let Some(checkpoint_runner_data) = self.checkpoint_runner_data.as_mut() else {
-            unreachable!("data should be set on join");
-        };
-
-        _ = checkpoint_runner_data
-            .other_present_participants
-            .remove(&participant);
-
-        Ok(())
-    }
-
     fn random_waiting_duration(range: &TimeRange) -> Duration {
         let within = range.within();
         let timeframe = if within.is_zero() {
@@ -669,11 +620,7 @@ impl TrainingParticipationReport {
         ctx: &mut ModuleContext<'_, Self>,
         timeout_id: u32,
     ) -> Result<(), SignalingModuleError> {
-        let Some(checkpoint_runner_data) = self.checkpoint_runner_data.as_mut() else {
-            unreachable!("data should be set on join");
-        };
-
-        if checkpoint_runner_data.timeout_id != Some(timeout_id) {
+        if self.timeout_id != Some(timeout_id) {
             // Timeout has been canceled or another timeout has been started
             // after the one we're currently handling, so this one is obsolete
             // and we just ignore it.
@@ -701,9 +648,7 @@ impl TrainingParticipationReport {
             .storage()
             .set_training_report_state(self.room, TrainingReportState::TrackingPresence)
             .await?;
-        let _checkpoint =
-            Self::switch_to_next_checkpoint(checkpoint_runner_data, self.room, ctx, &time_range)
-                .await?;
+        let _checkpoint = self.switch_to_next_checkpoint(ctx, &time_range).await?;
 
         ctx.exchange_publish(
             control::exchange::global_room_all_participants(self.room),
@@ -753,10 +698,7 @@ impl TrainingParticipationReport {
                 Ok(())
             }
             exchange::Event::RoomOwnerHandOver { next_checkpoint } => {
-                let Some(checkpoint_runner_data) = self.checkpoint_runner_data.as_mut() else {
-                    unreachable!("data should be set on join");
-                };
-                Self::start_checkpoint_timer(checkpoint_runner_data, ctx, next_checkpoint);
+                self.start_checkpoint_timer(ctx, next_checkpoint);
                 Ok(())
             }
             exchange::Event::PdfAsset(pdf_asset) => {
@@ -770,10 +712,6 @@ impl TrainingParticipationReport {
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
     ) -> Result<(), SignalingModuleError> {
-        let Some(checkpoint_runner_data) = self.checkpoint_runner_data.as_ref() else {
-            unreachable!("data should be set on join");
-        };
-
         if ctx
             .volatile
             .storage()
@@ -784,12 +722,11 @@ impl TrainingParticipationReport {
             return Ok(());
         }
 
-        let other_present_participant = checkpoint_runner_data
-            .other_present_participants
-            .iter()
-            .next();
+        let other_present_participants = self
+            .get_other_present_participants(ctx.volatile.control_storage())
+            .await?;
 
-        match other_present_participant {
+        match other_present_participants.iter().next() {
             None => {
                 let reason = PresenceLoggingEndedReason::LastParticipantLeft;
                 ctx.exchange_publish(
@@ -814,7 +751,7 @@ impl TrainingParticipationReport {
             Some(other_present_participant) => {
                 // At least one other potential checkpoint runner is present.
 
-                if checkpoint_runner_data.timeout_id.is_none() {
+                if self.timeout_id.is_none() {
                     // This potential checkpoint runner was not responsible for organizing the checkpoints.
                     return Ok(());
                 };
