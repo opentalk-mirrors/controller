@@ -718,7 +718,7 @@ impl ModulesRegistrar for Controller {
         api::v1::invites::update_invite,
         v1::invite::verify::post,
         v1::rooms::get,
-        api::v1::rooms::delete,
+        v1::rooms::by_id::delete,
         v1::rooms::by_id::get,
         v1::rooms::by_id::event::get,
         v1::rooms::by_id::tariff::get,
@@ -970,7 +970,7 @@ fn v1_scope(
                 .service(v1::rooms::by_id::tariff::get)
                 .service(v1::rooms::by_id::start::post)
                 .service(v1::rooms::by_id::roomserver::start::post)
-                .service(api::v1::rooms::delete)
+                .service(v1::rooms::by_id::delete)
                 .service(api::v1::events::new_event)
                 .service(api::v1::events::get_events)
                 // "/events/instances" conflicts with "/events/{event_id}" and thus must be listed before

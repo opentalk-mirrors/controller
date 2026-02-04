@@ -11,7 +11,6 @@ pub mod events;
 pub mod invites;
 pub mod middleware;
 pub mod response;
-pub mod rooms;
 pub mod services;
 pub mod sip_configs;
 pub mod streaming_targets;

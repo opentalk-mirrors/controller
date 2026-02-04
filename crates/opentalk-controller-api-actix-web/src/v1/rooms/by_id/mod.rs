@@ -5,17 +5,23 @@
 //! API endpoints under `v1/rooms/{room_id}`
 
 use actix_web::{
-    get, patch,
-    web::{Data, Json, Path, ReqData},
+    delete, get, patch,
+    web::{Data, Json, Path, Query, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
     error::ApiError,
-    rooms::{RoomResource, by_room_id::PatchRoomsRequestBody},
+    rooms::{
+        RoomResource,
+        by_room_id::{DeleteRoomQuery, PatchRoomsRequestBody},
+    },
 };
 use opentalk_types_common::rooms::RoomId;
 
-use crate::utoipa::responses::{Forbidden, InternalServerError, Unauthorized};
+use crate::{
+    response::NoContent,
+    utoipa::responses::{Forbidden, InternalServerError, Unauthorized},
+};
 
 pub mod assets;
 pub mod event;
@@ -120,4 +126,57 @@ pub async fn patch(
         .await?;
 
     Ok(Json(room_resource))
+}
+
+/// Delete a room and its owned resources.
+///
+/// Deletes the room by the id if found. See the query parameters for affecting
+/// the behavior of this endpoint, such as succeding even if external resources
+/// cannot be successfully deleted.
+#[utoipa::path(
+    tag = "api::v1::rooms",
+    params(
+        ("room_id" = RoomId, description = "The id of the room"),
+        DeleteRoomQuery,
+    ),
+    responses(
+        (
+            status = StatusCode::NO_CONTENT,
+            description = "Room was successfully deleted",
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            response = Unauthorized,
+        ),
+        (
+            status = StatusCode::FORBIDDEN,
+            response = Forbidden,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(
+        ("BearerAuth" = []),
+    ),
+)]
+#[delete("/rooms/{room_id}")]
+pub async fn delete(
+    service: Data<dyn OpenTalkControllerService>,
+    current_user: ReqData<RequestUser>,
+    room_id: Path<RoomId>,
+    query: Query<DeleteRoomQuery>,
+) -> Result<NoContent, ApiError> {
+    let query = query.into_inner();
+
+    service
+        .delete_room(
+            current_user.into_inner(),
+            room_id.into_inner(),
+            query.force_delete_reference_if_external_services_fail,
+        )
+        .await?;
+
+    Ok(NoContent)
 }
