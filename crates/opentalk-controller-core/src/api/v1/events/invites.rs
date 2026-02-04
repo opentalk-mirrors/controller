@@ -3,18 +3,17 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use actix_web::{
-    delete, get,
-    web::{Data, Path, ReqData},
+    get,
+    web::{Data, ReqData},
 };
 use opentalk_controller_api_actix_web::v1::response::ApiResponse;
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
-use opentalk_types_api_v1::{error::ApiError, users::GetEventInvitesPendingResponseBody};
-use opentalk_types_common::events::EventId;
+use opentalk_types_api_v1::users::GetEventInvitesPendingResponseBody;
 use serde::Deserialize;
 
 use crate::api::{
-    responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
-    v1::{DefaultApiResult, response::NoContent},
+    responses::{InternalServerError, NotFound, Unauthorized},
+    v1::DefaultApiResult,
 };
 
 /// Query parameters for the `DELETE /events/{event_id}/invites/{user_id}` endpoint
@@ -60,50 +59,4 @@ pub async fn get_event_invites_pending(
     let response = service.get_event_invites_pending(current_user.id).await?;
 
     Ok(ApiResponse::new(response))
-}
-
-/// Decline an invite to an event
-///
-/// No content required, the request will accept the invitation.
-#[utoipa::path(
-    params(
-        ("event_id" = EventId, description = "The id of the event"),
-    ),
-    responses(
-        (
-            status = StatusCode::NO_CONTENT,
-            description = "Invitation was declined",
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[delete("/events/{event_id}/invite")]
-pub async fn decline_event_invite(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-    event_id: Path<EventId>,
-) -> Result<NoContent, ApiError> {
-    service
-        .decline_event_invite(current_user.id, event_id.into_inner())
-        .await?;
-
-    Ok(NoContent)
 }
