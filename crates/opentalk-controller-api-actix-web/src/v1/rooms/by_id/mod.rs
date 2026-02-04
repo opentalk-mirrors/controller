@@ -18,6 +18,7 @@ use opentalk_types_common::rooms::RoomId;
 use crate::utoipa::responses::{Forbidden, InternalServerError, Unauthorized};
 
 pub mod assets;
+pub mod event;
 pub mod roomserver;
 pub mod start_invited;
 

@@ -14,13 +14,9 @@ use actix_web::{
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser, StartRoomError};
 use opentalk_types_api_v1::{
     error::{ApiError, ErrorBody},
-    rooms::by_room_id::{
-        DeleteRoomQuery, GetRoomEventResponseBody, PostRoomsStartRequestBody,
-        RoomsStartResponseBody,
-    },
+    rooms::by_room_id::{DeleteRoomQuery, PostRoomsStartRequestBody, RoomsStartResponseBody},
 };
 use opentalk_types_common::{
-    events::EventInfo,
     rooms::{RoomId, invite_codes::InviteCode},
     tariffs::TariffResource,
 };
@@ -123,52 +119,6 @@ pub async fn get_room_tariff(
     Ok(Json(
         service
             .get_room_tariff(&room_id, invite_code.into_inner())
-            .await?,
-    ))
-}
-
-/// Get a room's event
-///
-/// This returns the event with which the room is associated. Please note
-/// that rooms can exist without events, in which case a `404` status will be
-/// returned.
-#[utoipa::path(
-    params(
-        ("room_id" = RoomId, description = "The id of the room"),
-    ),
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "The room's event was successfully retrieved",
-            body = EventInfo
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-        ("InviteCode" = []),
-    ),
-)]
-#[get("/rooms/{room_id}/event")]
-pub async fn get_room_event(
-    service: Data<dyn OpenTalkControllerService>,
-    room_id: Path<RoomId>,
-    invite_code: ReqData<Option<InviteCode>>,
-) -> Result<Json<GetRoomEventResponseBody>, ApiError> {
-    Ok(Json(
-        service
-            .get_room_event(&room_id, invite_code.into_inner())
             .await?,
     ))
 }
