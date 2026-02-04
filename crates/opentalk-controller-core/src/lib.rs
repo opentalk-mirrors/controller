@@ -706,7 +706,7 @@ impl ModulesRegistrar for Controller {
         api::v1::events::invites::get_invites_for_event,
         api::v1::events::invites::update_email_invite_to_event,
         api::v1::events::invites::update_invite_to_event,
-        api::v1::events::new_event,
+        v1::events::post,
         api::v1::events::patch_event,
         api::v1::events::shared_folder::delete_shared_folder_for_event,
         api::v1::events::shared_folder::get_shared_folder_for_event,
@@ -971,7 +971,7 @@ fn v1_scope(
                 .service(v1::rooms::by_id::start::post)
                 .service(v1::rooms::by_id::roomserver::start::post)
                 .service(v1::rooms::by_id::delete)
-                .service(api::v1::events::new_event)
+                .service(v1::events::post)
                 .service(api::v1::events::get_events)
                 // "/events/instances" conflicts with "/events/{event_id}" and thus must be listed before
                 .service(api::v1::events::instances::get_events_and_instances)

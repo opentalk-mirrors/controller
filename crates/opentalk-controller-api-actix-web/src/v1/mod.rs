@@ -7,6 +7,7 @@
 pub mod response;
 
 pub mod auth;
+pub mod events;
 pub mod invite;
 pub mod rooms;
 pub mod turn;
