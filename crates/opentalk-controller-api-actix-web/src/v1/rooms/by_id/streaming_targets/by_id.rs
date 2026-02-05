@@ -5,14 +5,16 @@
 //! API endpoints under `v1/rooms/{room_id}/streaming_targets/{streaming_target_id}`
 
 use actix_web::{
-    get,
-    web::{Data, Json, Path, ReqData},
+    get, patch,
+    web::{Data, Json, Path, Query, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
     error::ApiError,
+    events::StreamingTargetOptionsQuery,
     rooms::by_room_id::streaming_targets::{
-        GetRoomStreamingTargetResponseBody, RoomAndStreamingTargetId,
+        GetRoomStreamingTargetResponseBody, PatchRoomStreamingTargetRequestBody,
+        PatchRoomStreamingTargetResponseBody, RoomAndStreamingTargetId,
     },
 };
 
@@ -60,6 +62,62 @@ pub async fn get(
 ) -> Result<Json<GetRoomStreamingTargetResponseBody>, ApiError> {
     let response = service
         .get_streaming_target(current_user.id, path_params.into_inner())
+        .await?;
+
+    Ok(Json(response))
+}
+
+/// Updates a streaming target
+///
+/// Modifies and returns a single streaming target.
+#[utoipa::path(
+    operation_id = "patch_streaming_target",
+    tag = "api::v1::streaming_targets",
+    params(RoomAndStreamingTargetId),
+    request_body = PatchRoomStreamingTargetRequestBody,
+    responses(
+        (
+            status = StatusCode::OK,
+            description = "Streaming target was successfully updated",
+            body = PatchRoomStreamingTargetResponseBody
+        ),
+        (
+            status = StatusCode::BAD_REQUEST,
+            description = r"Could not modify the specified streaming target due to wrong
+                syntax or bad values",
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            response = Unauthorized,
+        ),
+        (
+            status = HttpStatus::FORBIDDEN,
+            response = Forbidden,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(
+        ("BearerAuth" = []),
+    ),
+)]
+#[patch("/rooms/{room_id}/streaming_targets/{streaming_target_id}")]
+pub async fn patch(
+    service: Data<dyn OpenTalkControllerService>,
+    current_user: ReqData<RequestUser>,
+    path_params: Path<RoomAndStreamingTargetId>,
+    query: Query<StreamingTargetOptionsQuery>,
+    streaming_target: Json<PatchRoomStreamingTargetRequestBody>,
+) -> Result<Json<PatchRoomStreamingTargetResponseBody>, ApiError> {
+    let response = service
+        .patch_streaming_target(
+            current_user.into_inner(),
+            path_params.into_inner(),
+            query.into_inner(),
+            streaming_target.into_inner(),
+        )
         .await?;
 
     Ok(Json(response))

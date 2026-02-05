@@ -4,78 +4,17 @@
 
 //! Contains invite related REST endpoints.
 use actix_web::{
-    delete, patch,
-    web::{Data, Json, Path, Query, ReqData},
+    delete,
+    web::{Data, Path, Query, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
-    error::ApiError,
-    events::StreamingTargetOptionsQuery,
-    rooms::by_room_id::streaming_targets::{
-        PatchRoomStreamingTargetRequestBody, PatchRoomStreamingTargetResponseBody,
-        RoomAndStreamingTargetId,
-    },
+    error::ApiError, events::StreamingTargetOptionsQuery,
+    rooms::by_room_id::streaming_targets::RoomAndStreamingTargetId,
 };
 
-use super::{DefaultApiResult, response::NoContent};
-use crate::api::{
-    responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
-    v1::ApiResponse,
-};
-
-/// Updates a streaming target
-///
-/// Modifies and returns a single streaming target.
-#[utoipa::path(
-    params(RoomAndStreamingTargetId),
-    request_body = PatchRoomStreamingTargetRequestBody,
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "Streaming target was successfully updated",
-            body = PatchRoomStreamingTargetResponseBody
-        ),
-        (
-            status = StatusCode::BAD_REQUEST,
-            description = r"Could not modify the specified streaming target due to wrong
-                syntax or bad values",
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = HttpStatus::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[patch("/rooms/{room_id}/streaming_targets/{streaming_target_id}")]
-pub async fn patch_streaming_target(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-    path_params: Path<RoomAndStreamingTargetId>,
-    query: Query<StreamingTargetOptionsQuery>,
-    streaming_target: Json<PatchRoomStreamingTargetRequestBody>,
-) -> DefaultApiResult<PatchRoomStreamingTargetResponseBody> {
-    let response = service
-        .patch_streaming_target(
-            current_user.into_inner(),
-            path_params.into_inner(),
-            query.into_inner(),
-            streaming_target.into_inner(),
-        )
-        .await?;
-
-    Ok(ApiResponse::new(response))
-}
+use super::response::NoContent;
+use crate::api::responses::{Forbidden, InternalServerError, NotFound, Unauthorized};
 
 /// Deletes a streaming target
 ///
