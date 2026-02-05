@@ -6,6 +6,7 @@
 
 pub mod assets;
 pub mod event_favorites;
+pub mod pending_invites;
 pub mod tariff;
 
 use actix_web::{

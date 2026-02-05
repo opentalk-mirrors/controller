@@ -703,7 +703,7 @@ impl ModulesRegistrar for Controller {
         v1::events::by_id::invite::delete,
         v1::events::by_id::invites::email::delete,
         v1::events::by_id::invites::by_id::delete,
-        api::v1::events::invites::get_event_invites_pending,
+        v1::users::me::pending_invites::get,
         v1::events::by_id::invites::get,
         v1::events::by_id::invites::email::patch,
         v1::events::by_id::invites::by_id::patch,
@@ -962,6 +962,7 @@ fn v1_scope(
                 .service(v1::users::me::get)
                 .service(v1::users::me::tariff::get)
                 .service(v1::users::me::assets::get)
+                .service(v1::users::me::pending_invites::get)
                 .service(v1::users::by_id::get)
                 .service(v1::rooms::get)
                 .service(v1::rooms::post)

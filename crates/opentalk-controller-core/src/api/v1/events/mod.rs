@@ -15,8 +15,6 @@ use kustos::{
 use opentalk_types_common::{events::EventId, time::RecurrencePattern};
 use serde::Deserialize;
 
-pub mod invites;
-
 #[derive(Deserialize)]
 pub struct EventRescheduleBody {
     _from: DateTime<Utc>,

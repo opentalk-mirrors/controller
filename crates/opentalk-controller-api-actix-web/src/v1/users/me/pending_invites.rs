@@ -2,32 +2,26 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+//! API endpoints under `v1/users/me/pending_invites`
+
 use actix_web::{
     get,
     web::{Data, ReqData},
 };
-use opentalk_controller_api_actix_web::v1::response::ApiResponse;
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
-use opentalk_types_api_v1::users::GetEventInvitesPendingResponseBody;
-use serde::Deserialize;
+use opentalk_types_api_v1::{error::ApiError, users::GetEventInvitesPendingResponseBody};
 
-use crate::api::{
-    responses::{InternalServerError, NotFound, Unauthorized},
-    v1::DefaultApiResult,
+use crate::{
+    utoipa::responses::{InternalServerError, NotFound, Unauthorized},
+    v1::response::ApiResponse,
 };
-
-/// Query parameters for the `DELETE /events/{event_id}/invites/{user_id}` endpoint
-#[derive(Deserialize, Debug, PartialEq, Eq)]
-pub struct DeleteEventInviteQuery {
-    /// Flag to suppress email notification
-    #[serde(default)]
-    suppress_email_notification: bool,
-}
 
 /// Get information about pending invites
 ///
 /// Returns information about pending invites for the current user
 #[utoipa::path(
+    operation_id = "get_event_invites_pending",
+    tag = "api::v1::events::invites",
     responses(
         (
             status = StatusCode::OK,
@@ -52,10 +46,10 @@ pub struct DeleteEventInviteQuery {
     ),
 )]
 #[get("/users/me/pending_invites")]
-pub async fn get_event_invites_pending(
+pub async fn get(
     service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
-) -> DefaultApiResult<GetEventInvitesPendingResponseBody> {
+) -> Result<ApiResponse<GetEventInvitesPendingResponseBody>, ApiError> {
     let response = service.get_event_invites_pending(current_user.id).await?;
 
     Ok(ApiResponse::new(response))
