@@ -20,6 +20,8 @@ use crate::{
     v1::response::ApiResponse,
 };
 
+pub mod by_id;
+
 /// Lists the streaming targets of a room
 ///
 /// Returns the streaming targets available for a room

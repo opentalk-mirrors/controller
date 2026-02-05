@@ -4,7 +4,7 @@
 
 //! Contains invite related REST endpoints.
 use actix_web::{
-    delete, get, patch, post,
+    delete, patch, post,
     web::{Data, Json, Path, Query, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
@@ -12,9 +12,9 @@ use opentalk_types_api_v1::{
     error::ApiError,
     events::StreamingTargetOptionsQuery,
     rooms::by_room_id::streaming_targets::{
-        GetRoomStreamingTargetResponseBody, PatchRoomStreamingTargetRequestBody,
-        PatchRoomStreamingTargetResponseBody, PostRoomStreamingTargetRequestBody,
-        PostRoomStreamingTargetResponseBody, RoomAndStreamingTargetId,
+        PatchRoomStreamingTargetRequestBody, PatchRoomStreamingTargetResponseBody,
+        PostRoomStreamingTargetRequestBody, PostRoomStreamingTargetResponseBody,
+        RoomAndStreamingTargetId,
     },
 };
 use opentalk_types_common::rooms::RoomId;
@@ -76,51 +76,6 @@ pub async fn post_streaming_target(
             query.into_inner(),
             data.into_inner().0,
         )
-        .await?;
-
-    Ok(ApiResponse::new(response))
-}
-
-/// Gets a streaming target
-///
-/// Returns a single streaming target for a specific room.
-#[utoipa::path(
-    params(RoomAndStreamingTargetId),
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "The streaming target has been successfully returned",
-            body = GetRoomStreamingTargetResponseBody,
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[get("/rooms/{room_id}/streaming_targets/{streaming_target_id}")]
-pub async fn get_streaming_target(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-    path_params: Path<RoomAndStreamingTargetId>,
-) -> DefaultApiResult<GetRoomStreamingTargetResponseBody> {
-    let response = service
-        .get_streaming_target(current_user.id, path_params.into_inner())
         .await?;
 
     Ok(ApiResponse::new(response))
