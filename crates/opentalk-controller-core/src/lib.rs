@@ -727,7 +727,7 @@ impl ModulesRegistrar for Controller {
         v1::rooms::by_id::patch,
         v1::rooms::by_id::start::post,
         v1::rooms::by_id::start_invited::post,
-        api::v1::services::call_in::post_call_in_start,
+        v1::services::call_in::start::post,
         api::v1::services::recording::get_recording_upload,
         api::v1::services::recording::post_recording_start,
         api::v1::services::roomserver::post_roomserver_asset,

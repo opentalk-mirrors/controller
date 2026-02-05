@@ -10,5 +10,6 @@ pub mod auth;
 pub mod events;
 pub mod invite;
 pub mod rooms;
+pub mod services;
 pub mod turn;
 pub mod users;
