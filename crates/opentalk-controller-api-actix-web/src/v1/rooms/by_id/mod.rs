@@ -30,6 +30,7 @@ pub mod roomserver;
 pub mod sip;
 pub mod start;
 pub mod start_invited;
+pub mod streaming_targets;
 pub mod tariff;
 
 /// Get a room
