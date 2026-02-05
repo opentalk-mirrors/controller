@@ -13,6 +13,10 @@ impl HttpCorsAllowedOrigins {
     pub fn into_vec(self) -> Vec<HttpCorsAllowedOrigin> {
         self.0
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = &HttpCorsAllowedOrigin> {
+        self.0.iter()
+    }
 }
 
 impl<'de> Deserialize<'de> for HttpCorsAllowedOrigins {

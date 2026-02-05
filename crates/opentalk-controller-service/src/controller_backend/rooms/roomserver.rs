@@ -5,7 +5,7 @@
 //! Provides roomserver-related implementation
 
 use opentalk_controller_service_facade::{RequestUser, StartRoomError};
-use opentalk_controller_settings::Settings;
+use opentalk_controller_settings::{Settings, common::HttpCorsAllowedOrigin};
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::Inventory;
 use opentalk_roomserver_client::{Error, RequestTokenError};
@@ -14,7 +14,7 @@ use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
     module_settings::ModuleSettings,
     public_user_profile::PublicUserProfile,
-    room_parameters::{AssetStorageConfig, EventContext, RoomParameters},
+    room_parameters::{EventContext, RoomParameters},
     tariff_details::TariffDetails,
 };
 use opentalk_roomserver_types_training_participation_report::settings::TrainingParticipationReportSettings;
@@ -235,6 +235,28 @@ impl ControllerBackend {
             .map(|language| language.0)
             .unwrap_or(settings.defaults.user_language.clone());
 
+        let allowed_origins = settings
+            .http
+            .cors
+            .allowed_origin
+            .as_ref()
+            .map(|origins| {
+                origins
+                    .iter()
+                    .map(HttpCorsAllowedOrigin::header_value)
+                    .collect()
+            })
+            .unwrap_or_else(|| {
+                vec![
+                    settings
+                        .frontend
+                        .base_url
+                        .to_string()
+                        .trim_end_matches('/')
+                        .to_string(),
+                ]
+            });
+
         let parameters = RoomParameters {
             created_by,
             password: room.password,
@@ -246,11 +268,10 @@ impl ControllerBackend {
             streaming_links,
             e2e_encryption: false,
             module_settings,
-            // TODO: remove asset_storage when room parameters are updated
-            asset_storage: AssetStorageConfig::InMemory,
             preferred_language,
             fallback_language: settings.defaults.user_language.clone(),
             ws_rate_limit: room_server_settings.websocket_rate_limit,
+            allowed_origins,
         };
 
         Ok(parameters)
