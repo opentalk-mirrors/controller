@@ -5,7 +5,7 @@
 use kustos::policies_builder::PoliciesBuilder;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_utils::{
-    CaptureApiError, TariffResourceExt, deletion::room::associated_resource_ids_for_invite,
+    CaptureApiError, deletion::room::associated_resource_ids_for_invite,
 };
 use opentalk_inventory::{NewRoomInvite, RoomInvite, RoomInviteWithUsers, UpdateRoomInvite};
 use opentalk_types_api_v1::{
@@ -18,13 +18,14 @@ use opentalk_types_api_v1::{
     users::PublicUserProfile,
 };
 use opentalk_types_common::{
-    features::{GUESTS_ALLOWED_FEATURE_ID, GUESTS_ALLOWED_MODULE_FEATURE_ID},
+    features::GUESTS_ALLOWED_FEATURE_ID,
     modules::DEFAULT_MODULE_ID,
     pagination::ItemCount,
     rooms::{RoomId, invite_codes::InviteCode},
     time::Timestamp,
 };
 
+use super::{verify_invite_read, verify_invite_write};
 use crate::{ControllerBackend, ToUserProfile, controller_backend::RoomsPoliciesBuilderExt};
 
 impl ControllerBackend {
@@ -36,10 +37,11 @@ impl ControllerBackend {
     ) -> Result<InviteResource, CaptureApiError> {
         let settings = self.settings_provider.get();
 
-        let tariff = self.get_tariff_for_room(room_id).await?;
-        tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
-
         let mut inventory = self.inventory_provider.get_inventory().await?;
+
+        let room = inventory.get_room(room_id).await?;
+        let tariff = self.get_tariff_for_room(room_id).await?;
+        verify_invite_write(&tariff, &room)?;
 
         let invite = inventory
             .create_room_invite(NewRoomInvite {
@@ -74,10 +76,11 @@ impl ControllerBackend {
     ) -> Result<(GetRoomsInvitesResponseBody, ItemCount), CaptureApiError> {
         let settings = self.settings_provider.get();
 
-        let tariff = self.get_tariff_for_room(room_id).await?;
-        tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
-
         let mut inventory = self.inventory_provider.get_inventory().await?;
+
+        let room = inventory.get_room(room_id).await?;
+        let tariff = self.get_tariff_for_room(room_id).await?;
+        verify_invite_read(&tariff, &room)?;
 
         let (invites_with_users, total_invites) = inventory
             .get_room_invites_paginated_with_creator_and_updater(
@@ -113,10 +116,11 @@ impl ControllerBackend {
     ) -> Result<InviteResource, CaptureApiError> {
         let settings = self.settings_provider.get();
 
-        let tariff = self.get_tariff_for_room(room_id).await?;
-        tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
-
         let mut inventory = self.inventory_provider.get_inventory().await?;
+
+        let room = inventory.get_room(room_id).await?;
+        let tariff = self.get_tariff_for_room(room_id).await?;
+        verify_invite_read(&tariff, &room)?;
 
         let RoomInviteWithUsers {
             invite,
@@ -145,10 +149,11 @@ impl ControllerBackend {
     ) -> Result<InviteResource, CaptureApiError> {
         let settings = self.settings_provider.get();
 
-        let tariff = self.get_tariff_for_room(room_id).await?;
-        tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
-
         let mut inventory = self.inventory_provider.get_inventory().await?;
+
+        let room = inventory.get_room(room_id).await?;
+        let tariff = self.get_tariff_for_room(room_id).await?;
+        verify_invite_write(&tariff, &room)?;
 
         let RoomInviteWithUsers {
             invite,
@@ -189,10 +194,11 @@ impl ControllerBackend {
         room_id: RoomId,
         invite_code: InviteCode,
     ) -> Result<(), CaptureApiError> {
-        let tariff = self.get_tariff_for_room(room_id).await?;
-        tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
-
         let mut inventory = self.inventory_provider.get_inventory().await?;
+
+        let room = inventory.get_room(room_id).await?;
+        let tariff = self.get_tariff_for_room(room_id).await?;
+        verify_invite_write(&tariff, &room)?;
 
         _ = inventory
             .update_room_invite(
