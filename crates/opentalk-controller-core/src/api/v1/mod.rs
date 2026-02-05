@@ -10,4 +10,3 @@ pub mod events;
 pub mod middleware;
 pub mod response;
 pub mod services;
-pub mod streaming_targets;

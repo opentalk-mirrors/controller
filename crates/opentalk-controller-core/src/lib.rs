@@ -734,7 +734,7 @@ impl ModulesRegistrar for Controller {
         v1::rooms::by_id::sip::delete,
         v1::rooms::by_id::sip::get,
         v1::rooms::by_id::sip::put,
-        api::v1::streaming_targets::delete_streaming_target,
+        v1::rooms::by_id::streaming_targets::by_id::delete,
         v1::rooms::by_id::streaming_targets::by_id::get,
         v1::rooms::by_id::streaming_targets::get,
         v1::rooms::by_id::streaming_targets::by_id::patch,
@@ -1012,7 +1012,7 @@ fn v1_scope(
                 .service(v1::rooms::by_id::streaming_targets::post)
                 .service(v1::rooms::by_id::streaming_targets::by_id::get)
                 .service(v1::rooms::by_id::streaming_targets::by_id::patch)
-                .service(api::v1::streaming_targets::delete_streaming_target),
+                .service(v1::rooms::by_id::streaming_targets::by_id::delete),
         )
 }
 

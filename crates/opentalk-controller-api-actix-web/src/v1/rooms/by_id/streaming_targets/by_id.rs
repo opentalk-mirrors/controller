@@ -5,7 +5,7 @@
 //! API endpoints under `v1/rooms/{room_id}/streaming_targets/{streaming_target_id}`
 
 use actix_web::{
-    get, patch,
+    delete, get, patch,
     web::{Data, Json, Path, Query, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
@@ -18,7 +18,10 @@ use opentalk_types_api_v1::{
     },
 };
 
-use crate::utoipa::responses::{Forbidden, InternalServerError, NotFound, Unauthorized};
+use crate::{
+    response::NoContent,
+    utoipa::responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
+};
 
 /// Gets a streaming target
 ///
@@ -121,4 +124,58 @@ pub async fn patch(
         .await?;
 
     Ok(Json(response))
+}
+
+/// Deletes a streaming target
+///
+/// The streaming target is deleted from the room
+#[utoipa::path(
+    operation_id = "delete_streaming_target",
+    tag = "api::v1::streaming_targets",
+    params(
+        RoomAndStreamingTargetId,
+        StreamingTargetOptionsQuery,
+    ),
+    responses(
+        (
+            status = StatusCode::NO_CONTENT,
+            description = "The streaming target has been deleted",
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            response = Unauthorized,
+        ),
+        (
+            status = StatusCode::FORBIDDEN,
+            response = Forbidden,
+        ),
+        (
+            status = StatusCode::NOT_FOUND,
+            response = NotFound,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(
+        ("BearerAuth" = []),
+    ),
+)]
+#[delete("/rooms/{room_id}/streaming_targets/{streaming_target_id}")]
+pub async fn delete(
+    service: Data<dyn OpenTalkControllerService>,
+    current_user: ReqData<RequestUser>,
+    path_params: Path<RoomAndStreamingTargetId>,
+    query: Query<StreamingTargetOptionsQuery>,
+) -> Result<NoContent, ApiError> {
+    service
+        .delete_streaming_target(
+            current_user.into_inner(),
+            path_params.into_inner(),
+            query.into_inner(),
+        )
+        .await?;
+
+    Ok(NoContent)
 }
