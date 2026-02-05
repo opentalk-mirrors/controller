@@ -4,74 +4,14 @@
 
 //! Contains invite related REST endpoints.
 use actix_web::{
-    delete, put,
-    web::{Data, Json, Path, ReqData},
+    delete,
+    web::{Data, Path, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
-use opentalk_types_api_v1::{
-    error::ApiError,
-    rooms::by_room_id::invites::{InviteResource, PutInviteRequestBody, RoomIdAndInviteCode},
-};
+use opentalk_types_api_v1::{error::ApiError, rooms::by_room_id::invites::RoomIdAndInviteCode};
 
-use super::{DefaultApiResult, response::NoContent};
-use crate::api::{
-    responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
-    v1::ApiResponse,
-};
-
-/// Update an invite code
-///
-/// Updates the field values as set in the request body.
-#[utoipa::path(
-    params(RoomIdAndInviteCode),
-    request_body = PutInviteRequestBody,
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "Successfully updated the room invite",
-            body = InviteResource,
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[put("/rooms/{room_id}/invites/{invite_code}")]
-pub async fn update_invite(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-    path_params: Path<RoomIdAndInviteCode>,
-    update_invite: Json<PutInviteRequestBody>,
-) -> DefaultApiResult<InviteResource> {
-    let current_user = current_user.into_inner();
-
-    let invite_resource = service
-        .update_invite(
-            current_user,
-            path_params.room_id,
-            path_params.invite_code,
-            update_invite.into_inner(),
-        )
-        .await?;
-
-    Ok(ApiResponse::new(invite_resource))
-}
+use super::response::NoContent;
+use crate::api::responses::{Forbidden, InternalServerError, NotFound, Unauthorized};
 
 /// Delete an invite code
 ///

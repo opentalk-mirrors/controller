@@ -5,13 +5,13 @@
 //! API endpoints under `v1/rooms/{room_id}/invites/{invite_code}`
 
 use actix_web::{
-    get,
-    web::{Data, Json, Path},
+    get, put,
+    web::{Data, Json, Path, ReqData},
 };
-use opentalk_controller_service_facade::OpenTalkControllerService;
+use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
     error::ApiError,
-    rooms::by_room_id::invites::{InviteResource, RoomIdAndInviteCode},
+    rooms::by_room_id::invites::{InviteResource, PutInviteRequestBody, RoomIdAndInviteCode},
 };
 
 use crate::utoipa::responses::{Forbidden, InternalServerError, NotFound, Unauthorized};
@@ -60,4 +60,60 @@ pub async fn get(
         .await?;
 
     Ok(Json(invite_resoruce))
+}
+
+/// Update an invite code
+///
+/// Updates the field values as set in the request body.
+#[utoipa::path(
+    operation_id = "update_invite",
+    tag = "api::v1::invites",
+    params(RoomIdAndInviteCode),
+    request_body = PutInviteRequestBody,
+    responses(
+        (
+            status = StatusCode::OK,
+            description = "Successfully updated the room invite",
+            body = InviteResource,
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            response = Unauthorized,
+        ),
+        (
+            status = StatusCode::FORBIDDEN,
+            response = Forbidden,
+        ),
+        (
+            status = StatusCode::NOT_FOUND,
+            response = NotFound,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(
+        ("BearerAuth" = []),
+    ),
+)]
+#[put("/rooms/{room_id}/invites/{invite_code}")]
+pub async fn put(
+    service: Data<dyn OpenTalkControllerService>,
+    current_user: ReqData<RequestUser>,
+    path_params: Path<RoomIdAndInviteCode>,
+    update_invite: Json<PutInviteRequestBody>,
+) -> Result<Json<InviteResource>, ApiError> {
+    let current_user = current_user.into_inner();
+
+    let invite_resource = service
+        .update_invite(
+            current_user,
+            path_params.room_id,
+            path_params.invite_code,
+            update_invite.into_inner(),
+        )
+        .await?;
+
+    Ok(Json(invite_resource))
 }
