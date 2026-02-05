@@ -175,7 +175,6 @@ pub struct Event {
     pub created_at: DateTime<Utc>,
     pub updated_by: UserId,
     pub updated_at: DateTime<Utc>,
-    pub is_time_independent: bool,
     pub is_all_day: Option<bool>,
 
     /// start datetime of the event
@@ -221,7 +220,6 @@ impl From<Event> for opentalk_inventory::Event {
             created_at,
             updated_by,
             updated_at,
-            is_time_independent: _,
             is_all_day,
             starts_at,
             starts_at_tz,
@@ -284,7 +282,6 @@ impl From<opentalk_inventory::Event> for Event {
             created_at: event.created_at.into(),
             updated_by: event.updated_by,
             updated_at: event.updated_at.into(),
-            is_time_independent: event.is_time_independent(),
             is_all_day: event.is_all_day(),
             starts_at: event.starts_at().map(Into::into),
             starts_at_tz: event.starts_at_tz(),
@@ -768,7 +765,11 @@ impl Event {
         }
 
         if let Some(is_time_independent) = time_independent {
-            query = query.filter(events::is_time_independent.eq(is_time_independent));
+            if is_time_independent {
+                query = query.filter(events::starts_at.is_null());
+            } else {
+                query = query.filter(events::starts_at.is_not_null());
+            }
         }
 
         if !invite_status_filter.is_empty() {
@@ -938,7 +939,11 @@ impl Event {
         }
 
         if let Some(is_time_independent) = time_independent {
-            query = query.filter(events::is_time_independent.eq(is_time_independent));
+            if is_time_independent {
+                query = query.filter(events::starts_at.is_null());
+            } else {
+                query = query.filter(events::starts_at.is_not_null());
+            }
         }
 
         if !invite_status_filter.is_empty() {
@@ -1139,7 +1144,11 @@ impl Event {
         }
 
         if let Some(is_time_independent) = time_independent {
-            query = query.filter(events::is_time_independent.eq(is_time_independent));
+            if is_time_independent {
+                query = query.filter(events::starts_at.is_null());
+            } else {
+                query = query.filter(events::starts_at.is_not_null());
+            }
         }
 
         if !invite_status_filter.is_empty() {
@@ -1261,7 +1270,6 @@ pub struct NewEvent {
     pub room: RoomId,
     pub created_by: UserId,
     pub updated_by: UserId,
-    pub is_time_independent: bool,
     pub is_all_day: Option<bool>,
     pub starts_at: Option<DateTime<Tz>>,
     pub starts_at_tz: Option<TimeZone>,
@@ -1280,7 +1288,6 @@ impl From<opentalk_inventory::NewEvent> for NewEvent {
             room: new_event.room,
             created_by: new_event.created_by,
             updated_by: new_event.updated_by,
-            is_time_independent: new_event.is_time_independent(),
             is_all_day: new_event.is_all_day(),
             starts_at: new_event.starts_at(),
             starts_at_tz: new_event.starts_at_tz(),
@@ -1317,7 +1324,6 @@ pub struct UpdateEvent {
     pub description: Option<EventDescription>,
     pub updated_by: UserId,
     pub updated_at: DateTime<Utc>,
-    pub is_time_independent: Option<bool>,
     pub is_all_day: Option<Option<bool>>,
     pub starts_at: Option<Option<DateTime<Tz>>>,
     pub starts_at_tz: Option<Option<TimeZone>>,
@@ -1334,7 +1340,6 @@ impl From<opentalk_inventory::UpdateEvent> for UpdateEvent {
         Self {
             updated_by: update_event.updated_by,
             updated_at: update_event.updated_at.into(),
-            is_time_independent: Some(update_event.is_time_independent()),
             is_all_day: Some(update_event.is_all_day()),
             starts_at: Some(update_event.starts_at()),
             starts_at_tz: Some(update_event.starts_at_tz()),
