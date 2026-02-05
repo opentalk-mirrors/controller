@@ -234,6 +234,7 @@ impl Builder {
                 .entry(ModuleId::default())
                 .and_modify(|f| {
                     f.remove(&opentalk_types_common::features::CALL_IN_FEATURE_ID);
+                    f.remove(&opentalk_types_common::features::GUESTS_ALLOWED_FEATURE_ID);
                 });
         }
 
