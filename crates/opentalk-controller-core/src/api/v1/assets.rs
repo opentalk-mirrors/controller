@@ -3,92 +3,15 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use actix_web::{
-    delete, post,
-    web::{Data, Path, Payload, Query},
+    delete,
+    web::{Data, Path},
 };
-use futures::TryStreamExt;
 use opentalk_controller_service_facade::OpenTalkControllerService;
-use opentalk_signaling_core::{ObjectStorageError, assets::NewAssetFileName};
-use opentalk_types_api_v1::{
-    error::ApiError,
-    rooms::by_room_id::assets::{PostAssetQuery, PostAssetResponseBody},
-};
-use opentalk_types_common::{assets::AssetId, rooms::RoomId, time::Timestamp};
+use opentalk_types_api_v1::error::ApiError;
+use opentalk_types_common::{assets::AssetId, rooms::RoomId};
 
-use super::{ApiResponse, DefaultApiResult, response::NoContent};
+use super::response::NoContent;
 use crate::api::responses::{Forbidden, InternalServerError, NotFound, Unauthorized};
-
-/// Create an asset for a room from an uploaded file
-///
-/// The asset is attached to the room and saved in the storage.
-#[utoipa::path(
-    operation_id = "create_room_asset",
-    request_body(
-        content = String,
-        content_type = "application/octet-stream",
-        description = "The contents of the file",
-    ),
-    params(
-        ("room_id" = RoomId, description = "The id of the room"),
-        PostAssetQuery,
-    ),
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "The asset has been created successfully",
-            body = PostAssetResponseBody,
-        ),
-        (
-            status = StatusCode::BAD_REQUEST,
-            description = "Storage quota has been exceeded",
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            description = "The associated room was not found",
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[post("/rooms/{room_id}/assets")]
-pub async fn create(
-    service: Data<dyn OpenTalkControllerService>,
-    path: Path<RoomId>,
-    query: Query<PostAssetQuery>,
-    data: Payload,
-) -> DefaultApiResult<PostAssetResponseBody, ApiError> {
-    let room_id = path.into_inner();
-    let query = query.into_inner();
-
-    let filename = NewAssetFileName::new_with_event_title(
-        query.event_title,
-        query.kind,
-        Timestamp::now(),
-        query.file_extension,
-    );
-
-    let data = data.map_err(|e| ObjectStorageError::Other {
-        message: "Upload error".to_string(),
-        source: Some(e.into()),
-    });
-
-    let (resource, _) = service
-        .create_room_asset(room_id, filename, query.namespace, Box::new(data))
-        .await?;
-
-    let response = PostAssetResponseBody(resource);
-
-    Ok(ApiResponse::new(response))
-}
 
 /// Delete an asset from a room.
 ///

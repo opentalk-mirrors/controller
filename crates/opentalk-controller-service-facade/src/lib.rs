@@ -28,3 +28,4 @@ mod middleware;
 
 pub use controller_service::{AssetDownloadProxyStream, OpenTalkControllerService, StartRoomError};
 pub use middleware::user::RequestUser;
+pub use opentalk_signaling_core::{ObjectStorageError, assets::NewAssetFileName};
