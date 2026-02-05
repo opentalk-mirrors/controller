@@ -686,7 +686,7 @@ impl ModulesRegistrar for Controller {
         v1::rooms::by_id::assets::by_id::download::get,
         v1::rooms::by_id::assets::get,
         v1::rooms::by_id::assets::post,
-        api::v1::assets::delete,
+        v1::rooms::by_id::assets::by_id::delete,
         v1::auth::login::get,
         v1::auth::login::post,
         v1::events::by_id::delete,
@@ -1007,7 +1007,7 @@ fn v1_scope(
                 .service(v1::rooms::by_id::assets::by_id::get)
                 .service(v1::rooms::by_id::assets::by_id::download::get)
                 .service(v1::rooms::by_id::assets::get)
-                .service(api::v1::assets::delete)
+                .service(v1::rooms::by_id::assets::by_id::delete)
                 .service(api::v1::streaming_targets::get_streaming_targets)
                 .service(api::v1::streaming_targets::post_streaming_target)
                 .service(api::v1::streaming_targets::get_streaming_target)

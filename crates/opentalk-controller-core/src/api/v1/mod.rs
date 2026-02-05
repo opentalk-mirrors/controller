@@ -6,7 +6,6 @@
 
 pub use response::{ApiResponse, DefaultApiResult};
 
-pub mod assets;
 pub mod events;
 pub mod middleware;
 pub mod response;
