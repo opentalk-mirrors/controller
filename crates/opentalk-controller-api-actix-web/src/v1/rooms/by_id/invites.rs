@@ -5,13 +5,16 @@
 //! API endpoints under `v1/rooms/{room_id}/invites`
 
 use actix_web::{
-    get,
-    web::{Data, Path, Query},
+    get, post,
+    web::{Data, Json, Path, Query, ReqData},
 };
-use opentalk_controller_service_facade::OpenTalkControllerService;
+use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
-    error::ApiError, pagination::PagePaginationQuery,
-    rooms::by_room_id::invites::GetRoomsInvitesResponseBody,
+    error::ApiError,
+    pagination::PagePaginationQuery,
+    rooms::by_room_id::invites::{
+        GetRoomsInvitesResponseBody, InviteResource, PostInviteRequestBody,
+    },
 };
 use opentalk_types_common::rooms::RoomId;
 
@@ -73,4 +76,64 @@ pub async fn get(
         pagination.page,
         invite_count,
     ))
+}
+
+/// Create a new invite
+///
+/// A new invite to the room is created with the information in the body.
+#[utoipa::path(
+    operation_id = "add_invite",
+    tag = "api::v1::invites",
+    params(
+        ("room_id" = RoomId, description = "The id of the room"),
+    ),
+    request_body = PostInviteRequestBody,
+    responses(
+        (
+            status = StatusCode::OK,
+            description = "Successfully create a new invite",
+            body = InviteResource,
+        ),
+        (
+            status = StatusCode::BAD_REQUEST,
+            description = "Could not create a new invite due to wrong syntax or
+                bad values, for example an invalid owner id.",
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            response = Unauthorized,
+        ),
+        (
+            status = StatusCode::FORBIDDEN,
+            response = Forbidden,
+        ),
+        (
+            status = StatusCode::NOT_FOUND,
+            response = NotFound,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(
+        ("BearerAuth" = []),
+    ),
+)]
+#[post("/rooms/{room_id}/invites")]
+pub async fn post(
+    service: Data<dyn OpenTalkControllerService>,
+    current_user: ReqData<RequestUser>,
+    room_id: Path<RoomId>,
+    new_invite: Json<PostInviteRequestBody>,
+) -> Result<Json<InviteResource>, ApiError> {
+    let current_user = current_user.into_inner();
+    let room_id = room_id.into_inner();
+    let new_invite = new_invite.into_inner();
+
+    let invite_resource = service
+        .create_invite(current_user, room_id, new_invite)
+        .await?;
+
+    Ok(Json(invite_resource))
 }
