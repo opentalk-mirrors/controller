@@ -23,6 +23,8 @@ use crate::{
     v1::response::ApiResponse,
 };
 
+pub mod by_code;
+
 /// Get all invites for a room
 ///
 /// This returns all invites that are available for a room. If no

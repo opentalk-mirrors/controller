@@ -713,7 +713,7 @@ impl ModulesRegistrar for Controller {
         v1::events::by_id::shared_folder::delete,
         v1::rooms::by_id::invites::post,
         api::v1::invites::delete_invite,
-        api::v1::invites::get_invite,
+        v1::rooms::by_id::invites::by_code::get,
         v1::rooms::by_id::invites::get,
         api::v1::invites::update_invite,
         v1::invite::verify::post,
@@ -999,7 +999,7 @@ fn v1_scope(
                 .service(v1::rooms::by_id::sip::delete)
                 .service(v1::rooms::by_id::invites::get)
                 .service(v1::rooms::by_id::invites::post)
-                .service(api::v1::invites::get_invite)
+                .service(v1::rooms::by_id::invites::by_code::get)
                 .service(api::v1::invites::update_invite)
                 .service(api::v1::invites::delete_invite)
                 .service(api::v1::assets::room_assets)

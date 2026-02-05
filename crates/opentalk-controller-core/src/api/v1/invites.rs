@@ -4,7 +4,7 @@
 
 //! Contains invite related REST endpoints.
 use actix_web::{
-    delete, get, put,
+    delete, put,
     web::{Data, Json, Path, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
@@ -18,50 +18,6 @@ use crate::api::{
     responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
     v1::ApiResponse,
 };
-
-/// Get a room invite
-///
-/// Returns the room invite resource
-#[utoipa::path(
-    params(RoomIdAndInviteCode),
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "Successfully retrieved the room invite",
-            body = InviteResource,
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[get("/rooms/{room_id}/invites/{invite_code}")]
-pub async fn get_invite(
-    service: Data<dyn OpenTalkControllerService>,
-    path_params: Path<RoomIdAndInviteCode>,
-) -> DefaultApiResult<InviteResource> {
-    let invite_resoruce = service
-        .get_invite(path_params.room_id, path_params.invite_code)
-        .await?;
-
-    Ok(ApiResponse::new(invite_resoruce))
-}
 
 /// Update an invite code
 ///
