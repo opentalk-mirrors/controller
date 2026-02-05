@@ -738,7 +738,7 @@ impl ModulesRegistrar for Controller {
         v1::rooms::by_id::streaming_targets::by_id::get,
         v1::rooms::by_id::streaming_targets::get,
         api::v1::streaming_targets::patch_streaming_target,
-        api::v1::streaming_targets::post_streaming_target,
+        v1::rooms::by_id::streaming_targets::post,
         v1::turn::get,
         v1::users::find::get,
         v1::users::me::get,
@@ -1009,7 +1009,7 @@ fn v1_scope(
                 .service(v1::rooms::by_id::assets::get)
                 .service(v1::rooms::by_id::assets::by_id::delete)
                 .service(v1::rooms::by_id::streaming_targets::get)
-                .service(api::v1::streaming_targets::post_streaming_target)
+                .service(v1::rooms::by_id::streaming_targets::post)
                 .service(v1::rooms::by_id::streaming_targets::by_id::get)
                 .service(api::v1::streaming_targets::patch_streaming_target)
                 .service(api::v1::streaming_targets::delete_streaming_target),

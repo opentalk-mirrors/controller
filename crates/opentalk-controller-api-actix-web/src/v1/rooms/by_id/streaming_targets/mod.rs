@@ -5,13 +5,18 @@
 //! API endpoints under `v1/rooms/{room_id}/streaming_targets`
 
 use actix_web::{
-    get,
-    web::{Data, Path, Query, ReqData},
+    get, post,
+    web::{Data, Json, Path, Query, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
-    error::ApiError, pagination::PagePaginationQuery,
-    rooms::by_room_id::streaming_targets::GetRoomStreamingTargetsResponseBody,
+    error::ApiError,
+    events::StreamingTargetOptionsQuery,
+    pagination::PagePaginationQuery,
+    rooms::by_room_id::streaming_targets::{
+        GetRoomStreamingTargetsResponseBody, PostRoomStreamingTargetRequestBody,
+        PostRoomStreamingTargetResponseBody,
+    },
 };
 use opentalk_types_common::{pagination::ItemCount, rooms::RoomId};
 
@@ -77,4 +82,62 @@ pub async fn get(
         pagination.page,
         length,
     ))
+}
+
+/// Creates a new streaming target
+///
+/// Creates a new streaming target for the given room
+#[utoipa::path(
+    operation_id = "post_streaming_target",
+    tag = "api::v1::streaming_targets",
+    params(
+        StreamingTargetOptionsQuery,
+        ("room_id" = RoomId, description = "The id of the room"),
+    ),
+    request_body = PostRoomStreamingTargetRequestBody,
+    responses(
+        (
+            status = StatusCode::OK,
+            description = "Successfully create a new streaming target",
+            body = PostRoomStreamingTargetResponseBody,
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            response = Unauthorized,
+        ),
+        (
+            status = StatusCode::FORBIDDEN,
+            response = Forbidden,
+        ),
+        (
+            status = StatusCode::NOT_FOUND,
+            response = NotFound,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(
+        ("BearerAuth" = []),
+    ),
+)]
+#[post("/rooms/{room_id}/streaming_targets")]
+pub async fn post(
+    service: Data<dyn OpenTalkControllerService>,
+    current_user: ReqData<RequestUser>,
+    room_id: Path<RoomId>,
+    query: Query<StreamingTargetOptionsQuery>,
+    data: Json<PostRoomStreamingTargetRequestBody>,
+) -> Result<Json<PostRoomStreamingTargetResponseBody>, ApiError> {
+    let response = service
+        .post_streaming_target(
+            current_user.into_inner(),
+            room_id.into_inner(),
+            query.into_inner(),
+            data.into_inner().0,
+        )
+        .await?;
+
+    Ok(Json(response))
 }

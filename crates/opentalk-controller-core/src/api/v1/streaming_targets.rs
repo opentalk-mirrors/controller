@@ -4,7 +4,7 @@
 
 //! Contains invite related REST endpoints.
 use actix_web::{
-    delete, patch, post,
+    delete, patch,
     web::{Data, Json, Path, Query, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
@@ -13,73 +13,15 @@ use opentalk_types_api_v1::{
     events::StreamingTargetOptionsQuery,
     rooms::by_room_id::streaming_targets::{
         PatchRoomStreamingTargetRequestBody, PatchRoomStreamingTargetResponseBody,
-        PostRoomStreamingTargetRequestBody, PostRoomStreamingTargetResponseBody,
         RoomAndStreamingTargetId,
     },
 };
-use opentalk_types_common::rooms::RoomId;
 
 use super::{DefaultApiResult, response::NoContent};
 use crate::api::{
     responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
     v1::ApiResponse,
 };
-
-/// Creates a new streaming target
-///
-/// Creates a new streaming target for the given room
-#[utoipa::path(
-    params(
-        StreamingTargetOptionsQuery,
-        ("room_id" = RoomId, description = "The id of the room"),
-    ),
-    request_body = PostRoomStreamingTargetRequestBody,
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "Successfully create a new streaming target",
-            body = PostRoomStreamingTargetResponseBody,
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[post("/rooms/{room_id}/streaming_targets")]
-pub async fn post_streaming_target(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-    room_id: Path<RoomId>,
-    query: Query<StreamingTargetOptionsQuery>,
-    data: Json<PostRoomStreamingTargetRequestBody>,
-) -> DefaultApiResult<PostRoomStreamingTargetResponseBody> {
-    let response = service
-        .post_streaming_target(
-            current_user.into_inner(),
-            room_id.into_inner(),
-            query.into_inner(),
-            data.into_inner().0,
-        )
-        .await?;
-
-    Ok(ApiResponse::new(response))
-}
 
 /// Updates a streaming target
 ///
