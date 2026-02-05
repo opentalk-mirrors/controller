@@ -8,7 +8,6 @@ pub use response::{ApiResponse, DefaultApiResult};
 
 pub mod assets;
 pub mod events;
-pub mod invites;
 pub mod middleware;
 pub mod response;
 pub mod services;

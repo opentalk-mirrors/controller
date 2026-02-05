@@ -5,7 +5,7 @@
 //! API endpoints under `v1/rooms/{room_id}/invites/{invite_code}`
 
 use actix_web::{
-    get, put,
+    delete, get, put,
     web::{Data, Json, Path, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
@@ -14,7 +14,10 @@ use opentalk_types_api_v1::{
     rooms::by_room_id::invites::{InviteResource, PutInviteRequestBody, RoomIdAndInviteCode},
 };
 
-use crate::utoipa::responses::{Forbidden, InternalServerError, NotFound, Unauthorized};
+use crate::{
+    response::NoContent,
+    utoipa::responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
+};
 
 /// Get a room invite
 ///
@@ -116,4 +119,52 @@ pub async fn put(
         .await?;
 
     Ok(Json(invite_resource))
+}
+
+/// Delete an invite code
+///
+/// The invite code will no longer be usable once it is deleted.
+#[utoipa::path(
+    operation_id = "delete_invite",
+    tag = "api::v1::invites",
+    params(RoomIdAndInviteCode),
+    responses(
+        (
+            status = StatusCode::NO_CONTENT,
+            description = "Successfully deleted the room invite",
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            response = Unauthorized,
+        ),
+        (
+            status = StatusCode::FORBIDDEN,
+            response = Forbidden,
+        ),
+        (
+            status = StatusCode::NOT_FOUND,
+            response = NotFound,
+        ),
+        (
+            status = StatusCode::INTERNAL_SERVER_ERROR,
+            response = InternalServerError,
+        ),
+    ),
+    security(
+        ("BearerAuth" = []),
+    ),
+)]
+#[delete("/rooms/{room_id}/invites/{invite_code}")]
+pub async fn delete(
+    service: Data<dyn OpenTalkControllerService>,
+    current_user: ReqData<RequestUser>,
+    path_params: Path<RoomIdAndInviteCode>,
+) -> Result<NoContent, ApiError> {
+    let current_user = current_user.into_inner();
+
+    service
+        .delete_invite(current_user, path_params.room_id, path_params.invite_code)
+        .await?;
+
+    Ok(NoContent)
 }
