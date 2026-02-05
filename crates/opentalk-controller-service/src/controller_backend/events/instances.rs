@@ -4,30 +4,38 @@
 
 //! Handles event instances
 
+use std::{cmp::Ordering, collections::BTreeSet, pin::Pin, sync::Arc};
+
+use async_stream::stream;
 use chrono::{DateTime, Duration, Utc};
+use futures::pin_mut;
+use futures_core::Stream;
+use futures_util::{StreamExt, TryStreamExt};
 use kustos::policies_builder::PoliciesBuilder;
 use opentalk_controller_service_facade::RequestUser;
+use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::{
     CaptureApiError,
     event::{EventDateExt, EventExt},
 };
 use opentalk_inventory::{
-    Event, EventDate, EventException, EventExceptionKind, NewEventException, UpdateEventException,
+    Event, EventDate, EventException, EventExceptionKind, EventInvite, EventSharedFolder,
+    GetEventsCursor, InventoryProvider, NewEventException, Room, RoomSipConfig, Tariff,
+    UpdateEventException, User,
 };
 use opentalk_types_api_v1::{
     error::ApiError,
     events::{
         EventAndInstanceId, EventInstance, EventInstancePath, EventInstanceQuery, EventInvitee,
-        EventOrInstance, EventResourceDate, EventResourceDateKind, EventRoomInfo, EventStatus,
-        EventType, GetEventInstanceResponseBody, GetEventInstancesCursorData,
-        GetEventInstancesQuery, GetEventInstancesResponseBody, GetEventsAndInstancesQuery,
-        GetEventsCursorData, GetEventsQuery, InstanceId, PatchEventInstanceBody,
+        EventOrInstance, EventRoomInfo, EventStatus, EventType, GetEventInstanceResponseBody,
+        GetEventInstancesCursorData, GetEventInstancesQuery, GetEventInstancesResponseBody,
+        GetEventsAndInstancesQuery, GetEventsCursorData, InstanceId, PatchEventInstanceBody,
     },
     pagination::Cursor,
 };
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
-    pagination::{Page, PageSize},
+    pagination::PageSize,
     shared_folders::SharedFolder,
     time::{DateTimeTz, TimeZone, Timestamp},
     training_participation_report::TrainingParticipationReportParameterSet,
@@ -39,6 +47,7 @@ use crate::{
     controller_backend::{
         RoomsPoliciesBuilderExt,
         events::{DateTimeTzFromInventory, EventRoomInfoExt, ONE_HUNDRED_YEARS_IN_DAYS},
+        utils::interweave_result_streams,
     },
     events::{
         enrich_invitees_from_optional_user_search, get_invited_mail_recipients_for_event,
@@ -50,113 +59,233 @@ use crate::{
 
 const ONE_HUNDRED_YEARS: Duration = Duration::days(ONE_HUNDRED_YEARS_IN_DAYS as i64);
 
+#[allow(clippy::type_complexity)]
+enum InternalEventOrInstance {
+    Event(
+        (
+            Event,
+            Option<EventInvite>,
+            Room,
+            Option<RoomSipConfig>,
+            bool,
+            Option<EventSharedFolder>,
+            Tariff,
+            Option<TrainingParticipationReportParameterSet>,
+        ),
+    ),
+    Instance(EventInstance),
+}
+
 impl ControllerBackend {
-    pub(crate) async fn get_events_and_instances(
+    pub(crate) async fn get_events_and_instances_interwoven(
         &self,
         current_user: RequestUser,
         query: GetEventsAndInstancesQuery,
     ) -> Result<(Vec<EventOrInstance>, Option<String>, Option<String>), CaptureApiError> {
-        let after = query.after.map(|after| {
-            Cursor(GetEventsCursorData {
-                event_id: after.event_id,
-                event_created_at: after.event_created_at,
-                event_starts_at: after.event_starts_at,
-                instance_id: None,
+        let get_events_cursor = query.after.map(|cursor| {
+            GetEventsCursor::new(
+                cursor.event_id,
+                cursor.event_created_at,
+                cursor.event_starts_at,
+            )
+        });
+
+        let mut inventory = self.inventory_provider.get_inventory().await?;
+        let current_user = inventory.get_user(current_user.id).await?;
+
+        // Get all events we intend to get instances for
+        let recurring_events = inventory
+            .get_all_events_for_user(current_user.clone(), true)
+            .await?;
+
+        // Get the events and belonging data as a stream that can be interwoven
+        let events_stream = inventory
+            .get_all_events_for_user_paginated_as_stream(
+                current_user.clone(),
+                query.favorites,
+                BTreeSet::from_iter(query.invite_status.clone()),
+                query.time_min,
+                query.time_max,
+                query.created_before,
+                query.created_after,
+                query.adhoc,
+                query.time_independent,
+                get_events_cursor,
+            )
+            .await?;
+
+        // Return all non-recurring events, but recurring events only if event instances are suppressed
+        let events_stream = events_stream.filter(|result| {
+            futures::future::ready({
+                if let Ok(stream_item) = result {
+                    !stream_item.0.is_recurring() || query.instances_max.is_zero()
+                } else {
+                    true
+                }
             })
         });
 
-        let events_query = GetEventsQuery {
-            time_min: query.time_min,
-            time_max: query.time_max,
-            created_before: query.created_before,
-            created_after: query.created_after,
-            invitees_max: query.invitees_max,
-            favorites: query.favorites,
-            invite_status: query.invite_status,
-            per_page: query.per_page,
-            after,
-            adhoc: query.adhoc,
-            time_independent: query.time_independent,
-        };
+        // Prepare all streams to interweave (one for the events and one for each event's instances).
+        let mut events_and_instances_streams: Vec<
+            Pin<Box<dyn Stream<Item = opentalk_inventory::Result<InternalEventOrInstance>>>>,
+        > = Vec::with_capacity(recurring_events.len() + 1);
+        events_and_instances_streams.push(Box::pin(
+            events_stream.map_ok(InternalEventOrInstance::Event),
+        ));
+        for event in recurring_events {
+            let cursor_event_starts_at = query.after.and_then(|cursor| cursor.event_starts_at);
 
-        let (event_resources, before, after) = self
-            .get_events_internal(current_user.clone(), events_query, false)
-            .await?;
-
-        let mut event_or_instance_resources: Vec<EventOrInstance> = vec![];
-
-        // TODO: Incorporate instances into overall paging, all sorted by time? See #1088
-        for (event_resource, _event_exception_resources) in event_resources {
-            if query.instances_max.is_zero() {
-                event_or_instance_resources.push(EventOrInstance::Event(event_resource));
-                continue;
+            let (time_min, time_min_inclusive) = match (query.time_min, cursor_event_starts_at) {
+                (v, None) => (v, true),
+                (None, v) => (v, false),
+                (Some(v1), Some(v2)) => {
+                    if v1 > v2 {
+                        (Some(v1), true)
+                    } else {
+                        (Some(v2), false)
+                    }
+                }
             };
 
-            // An event that is not time-dependent can't be recurring, hence the early return.
-            let EventResourceDateKind::TimeDependent {
-                is_time_independent: _,
-                ref date,
-            } = event_resource.date
-            else {
-                event_or_instance_resources.push(EventOrInstance::Event(event_resource));
-                continue;
-            };
-
-            if let EventResourceDate::Single { .. } = date {
-                event_or_instance_resources.push(EventOrInstance::Event(event_resource));
-                continue;
-            };
-
-            let instances_query = GetEventInstancesQuery {
-                invitees_max: query.invitees_max,
-                time_min: query.time_min,
-                time_max: query.time_max,
-                per_page: Some(PageSize::from_i64_clamped(query.instances_max.into())),
-                after: None,
-            };
-
-            // TODO: Optimize to get instances for a list of events (not just a single event) with less DB roundtrips? See #1088
-            let instances_response = self
-                .get_event_instances(&current_user, event_resource.id, instances_query)
+            let instances_stream = self
+                .get_event_instances_as_stream(
+                    &current_user,
+                    event.id,
+                    query.invitees_max,
+                    time_min,
+                    time_min_inclusive,
+                    query.time_max,
+                    query.instances_max.into(),
+                    0,
+                )
                 .await?;
 
-            for instance_resource in instances_response.0.0 {
-                event_or_instance_resources.push(EventOrInstance::Instance(instance_resource));
-            }
+            events_and_instances_streams.push(Box::pin(
+                instances_stream.map_ok(InternalEventOrInstance::Instance),
+            ));
         }
 
-        Ok((event_or_instance_resources, before, after))
+        // Interweave the streams
+        let stream = interweave_result_streams(
+            events_and_instances_streams,
+            compare_inventory_events_or_instances,
+        );
+
+        // Create the resource vector
+        let settings = self.settings_provider.get();
+        let vector = self
+            .create_events_or_instances_vec_from_stream(
+                self.inventory_provider.clone(),
+                &settings,
+                current_user.clone(),
+                stream,
+                query.invitees_max,
+                query.per_page,
+            )
+            .await?;
+
+        // Build a cursor that can be used to fetch the next page
+        let ret_cursor_data = vector.last().map(|item| {
+            let (event_id, event_created_at, event_starts_at, instance_id) = match item {
+                EventOrInstance::Event(event) => (
+                    event.id,
+                    event.created_at,
+                    event.date.starts_at().cloned(),
+                    None,
+                ),
+                EventOrInstance::Instance(instance) => (
+                    instance.recurring_event_id,
+                    instance.created_at,
+                    Some(instance.starts_at),
+                    Some(instance.instance_id),
+                ),
+            };
+
+            GetEventsCursorData {
+                event_id,
+                event_created_at,
+                event_starts_at: event_starts_at.map(Into::into),
+                instance_id,
+            }
+        });
+
+        let before = None;
+        let after = ret_cursor_data.map(|c| Cursor(c).to_base64());
+
+        Ok((vector, before, after))
     }
 
-    pub(crate) async fn get_event_instances(
+    async fn create_events_or_instances_vec_from_stream(
         &self,
-        current_user: &RequestUser,
+        inventory_provider: Arc<dyn InventoryProvider>,
+        settings: &Settings,
+        current_user: User,
+        stream: impl Stream<Item = opentalk_inventory::Result<InternalEventOrInstance>>,
+        invitees_max: Option<PageSize>,
+        per_page: Option<PageSize>,
+    ) -> Result<Vec<EventOrInstance>, CaptureApiError> {
+        let stream = stream.take(per_page.unwrap_or_default().into());
+        let mut items: Vec<EventOrInstance> = Vec::new();
+
+        let mut inventory = inventory_provider.get_inventory().await?;
+        let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
+
+        pin_mut!(stream);
+        while let Some(result) = stream.next().await {
+            let item = match result? {
+                InternalEventOrInstance::Event(event) => {
+                    let resource = self
+                        .build_event_resource(
+                            inventory.as_mut(),
+                            settings,
+                            current_user.clone(),
+                            &current_tenant,
+                            invitees_max,
+                            event,
+                        )
+                        .await?;
+                    EventOrInstance::Event(resource)
+                }
+                InternalEventOrInstance::Instance(instance) => {
+                    let enriched_invitees = enrich_invitees_from_optional_user_search(
+                        settings,
+                        &self.user_search_client,
+                        &current_tenant,
+                        instance.invitees.clone(),
+                    )
+                    .await;
+
+                    let instance = EventInstance {
+                        invitees: enriched_invitees,
+                        ..instance
+                    };
+
+                    EventOrInstance::Instance(instance)
+                }
+            };
+
+            items.push(item);
+        }
+
+        Ok(items)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn get_event_instances_as_stream<'a>(
+        &'a self,
+        current_user: &'a User,
         event_id: EventId,
-        GetEventInstancesQuery {
-            invitees_max,
-            time_min,
-            time_max,
-            per_page,
-            after,
-        }: GetEventInstancesQuery,
+        invitees_max: Option<PageSize>,
+        time_min: Option<Timestamp>,
+        time_min_inclusive: bool,
+        time_max: Option<Timestamp>,
+        instances_max: usize,
+        offset: usize,
     ) -> Result<
-        (
-            GetEventInstancesResponseBody,
-            Option<String>,
-            Option<String>,
-        ),
+        Pin<Box<dyn Stream<Item = opentalk_inventory::Result<EventInstance>> + 'a>>,
         CaptureApiError,
     > {
         let settings = self.settings_provider.get();
-
-        let per_page = per_page
-            .unwrap_or(PageSize::from_i64_clamped(30))
-            .clamp(PageSize::ONE, PageSize::from_i64_clamped(100));
-        let page = after.map(|c| c.page).unwrap_or(Page::ONE).max(Page::ONE);
-
-        let items_per_page = per_page.into();
-        let page_index = page.as_zero_based_usize();
-        let offset = items_per_page * page_index;
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
@@ -193,20 +322,22 @@ impl ControllerBackend {
             .checked_add_months(chrono::Months::new(40 * MONTHS_PER_YEAR))
             .expect("Could not add required duration");
 
-        let mut iter: Box<dyn Iterator<Item = DateTime<rrule::Tz>>> =
-            Box::new(rruleset.into_iter().skip_while(move |&dt| dt > max_dt));
+        let mut datetimes: Box<dyn Iterator<Item = DateTime<rrule::Tz>>> =
+            Box::new(rruleset.into_iter().take_while(move |&dt| dt <= max_dt));
 
-        if let Some(time_min) = time_min {
-            iter = Box::new(iter.skip_while(move |&dt| dt <= *time_min));
+        if let Some(datetime_min) = time_min {
+            datetimes = Box::new(datetimes.skip_while(move |&dt| {
+                dt < *datetime_min || !time_min_inclusive && dt == *datetime_min
+            }));
         }
 
-        if let Some(time_max) = time_max {
-            iter = Box::new(iter.skip_while(move |&dt| dt >= *time_max));
+        if let Some(datetime_max) = time_max {
+            datetimes = Box::new(datetimes.take_while(move |&dt| dt <= *datetime_max));
         }
 
-        let datetimes: Vec<Timestamp> = iter
+        let datetimes: Vec<Timestamp> = datetimes
             .skip(offset)
-            .take(items_per_page)
+            .take(instances_max)
             .map(|dt| dt.with_timezone(&Utc).into())
             .collect();
 
@@ -221,9 +352,6 @@ impl ControllerBackend {
         let training_participation_report = training_participation_report_parameter_set
             .map(TrainingParticipationReportParameterSet::from);
 
-        let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
-        let current_user = inventory.get_user(current_user.id).await?;
-
         drop(inventory);
 
         let tariff = self.build_tariff_resource(&tariff)?;
@@ -237,30 +365,110 @@ impl ControllerBackend {
 
         let mut exceptions = exceptions.into_iter().peekable();
 
-        let mut instances = vec![];
+        let stream = stream! {
+            for datetime in datetimes {
+                let exception = exceptions.next_if(|exception| exception.exception_date == datetime);
 
-        for datetime in datetimes {
-            let exception = exceptions.next_if(|exception| exception.exception_date == datetime);
+                let event_instance = create_event_instance(
+                    &users,
+                    event.clone(),
+                    invite_status,
+                    is_favorite,
+                    exception,
+                    room.clone(),
+                    datetime.into(),
+                    invitees.clone(),
+                    invitees_truncated,
+                    can_edit,
+                    shared_folder.clone(),
+                    training_participation_report.clone(),
+                );
 
-            let instance = create_event_instance(
-                &users,
-                event.clone(),
-                invite_status,
-                is_favorite,
-                exception,
-                room.clone(),
-                datetime.into(),
-                invitees.clone(),
-                invitees_truncated,
-                can_edit,
-                shared_folder.clone(),
-                training_participation_report.clone(),
-            )?;
+                yield Ok(event_instance);
+            }
+        };
 
-            instances.push(instance);
+        Ok(Box::pin(stream))
+    }
+
+    pub(crate) async fn get_event_instances(
+        &self,
+        current_user: &RequestUser,
+        event_id: EventId,
+        GetEventInstancesQuery {
+            invitees_max,
+            time_min,
+            time_max,
+            per_page,
+            after,
+        }: GetEventInstancesQuery,
+    ) -> Result<
+        (
+            GetEventInstancesResponseBody,
+            Option<String>,
+            Option<String>,
+        ),
+        CaptureApiError,
+    > {
+        let settings = self.settings_provider.get();
+
+        let per_page = per_page.unwrap_or_default();
+        let page = after.map(|c| c.page).unwrap_or_default();
+
+        let items_per_page = per_page.into();
+        let page_index = page.as_zero_based_usize();
+        let offset = items_per_page * page_index;
+
+        let mut inventory = self.inventory_provider.get_inventory().await?;
+
+        let current_user = inventory.get_user(current_user.id).await?;
+
+        let mut stream = self
+            .get_event_instances_as_stream(
+                &current_user,
+                event_id,
+                invitees_max,
+                time_min,
+                true,
+                time_max,
+                items_per_page,
+                offset,
+            )
+            .await?;
+
+        // Enrich the invitees for the first instance only and reuse them as all instances have the same invitees.
+        let mut instances: Vec<EventInstance> = Vec::with_capacity(items_per_page);
+        let mut reused_enriched_invitees: Option<Vec<EventInvitee>> = None;
+        while let Some(instance) = stream.next().await {
+            let instance = instance?;
+
+            let enriched_invitees =
+                if let Some(enriched_invitees) = reused_enriched_invitees.clone() {
+                    enriched_invitees
+                } else {
+                    let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
+                    let enriched_invitees = enrich_invitees_from_optional_user_search(
+                        &settings,
+                        &self.user_search_client,
+                        &current_tenant,
+                        instance.invitees.clone(),
+                    )
+                    .await;
+
+                    reused_enriched_invitees = Some(enriched_invitees.clone());
+                    enriched_invitees
+                };
+
+            let instance = EventInstance {
+                invitees: enriched_invitees,
+                ..instance
+            };
+
+            instances.push(instance)
         }
 
-        let next_cursor = if !instances.is_empty() {
+        let before = None;
+        let after = if !instances.is_empty() {
             Some(
                 Cursor(GetEventInstancesCursorData {
                     page: page.saturating_next(),
@@ -271,39 +479,7 @@ impl ControllerBackend {
             None
         };
 
-        let instances_data = GetPaginatedEventInstancesData {
-            instances,
-            before: None,
-            after: next_cursor,
-        };
-
-        // Enrich the invitees for the first instance only and reuse them as all instances have the same invitees.
-        let event_instances = if let Some(instance) = instances_data.instances.first() {
-            let enriched_invitees = enrich_invitees_from_optional_user_search(
-                &settings,
-                &self.user_search_client,
-                &current_tenant,
-                instance.invitees.clone(),
-            )
-            .await;
-
-            instances_data
-                .instances
-                .into_iter()
-                .map(|instance| EventInstance {
-                    invitees: enriched_invitees.clone(),
-                    ..instance
-                })
-                .collect()
-        } else {
-            instances_data.instances
-        };
-
-        Ok((
-            GetEventInstancesResponseBody(event_instances),
-            instances_data.before,
-            instances_data.after,
-        ))
+        Ok((GetEventInstancesResponseBody(instances), before, after))
     }
 
     pub(crate) async fn get_event_instance(
@@ -385,7 +561,7 @@ impl ControllerBackend {
             can_edit,
             shared_folder,
             training_participation_report_parameter_set.map(Into::into),
-        )?;
+        );
 
         let event_instance = EventInstance {
             invitees: enrich_invitees_from_optional_user_search(
@@ -603,7 +779,7 @@ impl ControllerBackend {
             can_edit,
             shared_folder,
             training_participation_report_parameter_set.map(Into::into),
-        )?;
+        );
 
         let event_instance = EventInstance {
             invitees: enrich_invitees_from_optional_user_search(
@@ -620,12 +796,6 @@ impl ControllerBackend {
     }
 }
 
-struct GetPaginatedEventInstancesData {
-    instances: Vec<EventInstance>,
-    before: Option<String>,
-    after: Option<String>,
-}
-
 #[allow(clippy::too_many_arguments)]
 fn create_event_instance(
     users: &UserProfilesBatch,
@@ -640,7 +810,7 @@ fn create_event_instance(
     can_edit: bool,
     shared_folder: Option<SharedFolder>,
     training_participation_report: Option<TrainingParticipationReportParameterSet>,
-) -> opentalk_database::Result<EventInstance> {
+) -> EventInstance {
     let instance_date = event
         .date()
         .expect("event instances can only be created for events with a date");
@@ -681,7 +851,7 @@ fn create_event_instance(
     let created_by = users.get(event.created_by);
     let updated_by = users.get(event.updated_by);
 
-    Ok(EventInstance {
+    EventInstance {
         id: EventAndInstanceId(event.id, instance_id),
         recurring_event_id: event.id,
         instance_id,
@@ -710,7 +880,7 @@ fn create_event_instance(
         can_edit,
         shared_folder,
         training_participation_report,
-    })
+    }
 }
 
 fn patch<T>(dst: &mut T, value: Option<T>) {
@@ -744,6 +914,73 @@ fn verify_instance_date(
     };
 
     Ok(())
+}
+
+fn compare_inventory_events_or_instances(
+    item_1: &InternalEventOrInstance,
+    item_2: &InternalEventOrInstance,
+) -> Ordering {
+    let (starts_at_1, created_at_1, event_id_1, instance_id_1) = match item_1 {
+        InternalEventOrInstance::Event((
+            event,
+            _invite,
+            _room,
+            _sip_config,
+            _is_favorite,
+            _shared_folder,
+            _tariff,
+            _training_participation_report_parameter_set,
+        )) => (
+            event.date().map(|date| date.starts_at),
+            event.created_at,
+            event.id,
+            None,
+        ),
+        InternalEventOrInstance::Instance(event_instance) => (
+            Some(event_instance.starts_at.into()),
+            event_instance.created_at,
+            event_instance.id.0,
+            Some(event_instance.instance_id),
+        ),
+    };
+
+    let (starts_at_2, created_at_2, event_id_2, instance_id_2) = match item_2 {
+        InternalEventOrInstance::Event((
+            event,
+            _invite,
+            _room,
+            _sip_config,
+            _is_favorite,
+            _shared_folder,
+            _tariff,
+            _training_participation_report_parameter_set,
+        )) => (
+            event.date().map(|date| date.starts_at),
+            event.created_at,
+            event.id,
+            None,
+        ),
+        InternalEventOrInstance::Instance(event_instance) => (
+            Some(event_instance.starts_at.into()),
+            event_instance.created_at,
+            event_instance.id.0,
+            Some(event_instance.instance_id),
+        ),
+    };
+
+    // This comparison requires that the streams are properly sorted with NULLs (i.e. `None` values) first.
+    match (starts_at_1, starts_at_2) {
+        (None, _) => Ordering::Less,
+        (_, None) => Ordering::Greater,
+        (Some(starts_at_1), Some(starts_at_2)) => starts_at_1.cmp(&starts_at_2),
+    }
+    .then(created_at_1.cmp(&created_at_2))
+    .then(event_id_1.cmp(&event_id_2))
+    .then(match (instance_id_1, instance_id_2) {
+        (None, _) => Ordering::Less,
+        (_, None) => Ordering::Greater,
+        (Some(instance_id_1), Some(instance_id_2)) => instance_id_1.cmp(&instance_id_2),
+    })
 }
 
 #[cfg(test)]

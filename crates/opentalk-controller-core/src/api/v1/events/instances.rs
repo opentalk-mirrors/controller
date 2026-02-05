@@ -27,7 +27,7 @@ use crate::api::{
 /// Get a list of events and instances
 ///
 /// The instances are calculated based on the RRULE of the event. If no RRULE is
-/// set for an event, the event instance is returned
+/// set for an event, the event itself is returned
 ///
 /// Returns a paginated list of events or their instances inside the given time range
 #[utoipa::path(
@@ -70,11 +70,11 @@ pub async fn get_events_and_instances(
     current_user: ReqData<RequestUser>,
     query: Query<GetEventsAndInstancesQuery>,
 ) -> DefaultApiResult<Vec<EventOrInstance>> {
-    let (events_and_instances, before, after) = service
-        .get_events_and_instances(current_user.into_inner(), query.into_inner())
+    let (resources, before, after) = service
+        .get_events_and_instances_interwoven(current_user.into_inner(), query.into_inner())
         .await?;
 
-    Ok(ApiResponse::new(events_and_instances).with_cursor_pagination(before, after))
+    Ok(ApiResponse::new(resources).with_cursor_pagination(before, after))
 }
 
 /// Get a list of the instances of an event

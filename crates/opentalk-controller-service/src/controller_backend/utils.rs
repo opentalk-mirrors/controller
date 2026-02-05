@@ -2,56 +2,56 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::cmp::Ordering;
+use std::{cmp::Ordering, pin::Pin};
 
 use async_stream::{__private::AsyncStream, stream};
-use futures_util::{Stream, StreamExt, pin_mut};
+use futures_util::{Stream, StreamExt};
 use opentalk_inventory::Result;
 
 pub(crate) fn interweave_result_streams<'a, T: 'a>(
-    stream_1: impl Stream<Item = Result<T>> + 'a,
-    stream_2: impl Stream<Item = Result<T>> + 'a,
+    streams: Vec<Pin<Box<dyn Stream<Item = Result<T>> + 'a>>>,
     item_comparer: fn(&T, &T) -> Ordering,
 ) -> AsyncStream<Result<T>, impl Future<Output = ()>> {
+    let num_of_streams = streams.len();
+
+    let mut streams = streams
+        .into_iter()
+        .map(|s| Box::pin(s.peekable()))
+        .collect::<Vec<_>>();
+
     stream! {
-        // The next items to be processed. Used to pass leftovers from one iteration to the next.
-        let mut pending_next_1 = None;
-        let mut pending_next_2 = None;
-
-        pin_mut!(stream_1);
-        pin_mut!(stream_2);
         loop {
-            // Fetch new items unless there are any leftovers from the previous iteration.
-            if pending_next_1.is_none() { pending_next_1 = Some(stream_1.next().await)}
-            if pending_next_2.is_none() { pending_next_2 = Some(stream_2.next().await)}
-
-            let next_1 = pending_next_1.take().flatten();
-            let next_2 = pending_next_2.take().flatten();
-
-            match (next_1, next_2) {
-                (Some(next_1), Some(next_2)) => {
-                    let prioritize_item_2 = if let (Ok(next_1), Ok(next_2)) = (&next_1, &next_2) {
-                        item_comparer(next_1, next_2) == Ordering::Greater
-                    } else { false };
-
-                    if prioritize_item_2 {
-                        yield next_2;
-                        pending_next_1 = Some(Some(next_1));
-                    } else {
-                        yield next_1;
-                        pending_next_2 = Some(Some(next_2));
-                    }
-                }
-                (Some(next_1), None) => {
-                    yield next_1;
-                }
-                (None, Some(next_2)) => {
-                    yield next_2;
-                }
-                (None, None) => {
-                    break;
-                }
+            // For each stream, peek for the next pending item
+            let mut peeked_items = Vec::with_capacity(num_of_streams);
+            for stream in &mut streams {
+                peeked_items.push(stream.as_mut().peek().await);
             }
+
+            // Determine the stream index of the smallest pending item from all pending items peeked above
+            let smallest_item_stream_index = peeked_items.iter().enumerate().min_by(|(_index_1, item_1), (_index_2, item_2)| {
+                match (item_1, item_2) {
+                    (Some(item_1), Some(item_2)) => {
+                        if let (Ok(item_1), Ok(item_2)) = (item_1, item_2) {
+                            item_comparer(item_1, item_2)
+                        } else {Ordering::Equal}
+                    }
+                    (Some(_item), None) => {Ordering::Less}
+                    (None, Some(_item)) => {Ordering::Greater}
+                    (None, None) => {Ordering::Equal}
+                }
+            })
+            .map(|(index, _item)| index);
+
+            // Return immediately if no smallest item could be determined (i.e. the streams vec is empty)
+            let smallest_item_stream_index = match smallest_item_stream_index {
+                Some(smallest_item_stream_index) => {smallest_item_stream_index}
+                None => {return;}
+            };
+
+            // Fetch the smallest pending item from its stream and yield it
+            if let Some(next_item) = streams[smallest_item_stream_index].next().await {
+                yield next_item;
+            } else { return; }
         }
     }
 }

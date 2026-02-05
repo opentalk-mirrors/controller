@@ -116,6 +116,13 @@ pub trait EventInventory {
     >;
 
     /// Get all events to which a user has access.
+    async fn get_all_events_for_user(
+        &mut self,
+        user: User,
+        only_recurring: bool,
+    ) -> Result<Vec<Event>>;
+
+    /// Get all events to which a user has access.
     #[allow(clippy::too_many_arguments, clippy::type_complexity)]
     async fn get_all_events_for_user_paginated_as_stream<'a>(
         &'a mut self,

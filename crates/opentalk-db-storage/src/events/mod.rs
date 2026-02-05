@@ -960,6 +960,44 @@ impl Event {
     }
 
     #[tracing::instrument(err, skip_all)]
+    pub async fn get_all_for_user(
+        conn: &mut DbConnection,
+        user: User,
+        only_recurring: bool,
+    ) -> Result<Vec<Event>> {
+        // Filter applied to all events which validates that the event is either created by
+        // the given user or an invite to the event exists for the user
+        let event_related_to_user_id = events::created_by
+            .eq(user.id)
+            .or(event_invites::invitee.eq(user.id));
+
+        // Create query which select events and joins into the room of the event
+        let mut query = events::table
+            .left_join(
+                event_invites::table.on(event_invites::event_id
+                    .eq(events::id)
+                    .and(event_invites::invitee.eq(user.id))),
+            )
+            .inner_join(users::table.on(users::id.eq(events::created_by)))
+            .select(events::all_columns)
+            .filter(events::tenant_id.eq(user.tenant_id))
+            .filter(event_related_to_user_id)
+            .filter(users::disabled_since.is_null())
+            .order_by(events::starts_at.nullable().asc().nulls_first())
+            .then_order_by(events::created_at.asc())
+            .then_order_by(events::id.asc())
+            .into_boxed::<Pg>();
+
+        if only_recurring {
+            query = query.filter(events::recurrence_pattern.is_not_null());
+        }
+
+        let events: Vec<Event> = query.load(conn).await?;
+
+        Ok(events)
+    }
+
+    #[tracing::instrument(err, skip_all)]
     #[allow(clippy::too_many_arguments, clippy::type_complexity)]
     pub async fn get_all_for_user_paginated(
         conn: &mut DbConnection,

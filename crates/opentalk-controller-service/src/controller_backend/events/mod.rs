@@ -4,7 +4,7 @@
 
 //! Handles events
 
-use std::{cmp::Ordering, collections::BTreeSet, sync::Arc};
+use std::{cmp::Ordering, collections::BTreeSet, pin::Pin, sync::Arc};
 
 use chrono::{DateTime, Datelike, NaiveTime, Utc};
 use chrono_tz::Tz;
@@ -86,7 +86,7 @@ const LOCAL_DT_FORMAT: &str = "%Y%m%dT%H%M%S";
 const ONE_HUNDRED_YEARS_IN_DAYS: usize = 36525;
 
 #[allow(clippy::large_enum_variant, clippy::type_complexity)]
-enum InventoryEventOrException {
+enum InternalEventOrException {
     Event(
         (
             Event,
@@ -277,12 +277,10 @@ impl ControllerBackend {
             )
         });
 
-        let mut inventory = self.inventory_provider.get_inventory().await?;
-
-        let current_user = inventory.get_user(current_user.id).await?;
-
         // Get the streams to interweave from their sources.
-        let stream_1 = inventory
+        let mut inventory = self.inventory_provider.get_inventory().await?;
+        let current_user = inventory.get_user(current_user.id).await?;
+        let events_stream = inventory
             .get_all_events_for_user_paginated_as_stream(
                 current_user.clone(),
                 query.favorites,
@@ -297,7 +295,7 @@ impl ControllerBackend {
             )
             .await?;
         let mut inventory = self.inventory_provider.get_inventory().await?;
-        let stream_2 = inventory
+        let instances_stream = inventory
             .get_all_event_exceptions_for_user_paginated_as_stream(
                 current_user.clone(),
                 query.favorites,
@@ -312,21 +310,21 @@ impl ControllerBackend {
             )
             .await?;
 
-        let settings = self.settings_provider.get();
-
-        // Convert the streams based on a common type for both streams.
-        let mut stream_1 = stream_1.map_ok(InventoryEventOrException::Event);
-        let mut stream_2 = stream_2.map_ok(InventoryEventOrException::Exception);
+        // Prepare all streams to interweave (one for the events and one for the event exceptions).
+        let events_stream = Box::pin(events_stream.map_ok(InternalEventOrException::Event));
+        let instances_stream =
+            Box::pin(instances_stream.map_ok(InternalEventOrException::Exception));
 
         // Interweave the streams
-        let stream = interweave_result_streams(
-            &mut stream_1,
-            &mut stream_2,
-            compare_inventory_events_or_exceptions,
-        );
+        let streams: Vec<
+            Pin<Box<dyn Stream<Item = opentalk_inventory::Result<InternalEventOrException>>>>,
+        > = vec![events_stream, instances_stream];
+        let stream = interweave_result_streams(streams, compare_inventory_events_or_exceptions);
 
+        // Create the resource vector
+        let settings = self.settings_provider.get();
         let vector = self
-            .create_resource_vec_from_inventory_stream(
+            .create_events_or_exceptions_vec_from_stream(
                 self.inventory_provider.clone(),
                 &settings,
                 current_user,
@@ -367,12 +365,12 @@ impl ControllerBackend {
         Ok((vector, before, after))
     }
 
-    async fn create_resource_vec_from_inventory_stream(
+    async fn create_events_or_exceptions_vec_from_stream(
         &self,
         inventory_provider: Arc<dyn InventoryProvider>,
         settings: &Settings,
         current_user: User,
-        stream: impl Stream<Item = opentalk_inventory::Result<InventoryEventOrException>>,
+        stream: impl Stream<Item = opentalk_inventory::Result<InternalEventOrException>>,
         invitees_max: Option<PageSize>,
         per_page: Option<PageSize>,
     ) -> Result<Vec<EventOrException>, CaptureApiError> {
@@ -382,29 +380,32 @@ impl ControllerBackend {
         pin_mut!(stream);
         while let Some(result) = stream.next().await {
             let mut inventory = inventory_provider.get_inventory().await?;
-            let mut user_provider = GetUserProfilesBatched::new();
 
             let item = match result? {
-                InventoryEventOrException::Event(inventory_item) => {
-                    self.build_event_resource(
-                        inventory.as_mut(),
-                        settings,
-                        current_user.clone(),
-                        &mut user_provider,
-                        invitees_max,
-                        inventory_item,
-                    )
-                    .await?
+                InternalEventOrException::Event(inventory_item) => {
+                    let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
+                    let resource = self
+                        .build_event_resource(
+                            inventory.as_mut(),
+                            settings,
+                            current_user.clone(),
+                            &current_tenant,
+                            invitees_max,
+                            inventory_item,
+                        )
+                        .await?;
+                    EventOrException::Event(resource)
                 }
-                InventoryEventOrException::Exception(inventory_item) => {
-                    self.build_event_exception_resource(
-                        inventory.as_mut(),
-                        settings,
-                        current_user.clone(),
-                        &mut user_provider,
-                        inventory_item,
-                    )
-                    .await?
+                InternalEventOrException::Exception(inventory_item) => {
+                    let resource = self
+                        .build_event_exception_resource(
+                            inventory.as_mut(),
+                            settings,
+                            current_user.clone(),
+                            inventory_item,
+                        )
+                        .await?;
+                    EventOrException::Exception(resource)
                 }
             };
 
@@ -420,7 +421,7 @@ impl ControllerBackend {
         inventory: &mut dyn Inventory,
         settings: &Settings,
         current_user: User,
-        user_provider: &mut GetUserProfilesBatched,
+        current_tenant: &Tenant,
         invitees_max: Option<PageSize>,
         (
             event,
@@ -441,9 +442,11 @@ impl ControllerBackend {
             Tariff,
             Option<TrainingParticipationReportParameterSet>,
         ),
-    ) -> Result<EventOrException, CaptureApiError> {
-        _ = user_provider.add(&event);
-        let users_batch = user_provider.fetch(settings, inventory).await?;
+    ) -> Result<EventResource, CaptureApiError> {
+        let users = GetUserProfilesBatched::new()
+            .add(&event)
+            .fetch(settings, inventory)
+            .await?;
 
         // Build list of event invites with user, grouped by events
         let mut invites_with_user = if invitees_max.is_none() {
@@ -471,8 +474,8 @@ impl ControllerBackend {
                 .clone()
         };
 
-        let created_by = users_batch.get(event.created_by);
-        let updated_by = users_batch.get(event.updated_by);
+        let created_by = users.get(event.created_by);
+        let updated_by = users.get(event.updated_by);
 
         let invite_status = invite
             .map(|invite| invite.status)
@@ -503,7 +506,7 @@ impl ControllerBackend {
             .into_iter()
             .map(|invite| EventInvitee::from_email_invite(invite, settings));
 
-        let invitees = registered_invitees_iter
+        let invitees: Vec<_> = registered_invitees_iter
             .chain(unregistered_invitees_iter)
             .collect();
 
@@ -552,6 +555,14 @@ impl ControllerBackend {
             })
             .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT);
 
+        let invitees = enrich_invitees_from_optional_user_search(
+            settings,
+            &self.user_search_client,
+            current_tenant,
+            invitees.clone(),
+        )
+        .await;
+
         let resource = EventResource {
             id: event.id,
             created_by,
@@ -574,7 +585,7 @@ impl ControllerBackend {
             date,
         };
 
-        Ok(EventOrException::Event(resource))
+        Ok(resource)
     }
 
     async fn build_event_exception_resource(
@@ -582,266 +593,20 @@ impl ControllerBackend {
         inventory: &mut dyn Inventory,
         settings: &Settings,
         current_user: User,
-        user_provider: &mut GetUserProfilesBatched,
         (event_exception, event): (EventException, Event),
-    ) -> Result<EventOrException, CaptureApiError> {
-        _ = user_provider.add(&event_exception);
-        let users_batch = user_provider.fetch(settings, inventory).await?;
+    ) -> Result<EventExceptionResource, CaptureApiError> {
+        let users = GetUserProfilesBatched::new()
+            .add(&event_exception)
+            .fetch(settings, inventory)
+            .await?;
 
-        let created_by = users_batch.get(event_exception.created_by);
+        let created_by = users.get(event_exception.created_by);
         let can_edit = current_user.can_edit(&event);
 
         let resource =
             EventExceptionResource::from_inventory(event_exception, created_by, can_edit);
 
-        Ok(EventOrException::Exception(resource))
-    }
-
-    async fn get_events_internal(
-        &self,
-        current_user: RequestUser,
-        query: GetEventsQuery,
-        with_exceptions: bool,
-    ) -> Result<
-        (
-            Vec<(EventResource, Vec<EventExceptionResource>)>,
-            Option<String>,
-            Option<String>,
-        ),
-        CaptureApiError,
-    > {
-        let settings = self.settings_provider.get();
-
-        let per_page = query
-            .per_page
-            .unwrap_or(PageSize::DEFAULT)
-            .clamp(PageSize::ONE, PageSize::from_i64_clamped(100));
-
-        let mut users = GetUserProfilesBatched::new();
-
-        let get_events_cursor = query.after.map(|cursor| {
-            GetEventsCursor::new(
-                cursor.event_id,
-                cursor.event_created_at,
-                cursor.event_starts_at,
-            )
-        });
-
-        let mut inventory = self.inventory_provider.get_inventory().await?;
-
-        let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
-        let current_user = inventory.get_user(current_user.id).await?;
-
-        let events = inventory
-            .get_all_events_for_user_paginated(
-                current_user.clone(),
-                query.favorites,
-                BTreeSet::from_iter(query.invite_status),
-                query.time_min,
-                query.time_max,
-                query.created_before,
-                query.created_after,
-                query.adhoc,
-                query.time_independent,
-                get_events_cursor,
-                per_page.into(),
-            )
-            .await?;
-
-        for (event, _, _, _, exceptions, _, _, _, _) in &events {
-            _ = users.add(event);
-            _ = users.add(exceptions);
-        }
-
-        let users = users.fetch(&settings, inventory.as_mut()).await?;
-
-        let event_refs = events
-            .iter()
-            .map(|(event, ..)| event)
-            .collect::<Vec<&Event>>();
-
-        // Build list of event invites with user, grouped by events
-        let invites_with_users_grouped_by_event = if query.invitees_max.is_none() {
-            // Do not query event invites if invitees_max is zero, instead create dummy value
-            (0..events.len()).map(|_| Vec::new()).collect()
-        } else {
-            inventory
-                .get_event_user_invites_for_events(&event_refs)
-                .await?
-        };
-
-        // Build list of additional email event invites, grouped by events
-        let email_invites_grouped_by_event = if query.invitees_max.is_none() {
-            // Do not query email event invites if invitees_max is zero, instead create dummy value
-            (0..events.len()).map(|_| Vec::new()).collect()
-        } else {
-            inventory
-                .get_event_email_invites_for_events(&event_refs)
-                .await?
-        };
-
-        drop(inventory);
-
-        type InvitesByEvent = Vec<(Vec<(EventInvite, User)>, Vec<EventEmailInvite>)>;
-        let invites_grouped_by_event: InvitesByEvent = invites_with_users_grouped_by_event
-            .into_iter()
-            .zip(email_invites_grouped_by_event)
-            .collect();
-
-        let mut event_resources = vec![];
-
-        let mut ret_cursor_data = None;
-
-        for (
-            (
-                event,
-                invite,
-                room,
-                sip_config,
-                exceptions,
-                is_favorite,
-                shared_folder,
-                tariff,
-                training_participation_report,
-            ),
-            (mut invites_with_user, mut email_invites),
-        ) in events.into_iter().zip(invites_grouped_by_event)
-        {
-            ret_cursor_data = Some(GetEventsCursorData {
-                event_id: event.id,
-                event_created_at: event.created_at,
-                event_starts_at: event.date.as_ref().map(|date| date.starts_at),
-                instance_id: None,
-            });
-
-            let created_by = users.get(event.created_by);
-            let updated_by = users.get(event.updated_by);
-
-            let invite_status = invite
-                .map(|invite| invite.status)
-                .unwrap_or(EventInviteStatus::Accepted);
-
-            let invitees_truncated = if let Some(invitees_max) = query.invitees_max {
-                let email_invites_max =
-                    usize::from(invitees_max).saturating_sub(invites_with_user.len());
-
-                invites_with_user.truncate(invitees_max.into());
-                email_invites.truncate(email_invites_max);
-
-                // TODO: This doesn't work here as the vectors are already truncated
-                (invites_with_user.len() + email_invites.len()) > usize::from(invitees_max)
-            } else {
-                invites_with_user.clear();
-                email_invites.clear();
-                false
-            };
-
-            let registered_invitees_iter = invites_with_user
-                .into_iter()
-                .map(|(invite, user)| EventInvitee::from_invite_with_user(invite, user, &settings));
-
-            let unregistered_invitees_iter = email_invites
-                .into_iter()
-                .map(|invite| EventInvitee::from_email_invite(invite, &settings));
-
-            let invitees = registered_invitees_iter
-                .chain(unregistered_invitees_iter)
-                .collect();
-
-            let can_edit = current_user.can_edit(&event);
-
-            let shared_folder =
-                shared_folder_for_user(shared_folder, event.created_by, current_user.id);
-
-            let tariff = self.build_tariff_resource(&tariff)?;
-
-            let invitees = enrich_invitees_from_optional_user_search(
-                &settings,
-                &self.user_search_client,
-                &current_tenant,
-                invitees,
-            )
-            .await;
-
-            let date = event
-                .date()
-                .map(|date| EventResourceDateKind::TimeDependent {
-                    is_time_independent: TimeDependentMarker,
-                    date: event
-                        .recurrence()
-                        .and_then(|recurrence| {
-                            recurrence
-                                .recurrence_pattern
-                                .parse::<RecurrencePattern>()
-                                .ok()
-                        })
-                        .map(|recurrence_pattern| EventResourceDate::Recurring {
-                            is_all_day: date.is_all_day,
-                            starts_at: DateTimeTz {
-                                datetime: date.starts_at.into(),
-                                timezone: date.starts_at_tz,
-                            },
-                            ends_at: DateTimeTz {
-                                datetime: date.ends_at.into(),
-                                timezone: date.ends_at_tz,
-                            },
-                            recurrence_pattern,
-                        })
-                        .unwrap_or_else(|| EventResourceDate::Single {
-                            starts_at: DateTimeTz {
-                                datetime: date.starts_at.into(),
-                                timezone: date.starts_at_tz,
-                            },
-                            ends_at: DateTimeTz {
-                                datetime: date.ends_at.into(),
-                                timezone: date.ends_at_tz,
-                            },
-                            is_all_day: date.is_all_day,
-                        }),
-                })
-                .unwrap_or(EventResourceDateKind::TIME_INDEPENDENT);
-
-            let event_resource = EventResource {
-                id: event.id,
-                created_by,
-                created_at: event.created_at,
-                updated_by,
-                updated_at: event.updated_at,
-                title: event.title,
-                description: event.description,
-                room: EventRoomInfo::from_room(&settings, &room, sip_config.as_ref(), &tariff),
-                invitees_truncated,
-                invitees,
-                invite_status,
-                is_favorite,
-                can_edit,
-                is_adhoc: event.is_adhoc,
-                shared_folder,
-                streaming_targets: Vec::new(),
-                show_meeting_details: event.show_meeting_details,
-                training_participation_report,
-                date,
-            };
-
-            let mut event_exception_resources: Vec<EventExceptionResource> = vec![];
-
-            if with_exceptions {
-                for exception in exceptions {
-                    let created_by = users.get(exception.created_by);
-                    let exception_resource =
-                        EventExceptionResource::from_inventory(exception, created_by, can_edit);
-
-                    event_exception_resources.push(exception_resource);
-                }
-            }
-
-            event_resources.push((event_resource, event_exception_resources));
-        }
-
-        let before = None;
-        let after = ret_cursor_data.map(|c| Cursor(c).to_base64());
-
-        Ok((event_resources, before, after))
+        Ok(resource)
     }
 
     pub(crate) async fn get_event(
@@ -2212,11 +1977,11 @@ where
 }
 
 fn compare_inventory_events_or_exceptions(
-    item_1: &InventoryEventOrException,
-    item_2: &InventoryEventOrException,
+    item_1: &InternalEventOrException,
+    item_2: &InternalEventOrException,
 ) -> Ordering {
     let (starts_at_1, created_at_1, event_id_1, instance_id_1) = match item_1 {
-        InventoryEventOrException::Event((
+        InternalEventOrException::Event((
             event,
             _invite,
             _room,
@@ -2231,7 +1996,7 @@ fn compare_inventory_events_or_exceptions(
             event.id,
             None,
         ),
-        InventoryEventOrException::Exception((event_exception, _event)) => (
+        InternalEventOrException::Exception((event_exception, _event)) => (
             event_exception.starts_at,
             event_exception.created_at,
             event_exception.event_id,
@@ -2240,7 +2005,7 @@ fn compare_inventory_events_or_exceptions(
     };
 
     let (starts_at_2, created_at_2, event_id_2, instance_id_2) = match item_2 {
-        InventoryEventOrException::Event((
+        InternalEventOrException::Event((
             event,
             _invite,
             _room,
@@ -2255,7 +2020,7 @@ fn compare_inventory_events_or_exceptions(
             event.id,
             None,
         ),
-        InventoryEventOrException::Exception((event_exception, _event)) => (
+        InternalEventOrException::Exception((event_exception, _event)) => (
             event_exception.starts_at,
             event_exception.created_at,
             event_exception.event_id,
@@ -2646,7 +2411,7 @@ mod tests {
             }),
             original_starts_at: DateTimeTz {
                 datetime: *unix_epoch,
-                timezone: opentalk_types_common::time::TimeZone::from(Tz::Europe__Berlin),
+                timezone: TimeZone::from(Tz::Europe__Berlin),
             },
             type_: EventType::Exception,
             status: EventStatus::Ok,
