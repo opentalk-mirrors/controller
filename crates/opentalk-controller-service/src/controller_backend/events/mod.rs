@@ -25,8 +25,9 @@ use opentalk_inventory::{
     Event, EventEmailInvite, EventException, EventExceptionKind, EventInvite, EventSharedFolder,
     EventTrainingParticipationReportParameterSet, GetEventExceptionsCursor, GetEventsCursor,
     Inventory, InventoryProvider, NewEvent, NewEventDate, NewEventRecurrence, NewRoom,
-    NewRoomSipConfig, Room, RoomSipConfig, Tariff, Tenant, UpdateEvent,
-    UpdateEventTrainingParticipationReportParameterSet, UpdateRoom, User, transaction,
+    NewRoomSipConfig, Room, RoomSipConfig, Tariff, Tenant, UpdateEvent, UpdateEventDate,
+    UpdateEventRecurrence, UpdateEventTrainingParticipationReportParameterSet, UpdateRoom, User,
+    transaction,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
@@ -1104,14 +1105,18 @@ impl ControllerBackend {
                         description: patch.description,
                         updated_by: current_user.id,
                         updated_at: Timestamp::now(),
-                        is_time_independent: Some(false),
-                        is_all_day: Some(Some(date.is_all_day)),
-                        starts_at: Some(Some(date.starts_at.to_datetime_tz())),
-                        starts_at_tz: Some(Some(date.starts_at.timezone)),
-                        ends_at: Some(Some(ends_at_dt)),
-                        ends_at_tz: Some(Some(ends_at_tz)),
-                        duration_secs: Some(duration_secs),
-                        recurrence_pattern: Some(recurrence_pattern),
+                        date: Some(UpdateEventDate {
+                            is_all_day: Some(date.is_all_day),
+                            starts_at: Some(date.starts_at.to_datetime_tz()),
+                            starts_at_tz: Some(date.starts_at.timezone),
+                            ends_at: Some(ends_at_dt),
+                            ends_at_tz: Some(ends_at_tz),
+                            recurrence: Some(UpdateEventRecurrence {
+                                duration_secs,
+                                recurrence_pattern,
+                            }),
+                        }),
+
                         is_adhoc: patch.is_adhoc,
                         show_meeting_details: patch.show_meeting_details,
                     }
@@ -1136,16 +1141,9 @@ impl ControllerBackend {
                         description: patch.description,
                         updated_by: current_user.id,
                         updated_at: Timestamp::now(),
-                        is_time_independent: Some(true),
-                        is_all_day: Some(None),
-                        starts_at: Some(None),
-                        starts_at_tz: Some(None),
-                        ends_at: Some(None),
-                        ends_at_tz: Some(None),
-                        duration_secs: Some(None),
-                        recurrence_pattern: Some(None),
                         is_adhoc: patch.is_adhoc,
                         show_meeting_details: patch.show_meeting_details,
+                        date: None,
                     }
                 }
                 PatchEventDateKind::PatchTimeDependent { date, .. } => {
@@ -1191,16 +1189,19 @@ impl ControllerBackend {
                         description: patch.description,
                         updated_by: current_user.id,
                         updated_at: Timestamp::now(),
-                        is_time_independent: Some(false),
-                        is_all_day: Some(Some(is_all_day)),
-                        starts_at: Some(Some(starts_at.to_datetime_tz())),
-                        starts_at_tz: Some(Some(starts_at.timezone)),
-                        ends_at: Some(Some(ends_at_dt)),
-                        ends_at_tz: Some(Some(ends_at_tz)),
-                        duration_secs: Some(duration_secs),
                         is_adhoc: patch.is_adhoc,
-                        recurrence_pattern: Some(recurrence_pattern),
                         show_meeting_details: patch.show_meeting_details,
+                        date: Some(UpdateEventDate {
+                            is_all_day: Some(is_all_day),
+                            starts_at: Some(starts_at.to_datetime_tz()),
+                            starts_at_tz: Some(starts_at.timezone),
+                            ends_at: Some(ends_at_dt),
+                            ends_at_tz: Some(ends_at_tz),
+                            recurrence: Some(UpdateEventRecurrence {
+                                duration_secs,
+                                recurrence_pattern,
+                            }),
+                        }),
                     }
                 }
             };

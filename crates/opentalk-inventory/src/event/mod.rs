@@ -19,7 +19,9 @@ mod new_event_date;
 mod new_event_exception;
 mod new_event_recurrence;
 mod update_event;
+mod update_event_date;
 mod update_event_exception;
+mod update_event_recurrence;
 
 pub use event::Event;
 pub(crate) use event_and_encryption::EventAndEncryption;
@@ -36,4 +38,6 @@ pub use new_event_date::NewEventDate;
 pub use new_event_exception::NewEventException;
 pub use new_event_recurrence::NewEventRecurrence;
 pub use update_event::UpdateEvent;
+pub use update_event_date::UpdateEventDate;
 pub use update_event_exception::UpdateEventException;
+pub use update_event_recurrence::UpdateEventRecurrence;
