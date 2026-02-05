@@ -14,7 +14,7 @@ use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
     module_settings::ModuleSettings,
     public_user_profile::PublicUserProfile,
-    room_parameters::{EventContext, RoomParameters},
+    room_parameters::{AssetStorageConfig, EventContext, RoomParameters},
 };
 use opentalk_roomserver_types_training_participation_report::settings::TrainingParticipationReportSettings;
 use opentalk_types_api_v1::{
@@ -220,6 +220,7 @@ impl ControllerBackend {
             .and_then(|user| user.language)
             .map(|language| language.0)
             .unwrap_or(settings.defaults.user_language.clone());
+
         let parameters = RoomParameters {
             created_by,
             password: room.password,
@@ -231,9 +232,11 @@ impl ControllerBackend {
             streaming_links,
             e2e_encryption: false,
             module_settings,
-            asset_storage: room_server_settings.asset_storage.clone(),
+            // TODO: remove asset_storage when room parameters are updated
+            asset_storage: AssetStorageConfig::InMemory,
             preferred_language,
             fallback_language: settings.defaults.user_language.clone(),
+            ws_rate_limit: None,
         };
 
         Ok(parameters)

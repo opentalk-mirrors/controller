@@ -135,7 +135,7 @@ impl TryFrom<SettingsRaw> for Settings {
         let ws_rate_limit = WebSocketRateLimit::from_settings_file(raw.websocket_rate_limit)?;
 
         let frontend = raw.frontend.clone().into();
-        let http = raw.http.clone().into();
+        let http = Http::from(raw.http.clone());
         let database = raw.database.clone().into();
         let redis = raw.redis.clone().map(Into::into);
         let rabbit_mq = raw.rabbit_mq.clone().map(Into::into);
@@ -164,6 +164,10 @@ impl TryFrom<SettingsRaw> for Settings {
         let livekit = raw.livekit.clone().into();
         let operator_information = raw.operator_information.clone().map(Into::into);
         let roomserver = raw.roomserver.clone().map(Into::into);
+
+        if roomserver.is_some() && http.service_api_keys.is_none() {
+            return Err(SettingsError::HttpServiceApiKeysMissing);
+        }
 
         Ok(Settings {
             frontend,
@@ -243,6 +247,7 @@ pub(crate) fn minimal_example() -> Settings {
             port: DEFAULT_HTTP_PORT,
             tls: None,
             cors: HttpCors::default(),
+            service_api_keys: None,
         },
         database: Database {
             url: "postgres://postgres:password123@localhost:5432/opentalk".to_string(),

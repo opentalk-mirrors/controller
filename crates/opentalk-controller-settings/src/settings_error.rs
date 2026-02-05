@@ -56,4 +56,7 @@ pub enum SettingsError {
         "Missing `token_bucket_size` field in the `websocket_rate_limit` configuration"
     ))]
     RateLimitTokenBucketSizeMissing,
+
+    #[snafu(display("Missing `service_api_keys` field in the `http` configuration"))]
+    HttpServiceApiKeysMissing,
 }

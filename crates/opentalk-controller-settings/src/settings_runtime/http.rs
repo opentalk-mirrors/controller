@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use opentalk_service_auth::service::ApiKeys;
+
 use super::{HttpCors, HttpTls};
 use crate::settings_file;
 
@@ -21,6 +23,9 @@ pub struct Http {
 
     /// The CORS configuration.
     pub cors: HttpCors,
+
+    /// The controllers api keys for service requests
+    pub service_api_keys: Option<ApiKeys>,
 }
 
 impl From<Option<settings_file::Http>> for Http {
@@ -36,6 +41,7 @@ impl From<settings_file::Http> for Http {
             port,
             tls,
             cors,
+            service_api_keys,
         }: settings_file::Http,
     ) -> Self {
         Self {
@@ -43,6 +49,7 @@ impl From<settings_file::Http> for Http {
             port: port.unwrap_or(DEFAULT_HTTP_PORT),
             tls: tls.map(Into::into),
             cors: cors.map(Into::into).unwrap_or_default(),
+            service_api_keys,
         }
     }
 }
@@ -54,6 +61,7 @@ impl Default for Http {
             port: DEFAULT_HTTP_PORT,
             tls: None,
             cors: HttpCors::default(),
+            service_api_keys: None,
         }
     }
 }

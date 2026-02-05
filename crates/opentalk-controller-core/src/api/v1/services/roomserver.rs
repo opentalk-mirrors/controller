@@ -2,7 +2,6 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use actix_web::{
-    dev::HttpServiceFactory,
     post,
     web::{Data, Path, Payload, Query},
 };
@@ -91,8 +90,4 @@ pub async fn post_roomserver_asset(
         asset_resource,
         remaining_quota_bytes: asset_saved.remaining_quota,
     }))
-}
-
-pub fn services() -> impl HttpServiceFactory {
-    actix_web::web::scope("").service(post_roomserver_asset)
 }

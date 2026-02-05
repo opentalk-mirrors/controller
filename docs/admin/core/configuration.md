@@ -184,6 +184,12 @@ url = "postgres://postgres:password123@localhost:5432/opentalk"
 # frontend deployed there won't be able to connect.
 #allowed_origin = ["https://example.com", "https://opentalk.example.com:1337"]
 
+# The configured API keys for the internal service APIs that are served by the controller
+#
+# These APIs are currently exclusively used by the roomserver.
+# When a roomserver is configured, this setting is mandatory.
+#service_api_keys = [{ "id" = "controller", "secret" = "secret" }]
+
 # Settings for the Keycloak which is the user provider and allows authentication via OIDC.
 # This is deprecated, replace with [oidc] and [user_search] sections.
 #[keycloak]
