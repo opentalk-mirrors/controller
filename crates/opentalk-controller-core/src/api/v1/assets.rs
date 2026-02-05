@@ -19,54 +19,7 @@ use opentalk_types_api_v1::{
 use opentalk_types_common::{assets::AssetId, rooms::RoomId, time::Timestamp};
 
 use super::{ApiResponse, DefaultApiResult, response::NoContent};
-use crate::api::responses::{BinaryData, Forbidden, InternalServerError, NotFound, Unauthorized};
-
-/// Get a specific asset inside a room.
-///
-/// This will return the plain asset contents, e.g. the binary file contents or
-/// whatever else is stored inside the asset storage.
-#[utoipa::path(
-    params(
-        ("room_id" = RoomId, description = "The id of the room"),
-        ("asset_id" = AssetId, description = "The id of the asset"),
-    ),
-    responses(
-        (
-            status = StatusCode::OK,
-            response = BinaryData,
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[get("/rooms/{room_id}/assets/{asset_id}")]
-pub async fn room_asset(
-    service: Data<dyn OpenTalkControllerService>,
-    path: Path<(RoomId, AssetId)>,
-) -> Result<HttpResponse, ApiError> {
-    let (room_id, asset_id) = path.into_inner();
-
-    let stream = service.get_room_asset(room_id, asset_id).await?;
-
-    Ok(HttpResponse::build(StatusCode::OK).streaming(stream))
-}
+use crate::api::responses::{Forbidden, InternalServerError, NotFound, Unauthorized};
 
 /// Get the controller download path for an asset.
 ///
