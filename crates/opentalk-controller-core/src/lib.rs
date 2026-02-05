@@ -683,6 +683,7 @@ impl ModulesRegistrar for Controller {
     paths(
         api::signaling::ws_service,
         v1::rooms::by_id::assets::by_id::get,
+        v1::rooms::by_id::assets::by_id::download::get,
         v1::rooms::by_id::assets::get,
         api::v1::assets::create,
         api::v1::assets::delete,
@@ -1004,7 +1005,7 @@ fn v1_scope(
                 .service(v1::rooms::by_id::invites::by_code::delete)
                 .service(v1::rooms::by_id::assets::get)
                 .service(v1::rooms::by_id::assets::by_id::get)
-                .service(api::v1::assets::room_asset_download)
+                .service(v1::rooms::by_id::assets::by_id::download::get)
                 .service(api::v1::assets::create)
                 .service(api::v1::assets::delete)
                 .service(api::v1::streaming_targets::get_streaming_targets)

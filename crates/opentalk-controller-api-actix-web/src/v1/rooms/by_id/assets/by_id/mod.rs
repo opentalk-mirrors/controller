@@ -17,6 +17,7 @@ use crate::utoipa::responses::{
     BinaryData, Forbidden, InternalServerError, NotFound, Unauthorized,
 };
 
+pub mod download;
 pub mod proxy;
 
 /// Get a specific asset inside a room.
