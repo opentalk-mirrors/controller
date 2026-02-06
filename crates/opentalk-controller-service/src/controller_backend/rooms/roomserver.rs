@@ -4,7 +4,7 @@
 
 //! Provides roomserver-related implementation
 
-use opentalk_controller_service_facade::RequestUser;
+use opentalk_controller_service_facade::{RequestUser, StartRoomError};
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::Inventory;
@@ -35,10 +35,7 @@ use opentalk_types_common::{
     users::UserInfo,
 };
 
-use crate::{
-    ControllerBackend, controller_backend::rooms::start_room_error::StartRoomError,
-    helpers::get_user_timezone,
-};
+use crate::{ControllerBackend, helpers::get_user_timezone};
 
 impl ControllerBackend {
     #[tracing::instrument(level = "debug", skip(self, user, request), fields(user_id = %user.id))]

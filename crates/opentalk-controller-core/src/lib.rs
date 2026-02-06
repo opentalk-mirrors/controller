@@ -18,6 +18,7 @@ use actix_web::{App, HttpServer, Scope, web, web::Data};
 use api::signaling::SignalingModules;
 use kustos::Authz;
 use lapin_pool::RabbitMqPool;
+use opentalk_controller_api_actix_web::{v1, well_known};
 use opentalk_controller_service::{
     ControllerBackend, Whatever,
     oidc::{Cache, OidcTokenHandler, build_oidc_token_handler},
@@ -349,6 +350,7 @@ impl Controller {
                 authz.clone(),
                 inventory_provider.clone(),
                 oidc_cache.clone(),
+                oidc.clone(),
                 oidc_provider,
                 storage.clone(),
                 volatile.clone(),
@@ -470,7 +472,7 @@ impl Controller {
                     .app_data(SignalingProtocols::data())
                     .app_data(signaling_metrics.clone())
                     .app_data(metrics.clone())
-                    .service(api::well_known::well_known_api)
+                    .service(well_known::opentalk::api::get)
                     .service(api::signaling::ws_service)
                     .service(metrics::metrics)
                     .with_swagger_service_if(swagger_service_enabled)
@@ -684,8 +686,8 @@ impl ModulesRegistrar for Controller {
         api::v1::assets::room_assets,
         api::v1::assets::create,
         api::v1::assets::delete,
-        api::v1::auth::get_login,
-        api::v1::auth::post_login,
+        v1::auth::login::get,
+        v1::auth::login::post,
         api::v1::events::delete_event,
         api::v1::events::favorites::add_event_to_favorites,
         api::v1::events::favorites::remove_event_from_favorites,
@@ -714,16 +716,16 @@ impl ModulesRegistrar for Controller {
         api::v1::invites::get_invite,
         api::v1::invites::get_invites,
         api::v1::invites::update_invite,
-        api::v1::invites::verify_invite_code,
-        api::v1::rooms::accessible,
-        api::v1::rooms::delete,
-        api::v1::rooms::get,
-        api::v1::rooms::get_room_event,
-        api::v1::rooms::get_room_tariff,
-        api::v1::rooms::new,
-        api::v1::rooms::patch,
-        api::v1::rooms::start,
-        api::v1::rooms::start_invited,
+        v1::invite::verify::post,
+        v1::rooms::get,
+        v1::rooms::by_id::delete,
+        v1::rooms::by_id::get,
+        v1::rooms::by_id::event::get,
+        v1::rooms::by_id::tariff::get,
+        v1::rooms::post,
+        v1::rooms::by_id::patch,
+        v1::rooms::by_id::start::post,
+        v1::rooms::by_id::start_invited::post,
         api::v1::services::call_in::post_call_in_start,
         api::v1::services::recording::get_recording_upload,
         api::v1::services::recording::post_recording_start,
@@ -736,18 +738,18 @@ impl ModulesRegistrar for Controller {
         api::v1::streaming_targets::get_streaming_targets,
         api::v1::streaming_targets::patch_streaming_target,
         api::v1::streaming_targets::post_streaming_target,
-        api::v1::turn::get,
-        api::v1::users::find,
-        api::v1::users::get_me,
-        api::v1::users::get_me_assets,
-        api::v1::users::get_me_tariff,
-        api::v1::users::get_user,
-        api::v1::users::patch_me,
+        v1::turn::get,
+        v1::users::find::get,
+        v1::users::me::get,
+        v1::users::me::assets::get,
+        v1::users::me::tariff::get,
+        v1::users::by_id::get,
+        v1::users::me::patch,
     ),
     components(
         schemas(
             api::headers::CursorLink,
-            api::headers::PageLink,
+            v1::response::headers::PageLink,
             opentalk_types_api_v1::error::ErrorBody,
             opentalk_types_api_v1::error::ValidationErrorEntry,
             opentalk_types_api_v1::pagination::Cursor::<opentalk_types_api_v1::events::GetEventInstancesCursorData>,
@@ -922,13 +924,13 @@ fn v1_scope(
     let scope = web::scope("/v1");
 
     scope
-        .service(api::v1::auth::post_login)
-        .service(api::v1::auth::get_login)
-        .service(api::v1::rooms::start_invited)
-        .service(api::v1::rooms::roomserver::start_invited)
-        .service(api::v1::invites::verify_invite_code)
-        .service(api::v1::turn::get)
-        .service(api::v1::assets::proxy_download)
+        .service(v1::auth::login::post)
+        .service(v1::auth::login::get)
+        .service(v1::rooms::by_id::start_invited::post)
+        .service(v1::rooms::by_id::roomserver::start_invited::post)
+        .service(v1::invite::verify::post)
+        .service(v1::turn::get)
+        .service(v1::rooms::by_id::assets::by_id::proxy::get)
         .service(
             web::scope("/services/roomserver")
                 .wrap(api::v1::middleware::roomserver_auth::RoomserverAuth::new(
@@ -954,21 +956,21 @@ fn v1_scope(
                     authz,
                     oidc_ctx,
                 })
-                .service(api::v1::users::find)
-                .service(api::v1::users::patch_me)
-                .service(api::v1::users::get_me)
-                .service(api::v1::users::get_me_tariff)
-                .service(api::v1::users::get_me_assets)
-                .service(api::v1::users::get_user)
-                .service(api::v1::rooms::accessible)
-                .service(api::v1::rooms::new)
-                .service(api::v1::rooms::patch)
-                .service(api::v1::rooms::get)
-                .service(api::v1::rooms::get_room_event)
-                .service(api::v1::rooms::get_room_tariff)
-                .service(api::v1::rooms::start)
-                .service(api::v1::rooms::roomserver::start)
-                .service(api::v1::rooms::delete)
+                .service(v1::users::find::get)
+                .service(v1::users::me::patch)
+                .service(v1::users::me::get)
+                .service(v1::users::me::tariff::get)
+                .service(v1::users::me::assets::get)
+                .service(v1::users::by_id::get)
+                .service(v1::rooms::get)
+                .service(v1::rooms::post)
+                .service(v1::rooms::by_id::patch)
+                .service(v1::rooms::by_id::get)
+                .service(v1::rooms::by_id::event::get)
+                .service(v1::rooms::by_id::tariff::get)
+                .service(v1::rooms::by_id::start::post)
+                .service(v1::rooms::by_id::roomserver::start::post)
+                .service(v1::rooms::by_id::delete)
                 .service(api::v1::events::new_event)
                 .service(api::v1::events::get_events)
                 // "/events/instances" conflicts with "/events/{event_id}" and thus must be listed before

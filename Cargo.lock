@@ -5106,6 +5106,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-controller-api-actix-web"
+version = "0.33.0-alpha"
+dependencies = [
+ "actix-web",
+ "either",
+ "futures",
+ "log",
+ "oauth2",
+ "opentalk-controller-service-facade",
+ "opentalk-types-api-v1",
+ "opentalk-types-common",
+ "serde",
+ "serde_json",
+ "url",
+ "utoipa",
+]
+
+[[package]]
 name = "opentalk-controller-core"
 version = "0.33.0-alpha"
 dependencies = [
@@ -5129,9 +5147,9 @@ dependencies = [
  "lapin-pool",
  "log",
  "md5",
- "mime",
  "openidconnect",
  "opentalk-cache",
+ "opentalk-controller-api-actix-web",
  "opentalk-controller-service",
  "opentalk-controller-service-facade",
  "opentalk-controller-settings",
@@ -5177,7 +5195,6 @@ dependencies = [
  "tracing-futures",
  "tracing-opentelemetry",
  "tracing-subscriber",
- "url",
  "utoipa",
  "utoipa-swagger-ui",
  "uuid",
@@ -5242,7 +5259,6 @@ dependencies = [
  "serde_json",
  "serial_test",
  "snafu",
- "strum 0.27.2",
  "tokio",
  "tracing",
  "url",
@@ -5259,6 +5275,8 @@ dependencies = [
  "opentalk-signaling-core",
  "opentalk-types-api-v1",
  "opentalk-types-common",
+ "pretty_assertions",
+ "strum 0.27.2",
 ]
 
 [[package]]
@@ -5306,6 +5324,7 @@ dependencies = [
  "kustos-shared",
  "log",
  "opentalk-cache",
+ "opentalk-controller-service-facade",
  "opentalk-controller-settings",
  "opentalk-database",
  "opentalk-inventory",

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 mod asset_download_proxy_stream;
+mod start_room_error;
 
 pub use asset_download_proxy_stream::AssetDownloadProxyStream;
 use async_trait::async_trait;
@@ -14,7 +15,7 @@ use opentalk_signaling_core::{
 };
 use opentalk_types_api_v1::{
     assets::{AssetResource, AssetSortingQuery},
-    auth::GetLoginResponseBody,
+    auth::{GetLoginResponseBody, PostLoginResponseBody, login::AuthLoginPostRequestBody},
     error::ApiError,
     events::{
         DeleteEventInvitePath, DeleteEventsQuery, DeleteSharedFolderQuery, EventInstance,
@@ -67,6 +68,7 @@ use opentalk_types_common::{
     tariffs::TariffResource,
     users::UserId,
 };
+pub use start_room_error::StartRoomError;
 
 use crate::RequestUser;
 
@@ -75,6 +77,12 @@ use crate::RequestUser;
 pub trait OpenTalkControllerService: Send + Sync {
     /// Get the configured OIDC provider
     async fn get_login(&self) -> GetLoginResponseBody;
+
+    /// Post a login request.
+    async fn post_login(
+        &self,
+        body: AuthLoginPostRequestBody,
+    ) -> Result<PostLoginResponseBody, ApiError>;
 
     /// Get all accessible rooms
     async fn get_rooms(

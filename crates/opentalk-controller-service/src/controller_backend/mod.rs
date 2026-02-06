@@ -38,7 +38,9 @@ use opentalk_signaling_core::{
 };
 use opentalk_types_api_v1::{
     assets::{AssetResource, AssetSortingQuery},
-    auth::{GetLoginResponseBody, OidcProvider},
+    auth::{
+        GetLoginResponseBody, OidcProvider, PostLoginResponseBody, login::AuthLoginPostRequestBody,
+    },
     error::ApiError,
     events::{
         DeleteEventInvitePath, DeleteEventsQuery, DeleteSharedFolderQuery, EventInstance,
@@ -97,7 +99,10 @@ pub use crate::controller_backend::{
     events::shared_folder::{delete_shared_folders, put_shared_folder},
     rooms::RoomsPoliciesBuilderExt,
 };
-use crate::{oidc::Cache, services::MailService};
+use crate::{
+    oidc::{Cache, OidcTokenHandler},
+    services::MailService,
+};
 
 /// The default [`OpenTalkControllerService`] implementation.
 pub struct ControllerBackend {
@@ -105,6 +110,7 @@ pub struct ControllerBackend {
     authz: Authz,
     inventory_provider: Arc<dyn InventoryProvider>,
     oidc_cache: Arc<Cache>,
+    oidc_token_handler: Arc<dyn OidcTokenHandler>,
     frontend_oidc_provider: OidcProvider,
     storage: Arc<ObjectStorage>,
     volatile: VolatileStorage,
@@ -123,6 +129,7 @@ impl ControllerBackend {
         authz: Authz,
         inventory_provider: Arc<dyn InventoryProvider>,
         oidc_cache: Arc<Cache>,
+        oidc_token_handler: Arc<dyn OidcTokenHandler>,
         frontend_oidc_provider: OidcProvider,
         storage: Arc<ObjectStorage>,
         volatile: VolatileStorage,
@@ -137,6 +144,7 @@ impl ControllerBackend {
             authz,
             inventory_provider,
             oidc_cache,
+            oidc_token_handler,
             frontend_oidc_provider,
             storage,
             volatile,
@@ -159,6 +167,13 @@ impl std::fmt::Debug for ControllerBackend {
 impl OpenTalkControllerService for ControllerBackend {
     async fn get_login(&self) -> GetLoginResponseBody {
         self.get_login().await
+    }
+
+    async fn post_login(
+        &self,
+        body: AuthLoginPostRequestBody,
+    ) -> Result<PostLoginResponseBody, ApiError> {
+        Ok(self.post_login(body).await?)
     }
 
     async fn get_rooms(

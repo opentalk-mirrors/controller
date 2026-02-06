@@ -11,7 +11,7 @@ use kustos::{
     policies_builder::{GrantingAccess, PoliciesBuilder},
     prelude::IsSubject,
 };
-use opentalk_controller_service_facade::RequestUser;
+use opentalk_controller_service_facade::{RequestUser, StartRoomError};
 use opentalk_controller_utils::{
     CaptureApiError, TariffResourceExt as _,
     deletion::{Deleter, RoomDeleter},
@@ -41,12 +41,10 @@ use opentalk_types_common::{
 };
 
 use crate::{
-    ControllerBackend, ToUserProfile, controller_backend::rooms::start_room_error::StartRoomError,
-    signaling::ticket::start_or_continue_signaling_session,
+    ControllerBackend, ToUserProfile, signaling::ticket::start_or_continue_signaling_session,
 };
 
 pub mod roomserver;
-pub mod start_room_error;
 
 impl ControllerBackend {
     pub(crate) async fn get_rooms(

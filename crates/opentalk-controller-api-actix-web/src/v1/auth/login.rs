@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! Auth related API structs and Endpoints
+//! API endpoints under `v1/auth/login`
 
 #![allow(deprecated)]
 
@@ -10,15 +10,13 @@ use actix_web::{
     get, post,
     web::{Data, Json},
 };
-use opentalk_controller_service::oidc::{OidcTokenHandler, VerifyError};
 use opentalk_controller_service_facade::OpenTalkControllerService;
-use opentalk_controller_utils::CaptureApiError;
 use opentalk_types_api_v1::{
     auth::{GetLoginResponseBody, PostLoginResponseBody, login::AuthLoginPostRequestBody},
     error::{ApiError, AuthenticationError, ErrorBody},
 };
 
-use crate::api::responses::InternalServerError;
+use crate::utoipa::responses::InternalServerError;
 
 /// **Deprecated**: This endpoint exists only for backwards compatibility and must no longer be used.
 ///
@@ -30,6 +28,8 @@ use crate::api::responses::InternalServerError;
 /// is provided, a new user will be created in the database.
 #[utoipa::path(
     request_body = AuthLoginPostRequestBody,
+    tag = "api::v1::auth",
+    operation_id = "post_login",
     responses(
         (
             status = StatusCode::OK,
@@ -65,40 +65,11 @@ use crate::api::responses::InternalServerError;
 )]
 #[post("/auth/login")]
 #[deprecated]
-pub async fn post_login(
-    oidc_ctx: Data<dyn OidcTokenHandler>,
+pub async fn post(
+    service: Data<dyn OpenTalkControllerService>,
     body: Json<AuthLoginPostRequestBody>,
 ) -> Result<Json<PostLoginResponseBody>, ApiError> {
-    Ok(post_login_inner(oidc_ctx.as_ref(), body.into_inner().id_token).await?)
-}
-
-async fn post_login_inner(
-    oidc_ctx: &dyn OidcTokenHandler,
-    id_token: String,
-) -> Result<Json<PostLoginResponseBody>, CaptureApiError> {
-    if let Err(e) = oidc_ctx.verify_id_token(&id_token) {
-        return match e {
-            VerifyError::InvalidClaims => Err(ApiError::bad_request()
-                .with_code("invalid_claims")
-                .with_message("some required attributes are missing or malformed")
-                .into()),
-            VerifyError::Expired { .. } => Err(ApiError::unauthorized()
-                .with_www_authenticate(AuthenticationError::SessionExpired)
-                .into()),
-            VerifyError::MissingKeyID
-            | VerifyError::UnknownKeyID
-            | VerifyError::MalformedSignature
-            | VerifyError::InvalidJwt { .. }
-            | VerifyError::InvalidSignature => Err(ApiError::unauthorized()
-                .with_www_authenticate(AuthenticationError::InvalidIdToken)
-                .into()),
-        };
-    };
-
-    Ok(Json(PostLoginResponseBody {
-        // TODO calculate permissions
-        permissions: Default::default(),
-    }))
+    Ok(Json(service.post_login(body.into_inner()).await?))
 }
 
 /// Get the configured OIDC provider
@@ -106,6 +77,8 @@ async fn post_login_inner(
 /// Returns the relevant information for a frontend to authenticate against the
 /// configured OIDC provider for the OpenTalk service.
 #[utoipa::path(
+    tag = "api::v1::auth",
+    operation_id = "get_login",
     responses(
         (
             status = StatusCode::OK,
@@ -120,6 +93,6 @@ async fn post_login_inner(
     security(),
 )]
 #[get("/auth/login")]
-pub async fn get_login(service: Data<dyn OpenTalkControllerService>) -> Json<GetLoginResponseBody> {
+pub async fn get(service: Data<dyn OpenTalkControllerService>) -> Json<GetLoginResponseBody> {
     Json(service.get_login().await)
 }

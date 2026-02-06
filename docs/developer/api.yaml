@@ -1191,7 +1191,7 @@ paths:
       description: |-
         All rooms accessible to the requesting user are returned in a list. If no
         pagination query is added, the default page size is used.
-      operationId: accessible
+      operationId: get_rooms
       parameters:
         - name: per_page
           in: query
@@ -1228,7 +1228,7 @@ paths:
         - "api::v1::rooms"
       summary: Create a new room
       description: Creates a new room withh the settings given in the request body.
-      operationId: new
+      operationId: post_rooms
       requestBody:
         content:
           application/json:
@@ -1258,7 +1258,7 @@ paths:
         - "api::v1::rooms"
       summary: Get a room
       description: Returns the room resource including additional information such as the creator profile.
-      operationId: get
+      operationId: get_room
       parameters:
         - name: room_id
           in: path
@@ -4403,6 +4403,7 @@ components:
       example: 5
     PageLink:
       type: string
+      description: Headers for referencing to related pages.
       example: "<https://api.example.org/resource?page=2>; rel='next', <https://api.example.org/resource?page=5>; rel='last'"
     PageSize:
       type: integer
