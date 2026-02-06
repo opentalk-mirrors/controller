@@ -407,6 +407,9 @@ package:container-controller-mr:
     name: $KANIKO_IMAGE
     entrypoint: ['']
     pull_policy: if-not-present
+  artifacts:
+    reports:
+      dotenv: container.env
   script:
     - mkdir -p /kaniko/.docker
     - >
@@ -430,6 +433,8 @@ package:container-controller-mr:
           sed 's/^[.-]/_/' |
           cut -c -63
       )
+    - echo "CONTROLLER_IMAGE_NAME=$CI_REGISTRY_IMAGE" > container.env
+    - echo "CONTROLLER_IMAGE_TAG=$IMAGE_TAG" >> container.env
     - >
       /kaniko/executor
       --registry-mirror=mirror.gcr.io
@@ -437,6 +442,20 @@ package:container-controller-mr:
       --dockerfile $CI_PROJECT_DIR/Dockerfile
       --destination $CI_REGISTRY_IMAGE:$IMAGE_TAG
       --force
+
+trigger:service-integration-tests:
+  stage: trigger
+  variables:
+    CONTROLLER_IMAGE_TAG: latest
+    CONTROLLER_IMAGE_NAME: registry.heinlein.group/opentalk/controller
+  needs:
+    - package:container-controller-mr
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  trigger:
+    project: opentalk/qa/service-integration-tests
+    forward:
+      pipeline_variables: true
 
 trigger-docs:
   stage: trigger
