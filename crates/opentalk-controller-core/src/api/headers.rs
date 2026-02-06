@@ -2,10 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-#[derive(utoipa::ToSchema)]
-#[schema(example = "<https://api.example.org/resource?after=urlencodednextpagetoken>; rel='next'")]
-pub struct CursorLink(pub String);
-
 #[derive(serde::Deserialize, utoipa::ToSchema)]
 pub(crate) enum ConnectionUpgrade {
     Upgrade,

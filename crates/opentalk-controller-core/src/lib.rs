@@ -688,29 +688,29 @@ impl ModulesRegistrar for Controller {
         api::v1::assets::delete,
         v1::auth::login::get,
         v1::auth::login::post,
-        api::v1::events::delete_event,
-        api::v1::events::favorites::add_event_to_favorites,
-        api::v1::events::favorites::remove_event_from_favorites,
-        api::v1::events::get_event,
-        api::v1::events::get_events,
-        api::v1::events::instances::get_event_instance,
-        api::v1::events::instances::get_event_instances,
-        api::v1::events::instances::get_events_and_instances,
-        api::v1::events::instances::patch_event_instance,
-        api::v1::events::invites::accept_event_invite,
-        api::v1::events::invites::create_invite_to_event,
-        api::v1::events::invites::decline_event_invite,
-        api::v1::events::invites::delete_email_invite_to_event,
-        api::v1::events::invites::delete_invite_to_event,
+        v1::events::by_id::delete,
+        v1::users::me::event_favorites::by_id::put,
+        v1::users::me::event_favorites::by_id::delete,
+        v1::events::by_id::get,
+        v1::events::get,
+        v1::events::by_id::instances::by_id::get,
+        v1::events::by_id::instances::get,
+        v1::events::instances::get,
+        v1::events::by_id::instances::by_id::patch,
+        v1::events::by_id::invite::patch,
+        v1::events::by_id::invites::post,
+        v1::events::by_id::invite::delete,
+        v1::events::by_id::invites::email::delete,
+        v1::events::by_id::invites::by_id::delete,
         api::v1::events::invites::get_event_invites_pending,
-        api::v1::events::invites::get_invites_for_event,
-        api::v1::events::invites::update_email_invite_to_event,
-        api::v1::events::invites::update_invite_to_event,
-        api::v1::events::new_event,
-        api::v1::events::patch_event,
-        api::v1::events::shared_folder::delete_shared_folder_for_event,
-        api::v1::events::shared_folder::get_shared_folder_for_event,
-        api::v1::events::shared_folder::put_shared_folder_for_event,
+        v1::events::by_id::invites::get,
+        v1::events::by_id::invites::email::patch,
+        v1::events::by_id::invites::by_id::patch,
+        v1::events::post,
+        v1::events::by_id::patch,
+        v1::events::by_id::shared_folder::get,
+        v1::events::by_id::shared_folder::put,
+        v1::events::by_id::shared_folder::delete,
         api::v1::invites::add_invite,
         api::v1::invites::delete_invite,
         api::v1::invites::get_invite,
@@ -748,7 +748,7 @@ impl ModulesRegistrar for Controller {
     ),
     components(
         schemas(
-            api::headers::CursorLink,
+            v1::response::headers::CursorLink,
             v1::response::headers::PageLink,
             opentalk_types_api_v1::error::ErrorBody,
             opentalk_types_api_v1::error::ValidationErrorEntry,
@@ -971,29 +971,29 @@ fn v1_scope(
                 .service(v1::rooms::by_id::start::post)
                 .service(v1::rooms::by_id::roomserver::start::post)
                 .service(v1::rooms::by_id::delete)
-                .service(api::v1::events::new_event)
-                .service(api::v1::events::get_events)
+                .service(v1::events::post)
+                .service(v1::events::get)
                 // "/events/instances" conflicts with "/events/{event_id}" and thus must be listed before
-                .service(api::v1::events::instances::get_events_and_instances)
-                .service(api::v1::events::get_event)
-                .service(api::v1::events::patch_event)
-                .service(api::v1::events::delete_event)
-                .service(api::v1::events::favorites::add_event_to_favorites)
-                .service(api::v1::events::favorites::remove_event_from_favorites)
-                .service(api::v1::events::instances::get_event_instance)
-                .service(api::v1::events::instances::get_event_instances)
-                .service(api::v1::events::instances::patch_event_instance)
-                .service(api::v1::events::invites::create_invite_to_event)
-                .service(api::v1::events::invites::get_invites_for_event)
-                .service(api::v1::events::invites::delete_email_invite_to_event)
-                .service(api::v1::events::invites::delete_invite_to_event)
-                .service(api::v1::events::invites::update_email_invite_to_event)
-                .service(api::v1::events::invites::update_invite_to_event)
-                .service(api::v1::events::invites::accept_event_invite)
-                .service(api::v1::events::invites::decline_event_invite)
-                .service(api::v1::events::shared_folder::get_shared_folder_for_event)
-                .service(api::v1::events::shared_folder::put_shared_folder_for_event)
-                .service(api::v1::events::shared_folder::delete_shared_folder_for_event)
+                .service(v1::events::instances::get)
+                .service(v1::events::by_id::get)
+                .service(v1::events::by_id::patch)
+                .service(v1::events::by_id::delete)
+                .service(v1::users::me::event_favorites::by_id::put)
+                .service(v1::users::me::event_favorites::by_id::delete)
+                .service(v1::events::by_id::instances::by_id::get)
+                .service(v1::events::by_id::instances::get)
+                .service(v1::events::by_id::instances::by_id::patch)
+                .service(v1::events::by_id::invites::post)
+                .service(v1::events::by_id::invites::get)
+                .service(v1::events::by_id::invites::email::delete)
+                .service(v1::events::by_id::invites::by_id::delete)
+                .service(v1::events::by_id::invites::email::patch)
+                .service(v1::events::by_id::invites::by_id::patch)
+                .service(v1::events::by_id::invite::patch)
+                .service(v1::events::by_id::invite::delete)
+                .service(v1::events::by_id::shared_folder::get)
+                .service(v1::events::by_id::shared_folder::put)
+                .service(v1::events::by_id::shared_folder::delete)
                 .service(api::v1::sip_configs::get)
                 .service(api::v1::sip_configs::put)
                 .service(api::v1::sip_configs::delete)

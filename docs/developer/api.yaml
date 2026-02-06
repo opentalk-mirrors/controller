@@ -870,12 +870,6 @@ paths:
       responses:
         "201":
           description: The user or email has been invited to the event
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/EventResource"
         "204":
           description: "The user or email was already invited before, or the user is the creator of the event, in which case they have been invited implicitly"
         "400":
@@ -2927,6 +2921,7 @@ components:
       description: The password for authenticating call-in participation
     CursorLink:
       type: string
+      description: Headers for referencing to related cursors.
       example: "<https://api.example.org/resource?after=urlencodednextpagetoken>; rel='next'"
     Cursor_GetEventInstancesCursorData:
       type: string
