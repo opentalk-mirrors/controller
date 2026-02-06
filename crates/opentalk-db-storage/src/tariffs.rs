@@ -11,6 +11,7 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DbConnection, Result};
 use opentalk_diesel_newtype::DieselNewtype;
+use opentalk_inventory as inventory;
 use opentalk_types_common::{
     features::ModuleFeatureId,
     modules::ModuleId,
@@ -47,14 +48,14 @@ use crate::{
 #[diesel(sql_type = diesel::sql_types::Text)]
 pub struct ExternalTariffId(String);
 
-impl From<ExternalTariffId> for opentalk_inventory::ExternalTariffId {
+impl From<ExternalTariffId> for inventory::ExternalTariffId {
     fn from(ExternalTariffId(value): ExternalTariffId) -> Self {
         Self::from(value)
     }
 }
 
-impl From<opentalk_inventory::ExternalTariffId> for ExternalTariffId {
-    fn from(value: opentalk_inventory::ExternalTariffId) -> Self {
+impl From<inventory::ExternalTariffId> for ExternalTariffId {
+    fn from(value: inventory::ExternalTariffId) -> Self {
         Self(value.into())
     }
 }
@@ -83,7 +84,7 @@ pub struct Tariff {
     pub disabled_features: Vec<Option<ModuleFeatureId>>,
 }
 
-impl From<Tariff> for opentalk_inventory::Tariff {
+impl From<Tariff> for inventory::Tariff {
     fn from(
         Tariff {
             id,
@@ -181,14 +182,14 @@ impl NewTariff {
     }
 }
 
-impl From<opentalk_inventory::NewTariff> for NewTariff {
+impl From<inventory::NewTariff> for NewTariff {
     fn from(
-        opentalk_inventory::NewTariff {
+        inventory::NewTariff {
             name,
             quotas,
             disabled_modules,
             disabled_features,
-        }: opentalk_inventory::NewTariff,
+        }: inventory::NewTariff,
     ) -> Self {
         Self {
             name,
@@ -209,15 +210,15 @@ pub struct UpdateTariff {
     pub disabled_features: Option<Vec<ModuleFeatureId>>,
 }
 
-impl From<opentalk_inventory::UpdateTariff> for UpdateTariff {
+impl From<inventory::UpdateTariff> for UpdateTariff {
     fn from(
-        opentalk_inventory::UpdateTariff {
+        inventory::UpdateTariff {
             name,
             updated_at,
             quotas,
             disabled_modules,
             disabled_features,
-        }: opentalk_inventory::UpdateTariff,
+        }: inventory::UpdateTariff,
     ) -> Self {
         Self {
             name,
@@ -244,7 +245,7 @@ pub struct ExternalTariff {
     pub tariff_id: TariffId,
 }
 
-impl From<ExternalTariff> for opentalk_inventory::ExternalTariffMapping {
+impl From<ExternalTariff> for inventory::ExternalTariffMapping {
     fn from(
         ExternalTariff {
             external_id,

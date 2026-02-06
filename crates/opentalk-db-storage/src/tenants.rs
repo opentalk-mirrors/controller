@@ -8,6 +8,7 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DbConnection, Result};
 use opentalk_diesel_newtype::DieselNewtype;
+use opentalk_inventory as inventory;
 use opentalk_types_common::{tenants::TenantId, users::UserId};
 use redis_args::{FromRedisValue, ToRedisArgs};
 use serde::{Deserialize, Serialize};
@@ -46,20 +47,20 @@ impl From<&str> for OidcTenantId {
     }
 }
 
-impl From<OidcTenantId> for opentalk_inventory::OidcTenantId {
+impl From<OidcTenantId> for inventory::OidcTenantId {
     fn from(OidcTenantId(value): OidcTenantId) -> Self {
         Self::from(value)
     }
 }
 
-impl From<opentalk_inventory::OidcTenantId> for OidcTenantId {
-    fn from(value: opentalk_inventory::OidcTenantId) -> Self {
+impl From<inventory::OidcTenantId> for OidcTenantId {
+    fn from(value: inventory::OidcTenantId) -> Self {
         Self(value.into())
     }
 }
 
-impl From<&opentalk_inventory::OidcTenantId> for OidcTenantId {
-    fn from(value: &opentalk_inventory::OidcTenantId) -> Self {
+impl From<&inventory::OidcTenantId> for OidcTenantId {
+    fn from(value: &inventory::OidcTenantId) -> Self {
         value.as_str().into()
     }
 }
@@ -72,7 +73,7 @@ pub struct Tenant {
     pub oidc_tenant_id: OidcTenantId,
 }
 
-impl From<Tenant> for opentalk_inventory::Tenant {
+impl From<Tenant> for inventory::Tenant {
     fn from(
         Tenant {
             id,

@@ -12,6 +12,7 @@ use diesel::{
 use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
 use opentalk_database::{DbConnection, Result};
 use opentalk_diesel_newtype::DieselNewtype;
+use opentalk_inventory as inventory;
 use opentalk_types_common::{
     tenants::TenantId,
     users::{GroupId, GroupName, UserId},
@@ -55,7 +56,7 @@ pub struct Group {
     pub tenant_id: TenantId,
 }
 
-impl From<Group> for opentalk_inventory::Group {
+impl From<Group> for inventory::Group {
     fn from(
         Group {
             id,

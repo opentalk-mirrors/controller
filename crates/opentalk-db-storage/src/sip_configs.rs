@@ -5,6 +5,7 @@
 use diesel::{ExpressionMethods, Identifiable, QueryDsl, Queryable, prelude::*};
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DatabaseError, DbConnection, Result};
+use opentalk_inventory as inventory;
 use opentalk_types_common::{
     call_in::{CallInId, CallInPassword},
     rooms::RoomId,
@@ -23,7 +24,7 @@ pub struct SipConfig {
     pub lobby: bool,
 }
 
-impl From<SipConfig> for opentalk_inventory::RoomSipConfig {
+impl From<SipConfig> for inventory::RoomSipConfig {
     fn from(
         SipConfig {
             id,
@@ -43,15 +44,15 @@ impl From<SipConfig> for opentalk_inventory::RoomSipConfig {
     }
 }
 
-impl From<opentalk_inventory::RoomSipConfig> for SipConfig {
+impl From<inventory::RoomSipConfig> for SipConfig {
     fn from(
-        opentalk_inventory::RoomSipConfig {
+        inventory::RoomSipConfig {
             id,
             room,
             sip_id,
             password,
             lobby,
-        }: opentalk_inventory::RoomSipConfig,
+        }: inventory::RoomSipConfig,
     ) -> Self {
         Self {
             id,
@@ -123,14 +124,14 @@ pub struct NewSipConfig {
     pub enable_lobby: bool,
 }
 
-impl From<opentalk_inventory::NewRoomSipConfig> for NewSipConfig {
+impl From<inventory::NewRoomSipConfig> for NewSipConfig {
     fn from(
-        opentalk_inventory::NewRoomSipConfig {
+        inventory::NewRoomSipConfig {
             room,
             sip_id,
             password,
             enable_lobby,
-        }: opentalk_inventory::NewRoomSipConfig,
+        }: inventory::NewRoomSipConfig,
     ) -> Self {
         Self {
             room,
@@ -183,12 +184,12 @@ pub struct UpdateSipConfig {
     pub enable_lobby: Option<bool>,
 }
 
-impl From<opentalk_inventory::UpdateRoomSipConfig> for UpdateSipConfig {
+impl From<inventory::UpdateRoomSipConfig> for UpdateSipConfig {
     fn from(
-        opentalk_inventory::UpdateRoomSipConfig {
+        inventory::UpdateRoomSipConfig {
             password,
             enable_lobby,
-        }: opentalk_inventory::UpdateRoomSipConfig,
+        }: inventory::UpdateRoomSipConfig,
     ) -> Self {
         Self {
             password,

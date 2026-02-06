@@ -13,6 +13,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DbConnection, Result};
 use opentalk_diesel_newtype::DieselNewtype;
+use opentalk_inventory as inventory;
 use opentalk_types_common::{
     pagination::{ItemCount, Page, PageSize},
     rooms::{RoomId, invite_codes::InviteCode},
@@ -66,7 +67,7 @@ pub struct Invite {
     pub expiration: Option<DateTime<Utc>>,
 }
 
-impl From<Invite> for opentalk_inventory::RoomInvite {
+impl From<Invite> for inventory::RoomInvite {
     fn from(
         Invite {
             id,
@@ -94,9 +95,9 @@ impl From<Invite> for opentalk_inventory::RoomInvite {
     }
 }
 
-impl From<opentalk_inventory::RoomInvite> for Invite {
+impl From<inventory::RoomInvite> for Invite {
     fn from(
-        opentalk_inventory::RoomInvite {
+        inventory::RoomInvite {
             invite_code,
             id_serial,
             created_by,
@@ -106,7 +107,7 @@ impl From<opentalk_inventory::RoomInvite> for Invite {
             room,
             active,
             expiration,
-        }: opentalk_inventory::RoomInvite,
+        }: inventory::RoomInvite,
     ) -> Self {
         Self {
             id: invite_code,
@@ -389,15 +390,15 @@ pub struct NewInvite {
     pub expiration: Option<DateTime<Utc>>,
 }
 
-impl From<opentalk_inventory::NewRoomInvite> for NewInvite {
+impl From<inventory::NewRoomInvite> for NewInvite {
     fn from(
-        opentalk_inventory::NewRoomInvite {
+        inventory::NewRoomInvite {
             created_by,
             updated_by,
             room,
             active,
             expiration,
-        }: opentalk_inventory::NewRoomInvite,
+        }: inventory::NewRoomInvite,
     ) -> Self {
         Self {
             created_by,
@@ -433,15 +434,15 @@ pub struct UpdateInvite {
     pub expiration: Option<Option<DateTime<Utc>>>,
 }
 
-impl From<opentalk_inventory::UpdateRoomInvite> for UpdateInvite {
+impl From<inventory::UpdateRoomInvite> for UpdateInvite {
     fn from(
-        opentalk_inventory::UpdateRoomInvite {
+        inventory::UpdateRoomInvite {
             updated_by,
             updated_at,
             room,
             active,
             expiration,
-        }: opentalk_inventory::UpdateRoomInvite,
+        }: inventory::UpdateRoomInvite,
     ) -> Self {
         Self {
             updated_by,

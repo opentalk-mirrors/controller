@@ -19,6 +19,7 @@ use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt
 use futures_core::Stream;
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_diesel_newtype::DieselNewtype;
+use opentalk_inventory as inventory;
 use opentalk_types_common::{
     events::{
         EventDescription, EventId, EventTitle,
@@ -97,13 +98,13 @@ pub struct EventSerialId(i64);
 #[diesel(sql_type = diesel::sql_types::Uuid)]
 pub struct EventExceptionId(uuid::Uuid);
 
-impl From<opentalk_inventory::EventExceptionId> for EventExceptionId {
-    fn from(value: opentalk_inventory::EventExceptionId) -> Self {
+impl From<inventory::EventExceptionId> for EventExceptionId {
+    fn from(value: inventory::EventExceptionId) -> Self {
         Self::from(uuid::Uuid::from(value))
     }
 }
 
-impl From<EventExceptionId> for opentalk_inventory::EventExceptionId {
+impl From<EventExceptionId> for inventory::EventExceptionId {
     fn from(EventExceptionId(id): EventExceptionId) -> Self {
         Self::from(id)
     }
@@ -132,13 +133,13 @@ impl From<EventExceptionId> for opentalk_inventory::EventExceptionId {
 #[diesel(sql_type = diesel::sql_types::Uuid)]
 pub struct EventInviteId(uuid::Uuid);
 
-impl From<opentalk_inventory::EventInviteId> for EventInviteId {
-    fn from(value: opentalk_inventory::EventInviteId) -> Self {
+impl From<inventory::EventInviteId> for EventInviteId {
+    fn from(value: inventory::EventInviteId) -> Self {
         Self::from(uuid::Uuid::from(value))
     }
 }
 
-impl From<EventInviteId> for opentalk_inventory::EventInviteId {
+impl From<EventInviteId> for inventory::EventInviteId {
     fn from(value: EventInviteId) -> Self {
         Self::from(uuid::Uuid::from(value))
     }
@@ -208,7 +209,7 @@ pub struct Event {
     pub show_meeting_details: bool,
 }
 
-impl From<Event> for opentalk_inventory::Event {
+impl From<Event> for inventory::Event {
     fn from(
         Event {
             id,
@@ -248,14 +249,14 @@ impl From<Event> for opentalk_inventory::Event {
             revision,
             show_meeting_details,
             date: (|| {
-                Some(opentalk_inventory::EventDate {
+                Some(inventory::EventDate {
                     is_all_day: is_all_day?,
                     starts_at: starts_at?.into(),
                     starts_at_tz: starts_at_tz?,
                     ends_at: ends_at?.into(),
                     ends_at_tz: ends_at_tz?,
                     recurrence: recurrence_pattern.zip(duration_secs).map(
-                        |(recurrence_pattern, duration_secs)| opentalk_inventory::EventRecurrence {
+                        |(recurrence_pattern, duration_secs)| inventory::EventRecurrence {
                             recurrence_pattern,
                             duration_secs,
                         },
@@ -266,14 +267,14 @@ impl From<Event> for opentalk_inventory::Event {
     }
 }
 
-impl From<&Event> for opentalk_inventory::Event {
+impl From<&Event> for inventory::Event {
     fn from(value: &Event) -> Self {
         Self::from(value.clone())
     }
 }
 
-impl From<opentalk_inventory::Event> for Event {
-    fn from(event: opentalk_inventory::Event) -> Self {
+impl From<inventory::Event> for Event {
+    fn from(event: inventory::Event) -> Self {
         Self {
             id: event.id,
             id_serial: event.id_serial.into(),
@@ -301,8 +302,8 @@ impl From<opentalk_inventory::Event> for Event {
     }
 }
 
-impl From<&opentalk_inventory::Event> for Event {
-    fn from(value: &opentalk_inventory::Event) -> Self {
+impl From<&inventory::Event> for Event {
+    fn from(value: &inventory::Event) -> Self {
         Self::from(value.clone())
     }
 }
@@ -335,7 +336,7 @@ pub struct GetEventsCursor {
     pub from_starts_at: Option<DateTime<Utc>>,
 }
 
-impl From<GetEventsCursor> for opentalk_inventory::GetEventsCursor {
+impl From<GetEventsCursor> for inventory::GetEventsCursor {
     fn from(
         GetEventsCursor {
             from_id,
@@ -351,8 +352,8 @@ impl From<GetEventsCursor> for opentalk_inventory::GetEventsCursor {
     }
 }
 
-impl From<opentalk_inventory::GetEventsCursor> for GetEventsCursor {
-    fn from(value: opentalk_inventory::GetEventsCursor) -> Self {
+impl From<inventory::GetEventsCursor> for GetEventsCursor {
+    fn from(value: inventory::GetEventsCursor) -> Self {
         let (from_id, from_created_at, from_starts_at) = value.into();
         Self {
             from_id,
@@ -379,7 +380,7 @@ pub struct GetEventExceptionsCursor {
     pub from_exception_date: DateTime<Utc>,
 }
 
-impl From<GetEventExceptionsCursor> for opentalk_inventory::GetEventExceptionsCursor {
+impl From<GetEventExceptionsCursor> for inventory::GetEventExceptionsCursor {
     fn from(
         GetEventExceptionsCursor {
             from_id,
@@ -397,8 +398,8 @@ impl From<GetEventExceptionsCursor> for opentalk_inventory::GetEventExceptionsCu
     }
 }
 
-impl From<opentalk_inventory::GetEventExceptionsCursor> for GetEventExceptionsCursor {
-    fn from(value: opentalk_inventory::GetEventExceptionsCursor) -> Self {
+impl From<inventory::GetEventExceptionsCursor> for GetEventExceptionsCursor {
+    fn from(value: inventory::GetEventExceptionsCursor) -> Self {
         let (from_id, from_created_at, from_starts_at, from_exception_date) = value.into();
         Self {
             from_id,
@@ -1282,8 +1283,8 @@ pub struct NewEvent {
     pub show_meeting_details: bool,
 }
 
-impl From<opentalk_inventory::NewEvent> for NewEvent {
-    fn from(new_event: opentalk_inventory::NewEvent) -> Self {
+impl From<inventory::NewEvent> for NewEvent {
+    fn from(new_event: inventory::NewEvent) -> Self {
         Self {
             room: new_event.room,
             created_by: new_event.created_by,
@@ -1335,8 +1336,8 @@ pub struct UpdateEvent {
     pub show_meeting_details: Option<bool>,
 }
 
-impl From<opentalk_inventory::UpdateEvent> for UpdateEvent {
-    fn from(update_event: opentalk_inventory::UpdateEvent) -> Self {
+impl From<inventory::UpdateEvent> for UpdateEvent {
+    fn from(update_event: inventory::UpdateEvent) -> Self {
         Self {
             updated_by: update_event.updated_by,
             updated_at: update_event.updated_at.into(),
@@ -1379,7 +1380,7 @@ sql_enum!(
     }
 );
 
-impl From<EventExceptionKind> for opentalk_inventory::EventExceptionKind {
+impl From<EventExceptionKind> for inventory::EventExceptionKind {
     fn from(value: EventExceptionKind) -> Self {
         match value {
             EventExceptionKind::Modified => Self::Modified,
@@ -1388,11 +1389,11 @@ impl From<EventExceptionKind> for opentalk_inventory::EventExceptionKind {
     }
 }
 
-impl From<opentalk_inventory::EventExceptionKind> for EventExceptionKind {
-    fn from(value: opentalk_inventory::EventExceptionKind) -> Self {
+impl From<inventory::EventExceptionKind> for EventExceptionKind {
+    fn from(value: inventory::EventExceptionKind) -> Self {
         match value {
-            opentalk_inventory::EventExceptionKind::Modified => Self::Modified,
-            opentalk_inventory::EventExceptionKind::Cancelled => Self::Cancelled,
+            inventory::EventExceptionKind::Modified => Self::Modified,
+            inventory::EventExceptionKind::Cancelled => Self::Cancelled,
         }
     }
 }
@@ -1418,7 +1419,7 @@ pub struct EventException {
     pub ends_at_tz: Option<TimeZone>,
 }
 
-impl From<EventException> for opentalk_inventory::EventException {
+impl From<EventException> for inventory::EventException {
     fn from(
         EventException {
             id,
@@ -1456,9 +1457,9 @@ impl From<EventException> for opentalk_inventory::EventException {
     }
 }
 
-impl From<opentalk_inventory::EventException> for EventException {
+impl From<inventory::EventException> for EventException {
     fn from(
-        opentalk_inventory::EventException {
+        inventory::EventException {
             id,
             event_id,
             exception_date,
@@ -1473,7 +1474,7 @@ impl From<opentalk_inventory::EventException> for EventException {
             starts_at_tz,
             ends_at,
             ends_at_tz,
-        }: opentalk_inventory::EventException,
+        }: inventory::EventException,
     ) -> Self {
         Self {
             id: id.into(),
@@ -1568,7 +1569,7 @@ impl NewEventException {
     }
 }
 
-impl From<NewEventException> for opentalk_inventory::NewEventException {
+impl From<NewEventException> for inventory::NewEventException {
     fn from(
         NewEventException {
             event_id,
@@ -1602,9 +1603,9 @@ impl From<NewEventException> for opentalk_inventory::NewEventException {
     }
 }
 
-impl From<opentalk_inventory::NewEventException> for NewEventException {
+impl From<inventory::NewEventException> for NewEventException {
     fn from(
-        opentalk_inventory::NewEventException {
+        inventory::NewEventException {
             event_id,
             exception_date,
             exception_date_tz,
@@ -1617,7 +1618,7 @@ impl From<opentalk_inventory::NewEventException> for NewEventException {
             starts_at_tz,
             ends_at,
             ends_at_tz,
-        }: opentalk_inventory::NewEventException,
+        }: inventory::NewEventException,
     ) -> Self {
         Self {
             event_id,
@@ -1649,9 +1650,9 @@ pub struct UpdateEventException {
     pub ends_at_tz: Option<Option<TimeZone>>,
 }
 
-impl From<opentalk_inventory::UpdateEventException> for UpdateEventException {
+impl From<inventory::UpdateEventException> for UpdateEventException {
     fn from(
-        opentalk_inventory::UpdateEventException {
+        inventory::UpdateEventException {
             kind,
             title,
             description,
@@ -1660,7 +1661,7 @@ impl From<opentalk_inventory::UpdateEventException> for UpdateEventException {
             starts_at_tz,
             ends_at,
             ends_at_tz,
-        }: opentalk_inventory::UpdateEventException,
+        }: inventory::UpdateEventException,
     ) -> Self {
         Self {
             kind: kind.map(Into::into),
@@ -1707,7 +1708,7 @@ pub struct EventInvite {
     pub role: InviteRole,
 }
 
-impl From<EventInvite> for opentalk_inventory::EventInvite {
+impl From<EventInvite> for inventory::EventInvite {
     fn from(
         EventInvite {
             id,
@@ -1731,9 +1732,9 @@ impl From<EventInvite> for opentalk_inventory::EventInvite {
     }
 }
 
-impl From<opentalk_inventory::EventInvite> for EventInvite {
+impl From<inventory::EventInvite> for EventInvite {
     fn from(
-        opentalk_inventory::EventInvite {
+        inventory::EventInvite {
             id,
             event_id,
             invitee,
@@ -1741,7 +1742,7 @@ impl From<opentalk_inventory::EventInvite> for EventInvite {
             created_at,
             status,
             role,
-        }: opentalk_inventory::EventInvite,
+        }: inventory::EventInvite,
     ) -> Self {
         Self {
             id: id.into(),
@@ -1894,15 +1895,15 @@ pub struct NewEventInvite {
     pub created_at: Option<DateTime<Utc>>,
 }
 
-impl From<opentalk_inventory::NewEventInvite> for NewEventInvite {
+impl From<inventory::NewEventInvite> for NewEventInvite {
     fn from(
-        opentalk_inventory::NewEventInvite {
+        inventory::NewEventInvite {
             event_id,
             invitee,
             role,
             created_by,
             created_at,
-        }: opentalk_inventory::NewEventInvite,
+        }: inventory::NewEventInvite,
     ) -> Self {
         Self {
             event_id,
@@ -1942,10 +1943,8 @@ pub struct UpdateEventInvite {
     pub role: Option<InviteRole>,
 }
 
-impl From<opentalk_inventory::UpdateEventInvite> for UpdateEventInvite {
-    fn from(
-        opentalk_inventory::UpdateEventInvite { status, role }: opentalk_inventory::UpdateEventInvite,
-    ) -> Self {
+impl From<inventory::UpdateEventInvite> for UpdateEventInvite {
+    fn from(inventory::UpdateEventInvite { status, role }: inventory::UpdateEventInvite) -> Self {
         Self { status, role }
     }
 }
@@ -2055,7 +2054,7 @@ pub struct EventTrainingParticipationReportParameterSet {
 }
 
 impl From<EventTrainingParticipationReportParameterSet>
-    for opentalk_inventory::EventTrainingParticipationReportParameterSet
+    for inventory::EventTrainingParticipationReportParameterSet
 {
     fn from(
         EventTrainingParticipationReportParameterSet {
@@ -2080,15 +2079,15 @@ impl From<EventTrainingParticipationReportParameterSet>
     }
 }
 
-impl From<opentalk_inventory::EventTrainingParticipationReportParameterSet>
+impl From<inventory::EventTrainingParticipationReportParameterSet>
     for EventTrainingParticipationReportParameterSet
 {
     fn from(
-        opentalk_inventory::EventTrainingParticipationReportParameterSet {
+        inventory::EventTrainingParticipationReportParameterSet {
             event_id,
             initial_checkpoint_delay,
             checkpoint_interval,
-        }: opentalk_inventory::EventTrainingParticipationReportParameterSet,
+        }: inventory::EventTrainingParticipationReportParameterSet,
     ) -> Self {
         Self {
             event_id,
@@ -2153,16 +2152,16 @@ pub struct UpdateEventTrainingParticipationReportParameterSet {
     pub checkpoint_interval_within: Option<Duration>,
 }
 
-impl From<opentalk_inventory::UpdateEventTrainingParticipationReportParameterSet>
+impl From<inventory::UpdateEventTrainingParticipationReportParameterSet>
     for UpdateEventTrainingParticipationReportParameterSet
 {
     fn from(
-        opentalk_inventory::UpdateEventTrainingParticipationReportParameterSet {
+        inventory::UpdateEventTrainingParticipationReportParameterSet {
             initial_checkpoint_delay_after,
             initial_checkpoint_delay_within,
             checkpoint_interval_after,
             checkpoint_interval_within,
-        }: opentalk_inventory::UpdateEventTrainingParticipationReportParameterSet,
+        }: inventory::UpdateEventTrainingParticipationReportParameterSet,
     ) -> Self {
         Self {
             initial_checkpoint_delay_after: initial_checkpoint_delay_after.map(Into::into),

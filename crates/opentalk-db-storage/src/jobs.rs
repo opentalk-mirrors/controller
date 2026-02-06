@@ -8,6 +8,7 @@ use diesel::{ExpressionMethods, Identifiable, Insertable, QueryDsl, Queryable};
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DbConnection, Result};
 use opentalk_diesel_newtype::DieselNewtype;
+use opentalk_inventory as inventory;
 use opentalk_types_common::sql_enum;
 use serde::{Deserialize, Serialize};
 
@@ -36,26 +37,26 @@ use crate::schema::{job_execution_logs, job_executions, jobs};
 #[diesel(sql_type = diesel::sql_types::BigInt)]
 pub struct SerialId(i64);
 
-impl From<SerialId> for opentalk_inventory::JobId {
+impl From<SerialId> for inventory::JobId {
     fn from(SerialId(value): SerialId) -> Self {
         Self::from(value)
     }
 }
 
-impl From<opentalk_inventory::JobId> for SerialId {
-    fn from(value: opentalk_inventory::JobId) -> Self {
+impl From<inventory::JobId> for SerialId {
+    fn from(value: inventory::JobId) -> Self {
         Self(value.into())
     }
 }
 
-impl From<SerialId> for opentalk_inventory::JobExecutionId {
+impl From<SerialId> for inventory::JobExecutionId {
     fn from(SerialId(value): SerialId) -> Self {
         Self::from(value)
     }
 }
 
-impl From<opentalk_inventory::JobExecutionId> for SerialId {
-    fn from(value: opentalk_inventory::JobExecutionId) -> Self {
+impl From<inventory::JobExecutionId> for SerialId {
+    fn from(value: inventory::JobExecutionId) -> Self {
         Self(value.into())
     }
 }
@@ -70,7 +71,7 @@ pub struct Job {
     pub recurrence: String,
 }
 
-impl From<Job> for opentalk_inventory::Job {
+impl From<Job> for inventory::Job {
     fn from(
         Job {
             id,
@@ -92,16 +93,16 @@ impl From<Job> for opentalk_inventory::Job {
     }
 }
 
-impl From<opentalk_inventory::Job> for Job {
+impl From<inventory::Job> for Job {
     fn from(
-        opentalk_inventory::Job {
+        inventory::Job {
             id,
             name,
             kind,
             parameters,
             timeout_secs,
             recurrence,
-        }: opentalk_inventory::Job,
+        }: inventory::Job,
     ) -> Self {
         Self {
             id: id.into(),
@@ -141,7 +142,7 @@ pub struct JobExecution {
     pub job_status: JobStatus,
 }
 
-impl From<JobExecution> for opentalk_inventory::JobExecution {
+impl From<JobExecution> for inventory::JobExecution {
     fn from(
         JobExecution {
             id,
@@ -161,15 +162,15 @@ impl From<JobExecution> for opentalk_inventory::JobExecution {
     }
 }
 
-impl From<opentalk_inventory::JobExecution> for JobExecution {
+impl From<inventory::JobExecution> for JobExecution {
     fn from(
-        opentalk_inventory::JobExecution {
+        inventory::JobExecution {
             id,
             job_id,
             started_at,
             ended_at,
             job_status,
-        }: opentalk_inventory::JobExecution,
+        }: inventory::JobExecution,
     ) -> Self {
         Self {
             id: id.into(),
@@ -190,14 +191,14 @@ pub struct NewJobExecution {
     pub job_status: JobStatus,
 }
 
-impl From<opentalk_inventory::NewJobExecution> for NewJobExecution {
+impl From<inventory::NewJobExecution> for NewJobExecution {
     fn from(
-        opentalk_inventory::NewJobExecution {
+        inventory::NewJobExecution {
             job_id,
             started_at,
             ended_at,
             job_status,
-        }: opentalk_inventory::NewJobExecution,
+        }: inventory::NewJobExecution,
     ) -> Self {
         Self {
             job_id: job_id.into(),
@@ -227,12 +228,12 @@ pub struct UpdateJobExecution {
     pub job_status: Option<JobStatus>,
 }
 
-impl From<opentalk_inventory::UpdateJobExecution> for UpdateJobExecution {
+impl From<inventory::UpdateJobExecution> for UpdateJobExecution {
     fn from(
-        opentalk_inventory::UpdateJobExecution {
+        inventory::UpdateJobExecution {
             ended_at,
             job_status,
-        }: opentalk_inventory::UpdateJobExecution,
+        }: inventory::UpdateJobExecution,
     ) -> Self {
         Self {
             ended_at: ended_at.map(Into::into),
@@ -271,14 +272,14 @@ pub struct NewJobExecutionLog {
     pub log_message: String,
 }
 
-impl From<opentalk_inventory::NewJobExecutionLog> for NewJobExecutionLog {
+impl From<inventory::NewJobExecutionLog> for NewJobExecutionLog {
     fn from(
-        opentalk_inventory::NewJobExecutionLog {
+        inventory::NewJobExecutionLog {
             execution_id,
             logged_at,
             log_level,
             log_message,
-        }: opentalk_inventory::NewJobExecutionLog,
+        }: inventory::NewJobExecutionLog,
     ) -> Self {
         Self {
             execution_id: execution_id.into(),
@@ -329,7 +330,7 @@ sql_enum!(
     }
 );
 
-impl From<JobType> for opentalk_inventory::JobType {
+impl From<JobType> for inventory::JobType {
     fn from(value: JobType) -> Self {
         match value {
             JobType::AdhocEventCleanup => Self::AdhocEventCleanup,
@@ -344,9 +345,9 @@ impl From<JobType> for opentalk_inventory::JobType {
     }
 }
 
-impl From<opentalk_inventory::JobType> for JobType {
-    fn from(value: opentalk_inventory::JobType) -> Self {
-        use opentalk_inventory::JobType as Other;
+impl From<inventory::JobType> for JobType {
+    fn from(value: inventory::JobType) -> Self {
+        use inventory::JobType as Other;
         match value {
             Other::AdhocEventCleanup => Self::AdhocEventCleanup,
             Other::EventCleanup => Self::EventCleanup,
@@ -372,7 +373,7 @@ sql_enum!(
     }
 );
 
-impl From<JobStatus> for opentalk_inventory::JobStatus {
+impl From<JobStatus> for inventory::JobStatus {
     fn from(value: JobStatus) -> Self {
         match value {
             JobStatus::Started => Self::Started,
@@ -382,9 +383,9 @@ impl From<JobStatus> for opentalk_inventory::JobStatus {
     }
 }
 
-impl From<opentalk_inventory::JobStatus> for JobStatus {
-    fn from(value: opentalk_inventory::JobStatus) -> Self {
-        use opentalk_inventory::JobStatus as Other;
+impl From<inventory::JobStatus> for JobStatus {
+    fn from(value: inventory::JobStatus) -> Self {
+        use inventory::JobStatus as Other;
         match value {
             Other::Started => Self::Started,
             Other::Succeeded => Self::Succeeded,
@@ -407,7 +408,7 @@ sql_enum!(
     }
 );
 
-impl From<LogLevel> for opentalk_inventory::JobExecutionLogLevel {
+impl From<LogLevel> for inventory::JobExecutionLogLevel {
     fn from(value: LogLevel) -> Self {
         match value {
             LogLevel::Trace => Self::Trace,
@@ -419,9 +420,9 @@ impl From<LogLevel> for opentalk_inventory::JobExecutionLogLevel {
     }
 }
 
-impl From<opentalk_inventory::JobExecutionLogLevel> for LogLevel {
-    fn from(value: opentalk_inventory::JobExecutionLogLevel) -> Self {
-        use opentalk_inventory::JobExecutionLogLevel as Other;
+impl From<inventory::JobExecutionLogLevel> for LogLevel {
+    fn from(value: inventory::JobExecutionLogLevel) -> Self {
+        use inventory::JobExecutionLogLevel as Other;
         match value {
             Other::Trace => Self::Trace,
             Other::Debug => Self::Debug,

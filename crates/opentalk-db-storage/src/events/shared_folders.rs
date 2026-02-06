@@ -6,6 +6,7 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DbConnection, Result};
+use opentalk_inventory as inventory;
 use opentalk_types_common::{events::EventId, rooms::RoomId};
 
 use super::Event;
@@ -24,9 +25,9 @@ pub struct NewEventSharedFolder {
     pub read_password: String,
 }
 
-impl From<opentalk_inventory::NewEventSharedFolder> for NewEventSharedFolder {
+impl From<inventory::NewEventSharedFolder> for NewEventSharedFolder {
     fn from(
-        opentalk_inventory::NewEventSharedFolder {
+        inventory::NewEventSharedFolder {
             event_id,
             path,
             write_share_id,
@@ -35,7 +36,7 @@ impl From<opentalk_inventory::NewEventSharedFolder> for NewEventSharedFolder {
             read_share_id,
             read_url,
             read_password,
-        }: opentalk_inventory::NewEventSharedFolder,
+        }: inventory::NewEventSharedFolder,
     ) -> Self {
         Self {
             event_id,
@@ -88,7 +89,7 @@ pub struct EventSharedFolder {
     pub read_password: String,
 }
 
-impl From<EventSharedFolder> for opentalk_inventory::EventSharedFolder {
+impl From<EventSharedFolder> for inventory::EventSharedFolder {
     fn from(
         EventSharedFolder {
             event_id,
@@ -118,9 +119,9 @@ impl From<EventSharedFolder> for opentalk_inventory::EventSharedFolder {
     }
 }
 
-impl From<opentalk_inventory::EventSharedFolder> for EventSharedFolder {
+impl From<inventory::EventSharedFolder> for EventSharedFolder {
     fn from(
-        opentalk_inventory::EventSharedFolder {
+        inventory::EventSharedFolder {
             event_id,
             created_at,
             updated_at,
@@ -131,7 +132,7 @@ impl From<opentalk_inventory::EventSharedFolder> for EventSharedFolder {
             read_share_id,
             read_url,
             read_password,
-        }: opentalk_inventory::EventSharedFolder,
+        }: inventory::EventSharedFolder,
     ) -> Self {
         Self {
             event_id,
