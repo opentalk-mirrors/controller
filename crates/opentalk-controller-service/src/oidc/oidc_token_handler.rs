@@ -8,7 +8,7 @@ use openidconnect::{AccessToken, ClientId, ClientSecret};
 use opentalk_controller_utils::CaptureApiError;
 use url::Url;
 
-use super::{IntrospectStrippedInfo, OidcContext, OpenIdConnectUserInfo, RealmRoles, VerifyError};
+use super::{OidcContext, OpenIdConnectUserInfo, RealmRoles, VerificationInfo, VerifyError};
 use crate::Result;
 
 /// The handler for OIDC tokens
@@ -33,7 +33,7 @@ pub trait OidcTokenHandler: Sync + Send {
     async fn verify_access_token(
         &self,
         access_token: &AccessToken,
-    ) -> Result<IntrospectStrippedInfo, CaptureApiError>;
+    ) -> Result<VerificationInfo, CaptureApiError>;
 
     /// Verifies the signature and expiration of an ID Token encoded as JWT (Json Web Token)
     ///

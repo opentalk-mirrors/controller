@@ -17,9 +17,9 @@ use snafu::{OptionExt as _, Report, ResultExt as _, Whatever};
 use url::Url;
 
 use super::{
-    IntrospectInfo, IntrospectStrippedInfo, JWTAccessTokenClaims, OidcTokenHandler,
-    OnlyExpiryClaim, OpenIdConnectUserInfo, OpenTalkAdditionalClaims, ProviderClient, RealmRoles,
-    ServiceClaims, VerifyError, jwt,
+    IntrospectInfo, JWTAccessTokenClaims, OidcTokenHandler, OnlyExpiryClaim, OpenIdConnectUserInfo,
+    OpenTalkAdditionalClaims, ProviderClient, RealmRoles, ServiceClaims, VerificationInfo,
+    VerifyError, jwt,
 };
 use crate::Result;
 
@@ -138,7 +138,10 @@ impl OidcContext {
     async fn verify_access_token(
         &self,
         access_token: &AccessToken,
-    ) -> Result<IntrospectStrippedInfo, CaptureApiError> {
+    ) -> Result<VerificationInfo, CaptureApiError> {
+        // Verify the access token via introspection.
+        // Even if the access token is a JWT, we prefer introspection if available,
+        // because it also checks if the token is active
         if self.supports_introspect() {
             let introspect_info = self.introspect(access_token.clone()).await.map_err(|e| {
                 log::error!(
@@ -154,21 +157,25 @@ impl OidcContext {
                     .into());
             }
 
-            return Ok(IntrospectStrippedInfo::from(introspect_info));
+            return Ok(VerificationInfo::from(introspect_info));
         }
 
-        // If there's no introspect endpoint, the token must be a self-contained JWT access-token
-        // as per [rfc9068](https://datatracker.ietf.org/doc/html/rfc9068)
+        // Access token format must correspond [rfc9068](https://datatracker.ietf.org/doc/html/rfc9068)
+        // to be able to verify it locally
         match self.verify_jwt_token::<JWTAccessTokenClaims>(access_token) {
-            Ok(claims) => Ok(IntrospectStrippedInfo {
-                exp: Some(claims.exp),
-                sub: Some(claims.sub),
-            }),
-            Err(e) => {
-                log::debug!("Invalid access token (JWT): {}", Report::from_error(e));
-                Err(ApiError::unauthorized()
+            Ok(claims) => {
+                return Ok(VerificationInfo {
+                    exp: Some(claims.exp),
+                    sub: Some(claims.sub),
+                });
+            }
+            Err(_) => {
+                log::error!(
+                    "Access token can not be verified: OIDC provider does not support introspection and token is not a valid JWT"
+                );
+                return Err(ApiError::unauthorized()
                     .with_www_authenticate(AuthenticationError::InvalidAccessToken)
-                    .into())
+                    .into());
             }
         }
     }
@@ -346,7 +353,7 @@ impl OidcTokenHandler for OidcContext {
     async fn verify_access_token(
         &self,
         access_token: &AccessToken,
-    ) -> Result<IntrospectStrippedInfo, CaptureApiError> {
+    ) -> Result<VerificationInfo, CaptureApiError> {
         OidcContext::verify_access_token(self, access_token).await
     }
 
