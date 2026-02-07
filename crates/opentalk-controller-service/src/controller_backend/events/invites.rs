@@ -43,6 +43,7 @@ use opentalk_types_common::{
 };
 use snafu::Report;
 
+use super::super::{verify_invite_read, verify_invite_write};
 use crate::{
     ControllerBackend,
     controller_backend::{
@@ -71,6 +72,11 @@ impl ControllerBackend {
     ) -> Result<(Vec<EventInvitee>, PageSize, Page, ItemCount), CaptureApiError> {
         let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
+
+        let event = inventory.get_event(event_id).await?;
+        let room = inventory.get_room(event.room).await?;
+        let tariff = self.get_tariff_for_room(room.id).await?;
+        verify_invite_read(&tariff, &room)?;
 
         // FIXME: Preliminary solution, consider using UNION when Diesel supports it.
         // As in #[get("/events")], we simply get all invitees and truncate them afterwards.
@@ -134,13 +140,17 @@ impl ControllerBackend {
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
+        let event = inventory.get_event(event_id).await?;
+        let room = inventory.get_room(event.room).await?;
+        let tariff = self.get_tariff_for_room(room.id).await?;
+        verify_invite_write(&tariff, &room)?;
+
         let mail_service = (!query.suppress_email_notification)
             .then(|| self.mail_service.as_ref().clone())
             .flatten();
 
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
         let current_user = inventory.get_user(current_user.id).await?;
-        let event = inventory.get_event(event_id).await?;
         let room_tariff = self.get_tariff_for_room(event.room).await?;
 
         match create_invite {
@@ -185,6 +195,9 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let event = inventory.get_event(event_id).await?;
+        let room = inventory.get_room(event.room).await?;
+        let tariff = self.get_tariff_for_room(room.id).await?;
+        verify_invite_write(&tariff, &room)?;
 
         if event.created_by != current_user.id {
             return Err(ApiError::forbidden().into());
@@ -213,6 +226,9 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let event = inventory.get_event(event_id).await?;
+        let room = inventory.get_room(event.room).await?;
+        let tariff = self.get_tariff_for_room(room.id).await?;
+        verify_invite_write(&tariff, &room)?;
 
         if event.created_by != current_user.id {
             return Err(ApiError::forbidden().into());
@@ -244,6 +260,11 @@ impl ControllerBackend {
             .then(|| self.mail_service.as_ref().clone())
             .flatten();
         let mut inventory = self.inventory_provider.get_inventory().await?;
+
+        let event = inventory.get_event(event_id).await?;
+        let room = inventory.get_room(event.room).await?;
+        let tariff = self.get_tariff_for_room(room.id).await?;
+        verify_invite_write(&tariff, &room)?;
 
         // TODO(w.rabl) Further DB access optimization (replacing call to get_with_invite_and_room)?
         let (
@@ -349,6 +370,11 @@ impl ControllerBackend {
         let settings = self.settings_provider.get();
         let default_user_language = Language(settings.defaults.user_language.clone());
         let mut inventory = self.inventory_provider.get_inventory().await?;
+
+        let event = inventory.get_event(event_id).await?;
+        let room = inventory.get_room(event.room).await?;
+        let tariff = self.get_tariff_for_room(room.id).await?;
+        verify_invite_write(&tariff, &room)?;
 
         let email = email.to_lowercase().to_string();
 
