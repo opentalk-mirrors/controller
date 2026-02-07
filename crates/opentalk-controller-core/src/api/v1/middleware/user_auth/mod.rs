@@ -239,23 +239,23 @@ pub async fn check_access_token(
         return cached_result;
     }
 
-    let maybe_expires_at = oidc_ctx.verify_access_token(access_token).await?;
+    let verification_result = oidc_ctx.verify_access_token(access_token).await?;
 
-    let result =
+    let inner_result =
         check_access_token_inner(settings, authz, inventory_provider, oidc_ctx, access_token).await;
 
-    if (result.is_ok()
-        || result
+    if (inner_result.is_ok()
+        || inner_result
             .as_ref()
             .is_err_and(|e| e.status_code().is_server_error()))
         && let Err(e) = oidc_cache
-            .insert_access_token(access_token, result.clone(), maybe_expires_at)
+            .insert_access_token(access_token, inner_result.clone(), verification_result.exp)
             .await
     {
         log::warn!("Failed to cache access token: {e}");
     }
 
-    result
+    inner_result
 }
 
 /// Attempt to retrieve cached result

@@ -4,14 +4,22 @@
 
 use chrono::{DateTime, Utc};
 
-/// Info returned from the access token introspection
+use super::introspect_info::IntrospectInfo;
+
+/// Info returned from access token verification
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[must_use]
-pub struct IntrospectInfo {
-    /// Access token is still active
-    pub active: bool,
+pub struct VerificationInfo {
     /// Expire timestamp of the token
     pub exp: Option<DateTime<Utc>>,
     /// Subject of the access token
     pub sub: Option<String>,
+}
+
+impl From<IntrospectInfo> for VerificationInfo {
+    fn from(info: IntrospectInfo) -> Self {
+        Self {
+            exp: info.exp,
+            sub: info.sub,
+        }
+    }
 }
