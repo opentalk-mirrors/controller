@@ -25,9 +25,12 @@ use crate::{
 
 pub mod assets;
 pub mod event;
+pub mod invites;
 pub mod roomserver;
+pub mod sip;
 pub mod start;
 pub mod start_invited;
+pub mod streaming_targets;
 pub mod tariff;
 
 /// Get a room

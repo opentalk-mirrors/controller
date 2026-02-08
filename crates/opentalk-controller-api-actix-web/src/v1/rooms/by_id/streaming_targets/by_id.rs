@@ -2,146 +2,33 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! Contains invite related REST endpoints.
+//! API endpoints under `v1/rooms/{room_id}/streaming_targets/{streaming_target_id}`
+
 use actix_web::{
-    delete, get, patch, post,
+    delete, get, patch,
     web::{Data, Json, Path, Query, ReqData},
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
     error::ApiError,
     events::StreamingTargetOptionsQuery,
-    pagination::PagePaginationQuery,
     rooms::by_room_id::streaming_targets::{
-        GetRoomStreamingTargetResponseBody, GetRoomStreamingTargetsResponseBody,
-        PatchRoomStreamingTargetRequestBody, PatchRoomStreamingTargetResponseBody,
-        PostRoomStreamingTargetRequestBody, PostRoomStreamingTargetResponseBody,
-        RoomAndStreamingTargetId,
+        GetRoomStreamingTargetResponseBody, PatchRoomStreamingTargetRequestBody,
+        PatchRoomStreamingTargetResponseBody, RoomAndStreamingTargetId,
     },
 };
-use opentalk_types_common::{pagination::ItemCount, rooms::RoomId};
 
-use super::{DefaultApiResult, response::NoContent};
-use crate::api::{
-    responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
-    v1::ApiResponse,
+use crate::{
+    response::NoContent,
+    utoipa::responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
 };
-
-/// Lists the streaming targets of a room
-///
-/// Returns the streaming targets available for a room
-#[utoipa::path(
-    params(
-        PagePaginationQuery,
-        ("room_id" = RoomId, description = "The id of the room"),
-    ),
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "List of streaming targets successfully returned",
-            body = GetRoomStreamingTargetsResponseBody,
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[get("/rooms/{room_id}/streaming_targets")]
-pub async fn get_streaming_targets(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-    room_id: Path<RoomId>,
-    pagination: Query<PagePaginationQuery>,
-) -> DefaultApiResult<GetRoomStreamingTargetsResponseBody> {
-    let response = service
-        .get_streaming_targets(current_user.id, room_id.into_inner(), &pagination)
-        .await?;
-    let length = ItemCount::try_from(response.0.len())
-        .expect("looks like we got more items than can be represented in the ItemCount type");
-
-    Ok(ApiResponse::new(response).with_page_pagination(
-        pagination.per_page,
-        pagination.page,
-        length,
-    ))
-}
-
-/// Creates a new streaming target
-///
-/// Creates a new streaming target for the given room
-#[utoipa::path(
-    params(
-        StreamingTargetOptionsQuery,
-        ("room_id" = RoomId, description = "The id of the room"),
-    ),
-    request_body = PostRoomStreamingTargetRequestBody,
-    responses(
-        (
-            status = StatusCode::OK,
-            description = "Successfully create a new streaming target",
-            body = PostRoomStreamingTargetResponseBody,
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            response = Unauthorized,
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            response = Forbidden,
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            response = NotFound,
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
-        ),
-    ),
-    security(
-        ("BearerAuth" = []),
-    ),
-)]
-#[post("/rooms/{room_id}/streaming_targets")]
-pub async fn post_streaming_target(
-    service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
-    room_id: Path<RoomId>,
-    query: Query<StreamingTargetOptionsQuery>,
-    data: Json<PostRoomStreamingTargetRequestBody>,
-) -> DefaultApiResult<PostRoomStreamingTargetResponseBody> {
-    let response = service
-        .post_streaming_target(
-            current_user.into_inner(),
-            room_id.into_inner(),
-            query.into_inner(),
-            data.into_inner().0,
-        )
-        .await?;
-
-    Ok(ApiResponse::new(response))
-}
 
 /// Gets a streaming target
 ///
 /// Returns a single streaming target for a specific room.
 #[utoipa::path(
+    operation_id = "get_streaming_target",
+    tag = "api::v1::streaming_targets",
     params(RoomAndStreamingTargetId),
     responses(
         (
@@ -171,22 +58,24 @@ pub async fn post_streaming_target(
     ),
 )]
 #[get("/rooms/{room_id}/streaming_targets/{streaming_target_id}")]
-pub async fn get_streaming_target(
+pub async fn get(
     service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     path_params: Path<RoomAndStreamingTargetId>,
-) -> DefaultApiResult<GetRoomStreamingTargetResponseBody> {
+) -> Result<Json<GetRoomStreamingTargetResponseBody>, ApiError> {
     let response = service
         .get_streaming_target(current_user.id, path_params.into_inner())
         .await?;
 
-    Ok(ApiResponse::new(response))
+    Ok(Json(response))
 }
 
 /// Updates a streaming target
 ///
 /// Modifies and returns a single streaming target.
 #[utoipa::path(
+    operation_id = "patch_streaming_target",
+    tag = "api::v1::streaming_targets",
     params(RoomAndStreamingTargetId),
     request_body = PatchRoomStreamingTargetRequestBody,
     responses(
@@ -218,13 +107,13 @@ pub async fn get_streaming_target(
     ),
 )]
 #[patch("/rooms/{room_id}/streaming_targets/{streaming_target_id}")]
-pub async fn patch_streaming_target(
+pub async fn patch(
     service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     path_params: Path<RoomAndStreamingTargetId>,
     query: Query<StreamingTargetOptionsQuery>,
     streaming_target: Json<PatchRoomStreamingTargetRequestBody>,
-) -> DefaultApiResult<PatchRoomStreamingTargetResponseBody> {
+) -> Result<Json<PatchRoomStreamingTargetResponseBody>, ApiError> {
     let response = service
         .patch_streaming_target(
             current_user.into_inner(),
@@ -234,13 +123,15 @@ pub async fn patch_streaming_target(
         )
         .await?;
 
-    Ok(ApiResponse::new(response))
+    Ok(Json(response))
 }
 
 /// Deletes a streaming target
 ///
 /// The streaming target is deleted from the room
 #[utoipa::path(
+    operation_id = "delete_streaming_target",
+    tag = "api::v1::streaming_targets",
     params(
         RoomAndStreamingTargetId,
         StreamingTargetOptionsQuery,
@@ -272,7 +163,7 @@ pub async fn patch_streaming_target(
     ),
 )]
 #[delete("/rooms/{room_id}/streaming_targets/{streaming_target_id}")]
-pub async fn delete_streaming_target(
+pub async fn delete(
     service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
     path_params: Path<RoomAndStreamingTargetId>,

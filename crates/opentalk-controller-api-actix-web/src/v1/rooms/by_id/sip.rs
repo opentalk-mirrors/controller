@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+//! API endpoints under `v1/rooms/{room_id}/sip`
+
 use actix_web::{
     HttpResponse, delete, get, put,
     web::{Data, Json, Path},
@@ -13,9 +15,9 @@ use opentalk_types_api_v1::{
 };
 use opentalk_types_common::rooms::RoomId;
 
-use crate::api::{
-    responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
-    v1::response::NoContent,
+use crate::{
+    response::NoContent,
+    utoipa::responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
 };
 
 /// Get the sip config for the specified room.
@@ -24,6 +26,7 @@ use crate::api::{
 /// is returned.
 #[utoipa::path(
     operation_id = "get_room_sip",
+    tag = "api::v1::sip_configs",
     params(
         ("room_id" = RoomId, description = "The id of the room"),
     ),
@@ -67,6 +70,7 @@ pub async fn get(
 ///
 /// Returns the new modified sip configuration.
 #[utoipa::path(
+    tag = "api::v1::sip_configs",
     params(
         ("room_id" = RoomId, description = "The id of the room"),
     ),
@@ -127,6 +131,7 @@ pub async fn put(
 /// This removes the dial-in functionality from the room.
 #[utoipa::path(
     operation_id = "delete_room_sip",
+    tag = "api::v1::sip_configs",
     params(
         ("room_id" = RoomId, description = "The id of the room"),
     ),

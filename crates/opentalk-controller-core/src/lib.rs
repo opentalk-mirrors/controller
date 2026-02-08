@@ -682,10 +682,11 @@ impl ModulesRegistrar for Controller {
     ),
     paths(
         api::signaling::ws_service,
-        api::v1::assets::room_asset,
-        api::v1::assets::room_assets,
-        api::v1::assets::create,
-        api::v1::assets::delete,
+        v1::rooms::by_id::assets::by_id::get,
+        v1::rooms::by_id::assets::by_id::download::get,
+        v1::rooms::by_id::assets::get,
+        v1::rooms::by_id::assets::post,
+        v1::rooms::by_id::assets::by_id::delete,
         v1::auth::login::get,
         v1::auth::login::post,
         v1::events::by_id::delete,
@@ -702,7 +703,7 @@ impl ModulesRegistrar for Controller {
         v1::events::by_id::invite::delete,
         v1::events::by_id::invites::email::delete,
         v1::events::by_id::invites::by_id::delete,
-        api::v1::events::invites::get_event_invites_pending,
+        v1::users::me::pending_invites::get,
         v1::events::by_id::invites::get,
         v1::events::by_id::invites::email::patch,
         v1::events::by_id::invites::by_id::patch,
@@ -711,11 +712,11 @@ impl ModulesRegistrar for Controller {
         v1::events::by_id::shared_folder::get,
         v1::events::by_id::shared_folder::put,
         v1::events::by_id::shared_folder::delete,
-        api::v1::invites::add_invite,
-        api::v1::invites::delete_invite,
-        api::v1::invites::get_invite,
-        api::v1::invites::get_invites,
-        api::v1::invites::update_invite,
+        v1::rooms::by_id::invites::post,
+        v1::rooms::by_id::invites::by_code::delete,
+        v1::rooms::by_id::invites::by_code::get,
+        v1::rooms::by_id::invites::get,
+        v1::rooms::by_id::invites::by_code::put,
         v1::invite::verify::post,
         v1::rooms::get,
         v1::rooms::by_id::delete,
@@ -726,18 +727,18 @@ impl ModulesRegistrar for Controller {
         v1::rooms::by_id::patch,
         v1::rooms::by_id::start::post,
         v1::rooms::by_id::start_invited::post,
-        api::v1::services::call_in::post_call_in_start,
+        v1::services::call_in::start::post,
         api::v1::services::recording::get_recording_upload,
         api::v1::services::recording::post_recording_start,
         api::v1::services::roomserver::post_roomserver_asset,
-        api::v1::sip_configs::delete,
-        api::v1::sip_configs::get,
-        api::v1::sip_configs::put,
-        api::v1::streaming_targets::delete_streaming_target,
-        api::v1::streaming_targets::get_streaming_target,
-        api::v1::streaming_targets::get_streaming_targets,
-        api::v1::streaming_targets::patch_streaming_target,
-        api::v1::streaming_targets::post_streaming_target,
+        v1::rooms::by_id::sip::delete,
+        v1::rooms::by_id::sip::get,
+        v1::rooms::by_id::sip::put,
+        v1::rooms::by_id::streaming_targets::by_id::delete,
+        v1::rooms::by_id::streaming_targets::by_id::get,
+        v1::rooms::by_id::streaming_targets::get,
+        v1::rooms::by_id::streaming_targets::by_id::patch,
+        v1::rooms::by_id::streaming_targets::post,
         v1::turn::get,
         v1::users::find::get,
         v1::users::me::get,
@@ -961,6 +962,7 @@ fn v1_scope(
                 .service(v1::users::me::get)
                 .service(v1::users::me::tariff::get)
                 .service(v1::users::me::assets::get)
+                .service(v1::users::me::pending_invites::get)
                 .service(v1::users::by_id::get)
                 .service(v1::rooms::get)
                 .service(v1::rooms::post)
@@ -994,24 +996,24 @@ fn v1_scope(
                 .service(v1::events::by_id::shared_folder::get)
                 .service(v1::events::by_id::shared_folder::put)
                 .service(v1::events::by_id::shared_folder::delete)
-                .service(api::v1::sip_configs::get)
-                .service(api::v1::sip_configs::put)
-                .service(api::v1::sip_configs::delete)
-                .service(api::v1::invites::get_invites)
-                .service(api::v1::invites::add_invite)
-                .service(api::v1::invites::get_invite)
-                .service(api::v1::invites::update_invite)
-                .service(api::v1::invites::delete_invite)
-                .service(api::v1::assets::room_assets)
-                .service(api::v1::assets::room_asset)
-                .service(api::v1::assets::room_asset_download)
-                .service(api::v1::assets::create)
-                .service(api::v1::assets::delete)
-                .service(api::v1::streaming_targets::get_streaming_targets)
-                .service(api::v1::streaming_targets::post_streaming_target)
-                .service(api::v1::streaming_targets::get_streaming_target)
-                .service(api::v1::streaming_targets::patch_streaming_target)
-                .service(api::v1::streaming_targets::delete_streaming_target),
+                .service(v1::rooms::by_id::sip::get)
+                .service(v1::rooms::by_id::sip::put)
+                .service(v1::rooms::by_id::sip::delete)
+                .service(v1::rooms::by_id::invites::get)
+                .service(v1::rooms::by_id::invites::post)
+                .service(v1::rooms::by_id::invites::by_code::get)
+                .service(v1::rooms::by_id::invites::by_code::put)
+                .service(v1::rooms::by_id::invites::by_code::delete)
+                .service(v1::rooms::by_id::assets::get)
+                .service(v1::rooms::by_id::assets::by_id::get)
+                .service(v1::rooms::by_id::assets::by_id::download::get)
+                .service(v1::rooms::by_id::assets::get)
+                .service(v1::rooms::by_id::assets::by_id::delete)
+                .service(v1::rooms::by_id::streaming_targets::get)
+                .service(v1::rooms::by_id::streaming_targets::post)
+                .service(v1::rooms::by_id::streaming_targets::by_id::get)
+                .service(v1::rooms::by_id::streaming_targets::by_id::patch)
+                .service(v1::rooms::by_id::streaming_targets::by_id::delete),
         )
 }
 

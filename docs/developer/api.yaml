@@ -1527,6 +1527,45 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
+  "/rooms/{room_id}/assets/{asset_id}/download":
+    get:
+      tags:
+        - "v1::rooms::by_id::assets::by_id::download"
+      summary: Get the controller download path for an asset.
+      description: Returns a path for downloading the asset via the controller.
+      operationId: room_asset_download
+      parameters:
+        - name: room_id
+          in: path
+          description: The id of the room
+          required: true
+          schema:
+            $ref: "#/components/schemas/RoomId"
+        - name: asset_id
+          in: path
+          description: The id of the asset
+          required: true
+          schema:
+            $ref: "#/components/schemas/AssetId"
+      responses:
+        "200":
+          description: Returns JSON with the controller download path
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetDownloadResponseBody"
+        "302":
+          description: Redirects to the controller download path
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
   "/rooms/{room_id}/event":
     get:
       tags:
@@ -2804,6 +2843,17 @@ paths:
         - BearerAuth: []
 components:
   schemas:
+    AssetDownloadResponseBody:
+      type: object
+      description: "Response for *GET /rooms/{room_id}/assets/{asset_id}/download*"
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          description: The download url of the asset
+      example:
+        url: proxy?token=abcdef123456
     AssetFileKind:
       type: string
       description: An asset file kind
