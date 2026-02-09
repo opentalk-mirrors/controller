@@ -2,9 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_roomserver_types::{
-    module_settings::ModuleSettings, room_parameters::AssetStorageConfig,
-};
+use opentalk_roomserver_types::module_settings::ModuleSettings;
 use opentalk_service_auth::ApiKey;
 use serde::Deserialize;
 use url::Url;
@@ -14,8 +12,6 @@ pub struct RoomServer {
     pub url: Url,
 
     pub api_key: ApiKey,
-
-    pub asset_storage: AssetStorageConfig,
 
     pub modules: ModuleSettings,
 }

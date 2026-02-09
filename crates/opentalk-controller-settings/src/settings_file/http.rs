@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use opentalk_service_auth::service::ApiKeys;
 use serde::Deserialize;
 
 use super::{HttpCors, HttpTls};
@@ -19,4 +20,7 @@ pub struct Http {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cors: Option<HttpCors>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub service_api_keys: Option<ApiKeys>,
 }

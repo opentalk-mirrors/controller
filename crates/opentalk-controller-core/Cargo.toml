@@ -49,7 +49,7 @@ opentalk-jobs.workspace = true
 opentalk-keycloak-admin.workspace = true
 opentalk-r3dlock.workspace = true
 opentalk-roomserver-client.workspace = true
-opentalk-roomserver-types.workspace = true
+opentalk-service-auth = { workspace = true, features = ["actix"] }
 opentalk-signaling-core.workspace = true
 opentalk-signaling-module-breakout.workspace = true
 opentalk-signaling-module-moderation.workspace = true

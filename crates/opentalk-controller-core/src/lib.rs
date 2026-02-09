@@ -35,6 +35,7 @@ use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_jobs::job_runner::JobRunner;
 use opentalk_keycloak_admin::{AuthorizedClient, KeycloakAdminClient};
 use opentalk_roomserver_client::Client as RoomServerClient;
+use opentalk_service_auth::service::ApiKeyAuthorization;
 use opentalk_signaling_core::{
     ExchangeHandle, ExchangeTask, ModulesRegistrar, ObjectStorage, RedisConnection,
     RegisterModules, SignalingModule, SignalingModuleInitData, VolatileStaticMemoryStorage,
@@ -435,6 +436,15 @@ impl Controller {
             let caches = Data::from(self.oidc_cache.clone());
             let service = Data::from(self.service);
 
+            let service_auth_middleware = settings_provider
+                .get()
+                .http
+                .service_api_keys
+                .clone()
+                .map(|keys| keys.auth_middleware())
+                .transpose()
+                .whatever_context("Failed to build service auth middleware")?;
+
             HttpServer::new(move || {
                 let cors = setup_cors(settings_provider.clone());
 
@@ -447,6 +457,7 @@ impl Controller {
                 let volatile = Data::new(volatile.clone());
 
                 let acl = authz_middleware.clone();
+                let service_auth_middleware = service_auth_middleware.clone();
 
                 let signaling_modules = Data::from(signaling_modules.upgrade().unwrap());
                 let swagger_service_enabled = !settings_provider.get().endpoints.disable_openapi;
@@ -482,6 +493,7 @@ impl Controller {
                         inventory_provider.clone(),
                         oidc_ctx.clone(),
                         acl,
+                        service_auth_middleware,
                     ))
             })
         };
@@ -919,6 +931,7 @@ fn v1_scope(
     inventory_provider: Data<dyn InventoryProvider>,
     oidc_ctx: Data<dyn OidcTokenHandler>,
     acl: kustos::actix_web::KustosService,
+    service_auth_middleware: Option<ApiKeyAuthorization>,
 ) -> Scope {
     // the latest version contains the root services
 
@@ -932,13 +945,8 @@ fn v1_scope(
         .service(v1::invite::verify::post)
         .service(v1::turn::get)
         .service(v1::rooms::by_id::assets::by_id::proxy::get)
-        .service(
-            web::scope("/services/roomserver")
-                .wrap(api::v1::middleware::roomserver_auth::RoomserverAuth::new(
-                    settings_provider.clone(),
-                ))
-                .service(api::v1::services::roomserver::services()),
-        )
+        // "/services/roomserver" conflicts with "/services" and thus must be listed before
+        .service(roomserver_service_scope(service_auth_middleware))
         .service(
             web::scope("/services")
                 .wrap(api::v1::middleware::service_auth::ServiceAuth::new(
@@ -1015,6 +1023,24 @@ fn v1_scope(
                 .service(v1::rooms::by_id::streaming_targets::by_id::patch)
                 .service(v1::rooms::by_id::streaming_targets::by_id::delete),
         )
+}
+
+fn roomserver_service_scope(auth_middleware: Option<ApiKeyAuthorization>) -> Scope {
+    let services = web::scope("/services/roomserver");
+
+    let Some(auth_middleware) = auth_middleware else {
+        log::debug!(
+            "Missing `http.service_api_keys` configuration, roomserver service routes are disabled"
+        );
+
+        return services;
+    };
+
+    services.service(
+        web::scope("")
+            .wrap(auth_middleware)
+            .service(api::v1::services::roomserver::post_roomserver_asset),
+    )
 }
 
 fn setup_cors(settings_provider: SettingsProvider) -> Cors {
