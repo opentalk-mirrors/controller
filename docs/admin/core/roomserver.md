@@ -13,12 +13,13 @@ RoomServer. The controller’s built-in signaling is disabled in this case.
 The section in the [configuration file](configuration.md) is called
 `roomserver`.
 
-| Field           | Type                            | Required | Default value | Description                                                                  |
-| --------------- | ------------------------------- | -------- | ------------- | ---------------------------------------------------------------------------- |
-| `url`           | `string`                        | yes      | -             | Base URL of the RoomServer that clients can reach (public URL).              |
-| `api_key`       | [API key](#api-key)             | yes      | -             | API token used by the controller to authenticate against the RoomServer API. |
-| `asset_storage` | [Asset storage](#asset-storage) | yes      | -             | Storage backend for room assets (e.g., meeting reports).                     |
-| `modules`       | [Module settings](#modules)     | yes      | -             | Enabled RoomServer modules and their settings.                               |
+| Field                  | Type                                        | Required | Default value | Description                                                                  |
+| ---------------------- | ------------------------------------------- | -------- | ------------- | ---------------------------------------------------------------------------- |
+| `url`                  | `string`                                    | yes      | -             | Base URL of the RoomServer that clients can reach (public URL).              |
+| `api_key`              | [API key](#api-key)                         | yes      | -             | API token used by the controller to authenticate against the RoomServer API. |
+| `asset_storage`        | [Asset storage](#asset-storage)             | yes      | -             | Storage backend for room assets (e.g., meeting reports).                     |
+| `websocket_rate_limit` | [WebSocketRateLimit](#websocket-rate-limit) | no       | see below     | Websocket rate limit settings for the RoomServer.                            |
+| `modules`              | [Module settings](#modules)                 | yes      | -             | Enabled RoomServer modules and their settings.                               |
 
 ### API key
 
@@ -44,6 +45,21 @@ backends below.
   restart or the room being closed. Suitable for testing only.
 - `controller`: Assets are stored via the controller’s asset endpoint. The
   RoomServer authenticates using the `secret` value.
+
+#### Websocket Rate Limit
+
+Rate limiting is enabled by default, to disable it, you have to set the `disabled` flag to `true`.
+A missing configuration will fall back to the default values.
+The implementation uses the token bucket algorithm. Each websocket message that is sent by a participant consumes one token.
+A websocket connection has a maximum amount of tokens that can be available at a time (the token bucket).
+Each second, the bucket is filled with a configured amount of tokens.
+The algorithm allows the configuration to have a reasonably small amount of messages per second, while still allowing 'bursts' of messages until the tokens in the bucket are fully consumed.
+
+| Field               | Type   | Required | Default value | Description                                                             |
+| ------------------- | ------ | -------- | ------------- | ----------------------------------------------------------------------- |
+| `disabled`          | `bool` | no       | `false`       | WebSocket rate limiting is disabled when set to `true`.                 |
+| `tokens_per_second` | `uint` | no       | `10`          | The amount of messages that can be consistently sent by participants.   |
+| `token_bucket_size` | `uint` | no       | `30`          | The maximum amount of tokens that can be held per websocket connection. |
 
 ### Modules
 

@@ -116,11 +116,11 @@ opentalk-nextcloud-client = { version = "0.2.0", default-features = false, featu
   "rustls-tls-native-roots",
 ] }
 opentalk-report-generation = "0.2.0"
-opentalk-roomserver-client = "0.0.20"
-opentalk-roomserver-types = "0.0.20"
-opentalk-roomserver-types-livekit = "0.0.20"
-opentalk-roomserver-types-training-participation-report = "0.0.20"
-opentalk-service-auth = "0.2"
+opentalk-roomserver-client = "0.0.21"
+opentalk-roomserver-types = "0.0.21"
+opentalk-roomserver-types-livekit = "0.0.21"
+opentalk-roomserver-types-training-participation-report = "0.0.21"
+opentalk-service-auth = "0.2.0"
 opentalk-types-api-v1 = "0.52.1"
 opentalk-types-common = "0.42.1"
 opentalk-types-signaling = "0.44.0"
