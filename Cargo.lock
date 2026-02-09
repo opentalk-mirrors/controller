@@ -4489,9 +4489,9 @@ checksum = "11d3d7f243d5c5a8b9bb5d6dd2b1602c0cb0b9db1621bafc7ed66e35ff9fe092"
 
 [[package]]
 name = "livekit-api"
-version = "0.4.12"
+version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d72127ba24841e773fd4311d4e64be727c9707fce1f632c4422c2a4b44441697"
+checksum = "3895310ff497b263d3c9ede35b6b561118660634bf65255d28d431069e7d63ab"
 dependencies = [
  "base64 0.21.7",
  "http 1.4.0",
@@ -4513,9 +4513,9 @@ dependencies = [
 
 [[package]]
 name = "livekit-protocol"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07b8d7580e14aa9039d6d1d13c06c894de7757b9a49c1aa7c188cabf461cf069"
+checksum = "e05a872cf2f791c5345330ef1c858b6973fa0575af0110965781f1bdcfc13cea"
 dependencies = [
  "futures-util",
  "livekit-runtime",
