@@ -20,7 +20,7 @@ pub struct WebSocketRateLimit {
     #[serde(default)]
     pub disabled: bool,
     /// The tokens that are added to the bucket per second
-    pub tokens_per_second: Option<u64>,
+    pub tokens_per_second: Option<u16>,
     /// The maximum amount of tokens that a token bucket can hold at a time
-    pub token_bucket_size: Option<u64>,
+    pub token_bucket_size: Option<u16>,
 }

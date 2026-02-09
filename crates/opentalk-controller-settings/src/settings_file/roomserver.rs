@@ -7,6 +7,8 @@ use opentalk_service_auth::ApiKey;
 use serde::Deserialize;
 use url::Url;
 
+use crate::settings_file::WebSocketRateLimit;
+
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct RoomServer {
     pub url: Url,
@@ -14,4 +16,6 @@ pub struct RoomServer {
     pub api_key: ApiKey,
 
     pub modules: ModuleSettings,
+
+    pub websocket_rate_limit: Option<WebSocketRateLimit>,
 }

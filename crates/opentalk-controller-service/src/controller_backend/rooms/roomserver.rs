@@ -236,7 +236,7 @@ impl ControllerBackend {
             asset_storage: AssetStorageConfig::InMemory,
             preferred_language,
             fallback_language: settings.defaults.user_language.clone(),
-            ws_rate_limit: None,
+            ws_rate_limit: room_server_settings.websocket_rate_limit,
         };
 
         Ok(parameters)

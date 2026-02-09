@@ -45,7 +45,7 @@ pub struct WebSocketActor {
 struct RateLimit {
     config: WebSocketRateLimit,
 
-    bucket: u64,
+    bucket: u16,
 }
 
 impl RateLimit {

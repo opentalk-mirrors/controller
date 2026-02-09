@@ -331,6 +331,27 @@ api_secret = "your-livekit-api-secret"
 #[roomserver.asset_storage]
 #type = "in_memory"
 
+# RoomServer websocket rate limiting configuration
+#
+# Rate limiting is enabled by default, to disable it, you have to set the `disabled` flag to `true`. A missing
+# configuration will fall back to the default values.
+#
+# The implementation uses the token bucket algorithm. Each websocket message that is sent by a participant consumes
+# one token. A websocket connection has a maximum amount of tokens that can be available at a time (the token bucket).
+# Each second, the bucket is filled with a configured amount of tokens.
+#
+# The algorithm allows the configuration to have a reasonably small amount of messages per second, while still
+# allowing 'bursts' of messages until the tokens in the bucket are fully consumed.
+#
+# A participant has to wait for new tokens when no tokens remain.
+#[roomserver.websocket_rate_limit]
+# Whether rate limiting will be disabled
+#disabled = false
+# The amount of messages that can be consistently sent by participants (defaults to 10)
+#tokens_per_second = 10
+# The maximum amount of tokens that can be held per websocket connection (defaults to 30)
+#token_bucket_size = 30
+
 #The Modules that are enabled in the roomserver
 #[roomserver.modules.chat]
 #[roomserver.modules.chat.rate_limit]
