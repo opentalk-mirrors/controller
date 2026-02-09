@@ -9,7 +9,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use rand::{Rng, rng};
+use rand::{RngExt, rng};
 use redis::{RedisError, Script, ToRedisArgs, Value, aio::ConnectionLike};
 use snafu::Snafu;
 use tokio::time::sleep;
