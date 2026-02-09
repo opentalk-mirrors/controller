@@ -37,7 +37,7 @@ Therefore the `terdoc` service is history now, and we use the
 [`typst`](https://typst.app/) library internally for generating PDF reports.
 
 For the time being, the style and format of these reports is baked in and
-requires no further configuration. Therefore the `[report]`  section in the
+requires no further configuration. Therefore the `[report]` section in the
 configuration is currently deprecated and might be reintroduced in the future.
 If a `[report]` section is present in the configuration file, a warning will be
 shown when the {{ product_name }} Controller is started.
@@ -56,8 +56,8 @@ future. TURN servers are managed and configured directly in LiveKit.
 
 ### Janus support removed entirely
 
-Support for the Janus Media Server has been [removed entirely](../core/room_server.md)
-in favor of [LiveKit](../core/livekit.md).
+Support for the Janus Media Server has been removed entirely in favor of
+[LiveKit](../core/livekit.md).
 
 ### Changes in the OIDC configuration
 
@@ -111,7 +111,7 @@ users_find_behavior = "from_user_search_backend"
 ## Updating to {{ product_name }} Controller `v0.25.0`
 
 This controller version introduces support for [LiveKit](../core/livekit.md).
-Support for the Janus Media Server [has been deprecated](../core/room_server.md).
+Support for the Janus Media Server has been deprecated.
 
 See [the LiveKit migration documentation](./livekit.md).
 
@@ -121,8 +121,6 @@ See [the LiveKit migration documentation](./livekit.md).
 
 The {{ product_name }} controller now can be configured to connect to Janus directly
 via a websocket connection instead of using rabbitmq in-between.
-
-See [the configuration documentation](../core/room_server.md).
 
 ## Updating to {{ product_name }} Controller `v0.15.0`
 
