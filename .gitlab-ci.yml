@@ -433,8 +433,8 @@ package:container-controller-mr:
           sed 's/^[.-]/_/' |
           cut -c -63
       )
-    - echo "CONTROLLER_IMAGE_NAME=$CI_REGISTRY_IMAGE" > container.env
-    - echo "CONTROLLER_IMAGE_TAG=$IMAGE_TAG" >> container.env
+    - echo "OPENTALK_CONTROLLER_IMAGE_NAME=$CI_REGISTRY_IMAGE" > container.env
+    - echo "OPENTALK_CONTROLLER_IMAGE_TAG=$IMAGE_TAG" >> container.env
     - >
       /kaniko/executor
       --registry-mirror=mirror.gcr.io
