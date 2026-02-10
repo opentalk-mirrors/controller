@@ -32,12 +32,7 @@ opentalk-types-signaling-whiteboard = { workspace = true, features = [
 parking_lot.workspace = true
 redis.workspace = true
 redis-args.workspace = true
-reqwest = { workspace = true, features = [
-  "cookies",
-  "json",
-  "rustls-tls-native-roots",
-  "stream",
-] }
+reqwest = { workspace = true, features = ["cookies", "json", "stream"] }
 serde.workspace = true
 snafu.workspace = true
 tracing.workspace = true

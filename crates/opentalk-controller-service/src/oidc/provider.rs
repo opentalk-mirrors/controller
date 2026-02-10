@@ -56,7 +56,7 @@ pub struct ProviderClient {
 impl ProviderClient {
     /// Discover Provider information from given settings
     pub async fn discover(
-        http_client: reqwest::Client,
+        http_client: opentalk_keycloak_admin::reqwest::ClientWrapper,
         auth_base_url: Url,
         client_id: ClientId,
         client_secret: ClientSecret,

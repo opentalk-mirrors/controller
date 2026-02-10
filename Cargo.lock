@@ -52,7 +52,7 @@ checksum = "daa239b93927be1ff123eebada5a3ff23e89f0124ccb8609234e5103d5a5ae6d"
 dependencies = [
  "actix-utils",
  "actix-web",
- "derive_more 2.1.1",
+ "derive_more",
  "futures-util",
  "log",
  "once_cell",
@@ -75,7 +75,7 @@ dependencies = [
  "brotli",
  "bytes",
  "bytestring",
- "derive_more 2.1.1",
+ "derive_more",
  "encoding_rs",
  "flate2",
  "foldhash 0.1.5",
@@ -211,7 +211,7 @@ dependencies = [
  "bytestring",
  "cfg-if",
  "cookie 0.16.2",
- "derive_more 2.1.1",
+ "derive_more",
  "encoding_rs",
  "foldhash 0.1.5",
  "futures-core",
@@ -1182,7 +1182,7 @@ checksum = "53d0c374feba1b9a59042a7c1cf00ce7c34b977b9134fe7c42b08e5183729f66"
 dependencies = [
  "paste",
  "roman-numerals-rs",
- "strum 0.27.2",
+ "strum",
  "unic-langid",
  "unicode-normalization",
  "unscanny",
@@ -1776,12 +1776,6 @@ dependencies = [
 
 [[package]]
 name = "convert_case"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
-
-[[package]]
-name = "convert_case"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "633458d4ef8c78b72454de2d54fd6ab2e60f9e02be22f3c6104cdc8a4e0fceb9"
@@ -1938,7 +1932,7 @@ checksum = "4aa42bcd3d846ebf66e15bd528d1087f75d1c6c1c66ebff626178a106353c576"
 dependencies = [
  "chrono",
  "derive_builder",
- "strum 0.27.2",
+ "strum",
 ]
 
 [[package]]
@@ -2275,19 +2269,6 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "0.99.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6edb4b64a43d977b8e99788fe3a04d483834fba1215a7e02caa415b626497f7f"
-dependencies = [
- "convert_case 0.4.0",
- "proc-macro2",
- "quote",
- "rustc_version",
- "syn",
-]
-
-[[package]]
-name = "derive_more"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d751e9e49156b02b44f9c1815bcb94b984cdcc4396ecc32521c739452808b134"
@@ -2301,7 +2282,7 @@ version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "799a97264921d8623a957f6c3b9011f3b5492f557bbb7a5a19b7fa6d06ba8dcb"
 dependencies = [
- "convert_case 0.10.0",
+ "convert_case",
  "proc-macro2",
  "quote",
  "rustc_version",
@@ -5142,7 +5123,7 @@ dependencies = [
  "serde_json",
  "service-probe-client",
  "snafu",
- "strum 0.27.2",
+ "strum",
  "sysinfo",
  "tabled",
  "url",
@@ -5296,7 +5277,7 @@ dependencies = [
  "pretty_assertions",
  "redis",
  "redis-args",
- "reqwest 0.12.28",
+ "reqwest 0.13.2",
  "ring",
  "rkyv",
  "rrule",
@@ -5322,7 +5303,7 @@ dependencies = [
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "pretty_assertions",
- "strum 0.27.2",
+ "strum",
 ]
 
 [[package]]
@@ -5415,7 +5396,7 @@ dependencies = [
  "byteorder",
  "chrono",
  "chrono-tz",
- "derive_more 2.1.1",
+ "derive_more",
  "diesel",
  "diesel-async",
  "futures-core",
@@ -5437,7 +5418,7 @@ dependencies = [
  "serde_json",
  "serial_test",
  "snafu",
- "strum 0.27.2",
+ "strum",
  "tokio",
  "tracing",
  "url",
@@ -5469,13 +5450,13 @@ dependencies = [
 
 [[package]]
 name = "opentalk-etherpad-client"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9efaa7dc9640de55d4b4339ccb3b2981212a14772ec7e677287e881f49948685"
+checksum = "e514546dc26b2f9d865149b7322efaab636fff982c8e4383a9bd6e0c700a3fc0"
 dependencies = [
  "bytes",
  "futures",
- "reqwest 0.12.28",
+ "reqwest 0.13.2",
  "serde",
  "serde_json",
  "serde_repr",
@@ -5492,7 +5473,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "clap",
- "derive_more 2.1.1",
+ "derive_more",
  "futures-util",
  "icu_locid",
  "opentalk-inventory-common",
@@ -5502,7 +5483,7 @@ dependencies = [
  "scoped-futures",
  "serde",
  "serde_json",
- "strum 0.27.2",
+ "strum",
  "uuid",
 ]
 
@@ -5567,13 +5548,13 @@ dependencies = [
 
 [[package]]
 name = "opentalk-keycloak-admin"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0cb46f8d76a7e6bd79b86b2208e0c060224a607eb7e0d092a7ed0b6417fe19b4"
+checksum = "ffdf5ddd57f26073c1450a58cfebc0a712a8c58cd72d9d4ed4bce78b13f9082a"
 dependencies = [
  "log",
  "openidconnect",
- "reqwest 0.12.28",
+ "reqwest 0.13.2",
  "serde",
  "serde_json",
  "snafu",
@@ -5634,18 +5615,18 @@ dependencies = [
 
 [[package]]
 name = "opentalk-nextcloud-client"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "910ff39130c6a4d9e19c0a83173ea947f5ebab05dd544fdc463b9f436fd19c25"
+checksum = "e7e738f95b0409365ce01fa076a47f404a1239da08381c80e0151aefea65c032"
 dependencies = [
  "chrono",
- "derive_more 0.99.20",
+ "derive_more",
  "log",
- "reqwest 0.12.28",
+ "reqwest 0.13.2",
  "reqwest_dav",
  "serde",
  "snafu",
- "strum 0.26.3",
+ "strum",
  "url",
 ]
 
@@ -5805,7 +5786,7 @@ checksum = "543020756470c0989cad9647aff7e4465a032aebb4a5d443ecd074792f22b5b1"
 dependencies = [
  "anyhow",
  "chrono",
- "derive_more 2.1.1",
+ "derive_more",
  "icu_locid",
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -5836,7 +5817,7 @@ version = "0.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3c916e193aa1451c049a33d5aed7095b2fab31dd1ddb15275a1177f5952355c"
 dependencies = [
- "derive_more 2.1.1",
+ "derive_more",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",
@@ -5878,7 +5859,7 @@ dependencies = [
  "basen",
  "chrono",
  "chrono-tz",
- "derive_more 2.1.1",
+ "derive_more",
  "insta",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5953,7 +5934,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6c988780c936d301c336dba341a4d0f93a6ab6fbded93ed1659506da20c888f"
 dependencies = [
  "chrono",
- "derive_more 2.1.1",
+ "derive_more",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",
@@ -5993,7 +5974,7 @@ version = "0.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aeb3b8c935f9fe1734e692665911a6af696ae30ed48bb4ebda54e95b62b8dee7"
 dependencies = [
- "derive_more 2.1.1",
+ "derive_more",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",
@@ -6073,7 +6054,7 @@ dependencies = [
  "bytestring",
  "chrono",
  "config",
- "derive_more 2.1.1",
+ "derive_more",
  "either",
  "futures",
  "http 1.4.0",
@@ -6095,7 +6076,7 @@ dependencies = [
  "pretty_assertions",
  "redis",
  "redis-args",
- "reqwest 0.12.28",
+ "reqwest 0.13.2",
  "rustc-hash",
  "serde",
  "serde_json",
@@ -6414,7 +6395,7 @@ name = "opentalk-signaling-module-recording"
 version = "0.33.0-alpha"
 dependencies = [
  "async-trait",
- "derive_more 2.1.1",
+ "derive_more",
  "either",
  "futures",
  "lapin",
@@ -6571,7 +6552,7 @@ dependencies = [
  "pretty_assertions",
  "redis",
  "redis-args",
- "reqwest 0.12.28",
+ "reqwest 0.13.2",
  "serde",
  "serial_test",
  "snafu",
@@ -6670,7 +6651,7 @@ dependencies = [
  "actix-web",
  "axum",
  "base64 0.22.1",
- "derive_more 2.1.1",
+ "derive_more",
  "http 0.2.12",
  "http 1.4.0",
  "log",
@@ -6691,7 +6672,7 @@ checksum = "fe286a51669faebc7e5328223be33bbf203bef2d85184bc1b0bfab312707944a"
 dependencies = [
  "chrono",
  "chrono-tz",
- "derive_more 2.1.1",
+ "derive_more",
  "opentalk-types-api-common",
  "opentalk-types-common",
  "serde",
@@ -6713,7 +6694,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "clap",
- "derive_more 2.1.1",
+ "derive_more",
  "diesel",
  "email_address",
  "icu_locid",
@@ -6730,7 +6711,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "snafu",
- "strum 0.27.2",
+ "strum",
  "url",
  "utoipa",
  "uuid",
@@ -6742,7 +6723,7 @@ version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48920a374d6fd87ca1bfbe237e966e821f8bb0e0ebf0de1039aed64f6a464222"
 dependencies = [
- "derive_more 2.1.1",
+ "derive_more",
  "diesel",
  "opentalk-diesel-newtype",
  "serde",
@@ -6771,12 +6752,12 @@ version = "0.44.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e737e933f9b77dfe74d51179304c69a4f364057d48e53cf52562dc2a0fc89e37"
 dependencies = [
- "derive_more 2.1.1",
+ "derive_more",
  "opentalk-types-common",
  "redis-args",
  "serde",
  "serde_json",
- "strum 0.27.2",
+ "strum",
  "utoipa",
  "uuid",
 ]
@@ -6820,7 +6801,7 @@ version = "0.44.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0ed9098aa6a1696c94a8e2b78a4620d7318322b323f3cbb46190651e79a2993"
 dependencies = [
- "derive_more 2.1.1",
+ "derive_more",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "redis-args",
@@ -6860,7 +6841,7 @@ checksum = "9a6d86aa8d869f76e04290ed1051b408ecfeaf8215464f6d6827c850037a261c"
 dependencies = [
  "basen",
  "chrono",
- "derive_more 2.1.1",
+ "derive_more",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "rand 0.9.2",
@@ -6921,7 +6902,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6551df7a41f38346b630300d2034eef7f4272dde740616ecf0b383597f7b47d7"
 dependencies = [
  "chrono",
- "derive_more 2.1.1",
+ "derive_more",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "redis-args",
@@ -6935,7 +6916,7 @@ version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aebfef9be0b96bc5f95548351d1d41f4ddbcdf89331bba068f3da37a9bf6f1d2"
 dependencies = [
- "derive_more 2.1.1",
+ "derive_more",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "redis-args",
@@ -6974,12 +6955,12 @@ version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eeb746561c0f0d55b19cd84286f995f7c21b33d387f563bc729eae07ded0b70c"
 dependencies = [
- "derive_more 2.1.1",
+ "derive_more",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "redis-args",
  "serde",
- "strum 0.27.2",
+ "strum",
  "uuid",
 ]
 
@@ -6989,7 +6970,7 @@ version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "512c13f77383f2fbf160bbbd1cc0f7758f975554794231c3dce7b7b29408079c"
 dependencies = [
- "derive_more 2.1.1",
+ "derive_more",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "redis-args",
@@ -7469,7 +7450,7 @@ dependencies = [
  "regex-cache",
  "serde",
  "serde_derive",
- "strum 0.27.2",
+ "strum",
  "thiserror 2.0.18",
 ]
 
@@ -8512,8 +8493,6 @@ checksum = "eddd3ca559203180a307f12d114c268abf583f59b03cb906fd0b3ff8646c1147"
 dependencies = [
  "base64 0.22.1",
  "bytes",
- "cookie 0.18.1",
- "cookie_store",
  "futures-channel",
  "futures-core",
  "futures-util",
@@ -8529,7 +8508,6 @@ dependencies = [
  "pin-project-lite",
  "quinn",
  "rustls 0.23.36",
- "rustls-native-certs",
  "rustls-pki-types",
  "serde",
  "serde_json",
@@ -8537,14 +8515,12 @@ dependencies = [
  "sync_wrapper",
  "tokio",
  "tokio-rustls 0.26.4",
- "tokio-util",
  "tower 0.5.3",
  "tower-http",
  "tower-service",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-streams",
  "web-sys",
  "webpki-roots",
 ]
@@ -8557,8 +8533,11 @@ checksum = "ab3f43e3283ab1488b624b44b0e988d0acea0b3214e694730a055cb6b2efa801"
 dependencies = [
  "base64 0.22.1",
  "bytes",
+ "cookie 0.18.1",
+ "cookie_store",
  "encoding_rs",
  "futures-core",
+ "futures-util",
  "h2 0.4.13",
  "http 1.4.0",
  "http-body 1.0.1",
@@ -8577,30 +8556,33 @@ dependencies = [
  "rustls-platform-verifier",
  "serde",
  "serde_json",
+ "serde_urlencoded",
  "sync_wrapper",
  "tokio",
  "tokio-rustls 0.26.4",
+ "tokio-util",
  "tower 0.5.3",
  "tower-http",
  "tower-service",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "wasm-streams",
  "web-sys",
 ]
 
 [[package]]
 name = "reqwest_dav"
-version = "0.1.15"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fe99f71b7221005c532c30d3bf245103b66cea3c8eb29b78088f13e853b6708"
+checksum = "7010828b4fbefcd7a7cc4b52b11eb8cdd3b470549424bf219e10c8c472015332"
 dependencies = [
  "async-trait",
  "chrono",
  "digest_auth",
  "http 1.4.0",
  "httpdate",
- "reqwest 0.12.28",
+ "reqwest 0.13.2",
  "serde",
  "serde-xml-rs",
  "serde_derive",
@@ -9704,33 +9686,11 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "strum"
-version = "0.26.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06"
-dependencies = [
- "strum_macros 0.26.4",
-]
-
-[[package]]
-name = "strum"
 version = "0.27.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af23d6f6c1a224baef9d3f61e287d2761385a5b88fdab4eb4c6f11aeb54c4bcf"
 dependencies = [
- "strum_macros 0.27.2",
-]
-
-[[package]]
-name = "strum_macros"
-version = "0.26.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c6bee85a5a24955dc440386795aa378cd9cf82acd5f764469152d2270e581be"
-dependencies = [
- "heck 0.5.0",
- "proc-macro2",
- "quote",
- "rustversion",
- "syn",
+ "strum_macros",
 ]
 
 [[package]]
@@ -11467,9 +11427,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-streams"
-version = "0.4.2"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15053d8d85c7eccdbefef60f06769760a563c7f0a9d6902a13d35c7800b0ad65"
+checksum = "9d1ec4f6517c9e11ae630e200b2b65d193279042e28edd4a2cda233e46670bbb"
 dependencies = [
  "futures-util",
  "js-sys",
