@@ -1,7 +1,23 @@
 # SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 #
 # SPDX-License-Identifier: EUPL-1.2
-
+---
+spec:
+  inputs:
+    release_version:
+      description: |
+        Version number, e.g. `1.2.3`. Must be in format `<major>.<minor>.<patch>`.
+        Keep at `0.0.0` unless you're in the process of creating a release.
+      type: string
+      regex: ^([0]|([1-9]\d*))\.([0]|([1-9]\d*))\.([0]|([1-9]\d*))$
+      default: 0.0.0
+    release_issue:
+      description: |
+        The number of an issue which should be closed by a release MR created by this pipeline.
+        Keep empty or unset unless you're in the process of creating a release.
+      type: string
+      regex: ^\d*$
+      default: ''
 ---
 image:
   name: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.93-trixie
@@ -14,6 +30,7 @@ stages:
   - check
   - package
   - trigger
+  - release
 
 variables:
   OPENTALK_CONTROLLER_PROJECT: opentalk-controller
@@ -37,6 +54,17 @@ variables:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
     # Run on scheduled pipeline runs
     - if: $CI_PIPELINE_SOURCE == 'schedule'
+
+include:
+  - project: opentalk/ci/templates/collect-commit-evidence
+    ref: v2
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/release-creation
+    inputs:
+      version: $[[ inputs.release_version ]]
+      issue: $[[ inputs.release_issue]]
+    ref: add-template
+    file: .gitlab-ci-template.yml
 
 trigger_changelog_preview:
   stage: trigger
@@ -367,11 +395,6 @@ build:pages:
   before_script: []
   script:
     - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
-
-include:
-  - project: opentalk/ci/templates/collect-commit-evidence
-    ref: v2
-    file: .gitlab-ci-template.yml
 
 package:read-tags:
   stage: package
