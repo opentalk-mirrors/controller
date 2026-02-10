@@ -85,7 +85,7 @@ pub struct SettingsRaw {
     #[serde(default)]
     pub(crate) tariffs: Option<Tariffs>,
 
-    pub(crate) livekit: LiveKitSettings,
+    pub(crate) livekit: Option<LiveKitSettings>,
 
     #[serde(default)]
     pub(crate) websocket_rate_limit: Option<WebSocketRateLimit>,
@@ -161,12 +161,12 @@ pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
         monitoring: None,
         tenants: None,
         tariffs: None,
-        livekit: LiveKitSettings {
+        livekit: Some(LiveKitSettings {
             public_url: "ws://localhost:7880".to_string(),
             service_url: "http://localhost:7880".to_string(),
             api_key: "devkey".to_string(),
             api_secret: "secret".to_string(),
-        },
+        }),
         websocket_rate_limit: None,
         roomserver: None,
         extensions: Extensions::default(),

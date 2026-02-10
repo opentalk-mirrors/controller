@@ -153,7 +153,11 @@ impl SignalingModule for MeetingReport {
     fn build_params(
         init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
-        let typst_packages_path = init.startup_settings.reports.typst.packages_path.clone();
+        let Some(settings) = init.startup_settings.signaling.controller() else {
+            return Ok(None);
+        };
+
+        let typst_packages_path = settings.reports.typst.packages_path.clone();
         let system_default_language = init.startup_settings.defaults.user_language.clone();
         Ok(Some(MeetingReportParams {
             system_default_language,

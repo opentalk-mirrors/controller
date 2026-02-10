@@ -219,7 +219,11 @@ impl SignalingModule for TrainingParticipationReport {
     fn build_params(
         init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
-        let typst_packages_path = init.startup_settings.reports.typst.packages_path.clone();
+        let Some(signaling_settings) = init.startup_settings.signaling.controller() else {
+            return Ok(None);
+        };
+
+        let typst_packages_path = signaling_settings.reports.typst.packages_path.clone();
         let system_default_language = init.startup_settings.defaults.user_language.clone();
         Ok(Some(TrainingParticipationReportParams {
             system_default_language,

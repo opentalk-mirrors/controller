@@ -280,7 +280,12 @@ impl SignalingModule for Whiteboard {
     fn build_params(
         init: SignalingModuleInitData,
     ) -> Result<Option<Self::Params>, SignalingModuleError> {
-        let spacedeck = init.settings_provider.get().spacedeck.clone();
+        let spacedeck = init
+            .settings_provider
+            .get()
+            .signaling
+            .controller()
+            .and_then(|controller| controller.spacedeck.clone());
 
         Ok(spacedeck)
     }

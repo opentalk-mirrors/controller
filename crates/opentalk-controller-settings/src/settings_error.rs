@@ -59,4 +59,9 @@ pub enum SettingsError {
 
     #[snafu(display("Missing `service_api_keys` field in the `http` configuration"))]
     HttpServiceApiKeysMissing,
+
+    #[snafu(display(
+        "Missing configuation field `livekit`, this field is only optional when the `roomserver` is configured."
+    ))]
+    LiveKitMissing,
 }
