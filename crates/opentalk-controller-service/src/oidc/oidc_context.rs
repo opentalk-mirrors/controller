@@ -38,7 +38,7 @@ pub(super) struct OidcContext {
     /// The provider client
     provider: ProviderClient,
     /// The HTTP client
-    http_client: reqwest::Client,
+    http_client: opentalk_keycloak_admin::reqwest::ClientWrapper,
 
     /// The HTTP client for calling the introspection endpoint.
     ///
@@ -53,7 +53,7 @@ pub(super) struct OidcContext {
     ///
     /// This client adds a `x-forwarded-host` header derived from the frontend auth base url,
     /// using its host part, and if present, the port as well.
-    http_introspect_and_userinfo_client: Option<reqwest::Client>,
+    http_introspect_and_userinfo_client: Option<opentalk_keycloak_admin::reqwest::ClientWrapper>,
 }
 
 impl OidcContext {
@@ -67,7 +67,9 @@ impl OidcContext {
         client_id: ClientId,
         client_secret: ClientSecret,
     ) -> Result<Self> {
-        let http_client = make_client(None).whatever_context("Failed to make http client")?;
+        let http_client: opentalk_keycloak_admin::reqwest::ClientWrapper = make_client(None)
+            .whatever_context("Failed to make http client")?
+            .into();
 
         let http_introspect_and_userinfo_client =
             match std::env::var("OIDC_INTROSPECT_AND_USERINFO_SET_X_FORWARDED_HOST").ok() {
@@ -89,7 +91,8 @@ impl OidcContext {
                     );
                     Some(
                         make_client(Some(default_headers))
-                            .whatever_context("Failed to make oidc introspection http client")?,
+                            .whatever_context("Failed to make oidc introspection http client")?
+                            .into(),
                     )
                 }
                 Some(_) | None => None,
