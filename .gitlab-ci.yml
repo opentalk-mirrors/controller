@@ -446,14 +446,19 @@ package:container-controller-mr:
 trigger:service-integration-tests:
   stage: trigger
   variables:
-    CONTROLLER_IMAGE_TAG: latest
-    CONTROLLER_IMAGE_NAME: registry.heinlein.group/opentalk/controller
+    OPENTALK_CONTROLLER_IMAGE_TAG: dev
+    OPENTALK_CONTROLLER_IMAGE_NAME: registry.heinlein.group/opentalk/controller
   needs:
-    - package:container-controller-mr
+    - job: package:container-controller-mr
+      optional: true
+    - job: push-and-sign-images-to-harbor
+      optional: true
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   trigger:
     project: opentalk/qa/service-integration-tests
+    branch: main
     forward:
       pipeline_variables: true
 
