@@ -140,7 +140,6 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_by -> Uuid,
         updated_at -> Timestamptz,
-        is_time_independent -> Bool,
         is_all_day -> Nullable<Bool>,
         starts_at -> Nullable<Timestamptz>,
         #[max_length = 255]
