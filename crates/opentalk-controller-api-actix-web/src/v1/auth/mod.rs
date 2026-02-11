@@ -5,3 +5,4 @@
 //! API endpoints under `v1/auth`
 
 pub mod login;
+pub mod logout;

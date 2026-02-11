@@ -81,6 +81,24 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       deprecated: true
       security: []
+  /auth/logout:
+    post:
+      tags:
+        - "api::v1::auth"
+      summary: Triggers back-channel OIDC logout
+      operationId: post_logout
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/PostLogoutRequestBody"
+        required: true
+      responses:
+        "204":
+          description: Logout successfull
+        "400":
+          description: Logout request invalid or logout failed
+      security: []
   /events:
     get:
       tags:
@@ -4376,6 +4394,9 @@ components:
       description: A language identifier
       examples:
         - de
+    LogoutToken:
+      type: string
+      description: A logout token
     MeetingDetails:
       type: object
       description: Details about meeting
@@ -4892,9 +4913,18 @@ components:
             type: string
           description: Permissions is a set of strings that each define a permission a user has.
           uniqueItems: true
+    PostLogoutRequestBody:
+      type: object
+      description: "Body of a *POST* request on `/auth/logout`"
+      required:
+        - logout_token
+      properties:
+        logout_token:
+          $ref: "#/components/schemas/LogoutToken"
+          description: Logout token identifying the end user to be logged out
     PostRecordingStartRequestBody:
       type: object
-      description: "Response for the `POST /services/recording/start` endpoint"
+      description: "Request for the `POST /services/recording/start` endpoint"
       required:
         - room_id
       properties:
