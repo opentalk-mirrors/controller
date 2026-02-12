@@ -372,6 +372,8 @@ allow = []
 # List of crates to deny
 skip = [
   { name = "ahash", version = "0.7" },
+  { name = "anstream", version = "0.6" },
+  { name = "anstyle-parse", version = "0.2" },
   { name = "async-io", version = "1" },
   { name = "async-lock", version = "2" },
   { name = "base16ct", version = "0.1" },
