@@ -44,12 +44,17 @@ impl From<CacheError> for AccesTokenCacheError {
     }
 }
 
+const ACCESS_TOKEN_DEFAULT_TTL_SECS: u64 = 60 * 5;
+/// Must be much longer, than for access tokens
+const SUB_LOGOUT_MARKERS_DEFAULT_TTL_SECS: u64 = 60 * 60 * 2;
 const MIN_TOKEN_TTL_SECS: i64 = 10;
 
 /// Cache for OpenID Connect related data
 pub struct Cache {
     /// Cache storage for access tokens
     pub access_tokens: Box<dyn CacheStorage<String, AccessTokenResult> + Send + Sync>,
+    /// Cache storage for logout markers of the OIDC subjects
+    pub sub_logout_markers: Box<dyn CacheStorage<String, u64> + Send + Sync>,
 }
 
 impl Cache {
@@ -57,10 +62,16 @@ impl Cache {
     pub fn create(redis: Option<RedisConnection>) -> Self {
         Self {
             access_tokens: Self::build_cache(
-                redis,
+                redis.clone(),
                 "user-access-tokens".to_string(),
-                Duration::from_secs(300),
+                Duration::from_secs(ACCESS_TOKEN_DEFAULT_TTL_SECS),
                 CacheUpdateMode::KeepTtl,
+            ),
+            sub_logout_markers: Self::build_cache(
+                redis,
+                "sub-logout-markers".to_string(),
+                Duration::from_secs(SUB_LOGOUT_MARKERS_DEFAULT_TTL_SECS),
+                CacheUpdateMode::ResetTtl,
             ),
         }
     }
