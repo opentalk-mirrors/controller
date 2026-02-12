@@ -58,7 +58,7 @@ pub mod sql_types {
     };
 
     pub use super::{
-        events::EventExceptionKindType as EventExceptionKind,
         jobs::{JobStatusType as JobStatus, JobTypeType as JobType, LogLevelType as LogLevel},
+        tables::event_exceptions::EventExceptionKindType as EventExceptionKind,
     };
 }

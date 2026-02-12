@@ -5,7 +5,6 @@
 use std::collections::BTreeSet;
 
 use chrono::{DateTime, Utc};
-use chrono_tz::Tz;
 use derive_more::{AsRef, Display, From, FromStr, Into};
 use diesel::{
     BoolExpressionMethods, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, Queryable,
@@ -17,63 +16,30 @@ use opentalk_diesel_newtype::DieselNewtype;
 use opentalk_inventory as inventory;
 use opentalk_types_common::{
     events::{
-        EventDescription, EventId, EventTitle,
+        EventId,
         invites::{EventInviteStatus, InviteRole},
     },
     pagination::{ItemCount, Page, PageSize},
     rooms::RoomId,
-    sql_enum,
-    time::TimeZone,
     training_participation_report::TimeRange,
     users::UserId,
 };
 use serde::{Deserialize, Serialize};
 
-pub use crate::tables::events::{Event, NewEvent, UpdateEvent}; // TODO: rm -f
 use crate::{
     newtypes::Duration,
     paginate::Paginate,
     schema::{
-        event_exceptions, event_favorites, event_invites,
-        event_training_participation_report_parameter_sets, events, users,
+        event_favorites, event_invites, event_training_participation_report_parameter_sets, events,
+        users,
     },
     users::User,
 };
 
-#[derive(
-    AsRef,
-    Display,
-    From,
-    FromStr,
-    Into,
-    Serialize,
-    Deserialize,
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    AsExpression,
-    FromSqlRow,
-    DieselNewtype,
-)]
-#[diesel(sql_type = diesel::sql_types::Uuid)]
-pub struct EventExceptionId(uuid::Uuid);
-
-impl From<inventory::EventExceptionId> for EventExceptionId {
-    fn from(value: inventory::EventExceptionId) -> Self {
-        Self::from(uuid::Uuid::from(value))
-    }
-}
-
-impl From<EventExceptionId> for inventory::EventExceptionId {
-    fn from(EventExceptionId(id): EventExceptionId) -> Self {
-        Self::from(id)
-    }
-}
+pub use crate::tables::{
+    event_exceptions::{EventException, NewEventException, UpdateEventException},
+    events::{Event, NewEvent, UpdateEvent},
+}; // TODO: rm -f
 
 #[derive(
     AsRef,
@@ -201,330 +167,6 @@ impl GetEventExceptionsCursor {
             from_starts_at: exception.starts_at,
             from_exception_date: exception.exception_date,
         }
-    }
-}
-
-sql_enum!(
-    EventExceptionKind,
-    "event_exception_kind",
-    EventExceptionKindType,
-    {
-        Modified = b"modified",
-        Cancelled = b"cancelled",
-    }
-);
-
-impl From<EventExceptionKind> for inventory::EventExceptionKind {
-    fn from(value: EventExceptionKind) -> Self {
-        match value {
-            EventExceptionKind::Modified => Self::Modified,
-            EventExceptionKind::Cancelled => Self::Cancelled,
-        }
-    }
-}
-
-impl From<inventory::EventExceptionKind> for EventExceptionKind {
-    fn from(value: inventory::EventExceptionKind) -> Self {
-        match value {
-            inventory::EventExceptionKind::Modified => Self::Modified,
-            inventory::EventExceptionKind::Cancelled => Self::Cancelled,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Queryable, Identifiable, Associations)]
-#[diesel(table_name = event_exceptions)]
-#[diesel(belongs_to(Event, foreign_key = event_id))]
-#[diesel(belongs_to(User, foreign_key = created_by))]
-pub struct EventException {
-    pub id: EventExceptionId,
-    pub event_id: EventId,
-    pub exception_date: DateTime<Utc>,
-    pub exception_date_tz: TimeZone,
-    pub created_by: UserId,
-    pub created_at: DateTime<Utc>,
-    pub kind: EventExceptionKind,
-    pub title: Option<EventTitle>,
-    pub description: Option<EventDescription>,
-    pub is_all_day: Option<bool>,
-    pub starts_at: Option<DateTime<Utc>>,
-    pub starts_at_tz: Option<TimeZone>,
-    pub ends_at: Option<DateTime<Utc>>,
-    pub ends_at_tz: Option<TimeZone>,
-}
-
-impl From<EventException> for inventory::EventException {
-    fn from(
-        EventException {
-            id,
-            event_id,
-            exception_date,
-            exception_date_tz,
-            created_by,
-            created_at,
-            kind,
-            title,
-            description,
-            is_all_day,
-            starts_at,
-            starts_at_tz,
-            ends_at,
-            ends_at_tz,
-        }: EventException,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            event_id,
-            exception_date: exception_date.into(),
-            exception_date_tz,
-            created_by,
-            created_at: created_at.into(),
-            kind: kind.into(),
-            title,
-            description,
-            is_all_day,
-            starts_at: starts_at.map(Into::into),
-            starts_at_tz,
-            ends_at: ends_at.map(Into::into),
-            ends_at_tz,
-        }
-    }
-}
-
-impl From<inventory::EventException> for EventException {
-    fn from(
-        inventory::EventException {
-            id,
-            event_id,
-            exception_date,
-            exception_date_tz,
-            created_by,
-            created_at,
-            kind,
-            title,
-            description,
-            is_all_day,
-            starts_at,
-            starts_at_tz,
-            ends_at,
-            ends_at_tz,
-        }: inventory::EventException,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            event_id,
-            exception_date: exception_date.into(),
-            exception_date_tz,
-            created_by,
-            created_at: created_at.into(),
-            kind: kind.into(),
-            title,
-            description,
-            is_all_day,
-            starts_at: starts_at.map(Into::into),
-            starts_at_tz,
-            ends_at: ends_at.map(Into::into),
-            ends_at_tz,
-        }
-    }
-}
-
-impl EventException {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn get_for_event(
-        conn: &mut DbConnection,
-        event_id: EventId,
-        datetime: DateTime<Utc>,
-    ) -> Result<Option<EventException>> {
-        let query = event_exceptions::table.filter(
-            event_exceptions::event_id
-                .eq(event_id)
-                .and(event_exceptions::exception_date.eq(datetime)),
-        );
-
-        let exceptions = query.first(conn).await.optional()?;
-
-        Ok(exceptions)
-    }
-
-    #[tracing::instrument(err, skip_all)]
-    pub async fn get_all_for_event(
-        conn: &mut DbConnection,
-        event_id: EventId,
-        datetimes: &[&DateTime<Utc>],
-    ) -> Result<Vec<EventException>> {
-        let query = event_exceptions::table.filter(
-            event_exceptions::event_id
-                .eq(event_id)
-                .and(event_exceptions::exception_date.eq_any(datetimes)),
-        );
-
-        let exceptions = query.load(conn).await.optional()?.unwrap_or_default();
-
-        Ok(exceptions)
-    }
-
-    #[tracing::instrument(err, skip_all)]
-    pub async fn delete_all_for_event(conn: &mut DbConnection, event_id: EventId) -> Result<()> {
-        let query =
-            diesel::delete(event_exceptions::table).filter(event_exceptions::event_id.eq(event_id));
-
-        query.execute(conn).await?;
-
-        Ok(())
-    }
-}
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = event_exceptions)]
-pub struct NewEventException {
-    pub event_id: EventId,
-    pub exception_date: DateTime<Utc>,
-    pub exception_date_tz: TimeZone,
-    pub created_by: UserId,
-    pub kind: EventExceptionKind,
-    pub title: Option<EventTitle>,
-    pub description: Option<EventDescription>,
-    pub is_all_day: Option<bool>,
-    pub starts_at: Option<DateTime<Tz>>,
-    pub starts_at_tz: Option<TimeZone>,
-    pub ends_at: Option<DateTime<Tz>>,
-    pub ends_at_tz: Option<TimeZone>,
-}
-
-impl NewEventException {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn insert(self, conn: &mut DbConnection) -> Result<EventException> {
-        let query = self.insert_into(event_exceptions::table);
-
-        let event_exception = query.get_result(conn).await?;
-
-        Ok(event_exception)
-    }
-}
-
-impl From<NewEventException> for inventory::NewEventException {
-    fn from(
-        NewEventException {
-            event_id,
-            exception_date,
-            exception_date_tz,
-            created_by,
-            kind,
-            title,
-            description,
-            is_all_day,
-            starts_at,
-            starts_at_tz,
-            ends_at,
-            ends_at_tz,
-        }: NewEventException,
-    ) -> Self {
-        Self {
-            event_id,
-            exception_date: exception_date.into(),
-            exception_date_tz,
-            created_by,
-            kind: kind.into(),
-            title,
-            description,
-            is_all_day,
-            starts_at,
-            starts_at_tz,
-            ends_at,
-            ends_at_tz,
-        }
-    }
-}
-
-impl From<inventory::NewEventException> for NewEventException {
-    fn from(
-        inventory::NewEventException {
-            event_id,
-            exception_date,
-            exception_date_tz,
-            created_by,
-            kind,
-            title,
-            description,
-            is_all_day,
-            starts_at,
-            starts_at_tz,
-            ends_at,
-            ends_at_tz,
-        }: inventory::NewEventException,
-    ) -> Self {
-        Self {
-            event_id,
-            exception_date: exception_date.into(),
-            exception_date_tz,
-            created_by,
-            kind: kind.into(),
-            title,
-            description,
-            is_all_day,
-            starts_at,
-            starts_at_tz,
-            ends_at,
-            ends_at_tz,
-        }
-    }
-}
-
-#[derive(Debug, AsChangeset)]
-#[diesel(table_name = event_exceptions)]
-pub struct UpdateEventException {
-    pub kind: Option<EventExceptionKind>,
-    pub title: Option<Option<EventTitle>>,
-    pub description: Option<Option<EventDescription>>,
-    pub is_all_day: Option<Option<bool>>,
-    pub starts_at: Option<Option<DateTime<Tz>>>,
-    pub starts_at_tz: Option<Option<TimeZone>>,
-    pub ends_at: Option<Option<DateTime<Tz>>>,
-    pub ends_at_tz: Option<Option<TimeZone>>,
-}
-
-impl From<inventory::UpdateEventException> for UpdateEventException {
-    fn from(
-        inventory::UpdateEventException {
-            kind,
-            title,
-            description,
-            is_all_day,
-            starts_at,
-            starts_at_tz,
-            ends_at,
-            ends_at_tz,
-        }: inventory::UpdateEventException,
-    ) -> Self {
-        Self {
-            kind: kind.map(Into::into),
-            title,
-            description,
-            is_all_day,
-            starts_at,
-            starts_at_tz,
-            ends_at,
-            ends_at_tz,
-        }
-    }
-}
-
-impl UpdateEventException {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn apply(
-        self,
-        conn: &mut DbConnection,
-        event_exception_id: EventExceptionId,
-    ) -> Result<EventException> {
-        let query = diesel::update(event_exceptions::table)
-            .filter(event_exceptions::id.eq(event_exception_id))
-            .set(self)
-            .returning(event_exceptions::all_columns);
-
-        let exception = query.get_result(conn).await?;
-
-        Ok(exception)
     }
 }
 
