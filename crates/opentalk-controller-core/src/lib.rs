@@ -701,6 +701,7 @@ impl ModulesRegistrar for Controller {
         v1::rooms::by_id::assets::by_id::delete,
         v1::auth::login::get,
         v1::auth::login::post,
+        v1::auth::logout::post,
         v1::events::by_id::delete,
         v1::users::me::event_favorites::by_id::put,
         v1::users::me::event_favorites::by_id::delete,
@@ -774,6 +775,7 @@ impl ModulesRegistrar for Controller {
             opentalk_types_api_v1::auth::OidcProvider,
             opentalk_types_api_v1::auth::PostLoginResponseBody,
             opentalk_types_api_v1::auth::login::AuthLoginPostRequestBody,
+            opentalk_types_api_v1::auth::PostLogoutRequestBody,
             opentalk_types_api_v1::events::CallInInfo,
             opentalk_types_api_v1::events::DeleteEmailInviteBody,
             opentalk_types_api_v1::events::EmailInvite,
@@ -940,6 +942,7 @@ fn v1_scope(
     scope
         .service(v1::auth::login::post)
         .service(v1::auth::login::get)
+        .service(v1::auth::logout::post)
         .service(v1::rooms::by_id::start_invited::post)
         .service(v1::rooms::by_id::roomserver::start_invited::post)
         .service(v1::invite::verify::post)
