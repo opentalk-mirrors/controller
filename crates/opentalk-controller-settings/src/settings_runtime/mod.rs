@@ -48,6 +48,7 @@ mod reports_typst;
 mod roomserver;
 pub(crate) mod settings;
 mod shared_folder;
+mod signaling;
 mod spacedeck;
 mod subroom_audio;
 mod tariff_assignment;

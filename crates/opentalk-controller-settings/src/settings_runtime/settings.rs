@@ -3,15 +3,14 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use super::{
-    Authz, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Etherpad, Frontend, Http, LiveKit,
-    Logging, Metrics, MinIO, Monitoring, Oidc, OperatorInformation, RabbitMq, Redis, Reports,
-    SharedFolder, Spacedeck, SubroomAudio, Tariffs, Tenants, UserSearchBackend,
-    oidc_and_user_search_builder::OidcAndUserSearchBuilder,
+    Authz, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Frontend, Http, Logging, Metrics,
+    MinIO, Monitoring, Oidc, OperatorInformation, RabbitMq, Redis, SharedFolder, Tariffs, Tenants,
+    UserSearchBackend, oidc_and_user_search_builder::OidcAndUserSearchBuilder,
 };
 use crate::{
     Result, SettingsError, SettingsRaw,
     settings_file::UsersFindBehavior,
-    settings_runtime::{RoomServer, WebSocketRateLimit},
+    settings_runtime::{RoomServer, WebSocketRateLimit, signaling::Signaling},
 };
 
 /// The settings used for the OpenTalk controller at runtime
@@ -56,17 +55,8 @@ pub struct Settings {
     /// The etcd settings.
     pub etcd: Option<Etcd>,
 
-    /// The etherpad settings.
-    pub etherpad: Option<Etherpad>,
-
-    /// The Spacedeck settings.
-    pub spacedeck: Option<Spacedeck>,
-
-    /// The SubroomAudio settings.
-    pub subroom_audio: SubroomAudio,
-
-    /// The Reports settings.
-    pub reports: Reports,
+    /// The signaling settings.
+    pub signaling: Signaling,
 
     /// The SharedFolder settings.
     pub shared_folder: Option<SharedFolder>,
@@ -94,9 +84,6 @@ pub struct Settings {
 
     /// The websocket rate limiting configuration.
     pub ws_rate_limit: Option<WebSocketRateLimit>,
-
-    /// The livekit settings.
-    pub livekit: LiveKit,
 
     /// Information about the operator.
     pub operator_information: Option<OperatorInformation>,
@@ -132,6 +119,7 @@ impl TryFrom<SettingsRaw> for Settings {
             users_find_behavior,
         } = OidcAndUserSearchBuilder::load_from_settings_raw(&raw)?;
 
+        let signaling = Signaling::try_from(&raw)?;
         let ws_rate_limit = WebSocketRateLimit::from_settings_file(raw.websocket_rate_limit)?;
 
         let frontend = raw.frontend.clone().into();
@@ -144,14 +132,6 @@ impl TryFrom<SettingsRaw> for Settings {
         let avatar = raw.avatar.clone().map(Into::into).unwrap_or_default();
         let metrics = raw.metrics.clone().map(Into::into).unwrap_or_default();
         let etcd = raw.etcd.clone().map(Into::into);
-        let etherpad = raw.etherpad.clone().map(Into::into);
-        let spacedeck = raw.spacedeck.clone().map(Into::into);
-        let reports = raw.reports.clone().map(Into::into).unwrap_or_default();
-        let subroom_audio = raw
-            .subroom_audio
-            .clone()
-            .map(Into::into)
-            .unwrap_or_default();
         let shared_folder = raw.shared_folder.clone().map(Into::into);
         let endpoints = raw.endpoints.clone().map(Into::into).unwrap_or_default();
         let minio = raw.minio.clone().into();
@@ -161,11 +141,10 @@ impl TryFrom<SettingsRaw> for Settings {
         let tariffs = raw.tariffs.clone().map(Into::into).unwrap_or_default();
         let defaults = raw.defaults.clone().map(Into::into).unwrap_or_default();
 
-        let livekit = raw.livekit.clone().into();
         let operator_information = raw.operator_information.clone().map(Into::into);
         let roomserver = raw.roomserver.clone().map(Into::into);
 
-        if roomserver.is_some() && http.service_api_keys.is_none() {
+        if matches!(signaling, Signaling::RoomServer(..)) && http.service_api_keys.is_none() {
             return Err(SettingsError::HttpServiceApiKeysMissing);
         }
 
@@ -183,10 +162,7 @@ impl TryFrom<SettingsRaw> for Settings {
             avatar,
             metrics,
             etcd,
-            etherpad,
-            spacedeck,
-            reports,
-            subroom_audio,
+            signaling,
             shared_folder,
             endpoints,
             minio,
@@ -195,7 +171,6 @@ impl TryFrom<SettingsRaw> for Settings {
             tenants,
             tariffs,
             defaults,
-            livekit,
             ws_rate_limit,
             operator_information,
             roomserver,
@@ -214,10 +189,10 @@ pub(crate) fn minimal_example() -> Settings {
     use super::OidcController;
     use crate::{
         DEFAULT_LIBRAVATAR_URL, DEFAULT_STATIC_TARIFF_NAME, DEFAULT_STATIC_TENANT_ID, Frontend,
-        OidcFrontend, TariffAssignment, TenantAssignment,
+        LiveKit, OidcFrontend, Reports, SubroomAudio, TariffAssignment, TenantAssignment,
         settings_runtime::{
             HttpCors, database::DEFAULT_DATABASE_MAX_CONNECTIONS, defaults::default_user_language,
-            http::DEFAULT_HTTP_PORT,
+            http::DEFAULT_HTTP_PORT, signaling::ControllerSignaling,
         },
     };
 
@@ -267,12 +242,20 @@ pub(crate) fn minimal_example() -> Settings {
         },
         metrics: Metrics { allowlist: vec![] },
         etcd: None,
-        etherpad: None,
-        spacedeck: None,
-        reports: Reports::default(),
-        subroom_audio: SubroomAudio {
-            enable_whisper: false,
-        },
+        signaling: Signaling::Controller(ControllerSignaling {
+            subroom_audio: SubroomAudio {
+                enable_whisper: false,
+            },
+            etherpad: None,
+            spacedeck: None,
+            reports: Reports::default(),
+            livekit: LiveKit {
+                public_url: "ws://localhost:7880".to_string(),
+                service_url: "http://localhost:7880".to_string(),
+                api_key: "devkey".to_string(),
+                api_secret: "secret".to_string(),
+            },
+        }),
         shared_folder: None,
         endpoints: Endpoints {
             event_invite_external_email_address: false,
@@ -306,12 +289,6 @@ pub(crate) fn minimal_example() -> Settings {
             disabled_features: BTreeSet::new(),
         },
         ws_rate_limit: Some(WebSocketRateLimit::default()),
-        livekit: LiveKit {
-            public_url: "ws://localhost:7880".to_string(),
-            service_url: "http://localhost:7880".to_string(),
-            api_key: "devkey".to_string(),
-            api_secret: "secret".to_string(),
-        },
         operator_information: None,
         roomserver: None,
     }
