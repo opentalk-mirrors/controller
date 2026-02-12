@@ -10,6 +10,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DatabaseError, DbConnection, Result};
+use opentalk_inventory as inventory;
 use opentalk_types_common::{
     module_resources::ModuleResourceId, rooms::RoomId, tenants::TenantId, users::UserId,
 };
@@ -28,14 +29,14 @@ pub enum JsonPatchErrorCode {
     InvalidPath,
 
     /// Can only be thrown by the
-    /// [`Test`](opentalk_inventory::ModuleResourceOperation::Test) when the
+    /// [`Test`](inventory::ModuleResourceOperation::Test) when the
     /// compare returns `false`
     #[strum(serialize = "ot_value_not_equal", to_string = "value_not_equal")]
     ValueNotEqual,
 
     /// Can only be thrown by a
-    /// [`Copy`](opentalk_inventory::ModuleResourceOperation::Copy) or
-    /// [`Move`](opentalk_inventory::ModuleResourceOperation::Move) operation
+    /// [`Copy`](inventory::ModuleResourceOperation::Copy) or
+    /// [`Move`](inventory::ModuleResourceOperation::Move) operation
     /// when the `from` parameter is invalid.
     #[strum(serialize = "ot_invalid_from_path", to_string = "invalid_from_path")]
     InvalidFromPath,
@@ -111,8 +112,8 @@ pub struct Filter {
     json: Option<serde_json::Value>,
 }
 
-impl From<opentalk_inventory::ModuleResourceFilter> for Filter {
-    fn from(value: opentalk_inventory::ModuleResourceFilter) -> Self {
+impl From<inventory::ModuleResourceFilter> for Filter {
+    fn from(value: inventory::ModuleResourceFilter) -> Self {
         let (id, namespace, created_by, tag, json) = value.into();
 
         let mut filter = Self::default();
@@ -236,7 +237,7 @@ pub struct ModuleResource {
     pub data: serde_json::Value,
 }
 
-impl From<ModuleResource> for opentalk_inventory::ModuleResource {
+impl From<ModuleResource> for inventory::ModuleResource {
     fn from(
         ModuleResource {
             id,
@@ -264,9 +265,9 @@ impl From<ModuleResource> for opentalk_inventory::ModuleResource {
     }
 }
 
-impl From<opentalk_inventory::ModuleResource> for ModuleResource {
+impl From<inventory::ModuleResource> for ModuleResource {
     fn from(
-        opentalk_inventory::ModuleResource {
+        inventory::ModuleResource {
             id,
             tenant_id,
             room_id,
@@ -276,7 +277,7 @@ impl From<opentalk_inventory::ModuleResource> for ModuleResource {
             namespace,
             tag,
             data,
-        }: opentalk_inventory::ModuleResource,
+        }: inventory::ModuleResource,
     ) -> Self {
         Self {
             id,
@@ -363,12 +364,12 @@ impl ModuleResource {
     }
 
     /// Update the targeted json data by a set of json patch
-    /// [ModuleResourceOperations](opentalk_inventory::ModuleResourceOperation).
+    /// [ModuleResourceOperations](inventory::ModuleResourceOperation).
     #[tracing::instrument(err, skip_all)]
     pub async fn patch(
         conn: &mut DbConnection,
         filter: Filter,
-        operations: Vec<opentalk_inventory::ModuleResourceOperation>,
+        operations: Vec<inventory::ModuleResourceOperation>,
     ) -> Result<Vec<ModuleResource>, JsonOperationError> {
         let filter = filter
             .into_diesel_filter()
@@ -406,16 +407,16 @@ pub struct NewModuleResource {
     pub data: serde_json::Value,
 }
 
-impl From<opentalk_inventory::NewModuleResource> for NewModuleResource {
+impl From<inventory::NewModuleResource> for NewModuleResource {
     fn from(
-        opentalk_inventory::NewModuleResource {
+        inventory::NewModuleResource {
             tenant_id,
             room_id,
             created_by,
             namespace,
             tag,
             data,
-        }: opentalk_inventory::NewModuleResource,
+        }: inventory::NewModuleResource,
     ) -> Self {
         Self {
             tenant_id,
@@ -442,7 +443,7 @@ impl NewModuleResource {
 
 #[cfg(test)]
 mod tests {
-    use opentalk_inventory::ModuleResourceOperation;
+    use inventory::ModuleResourceOperation;
     use opentalk_test_util::{assert_eq, *};
     use serde_json::{Value, json};
     use serial_test::serial;

@@ -15,6 +15,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DbConnection, Result};
 use opentalk_diesel_newtype::DieselNewtype;
+use opentalk_inventory as inventory;
 use opentalk_types_common::{
     pagination::{ItemCount, Page, PageSize},
     tariffs::{TariffId, TariffStatus},
@@ -83,7 +84,7 @@ pub struct User {
     pub last_authenticated_at: Option<DateTime<Utc>>,
 }
 
-impl From<User> for opentalk_inventory::User {
+impl From<User> for inventory::User {
     fn from(
         User {
             id,
@@ -134,9 +135,9 @@ impl From<User> for opentalk_inventory::User {
     }
 }
 
-impl From<opentalk_inventory::User> for User {
+impl From<inventory::User> for User {
     fn from(
-        opentalk_inventory::User {
+        inventory::User {
             id,
             id_serial,
             oidc_sub,
@@ -157,7 +158,7 @@ impl From<opentalk_inventory::User> for User {
             timezone,
             created_at,
             updated_at,
-        }: opentalk_inventory::User,
+        }: inventory::User,
     ) -> Self {
         Self {
             id,
@@ -496,9 +497,9 @@ pub struct NewUser {
     pub timezone: Option<TimeZone>,
 }
 
-impl From<opentalk_inventory::NewUser> for NewUser {
+impl From<inventory::NewUser> for NewUser {
     fn from(
-        opentalk_inventory::NewUser {
+        inventory::NewUser {
             oidc_sub,
             email,
             title,
@@ -512,7 +513,7 @@ impl From<opentalk_inventory::NewUser> for NewUser {
             tariff_status,
             avatar_url,
             timezone,
-        }: opentalk_inventory::NewUser,
+        }: inventory::NewUser,
     ) -> Self {
         Self {
             oidc_sub,
@@ -611,9 +612,9 @@ pub struct UpdateUser<'a> {
     pub updated_at: DateTime<Utc>,
 }
 
-impl<'a> From<opentalk_inventory::UpdateUser<'a>> for UpdateUser<'a> {
+impl<'a> From<inventory::UpdateUser<'a>> for UpdateUser<'a> {
     fn from(
-        opentalk_inventory::UpdateUser {
+        inventory::UpdateUser {
             title,
             email,
             firstname,
@@ -629,7 +630,7 @@ impl<'a> From<opentalk_inventory::UpdateUser<'a>> for UpdateUser<'a> {
             avatar_url,
             timezone,
             updated_at,
-        }: opentalk_inventory::UpdateUser<'a>,
+        }: inventory::UpdateUser<'a>,
     ) -> UpdateUser<'a> {
         UpdateUser {
             title,

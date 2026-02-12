@@ -6,6 +6,7 @@ use chrono::{DateTime, Utc};
 use diesel::{ExpressionMethods, QueryDsl, Queryable, prelude::*};
 use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
 use opentalk_database::{DbConnection, Result};
+use opentalk_inventory as inventory;
 use opentalk_types_common::{
     events::{EventId, invites::EmailInviteRole},
     pagination::{ItemCount, Page, PageSize},
@@ -29,14 +30,14 @@ pub struct NewEventEmailInvite {
     pub created_by: UserId,
 }
 
-impl From<opentalk_inventory::NewEventEmailInvite> for NewEventEmailInvite {
+impl From<inventory::NewEventEmailInvite> for NewEventEmailInvite {
     fn from(
-        opentalk_inventory::NewEventEmailInvite {
+        inventory::NewEventEmailInvite {
             event_id,
             email,
             role,
             created_by,
-        }: opentalk_inventory::NewEventEmailInvite,
+        }: inventory::NewEventEmailInvite,
     ) -> Self {
         Self {
             event_id,
@@ -80,7 +81,7 @@ pub struct EventEmailInvite {
     pub role: EmailInviteRole,
 }
 
-impl From<EventEmailInvite> for opentalk_inventory::EventEmailInvite {
+impl From<EventEmailInvite> for inventory::EventEmailInvite {
     fn from(
         EventEmailInvite {
             event_id,
@@ -100,15 +101,15 @@ impl From<EventEmailInvite> for opentalk_inventory::EventEmailInvite {
     }
 }
 
-impl From<opentalk_inventory::EventEmailInvite> for EventEmailInvite {
+impl From<inventory::EventEmailInvite> for EventEmailInvite {
     fn from(
-        opentalk_inventory::EventEmailInvite {
+        inventory::EventEmailInvite {
             event_id,
             email,
             created_by,
             created_at,
             role,
-        }: opentalk_inventory::EventEmailInvite,
+        }: inventory::EventEmailInvite,
     ) -> Self {
         Self {
             event_id,
@@ -240,10 +241,8 @@ pub struct UpdateEventEmailInvite {
     pub role: Option<EmailInviteRole>,
 }
 
-impl From<opentalk_inventory::UpdateEventEmailInvite> for UpdateEventEmailInvite {
-    fn from(
-        opentalk_inventory::UpdateEventEmailInvite { role }: opentalk_inventory::UpdateEventEmailInvite,
-    ) -> Self {
+impl From<inventory::UpdateEventEmailInvite> for UpdateEventEmailInvite {
+    fn from(inventory::UpdateEventEmailInvite { role }: inventory::UpdateEventEmailInvite) -> Self {
         Self { role }
     }
 }

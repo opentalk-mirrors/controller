@@ -9,6 +9,7 @@ use diesel::{
 };
 use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
 use opentalk_database::{DbConnection, Result};
+use opentalk_inventory as inventory;
 use opentalk_types_common::{
     assets::{AssetId, AssetSorting, FileSize},
     events::EventId,
@@ -38,7 +39,7 @@ pub struct Asset {
     pub size: FileSize,
 }
 
-impl From<Asset> for opentalk_inventory::Asset {
+impl From<Asset> for inventory::Asset {
     fn from(
         Asset {
             id,
@@ -221,16 +222,16 @@ pub struct NewAsset {
     pub size: i64,
 }
 
-impl From<opentalk_inventory::NewAsset> for NewAsset {
+impl From<inventory::NewAsset> for NewAsset {
     fn from(
-        opentalk_inventory::NewAsset {
+        inventory::NewAsset {
             id,
             namespace,
             kind,
             filename,
             tenant_id,
             size,
-        }: opentalk_inventory::NewAsset,
+        }: inventory::NewAsset,
     ) -> Self {
         Self {
             id,
@@ -325,16 +326,14 @@ impl UpdateAsset {
     }
 }
 
-impl From<UpdateAsset> for opentalk_inventory::UpdateAsset {
+impl From<UpdateAsset> for inventory::UpdateAsset {
     fn from(UpdateAsset { size, filename }: UpdateAsset) -> Self {
         Self { size, filename }
     }
 }
 
-impl From<opentalk_inventory::UpdateAsset> for UpdateAsset {
-    fn from(
-        opentalk_inventory::UpdateAsset { size, filename }: opentalk_inventory::UpdateAsset,
-    ) -> Self {
+impl From<inventory::UpdateAsset> for UpdateAsset {
+    fn from(inventory::UpdateAsset { size, filename }: inventory::UpdateAsset) -> Self {
         Self { size, filename }
     }
 }

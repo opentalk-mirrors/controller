@@ -10,6 +10,7 @@ use diesel::{ExpressionMethods, Identifiable, QueryDsl, Queryable, dsl::not, pre
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DbConnection, Result};
 use opentalk_diesel_newtype::DieselNewtype;
+use opentalk_inventory as inventory;
 use opentalk_types_common::{
     pagination::{ItemCount, Page, PageSize},
     rooms::{RoomId, RoomPassword},
@@ -63,7 +64,7 @@ pub struct Room {
     pub e2e_encryption: bool,
 }
 
-impl From<Room> for opentalk_inventory::Room {
+impl From<Room> for inventory::Room {
     fn from(
         Room {
             id,
@@ -89,9 +90,9 @@ impl From<Room> for opentalk_inventory::Room {
     }
 }
 
-impl From<opentalk_inventory::Room> for Room {
+impl From<inventory::Room> for Room {
     fn from(
-        opentalk_inventory::Room {
+        inventory::Room {
             id,
             id_serial,
             created_by,
@@ -100,7 +101,7 @@ impl From<opentalk_inventory::Room> for Room {
             waiting_room,
             tenant_id,
             e2e_encryption,
-        }: opentalk_inventory::Room,
+        }: inventory::Room,
     ) -> Self {
         Self {
             id,
@@ -237,15 +238,15 @@ pub struct NewRoom {
     pub e2e_encryption: bool,
 }
 
-impl From<opentalk_inventory::NewRoom> for NewRoom {
+impl From<inventory::NewRoom> for NewRoom {
     fn from(
-        opentalk_inventory::NewRoom {
+        inventory::NewRoom {
             created_by,
             password,
             waiting_room,
             tenant_id,
             e2e_encryption,
-        }: opentalk_inventory::NewRoom,
+        }: inventory::NewRoom,
     ) -> Self {
         Self {
             created_by,
@@ -277,13 +278,13 @@ pub struct UpdateRoom {
     pub e2e_encryption: Option<bool>,
 }
 
-impl From<opentalk_inventory::UpdateRoom> for UpdateRoom {
+impl From<inventory::UpdateRoom> for UpdateRoom {
     fn from(
-        opentalk_inventory::UpdateRoom {
+        inventory::UpdateRoom {
             password,
             waiting_room,
             e2e_encryption,
-        }: opentalk_inventory::UpdateRoom,
+        }: inventory::UpdateRoom,
     ) -> Self {
         Self {
             password,

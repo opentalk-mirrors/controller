@@ -5,6 +5,7 @@
 use diesel::{ExpressionMethods, Identifiable, QueryDsl, Queryable};
 use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
 use opentalk_database::{DatabaseError, DbConnection, Result};
+use opentalk_inventory as inventory;
 use opentalk_types_common::{
     rooms::RoomId,
     streaming::{
@@ -37,9 +38,9 @@ pub struct RoomStreamingTargetRecord {
     pub public_url: String,
 }
 
-impl From<opentalk_inventory::RoomStreamingTargetRecord> for RoomStreamingTargetRecord {
+impl From<inventory::RoomStreamingTargetRecord> for RoomStreamingTargetRecord {
     fn from(
-        opentalk_inventory::RoomStreamingTargetRecord {
+        inventory::RoomStreamingTargetRecord {
             id,
             room_id,
             name,
@@ -47,7 +48,7 @@ impl From<opentalk_inventory::RoomStreamingTargetRecord> for RoomStreamingTarget
             streaming_endpoint,
             streaming_key,
             public_url,
-        }: opentalk_inventory::RoomStreamingTargetRecord,
+        }: inventory::RoomStreamingTargetRecord,
     ) -> Self {
         Self {
             id,
@@ -61,7 +62,7 @@ impl From<opentalk_inventory::RoomStreamingTargetRecord> for RoomStreamingTarget
     }
 }
 
-impl From<RoomStreamingTargetRecord> for opentalk_inventory::RoomStreamingTargetRecord {
+impl From<RoomStreamingTargetRecord> for inventory::RoomStreamingTargetRecord {
     fn from(
         RoomStreamingTargetRecord {
             id,
@@ -252,15 +253,15 @@ pub struct UpdateRoomStreamingTarget {
     pub public_url: Option<String>,
 }
 
-impl From<opentalk_inventory::UpdateRoomStreamingTarget> for UpdateRoomStreamingTarget {
+impl From<inventory::UpdateRoomStreamingTarget> for UpdateRoomStreamingTarget {
     fn from(
-        opentalk_inventory::UpdateRoomStreamingTarget {
+        inventory::UpdateRoomStreamingTarget {
             name,
             kind,
             streaming_endpoint,
             streaming_key,
             public_url,
-        }: opentalk_inventory::UpdateRoomStreamingTarget,
+        }: inventory::UpdateRoomStreamingTarget,
     ) -> Self {
         Self {
             name,
