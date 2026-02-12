@@ -119,7 +119,7 @@ impl OidcContext {
         &self,
         access_token: &AccessToken,
     ) -> Result<RealmRoles, CaptureApiError> {
-        let claims = match self.verify_jwt_token::<ServiceClaims>(access_token) {
+        let claims = match self.verify_jwt_token::<ServiceClaims>(access_token.secret().as_str()) {
             Ok(claims) => claims,
             Err(e) => {
                 log::error!("Invalid access token, {}", Report::from_error(e));
@@ -165,7 +165,7 @@ impl OidcContext {
 
         // Access token format must correspond [rfc9068](https://datatracker.ietf.org/doc/html/rfc9068)
         // to be able to verify it locally
-        match self.verify_jwt_token::<JWTAccessTokenClaims>(access_token) {
+        match self.verify_jwt_token::<JWTAccessTokenClaims>(access_token.secret().as_str()) {
             Ok(claims) => {
                 return Ok(VerificationInfo {
                     exp: Some(claims.exp),
@@ -183,18 +183,10 @@ impl OidcContext {
         }
     }
 
-    /// Verifies the signature and expiration of an AccessToken encoded as JWT (Json Web Token)
-    ///
-    /// This is used if the OpenID Connect Provider does not support introspection endpoints.
-    #[tracing::instrument(name = "oidc_verify_access_token", skip(self, access_token))]
-    fn verify_jwt_token<C: jwt::VerifyClaims>(
-        &self,
-        access_token: &AccessToken,
-    ) -> Result<C, VerifyError> {
-        jwt::verify::<C>(
-            self.provider.metadata.jwks(),
-            access_token.secret().as_str(),
-        )
+    /// Verifies that a JWT token is valid and contains specified claims
+    #[tracing::instrument(name = "oidc_verify_jwt_token", skip(self, token))]
+    fn verify_jwt_token<C: jwt::VerifyClaims>(&self, token: &str) -> Result<C, VerifyError> {
+        jwt::verify::<C>(self.provider.metadata.jwks(), token)
     }
 
     /// Returns if the configured provider support introspection
