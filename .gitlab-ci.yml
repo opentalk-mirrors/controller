@@ -63,7 +63,7 @@ include:
     inputs:
       version: $[[ inputs.release_version ]]
       issue: $[[ inputs.release_issue]]
-    ref: main
+    ref: v1
     file: .gitlab-ci-template.yml
 
 trigger_changelog_preview:
