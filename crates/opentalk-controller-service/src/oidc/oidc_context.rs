@@ -6,20 +6,23 @@ use std::{ops::Deref, str::FromStr as _};
 
 use icu_locid::LanguageIdentifier;
 use openidconnect::{
-    AccessToken, ClientId, ClientSecret, LocalizedClaim, TokenIntrospectionResponse as _,
-    UserInfoClaims, core::CoreGenderClaim,
+    AccessToken, ClientId, ClientSecret, LocalizedClaim, SubjectIdentifier,
+    TokenIntrospectionResponse as _, UserInfoClaims, core::CoreGenderClaim,
 };
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
+use opentalk_types_api_v1::{
+    auth::LogoutToken,
+    error::{ApiError, AuthenticationError},
+};
 use opentalk_types_common::time::TimeZone;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use snafu::{OptionExt as _, Report, ResultExt as _, Whatever};
 use url::Url;
 
 use super::{
-    IntrospectInfo, JWTAccessTokenClaims, OidcTokenHandler, OnlyExpiryClaim, OpenIdConnectUserInfo,
-    OpenTalkAdditionalClaims, ProviderClient, RealmRoles, ServiceClaims, VerificationInfo,
-    VerifyError, jwt,
+    IntrospectInfo, JWTAccessTokenClaims, JWTLogoutTokenClaims, OidcTokenHandler, OnlyExpiryClaim,
+    OpenIdConnectUserInfo, OpenTalkAdditionalClaims, ProviderClient, RealmRoles, ServiceClaims,
+    VerificationInfo, VerifyError, jwt,
 };
 use crate::Result;
 
@@ -181,6 +184,23 @@ impl OidcContext {
                     .into());
             }
         }
+    }
+
+    #[tracing::instrument(skip_all)]
+    fn verify_logout_token(
+        &self,
+        logout_token: &LogoutToken,
+    ) -> Result<SubjectIdentifier, VerifyError> {
+        let claims = self.verify_jwt_token::<JWTLogoutTokenClaims>(logout_token.as_str())?;
+
+        if !claims
+            .events
+            .contains_key("http://schemas.openid.net/event/backchannel-logout")
+        {
+            return Err(VerifyError::InvalidClaims);
+        }
+
+        Ok(SubjectIdentifier::new(claims.sub))
     }
 
     /// Verifies that a JWT token is valid and contains specified claims
@@ -366,5 +386,12 @@ impl OidcTokenHandler for OidcContext {
 
     fn verify_id_token(&self, id_token: &str) -> Result<(), VerifyError> {
         OidcContext::verify_id_token(self, id_token)
+    }
+
+    fn verify_logout_token(
+        &self,
+        logout_token: &LogoutToken,
+    ) -> Result<SubjectIdentifier, VerifyError> {
+        OidcContext::verify_logout_token(self, logout_token)
     }
 }
