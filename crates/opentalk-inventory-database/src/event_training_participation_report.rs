@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::events as db;
+use opentalk_db_storage as db;
 use opentalk_inventory::{
     EventTrainingParticipationReportInventory, EventTrainingParticipationReportParameterSet,
     UpdateEventTrainingParticipationReportParameterSet,
@@ -20,7 +20,7 @@ impl EventTrainingParticipationReportInventory for DatabaseConnection {
         event_id: EventId,
     ) -> Result<Option<EventTrainingParticipationReportParameterSet>> {
         Ok(
-            db::EventTrainingParticipationReportParameterSet::get_for_event(
+            db::queries::events::get_event_training_participation_report_parameter_set(
                 &mut self.inner,
                 event_id,
             )
@@ -37,11 +37,14 @@ impl EventTrainingParticipationReportInventory for DatabaseConnection {
         parameter_set: UpdateEventTrainingParticipationReportParameterSet,
     ) -> Result<EventTrainingParticipationReportParameterSet> {
         Ok(
-            db::UpdateEventTrainingParticipationReportParameterSet::from(parameter_set)
-                .apply(&mut self.inner, event_id)
-                .await
-                .context(DatabaseSnafu)?
-                .into(),
+            db::queries::events::update_event_training_participation_report_parameter_set(
+                &mut self.inner,
+                event_id,
+                parameter_set.into(),
+            )
+            .await
+            .context(DatabaseSnafu)?
+            .into(),
         )
     }
 
@@ -51,11 +54,13 @@ impl EventTrainingParticipationReportInventory for DatabaseConnection {
         parameter_set: EventTrainingParticipationReportParameterSet,
     ) -> Result<Option<EventTrainingParticipationReportParameterSet>> {
         Ok(
-            db::EventTrainingParticipationReportParameterSet::from(parameter_set)
-                .try_insert(&mut self.inner)
-                .await
-                .context(DatabaseSnafu)?
-                .map(Into::into),
+            db::queries::events::try_create_event_training_participation_report_parameter_set(
+                &mut self.inner,
+                parameter_set.into(),
+            )
+            .await
+            .context(DatabaseSnafu)?
+            .map(Into::into),
         )
     }
 
@@ -65,7 +70,7 @@ impl EventTrainingParticipationReportInventory for DatabaseConnection {
         event_id: EventId,
     ) -> Result<()> {
         Ok(
-            db::EventTrainingParticipationReportParameterSet::delete_by_id(
+            db::queries::events::delete_event_training_participation_report_set(
                 &mut self.inner,
                 event_id,
             )

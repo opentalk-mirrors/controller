@@ -8,8 +8,4 @@ pub use crate::tables::{
     event_favorites::{EventFavorite, NewEventFavorite},
     event_invites::{EventInvite, NewEventInvite, UpdateEventInvite},
     event_shared_folders as shared_folders,
-    event_training_participation_report_parameter_sets::{
-        EventTrainingParticipationReportParameterSet,
-        UpdateEventTrainingParticipationReportParameterSet,
-    },
 }; // TODO: rm -f

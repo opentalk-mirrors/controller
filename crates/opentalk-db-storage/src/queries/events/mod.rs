@@ -5,6 +5,7 @@
 //! Contains events database queries
 
 pub mod cursor;
+mod training_participation_report;
 
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -22,12 +23,10 @@ use opentalk_types_common::{
     training_participation_report::TrainingParticipationReportParameterSet,
     users::UserId,
 };
+pub use training_participation_report::*;
 
 use crate::{
-    events::{
-        EventException, EventInvite, EventTrainingParticipationReportParameterSet,
-        shared_folders::EventSharedFolder,
-    },
+    events::{EventException, EventInvite, shared_folders::EventSharedFolder},
     queries::events::cursor::{GetEventExceptionsCursor, GetEventsCursor},
     rooms::Room,
     schema::{
@@ -36,7 +35,10 @@ use crate::{
         users,
     },
     sip_configs::SipConfig,
-    tables::events::{Event, NewEvent, UpdateEvent},
+    tables::{
+        event_training_participation_report_parameter_sets::EventTrainingParticipationReportParameterSet,
+        events::{Event, NewEvent, UpdateEvent},
+    },
     tariffs::Tariff,
     users::User,
     utils::convert_diesel_query_results,

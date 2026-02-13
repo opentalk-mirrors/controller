@@ -2,9 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use diesel::{ExpressionMethods, Insertable, OptionalExtension, QueryDsl, Queryable};
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
+use diesel::{Insertable, Queryable};
 use opentalk_inventory as inventory;
 use opentalk_types_common::{events::EventId, training_participation_report::TimeRange};
 
@@ -68,49 +66,5 @@ impl From<inventory::EventTrainingParticipationReportParameterSet>
             checkpoint_interval_after: checkpoint_interval.after().into(),
             checkpoint_interval_within: checkpoint_interval.within().into(),
         }
-    }
-}
-
-impl EventTrainingParticipationReportParameterSet {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn get_for_event(conn: &mut DbConnection, event_id: EventId) -> Result<Option<Self>> {
-        let parameter_set = event_training_participation_report_parameter_sets::table
-            .filter(event_training_participation_report_parameter_sets::event_id.eq(event_id))
-            .get_result(conn)
-            .await
-            .optional()?;
-
-        Ok(parameter_set)
-    }
-
-    /// Tries to insert the EventTrainingParticipationParameterSet into the database
-    ///
-    /// When yielding a unique key violation, None is returned.
-    #[tracing::instrument(err, skip_all)]
-    pub async fn try_insert(self, conn: &mut DbConnection) -> Result<Option<Self>> {
-        let query = self.insert_into(event_training_participation_report_parameter_sets::table);
-
-        let result = query.get_result(conn).await;
-
-        match result {
-            Ok(event_invite) => Ok(Some(event_invite)),
-            Err(diesel::result::Error::DatabaseError(
-                diesel::result::DatabaseErrorKind::UniqueViolation,
-                ..,
-            )) => Ok(None),
-            Err(e) => Err(e.into()),
-        }
-    }
-
-    #[tracing::instrument(err, skip_all)]
-    pub async fn delete_by_id(conn: &mut DbConnection, event_id: EventId) -> Result<()> {
-        let query = diesel::delete(
-            event_training_participation_report_parameter_sets::table
-                .filter(event_training_participation_report_parameter_sets::event_id.eq(event_id)),
-        );
-
-        query.execute(conn).await?;
-
-        Ok(())
     }
 }
