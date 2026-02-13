@@ -6,7 +6,8 @@ use chrono::{TimeZone as _, Utc};
 use chrono_tz::Tz;
 use opentalk_database::DbConnection;
 use opentalk_db_storage::{
-    events::{Event, EventInvite, GetEventsCursor, NewEvent, NewEventInvite, UpdateEventInvite},
+    events::{Event, EventInvite, NewEvent, NewEventInvite, UpdateEventInvite},
+    queries::events::cursor::GetEventsCursor,
     rooms::NewRoom,
     tenants::{OidcTenantId, get_or_create_tenant_by_oidc_id},
     users::User,

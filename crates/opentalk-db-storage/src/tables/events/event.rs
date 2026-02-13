@@ -27,8 +27,9 @@ use serde::{Deserialize, Serialize};
 use crate::{
     events::{
         EventException, EventInvite, EventTrainingParticipationReportParameterSet,
-        GetEventExceptionsCursor, GetEventsCursor, shared_folders::EventSharedFolder,
+        shared_folders::EventSharedFolder,
     },
+    queries::events::cursor::{GetEventExceptionsCursor, GetEventsCursor},
     rooms::Room,
     schema::{
         event_exceptions, event_favorites, event_invites, event_shared_folders,
