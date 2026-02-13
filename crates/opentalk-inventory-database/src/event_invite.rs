@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::events as db;
+use opentalk_db_storage as db;
 use opentalk_inventory::{
     Event, EventEmailInvite, EventInvite, EventInviteInventory, NewEventEmailInvite,
     NewEventInvite, UpdateEventEmailInvite, UpdateEventInvite, User,
@@ -24,7 +24,7 @@ impl EventInviteInventory for DatabaseConnection {
         &mut self,
         invite: NewEventEmailInvite,
     ) -> Result<Option<EventEmailInvite>> {
-        Ok(db::email_invites::NewEventEmailInvite::from(invite)
+        Ok(db::events::email_invites::NewEventEmailInvite::from(invite)
             .try_insert(&mut self.inner)
             .await
             .context(DatabaseSnafu)?
@@ -36,7 +36,7 @@ impl EventInviteInventory for DatabaseConnection {
         &mut self,
         invite: NewEventInvite,
     ) -> Result<Option<EventInvite>> {
-        Ok(db::NewEventInvite::from(invite)
+        Ok(db::events::NewEventInvite::from(invite)
             .try_insert(&mut self.inner)
             .await
             .context(DatabaseSnafu)?
@@ -51,7 +51,7 @@ impl EventInviteInventory for DatabaseConnection {
         page: Page,
         filter_by_status: Option<EventInviteStatus>,
     ) -> Result<(Vec<(EventInvite, User)>, ItemCount)> {
-        let (items, overall) = db::EventInvite::get_for_event_paginated(
+        let (items, overall) = db::events::EventInvite::get_for_event_paginated(
             &mut self.inner,
             event_id,
             per_page,
@@ -76,14 +76,15 @@ impl EventInviteInventory for DatabaseConnection {
         per_page: PageSize,
         page: Page,
     ) -> Result<(Vec<EventEmailInvite>, ItemCount)> {
-        let (invites, overall) = db::email_invites::EventEmailInvite::get_for_event_paginated(
-            &mut self.inner,
-            event_id,
-            per_page,
-            page,
-        )
-        .await
-        .context(DatabaseSnafu)?;
+        let (invites, overall) =
+            db::events::email_invites::EventEmailInvite::get_for_event_paginated(
+                &mut self.inner,
+                event_id,
+                per_page,
+                page,
+            )
+            .await
+            .context(DatabaseSnafu)?;
         Ok((invites.into_iter().map(Into::into).collect(), overall))
     }
 
@@ -94,7 +95,7 @@ impl EventInviteInventory for DatabaseConnection {
         room_id: RoomId,
     ) -> Result<Option<EventInvite>> {
         Ok(
-            db::EventInvite::get_for_user_and_room(&mut self.inner, user_id, room_id)
+            db::events::EventInvite::get_for_user_and_room(&mut self.inner, user_id, room_id)
                 .await
                 .context(DatabaseSnafu)?
                 .map(Into::into),
@@ -109,12 +110,10 @@ impl EventInviteInventory for DatabaseConnection {
         let events = events
             .iter()
             .cloned()
-            .map(opentalk_db_storage::events::Event::from)
-            .collect::<Vec<opentalk_db_storage::events::Event>>();
-        let events = events
-            .iter()
-            .collect::<Vec<&opentalk_db_storage::events::Event>>();
-        let invites = db::EventInvite::get_for_events(&mut self.inner, &events)
+            .map(db::tables::events::Event::from)
+            .collect::<Vec<db::tables::events::Event>>();
+        let events = events.iter().collect::<Vec<&db::tables::events::Event>>();
+        let invites = db::events::EventInvite::get_for_events(&mut self.inner, &events)
             .await
             .context(DatabaseSnafu)?;
         Ok(invites
@@ -137,10 +136,10 @@ impl EventInviteInventory for DatabaseConnection {
             .iter()
             .cloned()
             .map(Into::into)
-            .collect::<Vec<opentalk_db_storage::events::Event>>();
+            .collect::<Vec<db::tables::events::Event>>();
         let events = events.iter().collect::<Vec<&_>>();
         Ok(
-            db::email_invites::EventEmailInvite::get_for_events(&mut self.inner, &events)
+            db::events::email_invites::EventEmailInvite::get_for_events(&mut self.inner, &events)
                 .await
                 .context(DatabaseSnafu)?
                 .into_iter()
@@ -155,7 +154,7 @@ impl EventInviteInventory for DatabaseConnection {
         user_id: UserId,
     ) -> Result<Vec<EventInvite>> {
         Ok(
-            db::EventInvite::get_pending_for_user(&mut self.inner, user_id)
+            db::events::EventInvite::get_pending_for_user(&mut self.inner, user_id)
                 .await
                 .context(DatabaseSnafu)?
                 .into_iter()
@@ -171,7 +170,7 @@ impl EventInviteInventory for DatabaseConnection {
         user_id: UserId,
     ) -> Result<EventInvite> {
         Ok(
-            db::EventInvite::delete_by_invitee(&mut self.inner, event_id, user_id)
+            db::events::EventInvite::delete_by_invitee(&mut self.inner, event_id, user_id)
                 .await
                 .context(DatabaseSnafu)?
                 .into(),
@@ -185,7 +184,7 @@ impl EventInviteInventory for DatabaseConnection {
         email: &str,
     ) -> Result<EventEmailInvite> {
         Ok(
-            db::email_invites::EventEmailInvite::delete(&mut self.inner, &event_id, email)
+            db::events::email_invites::EventEmailInvite::delete(&mut self.inner, &event_id, email)
                 .await
                 .context(DatabaseSnafu)?
                 .into(),
@@ -199,7 +198,7 @@ impl EventInviteInventory for DatabaseConnection {
         user_id: UserId,
         event_invite: UpdateEventInvite,
     ) -> Result<EventInvite> {
-        Ok(db::UpdateEventInvite::from(event_invite)
+        Ok(db::events::UpdateEventInvite::from(event_invite)
             .apply(&mut self.inner, user_id, event_id)
             .await
             .context(DatabaseSnafu)?
@@ -214,7 +213,7 @@ impl EventInviteInventory for DatabaseConnection {
         event_invite: UpdateEventEmailInvite,
     ) -> Result<EventEmailInvite> {
         Ok(
-            db::email_invites::UpdateEventEmailInvite::from(event_invite)
+            db::events::email_invites::UpdateEventEmailInvite::from(event_invite)
                 .apply(&mut self.inner, email, event_id)
                 .await
                 .context(DatabaseSnafu)?
@@ -228,7 +227,7 @@ impl EventInviteInventory for DatabaseConnection {
         user: User,
     ) -> Result<Vec<(EventId, RoomId)>> {
         Ok(
-            db::email_invites::EventEmailInvite::migrate_to_user_invites(
+            db::events::email_invites::EventEmailInvite::migrate_to_user_invites(
                 &mut self.inner,
                 &user.into(),
             )

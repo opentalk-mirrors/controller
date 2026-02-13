@@ -12,5 +12,4 @@ pub use crate::tables::{
         EventTrainingParticipationReportParameterSet,
         UpdateEventTrainingParticipationReportParameterSet,
     },
-    events::{Event, NewEvent, UpdateEvent},
 }; // TODO: rm -f

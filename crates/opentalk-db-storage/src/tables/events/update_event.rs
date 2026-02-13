@@ -4,17 +4,14 @@
 
 use chrono::{DateTime, Utc};
 use chrono_tz::Tz;
-use diesel::ExpressionMethods;
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
 use opentalk_types_common::{
-    events::{EventDescription, EventId, EventTitle},
+    events::{EventDescription, EventTitle},
     time::TimeZone,
     users::UserId,
 };
 
-use crate::{schema::events, tables::events::Event};
+use crate::schema::events;
 
 #[derive(Debug, AsChangeset)]
 #[diesel(table_name = events)]
@@ -51,19 +48,5 @@ impl From<inventory::UpdateEvent> for UpdateEvent {
             title: update_event.title,
             description: update_event.description,
         }
-    }
-}
-
-impl UpdateEvent {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn apply(self, conn: &mut DbConnection, event_id: EventId) -> Result<Event> {
-        let query = diesel::update(events::table)
-            .filter(events::id.eq(event_id))
-            .set((self, events::revision.eq(events::revision + 1)))
-            .returning(events::all_columns);
-
-        let event = query.get_result(conn).await?;
-
-        Ok(event)
     }
 }

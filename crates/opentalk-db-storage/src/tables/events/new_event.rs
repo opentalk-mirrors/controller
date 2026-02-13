@@ -5,8 +5,6 @@
 use chrono::DateTime;
 use chrono_tz::Tz;
 use diesel::Insertable;
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
 use opentalk_types_common::{
     events::{EventDescription, EventTitle},
@@ -16,7 +14,7 @@ use opentalk_types_common::{
     users::UserId,
 };
 
-use crate::{schema::events, tables::events::Event};
+use crate::schema::events;
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = events)]
@@ -59,15 +57,5 @@ impl From<inventory::NewEvent> for NewEvent {
             tenant_id: new_event.tenant_id,
             show_meeting_details: new_event.show_meeting_details,
         }
-    }
-}
-
-impl NewEvent {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn insert(self, conn: &mut DbConnection) -> Result<Event> {
-        let query = self.insert_into(events::table);
-        let event = query.get_result(conn).await?;
-
-        Ok(event)
     }
 }
