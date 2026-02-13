@@ -241,10 +241,6 @@ api_secret = "your-livekit-api-secret"
 # The roomservers API key id and secret
 #api_key = {id = "roomserver", secret = "secret" }
 
-# Where the roomsserver stores assets
-#[roomserver.asset_storage]
-#type = "in_memory"
-
 # RoomServer websocket rate limiting configuration
 #
 # Rate limiting is enabled by default, to disable it, you have to set the `disabled` flag to `true`. A missing
