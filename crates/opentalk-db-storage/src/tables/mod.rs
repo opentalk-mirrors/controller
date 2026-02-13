@@ -5,5 +5,6 @@
 //! Contains table structs
 
 pub mod event_exceptions;
+pub mod event_favorites;
 pub mod event_invites;
 pub mod events;

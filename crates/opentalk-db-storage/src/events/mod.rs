@@ -3,24 +3,17 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use chrono::{DateTime, Utc};
-use diesel::{
-    BoolExpressionMethods, ExpressionMethods, Insertable, OptionalExtension, QueryDsl, Queryable,
-};
+use diesel::{ExpressionMethods, Insertable, OptionalExtension, QueryDsl, Queryable};
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
-use opentalk_types_common::{
-    events::EventId, training_participation_report::TimeRange, users::UserId,
-};
+use opentalk_types_common::{events::EventId, training_participation_report::TimeRange};
 
-use crate::{
-    newtypes::Duration,
-    schema::{event_favorites, event_training_participation_report_parameter_sets},
-    users::User,
-};
+use crate::{newtypes::Duration, schema::event_training_participation_report_parameter_sets};
 
 pub use crate::tables::{
     event_exceptions::{EventException, NewEventException, UpdateEventException},
+    event_favorites::{EventFavorite, NewEventFavorite},
     event_invites::{EventInvite, NewEventInvite, UpdateEventInvite},
     events::{Event, NewEvent, UpdateEvent},
 }; // TODO: rm -f
@@ -115,67 +108,6 @@ impl GetEventExceptionsCursor {
             from_created_at: exception.created_at,
             from_starts_at: exception.starts_at,
             from_exception_date: exception.exception_date,
-        }
-    }
-}
-
-#[derive(Associations, Identifiable, Queryable)]
-#[diesel(table_name = event_favorites)]
-#[diesel(primary_key(user_id, event_id))]
-#[diesel(belongs_to(User))]
-#[diesel(belongs_to(Event))]
-pub struct EventFavorite {
-    pub user_id: UserId,
-    pub event_id: EventId,
-}
-
-impl EventFavorite {
-    /// Deletes a EventFavorite entry by user_id and event_id
-    ///
-    /// Returns true if something was deleted
-    #[tracing::instrument(err, skip_all)]
-    pub async fn delete_by_id(
-        conn: &mut DbConnection,
-        user_id: UserId,
-        event_id: EventId,
-    ) -> Result<bool> {
-        let lines_changes = diesel::delete(event_favorites::table)
-            .filter(
-                event_favorites::user_id
-                    .eq(user_id)
-                    .and(event_favorites::event_id.eq(event_id)),
-            )
-            .execute(conn)
-            .await?;
-
-        Ok(lines_changes > 0)
-    }
-}
-
-#[derive(Insertable)]
-#[diesel(table_name = event_favorites)]
-pub struct NewEventFavorite {
-    pub user_id: UserId,
-    pub event_id: EventId,
-}
-
-impl NewEventFavorite {
-    /// Tries to insert the NewEventFavorite into the database
-    ///
-    /// When yielding a unique key violation, None is returned.
-    #[tracing::instrument(err, skip_all)]
-    pub async fn try_insert(self, conn: &mut DbConnection) -> Result<Option<EventFavorite>> {
-        let query = self.insert_into(event_favorites::table);
-
-        let result = query.get_result(conn).await;
-
-        match result {
-            Ok(event_favorite) => Ok(Some(event_favorite)),
-            Err(diesel::result::Error::DatabaseError(
-                diesel::result::DatabaseErrorKind::UniqueViolation,
-                ..,
-            )) => Ok(None),
-            Err(e) => Err(e.into()),
         }
     }
 }
