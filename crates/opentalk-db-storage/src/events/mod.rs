@@ -7,6 +7,7 @@ use opentalk_inventory as inventory;
 use opentalk_types_common::events::EventId;
 
 pub use crate::tables::{
+    event_email_invites as email_invites,
     event_exceptions::{EventException, NewEventException, UpdateEventException},
     event_favorites::{EventFavorite, NewEventFavorite},
     event_invites::{EventInvite, NewEventInvite, UpdateEventInvite},
@@ -17,7 +18,6 @@ pub use crate::tables::{
     events::{Event, NewEvent, UpdateEvent},
 }; // TODO: rm -f
 
-pub mod email_invites;
 pub mod shared_folders;
 
 pub struct GetEventsCursor {

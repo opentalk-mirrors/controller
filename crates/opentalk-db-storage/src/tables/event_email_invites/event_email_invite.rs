@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use chrono::{DateTime, Utc};
-use diesel::{ExpressionMethods, QueryDsl, Queryable, prelude::*};
+use diesel::prelude::*;
 use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
 use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
@@ -14,60 +14,12 @@ use opentalk_types_common::{
     users::UserId,
 };
 
-use super::{Event, NewEventInvite};
 use crate::{
     paginate::Paginate as _,
     schema::{event_email_invites, event_invites, events},
+    tables::{event_invites::NewEventInvite, events::Event},
     users::User,
 };
-
-#[derive(Insertable)]
-#[diesel(table_name = event_email_invites)]
-pub struct NewEventEmailInvite {
-    pub event_id: EventId,
-    pub email: String,
-    pub role: EmailInviteRole,
-    pub created_by: UserId,
-}
-
-impl From<inventory::NewEventEmailInvite> for NewEventEmailInvite {
-    fn from(
-        inventory::NewEventEmailInvite {
-            event_id,
-            email,
-            role,
-            created_by,
-        }: inventory::NewEventEmailInvite,
-    ) -> Self {
-        Self {
-            event_id,
-            email,
-            role,
-            created_by,
-        }
-    }
-}
-
-impl NewEventEmailInvite {
-    /// Tries to insert the EventEmailInvite into the database
-    ///
-    /// When yielding a unique key violation, None is returned.
-    #[tracing::instrument(err, skip_all)]
-    pub async fn try_insert(self, conn: &mut DbConnection) -> Result<Option<EventEmailInvite>> {
-        let query = self.insert_into(event_email_invites::table);
-
-        let result = query.get_result(conn).await;
-
-        match result {
-            Ok(event_email_invites) => Ok(Some(event_email_invites)),
-            Err(diesel::result::Error::DatabaseError(
-                diesel::result::DatabaseErrorKind::UniqueViolation,
-                ..,
-            )) => Ok(None),
-            Err(e) => Err(e.into()),
-        }
-    }
-}
 
 #[derive(Debug, Associations, Identifiable, Queryable)]
 #[diesel(table_name = event_email_invites)]
@@ -232,42 +184,5 @@ impl EventEmailInvite {
         let invites: (Vec<EventEmailInvite>, ItemCount) = query.load_and_count(conn).await?;
 
         Ok(invites)
-    }
-}
-
-#[derive(AsChangeset)]
-#[diesel(table_name = event_email_invites)]
-pub struct UpdateEventEmailInvite {
-    pub role: Option<EmailInviteRole>,
-}
-
-impl From<inventory::UpdateEventEmailInvite> for UpdateEventEmailInvite {
-    fn from(inventory::UpdateEventEmailInvite { role }: inventory::UpdateEventEmailInvite) -> Self {
-        Self { role }
-    }
-}
-
-impl UpdateEventEmailInvite {
-    /// Apply the update to the invite where `email` is the invitee's email address
-    #[tracing::instrument(err, skip_all)]
-    pub async fn apply(
-        self,
-        conn: &mut DbConnection,
-        email: &str,
-        event_id: EventId,
-    ) -> Result<EventEmailInvite> {
-        // TODO: Check if the update actually applied a change (see comments in fn `apply` of `UpdateEventInvite`)
-        let query = diesel::update(event_email_invites::table)
-            .filter(
-                event_email_invites::event_id
-                    .eq(event_id)
-                    .and(event_email_invites::email.eq(email)),
-            )
-            .set(self)
-            .returning(event_email_invites::all_columns);
-
-        let event_invite = query.get_result(conn).await?;
-
-        Ok(event_invite)
     }
 }
