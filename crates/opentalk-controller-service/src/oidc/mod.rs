@@ -19,7 +19,7 @@ mod verification_info;
 pub use cache::Cache;
 pub use cacheable::AccessTokenResult;
 pub use claims::OnlyExpiryClaim;
-use claims::{JWTAccessTokenClaims, OpenTalkAdditionalClaims, ServiceClaims};
+use claims::{JWTAccessTokenClaims, JWTLogoutTokenClaims, OpenTalkAdditionalClaims, ServiceClaims};
 use introspect_info::IntrospectInfo;
 pub use jwt::{VerifyError, decode_token};
 use oidc_context::OidcContext;
