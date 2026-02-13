@@ -2,6 +2,4 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! Contains database queries
-
-pub mod events;
+//! Contains events database queries
