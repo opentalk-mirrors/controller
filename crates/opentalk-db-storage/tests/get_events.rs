@@ -7,10 +7,12 @@ use chrono_tz::Tz;
 use opentalk_database::DbConnection;
 use opentalk_db_storage::{
     self as db,
-    events::{EventInvite, NewEventInvite, UpdateEventInvite},
     queries::events::cursor::GetEventsCursor,
     rooms::NewRoom,
-    tables::events::{Event, NewEvent},
+    tables::{
+        event_invites::{NewEventInvite, UpdateEventInvite},
+        events::{Event, NewEvent},
+    },
     tenants::{OidcTenantId, get_or_create_tenant_by_oidc_id},
     users::User,
 };
@@ -84,7 +86,9 @@ async fn update_invite_status(
         role: None,
     };
 
-    changeset.apply(conn, user_id, event_id).await.unwrap();
+    db::queries::events::update_event_invite(conn, event_id, user_id, changeset)
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
@@ -377,16 +381,17 @@ async fn serial_test_get_events_invite_filter() {
 
     // invite the invitee to all events
     for event in events {
-        NewEventInvite {
+        let new_event_invite = NewEventInvite {
             event_id: event.id,
             invitee: invitee.id,
             created_by: inviter.id,
             created_at: None,
             role: InviteRole::User,
-        }
-        .try_insert(&mut conn)
-        .await
-        .unwrap();
+        };
+
+        db::queries::events::try_create_event_invite(&mut conn, new_event_invite)
+            .await
+            .unwrap();
     }
 
     update_invite_status(
@@ -568,57 +573,58 @@ async fn serial_test_get_event_invites() {
     // EVENT 1 MIT JEEZ LOUISE AND GERHARD
     let event1 = make_event(&mut conn, &ferdinand, Some(1), true).await;
 
-    NewEventInvite {
+    let new_event_invite = NewEventInvite {
         event_id: event1.id,
         invitee: louise.id,
         created_by: ferdinand.id,
         created_at: None,
         role: InviteRole::User,
-    }
-    .try_insert(&mut conn)
-    .await
-    .unwrap();
+    };
+    db::queries::events::try_create_event_invite(&mut conn, new_event_invite)
+        .await
+        .unwrap();
 
-    NewEventInvite {
+    let new_event_invite = NewEventInvite {
         event_id: event1.id,
         invitee: gerhard.id,
         created_by: ferdinand.id,
         created_at: None,
-        role: InviteRole::Moderator,
-    }
-    .try_insert(&mut conn)
-    .await
-    .unwrap();
+        role: InviteRole::User,
+    };
+    db::queries::events::try_create_event_invite(&mut conn, new_event_invite)
+        .await
+        .unwrap();
 
     // EVENT 2 MIT JEEZ LOUSE UND FERDINAND
     let event2 = make_event(&mut conn, &gerhard, Some(1), true).await;
 
-    NewEventInvite {
+    let new_event_invite = NewEventInvite {
         event_id: event2.id,
         invitee: louise.id,
-        created_by: gerhard.id,
+        created_by: ferdinand.id,
         created_at: None,
         role: InviteRole::User,
-    }
-    .try_insert(&mut conn)
-    .await
-    .unwrap();
-
-    NewEventInvite {
-        event_id: event2.id,
-        invitee: ferdinand.id,
-        created_by: gerhard.id,
-        created_at: None,
-        role: InviteRole::Moderator,
-    }
-    .try_insert(&mut conn)
-    .await
-    .unwrap();
-
-    let events = &[&event1, &event2][..];
-    let invites_with_invitees = EventInvite::get_for_events(&mut conn, events)
+    };
+    db::queries::events::try_create_event_invite(&mut conn, new_event_invite)
         .await
         .unwrap();
+
+    let new_event_invite = NewEventInvite {
+        event_id: event2.id,
+        invitee: ferdinand.id,
+        created_by: ferdinand.id,
+        created_at: None,
+        role: InviteRole::User,
+    };
+    db::queries::events::try_create_event_invite(&mut conn, new_event_invite)
+        .await
+        .unwrap();
+
+    let events = &[&event1, &event2][..];
+    let invites_with_invitees =
+        db::queries::events::get_event_user_invites_for_events(&mut conn, events)
+            .await
+            .unwrap();
 
     for (event, invites_with_users) in events.iter().zip(invites_with_invitees) {
         println!("Event: {event:#?}");

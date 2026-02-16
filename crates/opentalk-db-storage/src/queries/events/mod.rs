@@ -5,6 +5,9 @@
 //! Contains events database queries
 
 pub mod cursor;
+
+mod invite;
+mod shared_folder;
 mod training_participation_report;
 
 use chrono::{DateTime, Utc};
@@ -16,6 +19,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use futures_core::Stream;
+pub use invite::*;
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
@@ -23,10 +27,11 @@ use opentalk_types_common::{
     training_participation_report::TrainingParticipationReportParameterSet,
     users::UserId,
 };
+pub use shared_folder::*;
 pub use training_participation_report::*;
 
 use crate::{
-    events::{EventException, EventInvite, shared_folders::EventSharedFolder},
+    events::EventException,
     queries::events::cursor::{GetEventExceptionsCursor, GetEventsCursor},
     rooms::Room,
     schema::{
@@ -36,6 +41,8 @@ use crate::{
     },
     sip_configs::SipConfig,
     tables::{
+        event_invites::EventInvite,
+        event_shared_folders::EventSharedFolder,
         event_training_participation_report_parameter_sets::EventTrainingParticipationReportParameterSet,
         events::{Event, NewEvent, UpdateEvent},
     },

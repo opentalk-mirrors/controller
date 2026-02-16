@@ -4,15 +4,10 @@
 
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
-use opentalk_types_common::{events::EventId, rooms::RoomId};
+use opentalk_types_common::events::EventId;
 
-use crate::{
-    schema::{event_shared_folders, events},
-    tables::events::Event,
-};
+use crate::{schema::event_shared_folders, tables::events::Event};
 
 #[derive(Clone, Debug, PartialEq, Eq, Associations, Identifiable, Queryable)]
 #[diesel(table_name = event_shared_folders)]
@@ -88,67 +83,5 @@ impl From<inventory::EventSharedFolder> for EventSharedFolder {
             read_url,
             read_password,
         }
-    }
-}
-
-impl EventSharedFolder {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn get_for_event(
-        conn: &mut DbConnection,
-        event_id: EventId,
-    ) -> Result<Option<EventSharedFolder>> {
-        let shared_folder = event_shared_folders::table
-            .filter(event_shared_folders::event_id.eq(event_id))
-            .get_result(conn)
-            .await
-            .optional()?;
-
-        Ok(shared_folder)
-    }
-
-    /// Returns all [`EventSharedFolder`]s in the given [`RoomId`].
-    #[tracing::instrument(err, skip_all)]
-    pub async fn get_all_for_room(
-        conn: &mut DbConnection,
-        room_id: RoomId,
-    ) -> Result<Vec<EventSharedFolder>> {
-        let query = event_shared_folders::table
-            .inner_join(events::table)
-            .filter(events::room.eq(room_id))
-            .select(event_shared_folders::all_columns);
-
-        let events = query.load(conn).await?;
-
-        Ok(events)
-    }
-
-    /// Delete a shared folder using the given event id
-    #[tracing::instrument(err, skip_all)]
-    pub async fn delete_by_event_id(conn: &mut DbConnection, event_id: EventId) -> Result<()> {
-        let query = diesel::delete(
-            event_shared_folders::table.filter(event_shared_folders::event_id.eq(event_id)),
-        );
-
-        query.execute(conn).await?;
-
-        Ok(())
-    }
-
-    /// Delete shared folders using the given event ids
-    #[tracing::instrument(err, skip_all)]
-    pub async fn delete_by_event_ids(conn: &mut DbConnection, event_ids: &[EventId]) -> Result<()> {
-        let query = diesel::delete(
-            event_shared_folders::table.filter(event_shared_folders::event_id.eq_any(event_ids)),
-        );
-
-        query.execute(conn).await?;
-
-        Ok(())
-    }
-
-    /// Delete the shared folder for an event
-    #[tracing::instrument(err, skip_all)]
-    pub async fn delete(self, conn: &mut DbConnection) -> Result<()> {
-        Self::delete_by_event_id(conn, self.event_id).await
     }
 }

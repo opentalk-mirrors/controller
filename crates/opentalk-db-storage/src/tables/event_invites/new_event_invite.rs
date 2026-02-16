@@ -4,15 +4,13 @@
 
 use chrono::{DateTime, Utc};
 use diesel::Insertable;
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
 use opentalk_types_common::{
     events::{EventId, invites::InviteRole},
     users::UserId,
 };
 
-use crate::{schema::event_invites, tables::event_invites::EventInvite};
+use crate::schema::event_invites;
 
 #[derive(Insertable)]
 #[diesel(table_name = event_invites)]
@@ -40,27 +38,6 @@ impl From<inventory::NewEventInvite> for NewEventInvite {
             role,
             created_by,
             created_at: created_at.map(Into::into),
-        }
-    }
-}
-
-impl NewEventInvite {
-    /// Tries to insert the EventInvite into the database
-    ///
-    /// When yielding a unique key violation, None is returned.
-    #[tracing::instrument(err, skip_all)]
-    pub async fn try_insert(self, conn: &mut DbConnection) -> Result<Option<EventInvite>> {
-        let query = self.insert_into(event_invites::table);
-
-        let result = query.get_result(conn).await;
-
-        match result {
-            Ok(event_invite) => Ok(Some(event_invite)),
-            Err(diesel::result::Error::DatabaseError(
-                diesel::result::DatabaseErrorKind::UniqueViolation,
-                ..,
-            )) => Ok(None),
-            Err(e) => Err(e.into()),
         }
     }
 }

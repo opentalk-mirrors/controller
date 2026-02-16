@@ -5,7 +5,10 @@
 use std::{collections::BTreeSet, pin::Pin};
 
 use futures_util::Stream;
-use opentalk_db_storage::{self as db, events::EventFavorite, events::NewEventFavorite};
+use opentalk_db_storage::{
+    self as db,
+    events::{EventFavorite, NewEventFavorite},
+};
 use opentalk_inventory::{
     Event, EventException, EventExceptionId, EventInventory, EventInvite, EventSharedFolder,
     EventTrainingParticipationReportParameterSet, GetEventExceptionsCursor, GetEventsCursor,
@@ -516,11 +519,11 @@ impl EventInventory for DatabaseConnection {
 fn convert_event_and_related_to_inventory_types(
     (event, invite, room, sip_config, is_favorite, shared_folder, tariff): (
         db::tables::events::Event,
-        Option<opentalk_db_storage::events::EventInvite>,
+        Option<db::tables::event_invites::EventInvite>,
         opentalk_db_storage::rooms::Room,
         Option<opentalk_db_storage::sip_configs::SipConfig>,
         bool,
-        Option<opentalk_db_storage::events::shared_folders::EventSharedFolder>,
+        Option<db::tables::event_shared_folders::EventSharedFolder>,
         opentalk_db_storage::tariffs::Tariff,
     ),
 ) -> (
