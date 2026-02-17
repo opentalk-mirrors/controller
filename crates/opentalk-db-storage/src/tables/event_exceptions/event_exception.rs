@@ -3,9 +3,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use chrono::{DateTime, Utc};
-use diesel::{BoolExpressionMethods, ExpressionMethods, OptionalExtension, QueryDsl};
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
 use opentalk_types_common::{
     events::{EventDescription, EventId, EventTitle},
@@ -116,50 +113,5 @@ impl From<inventory::EventException> for EventException {
             ends_at: ends_at.map(Into::into),
             ends_at_tz,
         }
-    }
-}
-
-impl EventException {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn get_for_event(
-        conn: &mut DbConnection,
-        event_id: EventId,
-        datetime: DateTime<Utc>,
-    ) -> Result<Option<EventException>> {
-        let query = event_exceptions::table.filter(
-            event_exceptions::event_id
-                .eq(event_id)
-                .and(event_exceptions::exception_date.eq(datetime)),
-        );
-        let exceptions = query.first(conn).await.optional()?;
-
-        Ok(exceptions)
-    }
-
-    #[tracing::instrument(err, skip_all)]
-    pub async fn get_all_for_event(
-        conn: &mut DbConnection,
-        event_id: EventId,
-        datetimes: &[&DateTime<Utc>],
-    ) -> Result<Vec<EventException>> {
-        let query = event_exceptions::table.filter(
-            event_exceptions::event_id
-                .eq(event_id)
-                .and(event_exceptions::exception_date.eq_any(datetimes)),
-        );
-
-        let exceptions = query.load(conn).await.optional()?.unwrap_or_default();
-
-        Ok(exceptions)
-    }
-
-    #[tracing::instrument(err, skip_all)]
-    pub async fn delete_all_for_event(conn: &mut DbConnection, event_id: EventId) -> Result<()> {
-        let query =
-            diesel::delete(event_exceptions::table).filter(event_exceptions::event_id.eq(event_id));
-
-        query.execute(conn).await?;
-
-        Ok(())
     }
 }

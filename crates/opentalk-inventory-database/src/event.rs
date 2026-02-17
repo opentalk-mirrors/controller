@@ -420,16 +420,12 @@ impl EventInventory for DatabaseConnection {
     ) -> Result<Vec<EventException>> {
         let timestamps: Vec<&_> = timestamps.iter().map(|v| v.as_ref()).collect();
         Ok(
-            db::tables::event_exceptions::EventException::get_all_for_event(
-                &mut self.inner,
-                event_id,
-                &timestamps,
-            )
-            .await
-            .context(DatabaseSnafu)?
-            .into_iter()
-            .map(Into::into)
-            .collect(),
+            db::queries::events::get_event_exceptions(&mut self.inner, event_id, &timestamps)
+                .await
+                .context(DatabaseSnafu)?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
         )
     }
 
@@ -439,7 +435,7 @@ impl EventInventory for DatabaseConnection {
         event_id: EventId,
         instance_id_timestamp: Timestamp,
     ) -> Result<Option<EventException>> {
-        Ok(db::tables::event_exceptions::EventException::get_for_event(
+        Ok(db::queries::events::get_event_exception(
             &mut self.inner,
             event_id,
             instance_id_timestamp.into(),
@@ -467,12 +463,9 @@ impl EventInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn delete_event_exceptions_for_event(&mut self, event_id: EventId) -> Result<()> {
         Ok(
-            db::tables::event_exceptions::EventException::delete_all_for_event(
-                &mut self.inner,
-                event_id,
-            )
-            .await
-            .context(DatabaseSnafu)?,
+            db::queries::events::delete_event_exceptions_for_event(&mut self.inner, event_id)
+                .await
+                .context(DatabaseSnafu)?,
         )
     }
 

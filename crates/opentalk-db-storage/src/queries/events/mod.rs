@@ -6,6 +6,7 @@
 
 pub mod cursor;
 
+mod exception;
 mod favorite;
 mod invite;
 mod shared_folder;
@@ -19,6 +20,7 @@ use diesel::{
     sql_types::{Nullable, Record, Timestamptz, Uuid},
 };
 use diesel_async::RunQueryDsl;
+pub use exception::*;
 pub use favorite::*;
 use futures_core::Stream;
 pub use invite::*;
@@ -33,7 +35,6 @@ pub use shared_folder::*;
 pub use training_participation_report::*;
 
 use crate::{
-    events::EventException,
     queries::events::cursor::{GetEventExceptionsCursor, GetEventsCursor},
     rooms::Room,
     schema::{
@@ -43,6 +44,7 @@ use crate::{
     },
     sip_configs::SipConfig,
     tables::{
+        event_exceptions::EventException,
         event_invites::EventInvite,
         event_shared_folders::EventSharedFolder,
         event_training_participation_report_parameter_sets::EventTrainingParticipationReportParameterSet,
