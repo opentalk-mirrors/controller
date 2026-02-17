@@ -6,6 +6,7 @@
 
 pub mod cursor;
 
+mod email_invite;
 mod exception;
 mod favorite;
 mod invite;
@@ -20,6 +21,7 @@ use diesel::{
     sql_types::{Nullable, Record, Timestamptz, Uuid},
 };
 use diesel_async::RunQueryDsl;
+pub use email_invite::*;
 pub use exception::*;
 pub use favorite::*;
 use futures_core::Stream;

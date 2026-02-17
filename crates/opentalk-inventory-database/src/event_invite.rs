@@ -24,11 +24,12 @@ impl EventInviteInventory for DatabaseConnection {
         &mut self,
         invite: NewEventEmailInvite,
     ) -> Result<Option<EventEmailInvite>> {
-        Ok(db::events::email_invites::NewEventEmailInvite::from(invite)
-            .try_insert(&mut self.inner)
-            .await
-            .context(DatabaseSnafu)?
-            .map(Into::into))
+        Ok(
+            db::queries::events::try_create_event_email_invite(&mut self.inner, invite.into())
+                .await
+                .context(DatabaseSnafu)?
+                .map(Into::into),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -77,15 +78,14 @@ impl EventInviteInventory for DatabaseConnection {
         per_page: PageSize,
         page: Page,
     ) -> Result<(Vec<EventEmailInvite>, ItemCount)> {
-        let (invites, overall) =
-            db::events::email_invites::EventEmailInvite::get_for_event_paginated(
-                &mut self.inner,
-                event_id,
-                per_page,
-                page,
-            )
-            .await
-            .context(DatabaseSnafu)?;
+        let (invites, overall) = db::queries::events::get_event_email_invites_paginated(
+            &mut self.inner,
+            event_id,
+            per_page,
+            page,
+        )
+        .await
+        .context(DatabaseSnafu)?;
         Ok((invites.into_iter().map(Into::into).collect(), overall))
     }
 
@@ -143,7 +143,7 @@ impl EventInviteInventory for DatabaseConnection {
             .collect::<Vec<db::tables::events::Event>>();
         let events = events.iter().collect::<Vec<&_>>();
         Ok(
-            db::events::email_invites::EventEmailInvite::get_for_events(&mut self.inner, &events)
+            db::queries::events::get_event_email_invites_for_events(&mut self.inner, &events)
                 .await
                 .context(DatabaseSnafu)?
                 .into_iter()
@@ -187,12 +187,14 @@ impl EventInviteInventory for DatabaseConnection {
         event_id: EventId,
         email: &str,
     ) -> Result<EventEmailInvite> {
-        Ok(
-            db::events::email_invites::EventEmailInvite::delete(&mut self.inner, &event_id, email)
-                .await
-                .context(DatabaseSnafu)?
-                .into(),
+        Ok(db::queries::events::delete_event_email_invite_by_email(
+            &mut self.inner,
+            &event_id,
+            email,
         )
+        .await
+        .context(DatabaseSnafu)?
+        .into())
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -220,13 +222,15 @@ impl EventInviteInventory for DatabaseConnection {
         email: &str,
         event_invite: UpdateEventEmailInvite,
     ) -> Result<EventEmailInvite> {
-        Ok(
-            db::events::email_invites::UpdateEventEmailInvite::from(event_invite)
-                .apply(&mut self.inner, email, event_id)
-                .await
-                .context(DatabaseSnafu)?
-                .into(),
+        Ok(db::queries::events::update_event_email_invite(
+            &mut self.inner,
+            email,
+            event_id,
+            event_invite.into(),
         )
+        .await
+        .context(DatabaseSnafu)?
+        .into())
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -235,7 +239,7 @@ impl EventInviteInventory for DatabaseConnection {
         user: User,
     ) -> Result<Vec<(EventId, RoomId)>> {
         Ok(
-            db::events::email_invites::EventEmailInvite::migrate_to_user_invites(
+            db::queries::events::migrate_event_email_invites_to_user_invites(
                 &mut self.inner,
                 &user.into(),
             )
