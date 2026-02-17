@@ -5,10 +5,7 @@
 use std::{collections::BTreeSet, pin::Pin};
 
 use futures_util::Stream;
-use opentalk_db_storage::{
-    self as db,
-    events::{EventFavorite, NewEventFavorite},
-};
+use opentalk_db_storage as db;
 use opentalk_inventory::{
     Event, EventException, EventExceptionId, EventInventory, EventInvite, EventSharedFolder,
     EventTrainingParticipationReportParameterSet, GetEventExceptionsCursor, GetEventsCursor,
@@ -494,11 +491,16 @@ impl EventInventory for DatabaseConnection {
         event_id: EventId,
         user_id: UserId,
     ) -> Result<bool> {
-        Ok(NewEventFavorite { event_id, user_id }
-            .try_insert(&mut self.inner)
-            .await
-            .context(DatabaseSnafu)?
-            .is_some())
+        let new_event_favorite =
+            db::tables::event_favorites::NewEventFavorite { event_id, user_id };
+
+        Ok(db::queries::events::try_create_event_favorite_for_user(
+            &mut self.inner,
+            new_event_favorite,
+        )
+        .await
+        .context(DatabaseSnafu)?
+        .is_some())
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -508,7 +510,7 @@ impl EventInventory for DatabaseConnection {
         user_id: UserId,
     ) -> Result<bool> {
         Ok(
-            EventFavorite::delete_by_id(&mut self.inner, user_id, event_id)
+            db::queries::events::delete_event_favorite_for_user(&mut self.inner, user_id, event_id)
                 .await
                 .context(DatabaseSnafu)?,
         )

@@ -6,6 +6,7 @@
 
 pub mod cursor;
 
+mod favorite;
 mod invite;
 mod shared_folder;
 mod training_participation_report;
@@ -18,6 +19,7 @@ use diesel::{
     sql_types::{Nullable, Record, Timestamptz, Uuid},
 };
 use diesel_async::RunQueryDsl;
+pub use favorite::*;
 use futures_core::Stream;
 pub use invite::*;
 use opentalk_database::{DatabaseError, DbConnection, Result};
