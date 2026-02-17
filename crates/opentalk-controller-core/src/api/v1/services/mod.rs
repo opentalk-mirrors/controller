@@ -19,7 +19,6 @@ use opentalk_types_api_v1::error::ApiError;
 
 pub mod call_in;
 pub mod recording;
-pub mod roomserver;
 
 /// Middleware factory for [`RequiredRealmRoleMiddleware`]
 struct RequiredRealmRole {

@@ -1166,6 +1166,73 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
+  "/internal/room/{room_id}/asset":
+    post:
+      tags:
+        - "api::internal::assets"
+      summary: |-
+        Upload an asset. This endpoint requires the client to provide the RoomServer
+        credentials.
+      operationId: internal_upload_asset
+      parameters:
+        - name: room_id
+          in: path
+          description: The id of the room
+          required: true
+          schema:
+            $ref: "#/components/schemas/RoomId"
+        - name: event_title
+          in: query
+          description: The title of the event
+          required: false
+          schema:
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/EventTitle"
+        - name: file_extension
+          in: query
+          description: The file extension
+          required: true
+          schema:
+            $ref: "#/components/schemas/FileExtension"
+        - name: kind
+          in: query
+          description: The kind of the asset
+          required: true
+          schema:
+            $ref: "#/components/schemas/AssetFileKind"
+        - name: namespace
+          in: query
+          description: The namespace the asset is assigned to
+          required: false
+          schema:
+            oneOf:
+              - type: "null"
+              - $ref: "#/components/schemas/ModuleId"
+      requestBody:
+        description: The contents of the file
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+        required: true
+      responses:
+        "200":
+          description: The asset has been created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostAssetResponseBody"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
   /invite/verify:
     post:
       tags:
@@ -2483,73 +2550,6 @@ paths:
           description: WebSocket connection successfully established
         "401":
           $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-      security:
-        - BearerAuth: []
-  "/services/roomserver/room/{room_id}/asset":
-    post:
-      tags:
-        - "api::v1::services::roomserver"
-      summary: |-
-        Upload an asset. This endpoint requires the client to provide the RoomServer
-        credentials.
-      operationId: roomserver_asset
-      parameters:
-        - name: room_id
-          in: path
-          description: The id of the room
-          required: true
-          schema:
-            $ref: "#/components/schemas/RoomId"
-        - name: event_title
-          in: query
-          description: The title of the event
-          required: false
-          schema:
-            oneOf:
-              - type: "null"
-              - $ref: "#/components/schemas/EventTitle"
-        - name: file_extension
-          in: query
-          description: The file extension
-          required: true
-          schema:
-            $ref: "#/components/schemas/FileExtension"
-        - name: kind
-          in: query
-          description: The kind of the asset
-          required: true
-          schema:
-            $ref: "#/components/schemas/AssetFileKind"
-        - name: namespace
-          in: query
-          description: The namespace the asset is assigned to
-          required: false
-          schema:
-            oneOf:
-              - type: "null"
-              - $ref: "#/components/schemas/ModuleId"
-      requestBody:
-        description: The contents of the file
-        content:
-          application/octet-stream:
-            schema:
-              type: string
-        required: true
-      responses:
-        "200":
-          description: The asset has been created successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PostAssetResponseBody"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:

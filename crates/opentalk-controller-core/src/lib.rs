@@ -487,13 +487,13 @@ impl Controller {
                     .service(api::signaling::ws_service)
                     .service(metrics::metrics)
                     .with_swagger_service_if(swagger_service_enabled)
+                    .service(internal_service_scope(service_auth_middleware))
                     .service(v1_scope(
                         settings_provider.clone(),
                         authz,
                         inventory_provider.clone(),
                         oidc_ctx.clone(),
                         acl,
-                        service_auth_middleware,
                     ))
             })
         };
@@ -743,7 +743,7 @@ impl ModulesRegistrar for Controller {
         v1::services::call_in::start::post,
         api::v1::services::recording::get_recording_upload,
         api::v1::services::recording::post_recording_start,
-        api::v1::services::roomserver::post_roomserver_asset,
+        api::internal::assets::post_asset,
         v1::rooms::by_id::sip::delete,
         v1::rooms::by_id::sip::get,
         v1::rooms::by_id::sip::put,
@@ -933,7 +933,6 @@ fn v1_scope(
     inventory_provider: Data<dyn InventoryProvider>,
     oidc_ctx: Data<dyn OidcTokenHandler>,
     acl: kustos::actix_web::KustosService,
-    service_auth_middleware: Option<ApiKeyAuthorization>,
 ) -> Scope {
     // the latest version contains the root services
 
@@ -948,8 +947,6 @@ fn v1_scope(
         .service(v1::invite::verify::post)
         .service(v1::turn::get)
         .service(v1::rooms::by_id::assets::by_id::proxy::get)
-        // "/services/roomserver" conflicts with "/services" and thus must be listed before
-        .service(roomserver_service_scope(service_auth_middleware))
         .service(
             web::scope("/services")
                 .wrap(api::v1::middleware::service_auth::ServiceAuth::new(
@@ -1028,12 +1025,12 @@ fn v1_scope(
         )
 }
 
-fn roomserver_service_scope(auth_middleware: Option<ApiKeyAuthorization>) -> Scope {
-    let services = web::scope("/services/roomserver");
+fn internal_service_scope(auth_middleware: Option<ApiKeyAuthorization>) -> Scope {
+    let services = web::scope("/internal");
 
     let Some(auth_middleware) = auth_middleware else {
         log::debug!(
-            "Missing `http.service_api_keys` configuration, roomserver service routes are disabled"
+            "Missing `http.service_api_keys` configuration, internal service routes are disabled"
         );
 
         return services;
@@ -1042,7 +1039,7 @@ fn roomserver_service_scope(auth_middleware: Option<ApiKeyAuthorization>) -> Sco
     services.service(
         web::scope("")
             .wrap(auth_middleware)
-            .service(api::v1::services::roomserver::post_roomserver_asset),
+            .service(api::internal::assets::post_asset),
     )
 }
 
