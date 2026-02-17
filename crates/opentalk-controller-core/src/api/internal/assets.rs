@@ -22,8 +22,8 @@ use crate::api::{
 /// Upload an asset. This endpoint requires the client to provide the RoomServer
 /// credentials.
 #[utoipa::path(
-    context_path = "/services/roomserver",
-    operation_id = "roomserver_asset",
+    context_path = "/internal",
+    operation_id = "internal_upload_asset",
     request_body(
         content = String,
         content_type = "application/octet-stream",
@@ -61,7 +61,7 @@ use crate::api::{
     ),
 )]
 #[post("/room/{room_id}/asset")]
-pub async fn post_roomserver_asset(
+pub async fn post_asset(
     service: Data<dyn OpenTalkControllerService>,
     path: Path<RoomId>,
     query: Query<PostAssetQuery>,
