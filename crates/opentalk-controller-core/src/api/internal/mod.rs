@@ -3,3 +3,4 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 pub mod assets;
+pub mod module_resources;

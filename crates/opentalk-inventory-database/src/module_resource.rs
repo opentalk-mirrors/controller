@@ -84,6 +84,21 @@ impl ModuleResourceInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err, skip_all)]
+    async fn delete_module_resources(
+        &mut self,
+        resource_filter: ModuleResourceFilter,
+    ) -> Result<Vec<ModuleResource>> {
+        Ok(
+            db::ModuleResource::delete(&mut self.inner, resource_filter.into())
+                .await
+                .context(DatabaseSnafu)?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
+    }
+
+    #[tracing::instrument(err, skip_all)]
     async fn delete_all_module_resources_for_room(&mut self, room_id: RoomId) -> Result<()> {
         Ok(db::ModuleResource::delete_by_room(&mut self.inner, room_id)
             .await

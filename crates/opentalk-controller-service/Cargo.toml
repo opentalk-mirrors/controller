@@ -50,6 +50,7 @@ opentalk-roomserver-types-training-participation-report.workspace = true
 opentalk-signaling-core.workspace = true
 opentalk-signaling-module-breakout.workspace = true
 opentalk-signaling-module-moderation.workspace = true
+opentalk-types-api-internal.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["backend"] }
 opentalk-types-common = { workspace = true, features = [
   "backend",

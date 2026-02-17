@@ -19,6 +19,7 @@ async-trait.workspace = true
 bytes.workspace = true
 futures-core.workspace = true
 opentalk-signaling-core.workspace = true
+opentalk-types-api-internal.workspace = true
 opentalk-types-api-v1.workspace = true
 opentalk-types-common.workspace = true
 strum.workspace = true
