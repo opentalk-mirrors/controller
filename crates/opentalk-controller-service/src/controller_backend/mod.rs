@@ -7,12 +7,12 @@ mod assets;
 mod auth;
 mod events;
 mod invites;
+mod module_resources;
 pub mod rooms;
-mod sip_configs;
-mod tariff;
-
 mod services;
+mod sip_configs;
 mod streaming_targets;
+mod tariff;
 mod users;
 mod utils;
 
@@ -35,6 +35,9 @@ use opentalk_roomserver_client::Client as RoomServerClient;
 use opentalk_signaling_core::{
     ExchangeHandle, ObjectStorage, ObjectStorageError, VolatileStorage,
     assets::{AssetSaved, ByStreamExt, NewAssetFileName, asset_key},
+};
+use opentalk_types_api_internal::module_resources::{
+    ModuleResource, ModuleResourceFilter, ModuleResourceOperation, NewModuleResource,
 };
 use opentalk_types_api_v1::{
     assets::{AssetResource, AssetSortingQuery},
@@ -780,5 +783,36 @@ impl OpenTalkControllerService for ControllerBackend {
         query: GetFindQuery,
     ) -> Result<GetFindResponseBody, ApiError> {
         Ok(self.find_users(current_user, query).await?)
+    }
+
+    async fn create_module_resource(
+        &self,
+        resource: NewModuleResource,
+    ) -> Result<ModuleResource, ApiError> {
+        Ok(self.create_module_resource(resource).await?)
+    }
+
+    async fn get_module_resources(
+        &self,
+        filter: ModuleResourceFilter,
+    ) -> Result<Vec<ModuleResource>, ApiError> {
+        Ok(self.get_module_resources(filter).await?)
+    }
+
+    async fn patch_module_resources(
+        &self,
+        filter: ModuleResourceFilter,
+        patch_operations: Vec<ModuleResourceOperation>,
+    ) -> Result<Vec<ModuleResource>, ApiError> {
+        Ok(self
+            .patch_module_resources(filter, patch_operations)
+            .await?)
+    }
+
+    async fn delete_module_resources(
+        &self,
+        filter: ModuleResourceFilter,
+    ) -> Result<Vec<ModuleResource>, ApiError> {
+        Ok(self.delete_module_resources(filter).await?)
     }
 }

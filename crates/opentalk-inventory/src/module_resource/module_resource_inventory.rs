@@ -39,6 +39,12 @@ pub trait ModuleResourceInventory {
         room_id: RoomId,
     ) -> Result<Vec<ModuleResourceId>>;
 
+    /// Get all module resources in the given room where the filter applies
+    async fn delete_module_resources(
+        &mut self,
+        resource_filter: ModuleResourceFilter,
+    ) -> Result<Vec<ModuleResource>>;
+
     /// Delete all module resources of a room.
     async fn delete_all_module_resources_for_room(&mut self, room_id: RoomId) -> Result<()>;
 }

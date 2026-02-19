@@ -102,6 +102,8 @@ impl From<diesel::result::Error> for JsonOperationError {
 pub struct Filter {
     /// Filter by the UUID of the module resource
     id: Option<ModuleResourceId>,
+    /// Filter by the room id of the module resource
+    room_id: Option<RoomId>,
     /// Filter by the namespace of the module resource
     namespace: Option<String>,
     /// Filter by the creator of the module resource
@@ -114,11 +116,14 @@ pub struct Filter {
 
 impl From<inventory::ModuleResourceFilter> for Filter {
     fn from(value: inventory::ModuleResourceFilter) -> Self {
-        let (id, namespace, created_by, tag, json) = value.into();
+        let (id, room_id, namespace, created_by, tag, json) = value.into();
 
         let mut filter = Self::default();
         if let Some(id) = id {
             filter = filter.with_id(id);
+        }
+        if let Some(room_id) = room_id {
+            filter = filter.with_room_id(room_id);
         }
         if let Some(namespace) = namespace {
             filter = filter.with_namespace(namespace);
@@ -146,6 +151,12 @@ impl Filter {
 
     pub fn with_id(mut self, id: ModuleResourceId) -> Self {
         self.id = Some(id);
+
+        self
+    }
+
+    pub fn with_room_id(mut self, room_id: RoomId) -> Self {
+        self.room_id = Some(room_id);
 
         self
     }
@@ -187,6 +198,10 @@ impl Filter {
 
         if let Some(id) = self.id {
             append(&mut query, Box::new(module_resources::id.eq(id)));
+        }
+
+        if let Some(room_id) = self.room_id {
+            append(&mut query, Box::new(module_resources::room_id.eq(room_id)));
         }
 
         if let Some(namespace) = self.namespace {
@@ -339,7 +354,7 @@ impl ModuleResource {
     }
 
     #[tracing::instrument(err, skip_all)]
-    pub async fn delete(conn: &mut DbConnection, filter: Filter) -> Result<()> {
+    pub async fn delete(conn: &mut DbConnection, filter: Filter) -> Result<Vec<ModuleResource>> {
         let filter = filter
             .into_diesel_filter()
             .ok_or_else(|| DatabaseError::Custom {
@@ -348,9 +363,7 @@ impl ModuleResource {
 
         let query = diesel::delete(module_resources::table).filter(filter);
 
-        query.execute(conn).await?;
-
-        Ok(())
+        Ok(query.get_results(conn).await?)
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -443,7 +456,7 @@ impl NewModuleResource {
 
 #[cfg(test)]
 mod tests {
-    use inventory::ModuleResourceOperation;
+    use opentalk_inventory::ModuleResourceOperation;
     use opentalk_test_util::{assert_eq, *};
     use serde_json::{Value, json};
     use serial_test::serial;
@@ -511,6 +524,34 @@ mod tests {
             json!(updated.remove(0).data),
             json!({
                 "foo": "bar"
+            })
+        );
+    }
+
+    #[actix_rt::test]
+    #[serial]
+    async fn add_to_non_empty() {
+        let (_id, mut db_conn) = init_resource(json!({"foo": "bar"})).await;
+
+        let operations = vec![ModuleResourceOperation::Add {
+            path: "/baz".into(),
+            value: Value::String("quux".into()),
+        }];
+
+        let mut updated = ModuleResource::patch(
+            &mut db_conn,
+            Filter::new().with_namespace("test".into()),
+            operations,
+        )
+        .await
+        .unwrap();
+        assert_eq!(updated.len(), 1);
+
+        assert_eq!(
+            json!(updated.remove(0).data),
+            json!({
+                "foo": "bar",
+                "baz": "quux"
             })
         );
     }

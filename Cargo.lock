@@ -5217,6 +5217,7 @@ dependencies = [
  "opentalk-signaling-core",
  "opentalk-signaling-module-breakout",
  "opentalk-signaling-module-moderation",
+ "opentalk-types-api-internal",
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -5290,6 +5291,7 @@ dependencies = [
  "opentalk-signaling-core",
  "opentalk-signaling-module-breakout",
  "opentalk-signaling-module-moderation",
+ "opentalk-types-api-internal",
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -5324,6 +5326,7 @@ dependencies = [
  "bytes",
  "futures-core",
  "opentalk-signaling-core",
+ "opentalk-types-api-internal",
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "pretty_assertions",
@@ -6689,6 +6692,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-types-api-internal"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e5a25d00abbf497cc32553bbb0d9b26ff4e5681b34adb7228a51d36b4ca4819"
+dependencies = [
+ "opentalk-types-common",
+ "serde",
+ "serde_json",
+ "utoipa",
+]
+
+[[package]]
 name = "opentalk-types-api-v1"
 version = "0.52.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6708,9 +6723,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-common"
-version = "0.42.1"
+version = "0.42.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "539cd84a0339c9ebd591dca6cd20b07c79cb9ed69ef15734579ec0d7ee709d85"
+checksum = "bc4bd102dceb2047a3f76ae8cd71bb12c170f9e3343f0c717c586bd04a60875f"
 dependencies = [
  "actix-http",
  "actix-web-httpauth",

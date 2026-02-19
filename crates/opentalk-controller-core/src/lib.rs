@@ -1039,7 +1039,11 @@ fn internal_service_scope(auth_middleware: Option<ApiKeyAuthorization>) -> Scope
     services.service(
         web::scope("")
             .wrap(auth_middleware)
-            .service(api::internal::assets::post_asset),
+            .service(api::internal::assets::post_asset)
+            .service(api::internal::module_resources::create)
+            .service(api::internal::module_resources::get)
+            .service(api::internal::module_resources::patch)
+            .service(api::internal::module_resources::delete),
     )
 }
 

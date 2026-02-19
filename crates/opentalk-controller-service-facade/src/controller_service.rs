@@ -13,6 +13,9 @@ use opentalk_signaling_core::{
     ObjectStorageError,
     assets::{AssetSaved, ByStreamExt, NewAssetFileName},
 };
+use opentalk_types_api_internal::module_resources::{
+    ModuleResource, ModuleResourceFilter, ModuleResourceOperation, NewModuleResource,
+};
 use opentalk_types_api_v1::{
     assets::{AssetResource, AssetSortingQuery},
     auth::{GetLoginResponseBody, PostLoginResponseBody, login::AuthLoginPostRequestBody},
@@ -538,4 +541,29 @@ pub trait OpenTalkControllerService: Send + Sync {
         current_user: RequestUser,
         query: GetFindQuery,
     ) -> Result<GetFindResponseBody, ApiError>;
+
+    /// Create a new module resource
+    async fn create_module_resource(
+        &self,
+        resource: NewModuleResource,
+    ) -> Result<ModuleResource, ApiError>;
+
+    /// Get module resources matching the filter
+    async fn get_module_resources(
+        &self,
+        filter: ModuleResourceFilter,
+    ) -> Result<Vec<ModuleResource>, ApiError>;
+
+    /// Patch the module resources matching the filter
+    async fn patch_module_resources(
+        &self,
+        filter: ModuleResourceFilter,
+        patch_operations: Vec<ModuleResourceOperation>,
+    ) -> Result<Vec<ModuleResource>, ApiError>;
+
+    /// Delete the module resources matching the filter
+    async fn delete_module_resources(
+        &self,
+        filter: ModuleResourceFilter,
+    ) -> Result<Vec<ModuleResource>, ApiError>;
 }
