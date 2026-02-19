@@ -38,7 +38,7 @@ pub trait TariffInventory {
     async fn create_tariff(&mut self, tariff: NewTariff) -> Result<Tariff>;
 
     /// Update a tariff.
-    async fn update_tariff(&mut self, tariff_id: TariffId, tariff: UpdateTariff) -> Result<Tariff>;
+    async fn update_tariff(&mut self, tariff: Tariff, changeset: UpdateTariff) -> Result<Tariff>;
 
     /// Delete a tariff.
     async fn delete_tariff(&mut self, tariff_id: TariffId) -> Result<()>;

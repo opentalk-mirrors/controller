@@ -87,9 +87,9 @@ impl TariffInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err, skip_all)]
-    async fn update_tariff(&mut self, tariff_id: TariffId, tariff: UpdateTariff) -> Result<Tariff> {
-        Ok(db::UpdateTariff::from(tariff)
-            .apply(&mut self.inner, tariff_id)
+    async fn update_tariff(&mut self, tariff: Tariff, changeset: UpdateTariff) -> Result<Tariff> {
+        Ok(db::UpdateTariff::from(changeset)
+            .apply(&mut self.inner, tariff.id)
             .await
             .context(DatabaseSnafu)?
             .into())

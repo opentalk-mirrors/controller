@@ -319,7 +319,7 @@ async fn edit_tariff(
             // Apply changeset
             let updated_tariff = inventory
                 .update_tariff(
-                    tariff.id,
+                    tariff,
                     UpdateTariff {
                         name: set_name,
                         updated_at: Timestamp::now(),
