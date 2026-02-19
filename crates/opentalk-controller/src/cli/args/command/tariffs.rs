@@ -317,7 +317,7 @@ async fn edit_tariff(
             quotas.extend(add_quotas);
 
             // Apply changeset
-            inventory
+            let updated_tariff = inventory
                 .update_tariff(
                     tariff.id,
                     UpdateTariff {
@@ -330,8 +330,11 @@ async fn edit_tariff(
                 )
                 .await?;
 
-            println!("Updated tariff name={:?} ({})", tariff.name, tariff.id);
-            print_tariffs(inventory, [tariff]).await?;
+            println!(
+                "Updated tariff name={:?} ({})",
+                updated_tariff.name, updated_tariff.id
+            );
+            print_tariffs(inventory, [updated_tariff]).await?;
             Ok(())
         }
         .scope_boxed()
