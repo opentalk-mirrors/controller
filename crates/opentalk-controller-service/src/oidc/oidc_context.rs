@@ -308,9 +308,21 @@ impl OidcContext {
             t.and_then(|c| c.get(None)).map(|c| c.to_string())
         }
 
+        let email = {
+            let raw_email = expect_present(claims.email(), "email")?.as_str();
+            if raw_email.chars().any(|c| c.is_ascii_uppercase()) {
+                log::warn!(
+                    "Invalid uppercase email in token for OIDC sub {}: \"{}\"",
+                    claims.subject().as_str(),
+                    raw_email,
+                );
+            }
+            raw_email.to_lowercase()
+        };
+
         Ok(OpenIdConnectUserInfo {
             sub: claims.subject().to_string(),
-            email: expect_present(claims.email(), "email")?.to_string(),
+            email,
             firstname: expect_present_localized(claims.given_name(), "given_name")?.to_string(),
             lastname: expect_present_localized(claims.family_name(), "family_name")?.to_string(),
             avatar_url: optional(claims.picture()),
