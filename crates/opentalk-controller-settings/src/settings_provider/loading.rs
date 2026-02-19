@@ -21,6 +21,7 @@ impl SettingsProvider {
                     .separator("__")
                     .list_separator(",")
                     .with_list_parse_key("http.cors.allowed_origin")
+                    .with_list_parse_key("http.service_api_keys")
                     .with_list_parse_key("logging.default_directives")
                     .with_list_parse_key("etcd.urls")
                     .try_parsing(true),
