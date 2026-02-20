@@ -3264,7 +3264,7 @@ components:
           $ref: "#/components/schemas/EventTitle"
           description: Override the title of the instance
         type:
-          $ref: "#/components/schemas/EventType"
+          $ref: "#/components/schemas/ExceptionMarker"
           description: "Must always be `exception`"
         updated_at:
           $ref: "#/components/schemas/Timestamp"
@@ -3299,7 +3299,7 @@ components:
           timezone: Europe/Berlin
         status: ok
         title: Team Event
-        type: instance
+        type: exception
         updated_at: "2024-07-20T14:16:19Z"
         updated_by:
           avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
@@ -3455,7 +3455,7 @@ components:
             When present, the training participation report will be started
             automatically in the meeting.
         type:
-          $ref: "#/components/schemas/EventType"
+          $ref: "#/components/schemas/InstanceMarker"
           description: "Must always be `instance`"
         updated_at:
           $ref: "#/components/schemas/Timestamp"
@@ -4068,6 +4068,14 @@ components:
         - instance
         - exception
       example: instance
+    ExceptionMarker:
+      type: string
+      description: |-
+        Marker type that serializes to `"exception"`.
+
+        This ensures `type: "exception"` appears in JSON for variant.
+      enum:
+        - exception
     FeatureId:
       type: string
       description: A feature identifier
@@ -4308,6 +4316,14 @@ components:
       description: An event instance id
       examples:
         - 20240720T152342Z
+    InstanceMarker:
+      type: string
+      description: |-
+        Marker type that serializes to `"instance"`.
+
+        This ensures `type: "instance"` appears in JSON for variant.
+      enum:
+        - instance
     InviteCode:
       type: string
       format: uuid
