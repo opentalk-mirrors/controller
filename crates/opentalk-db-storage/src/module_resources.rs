@@ -530,7 +530,7 @@ mod tests {
 
     #[actix_rt::test]
     #[serial]
-    async fn add_to_non_empty() {
+    async fn serial_test_add_to_non_empty() {
         let (_id, mut db_conn) = init_resource(json!({"foo": "bar"})).await;
 
         let operations = vec![ModuleResourceOperation::Add {
