@@ -9,7 +9,7 @@ use devx_cmd::cmd;
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use opentalk_database::query_helper;
 use opentalk_db_storage::migrations::migrate_from_url;
-use rand::Rng;
+use rand::RngExt;
 use snafu::{Report, whatever};
 use unified_diff::diff;
 

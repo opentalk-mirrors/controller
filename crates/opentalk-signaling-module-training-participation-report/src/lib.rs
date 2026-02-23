@@ -68,7 +68,7 @@ use opentalk_types_signaling_training_participation_report::{
     },
     state::{ParticipationLoggingState, TrainingParticipationReportState},
 };
-use rand::Rng as _;
+use rand::RngExt as _;
 use snafu::{Report, ResultExt};
 use storage::{RoomState, TrainingParticipationReportStorage, TrainingReportState};
 use template::ReportTemplateParameter;
