@@ -61,7 +61,7 @@ impl Cache {
     /// Create a new [`Cache`] instance with an optional [`RedisConnection`].
     pub fn create(redis: Option<RedisConnection>) -> Self {
         Self {
-            access_tokens: Self::build_cache(
+            access_tokens: Self::build_cache_with_hashing(
                 redis.clone(),
                 "user-access-tokens".to_string(),
                 Duration::from_secs(ACCESS_TOKEN_DEFAULT_TTL_SECS),
@@ -76,6 +76,9 @@ impl Cache {
         }
     }
 
+    /// Build a cache storage
+    /// If Redis connection is available, combine a Redis cache with a local in-memory cache as an overlay
+    /// Otherise only local cache is used
     fn build_cache<K, V>(
         redis: Option<RedisConnection>,
         prefix: String,
@@ -87,6 +90,30 @@ impl Cache {
         V: redis::Value + local::Value + 'static,
     {
         let local_cache = local::Cache::new(ttl, mode);
+
+        let Some(redis) = redis else {
+            return Box::new(local_cache);
+        };
+        let redis = redis.into_manager();
+
+        let redis_cache = redis::Cache::new(redis, prefix, ttl);
+
+        Box::new(redis_cache.with_overlay(local_cache))
+    }
+
+    /// Build a cache storage with key hashing to reduce memory usage for large keys
+    /// If Redis connection is available, compose a Redis cache with a local in-memory cache as an overly
+    /// Otherise only local cache is used
+    fn build_cache_with_hashing<K, V>(
+        redis: Option<RedisConnection>,
+        prefix: String,
+        ttl: Duration,
+    ) -> Box<dyn CacheStorage<K, V> + Send + Sync>
+    where
+        K: redis::Key + local::Key + Clone + Display + Hash + 'static,
+        V: redis::Value + local::Value + 'static,
+    {
+        let local_cache = local::Cache::new(ttl);
 
         let Some(redis) = redis else {
             return Box::new(local_cache.with_hashing());
