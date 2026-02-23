@@ -4,8 +4,9 @@
 
 use std::sync::Arc;
 
-use openidconnect::{AccessToken, ClientId, ClientSecret};
+use openidconnect::{AccessToken, ClientId, ClientSecret, SubjectIdentifier};
 use opentalk_controller_utils::CaptureApiError;
+use opentalk_types_api_v1::auth::LogoutToken;
 use url::Url;
 
 use super::{OidcContext, OpenIdConnectUserInfo, RealmRoles, VerificationInfo, VerifyError};
@@ -39,6 +40,12 @@ pub trait OidcTokenHandler: Sync + Send {
     ///
     /// Only used by the deprecated login endpoint
     fn verify_id_token(&self, id_token: &str) -> Result<(), VerifyError>;
+
+    /// Verify the logout token and returns the subject of the token
+    fn verify_logout_token(
+        &self,
+        logout_token: &LogoutToken,
+    ) -> Result<SubjectIdentifier, VerifyError>;
 }
 
 /// Build the oidc token handler

@@ -18,7 +18,9 @@ use opentalk_types_api_internal::module_resources::{
 };
 use opentalk_types_api_v1::{
     assets::{AssetResource, AssetSortingQuery},
-    auth::{GetLoginResponseBody, PostLoginResponseBody, login::AuthLoginPostRequestBody},
+    auth::{
+        GetLoginResponseBody, LogoutToken, PostLoginResponseBody, login::AuthLoginPostRequestBody,
+    },
     error::ApiError,
     events::{
         DeleteEventInvitePath, DeleteEventsQuery, DeleteSharedFolderQuery, EventInstance,
@@ -80,6 +82,9 @@ use crate::RequestUser;
 pub trait OpenTalkControllerService: Send + Sync {
     /// Get the configured OIDC provider
     async fn get_login(&self) -> GetLoginResponseBody;
+
+    /// Triggers OIDC back channel logout
+    async fn post_logout(&self, logout_token: &LogoutToken) -> Result<(), ApiError>;
 
     /// Post a login request.
     async fn post_login(

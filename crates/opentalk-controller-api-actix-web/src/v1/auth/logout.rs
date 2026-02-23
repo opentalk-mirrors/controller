@@ -32,8 +32,9 @@ use crate::response::NoContent;
 )]
 #[post("/auth/logout")]
 pub async fn post(
-    _service: Data<dyn OpenTalkControllerService>,
-    _request: Form<PostLogoutRequestBody>,
+    service: Data<dyn OpenTalkControllerService>,
+    request: Form<PostLogoutRequestBody>,
 ) -> Result<NoContent, ApiError> {
+    service.post_logout(&request.logout_token).await?;
     Ok(NoContent)
 }

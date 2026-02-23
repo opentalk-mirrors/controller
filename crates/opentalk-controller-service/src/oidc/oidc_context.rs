@@ -6,20 +6,23 @@ use std::{ops::Deref, str::FromStr as _};
 
 use icu_locid::LanguageIdentifier;
 use openidconnect::{
-    AccessToken, ClientId, ClientSecret, LocalizedClaim, TokenIntrospectionResponse as _,
-    UserInfoClaims, core::CoreGenderClaim,
+    AccessToken, ClientId, ClientSecret, LocalizedClaim, SubjectIdentifier,
+    TokenIntrospectionResponse as _, UserInfoClaims, core::CoreGenderClaim,
 };
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
+use opentalk_types_api_v1::{
+    auth::LogoutToken,
+    error::{ApiError, AuthenticationError},
+};
 use opentalk_types_common::time::TimeZone;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use snafu::{OptionExt as _, Report, ResultExt as _, Whatever};
 use url::Url;
 
 use super::{
-    IntrospectInfo, JWTAccessTokenClaims, OidcTokenHandler, OnlyExpiryClaim, OpenIdConnectUserInfo,
-    OpenTalkAdditionalClaims, ProviderClient, RealmRoles, ServiceClaims, VerificationInfo,
-    VerifyError, jwt,
+    IntrospectInfo, JWTAccessTokenClaims, JWTLogoutTokenClaims, OidcTokenHandler, OnlyExpiryClaim,
+    OpenIdConnectUserInfo, OpenTalkAdditionalClaims, ProviderClient, RealmRoles, ServiceClaims,
+    VerificationInfo, VerifyError, jwt,
 };
 use crate::Result;
 
@@ -119,7 +122,7 @@ impl OidcContext {
         &self,
         access_token: &AccessToken,
     ) -> Result<RealmRoles, CaptureApiError> {
-        let claims = match self.verify_jwt_token::<ServiceClaims>(access_token) {
+        let claims = match self.verify_jwt_token::<ServiceClaims>(access_token.secret().as_str()) {
             Ok(claims) => claims,
             Err(e) => {
                 log::error!("Invalid access token, {}", Report::from_error(e));
@@ -165,7 +168,7 @@ impl OidcContext {
 
         // Access token format must correspond [rfc9068](https://datatracker.ietf.org/doc/html/rfc9068)
         // to be able to verify it locally
-        match self.verify_jwt_token::<JWTAccessTokenClaims>(access_token) {
+        match self.verify_jwt_token::<JWTAccessTokenClaims>(access_token.secret().as_str()) {
             Ok(claims) => {
                 return Ok(VerificationInfo {
                     exp: Some(claims.exp),
@@ -183,18 +186,27 @@ impl OidcContext {
         }
     }
 
-    /// Verifies the signature and expiration of an AccessToken encoded as JWT (Json Web Token)
-    ///
-    /// This is used if the OpenID Connect Provider does not support introspection endpoints.
-    #[tracing::instrument(name = "oidc_verify_access_token", skip(self, access_token))]
-    fn verify_jwt_token<C: jwt::VerifyClaims>(
+    #[tracing::instrument(skip_all)]
+    fn verify_logout_token(
         &self,
-        access_token: &AccessToken,
-    ) -> Result<C, VerifyError> {
-        jwt::verify::<C>(
-            self.provider.metadata.jwks(),
-            access_token.secret().as_str(),
-        )
+        logout_token: &LogoutToken,
+    ) -> Result<SubjectIdentifier, VerifyError> {
+        let claims = self.verify_jwt_token::<JWTLogoutTokenClaims>(logout_token.as_str())?;
+
+        if !claims
+            .events
+            .contains_key("http://schemas.openid.net/event/backchannel-logout")
+        {
+            return Err(VerifyError::InvalidClaims);
+        }
+
+        Ok(SubjectIdentifier::new(claims.sub))
+    }
+
+    /// Verifies that a JWT token is valid and contains specified claims
+    #[tracing::instrument(name = "oidc_verify_jwt_token", skip(self, token))]
+    fn verify_jwt_token<C: jwt::VerifyClaims>(&self, token: &str) -> Result<C, VerifyError> {
+        jwt::verify::<C>(self.provider.metadata.jwks(), token)
     }
 
     /// Returns if the configured provider support introspection
@@ -374,5 +386,12 @@ impl OidcTokenHandler for OidcContext {
 
     fn verify_id_token(&self, id_token: &str) -> Result<(), VerifyError> {
         OidcContext::verify_id_token(self, id_token)
+    }
+
+    fn verify_logout_token(
+        &self,
+        logout_token: &LogoutToken,
+    ) -> Result<SubjectIdentifier, VerifyError> {
+        OidcContext::verify_logout_token(self, logout_token)
     }
 }

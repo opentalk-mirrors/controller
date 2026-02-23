@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc};
 use openidconnect::AdditionalClaims;
 use serde::{Deserialize, Serialize};
@@ -70,6 +72,41 @@ pub struct JWTAccessTokenClaims {
 }
 
 impl jwt::VerifyClaims for JWTAccessTokenClaims {
+    fn exp(&self) -> DateTime<Utc> {
+        self.exp
+    }
+}
+
+/// Mandatory claims for JWT logout token as specified in
+/// [Logout Token Validation](https://openid.net/specs/openid-connect-backchannel-1_0.html#Validation)
+///
+/// Note: currenlty we implement only stateless authentification,
+///       therefore we completely depend on `sub` and do not need `sid`
+#[derive(Deserialize, Debug)]
+pub struct JWTLogoutTokenClaims {
+    /// Issuer (URL to the OIDC Provider)
+    #[allow(unused)]
+    pub iss: String,
+    /// Expires at
+    #[serde(with = "time")]
+    pub exp: DateTime<Utc>,
+    /// Audience claim
+    #[allow(unused)]
+    pub aud: String,
+    /// Subject
+    pub sub: String,
+    /// Issued at
+    #[allow(unused)]
+    #[serde(with = "time")]
+    pub iat: DateTime<Utc>,
+    // JWT ID
+    #[allow(unused)]
+    pub jti: String,
+    // Events claim
+    pub events: HashMap<String, serde_json::Value>,
+}
+
+impl jwt::VerifyClaims for JWTLogoutTokenClaims {
     fn exp(&self) -> DateTime<Utc> {
         self.exp
     }

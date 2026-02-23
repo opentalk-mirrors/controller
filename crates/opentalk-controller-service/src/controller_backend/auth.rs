@@ -3,7 +3,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_types_api_v1::{
-    auth::{GetLoginResponseBody, PostLoginResponseBody, login::AuthLoginPostRequestBody},
+    auth::{
+        GetLoginResponseBody, LogoutToken, PostLoginResponseBody, login::AuthLoginPostRequestBody,
+    },
     error::{ApiError, AuthenticationError},
 };
 
@@ -39,5 +41,18 @@ impl ControllerBackend {
         Ok(PostLoginResponseBody {
             permissions: Default::default(),
         })
+    }
+
+    pub(crate) async fn post_logout(&self, logout_token: &LogoutToken) -> Result<(), ApiError> {
+        let result = self.oidc_token_handler.verify_logout_token(logout_token);
+
+        let _sub = result.map_err(|_| {
+            log::warn!("Received an invalid logout token");
+            ApiError::bad_request()
+                .with_code("invalid_token")
+                .with_message("provided logout token is invalid")
+        })?;
+
+        Ok(())
     }
 }
