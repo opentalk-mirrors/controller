@@ -42,7 +42,8 @@ use opentalk_types_api_internal::module_resources::{
 use opentalk_types_api_v1::{
     assets::{AssetResource, AssetSortingQuery},
     auth::{
-        GetLoginResponseBody, OidcProvider, PostLoginResponseBody, login::AuthLoginPostRequestBody,
+        GetLoginResponseBody, LogoutToken, OidcProvider, PostLoginResponseBody,
+        login::AuthLoginPostRequestBody,
     },
     error::ApiError,
     events::{
@@ -178,6 +179,10 @@ impl OpenTalkControllerService for ControllerBackend {
         body: AuthLoginPostRequestBody,
     ) -> Result<PostLoginResponseBody, ApiError> {
         Ok(self.post_login(body).await?)
+    }
+
+    async fn post_logout(&self, logout_token: &LogoutToken) -> Result<(), ApiError> {
+        Ok(self.post_logout(logout_token).await?)
     }
 
     async fn get_rooms(
