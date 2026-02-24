@@ -43,14 +43,12 @@ where
     }
 
     async fn insert(&self, key: K, value: V) -> Result<()> {
-        self.inner.insert(key, Entry::new(value)).await;
+        self.inner.insert(key, Entry::new(value, self.ttl)).await;
         Ok(())
     }
 
     async fn insert_with_ttl(&self, key: K, value: V, ttl: Duration) -> Result<()> {
-        self.inner
-            .insert(key, Entry::new_with_ttl(value, ttl))
-            .await;
+        self.inner.insert(key, Entry::new(value, ttl)).await;
         Ok(())
     }
 

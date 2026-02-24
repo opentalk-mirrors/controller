@@ -20,8 +20,10 @@ pub trait CacheStorage<K, V> {
 
     async fn get(&self, key: &K) -> Result<Option<V>>;
 
+    /// Insert a value into the cache with the default TTL of the cache storage
     async fn insert(&self, key: K, value: V) -> Result<()>;
 
+    /// Insert a value into the cache with customized TTL for this entry
     async fn insert_with_ttl(&self, key: K, value: V, ttl: Duration) -> Result<()>;
 
     async fn invalidate(&self, key: &K) -> Result<()>;

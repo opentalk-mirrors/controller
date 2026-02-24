@@ -13,11 +13,7 @@ pub(super) struct Entry<V> {
 }
 
 impl<V> Entry<V> {
-    pub(super) fn new(value: V) -> Self {
-        Self { value, ttl: None }
-    }
-
-    pub(super) fn new_with_ttl(value: V, ttl: Duration) -> Self {
+    pub(super) fn new(value: V, ttl: Duration) -> Self {
         Self {
             value,
             ttl: Some(ttl),
