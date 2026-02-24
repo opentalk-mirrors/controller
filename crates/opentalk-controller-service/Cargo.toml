@@ -21,6 +21,7 @@ base64.workspace = true
 bytes.workspace = true
 chrono.workspace = true
 chrono-tz = { workspace = true, features = ["serde"] }
+derive_more.workspace = true
 diesel-async.workspace = true
 either.workspace = true
 futures.workspace = true

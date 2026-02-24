@@ -16,9 +16,12 @@ use opentalk_inventory::{Tenant, User};
 use opentalk_signaling_core::RedisConnection;
 use snafu::{Report, Snafu};
 
-use super::cacheable::{
-    AccessTokenResult, ApiError as CacheableApiError, Tenant as CacheableTenant,
-    User as CacheableUser,
+use super::{
+    LogoutMarker,
+    cacheable::{
+        AccessTokenResult, ApiError as CacheableApiError, Tenant as CacheableTenant,
+        User as CacheableUser,
+    },
 };
 
 #[derive(Debug, Snafu)]
@@ -54,7 +57,7 @@ pub struct Cache {
     /// Cache storage for access tokens
     pub access_tokens: Box<dyn CacheStorage<String, AccessTokenResult> + Send + Sync>,
     /// Cache storage for logout markers of the OIDC subjects
-    pub sub_logout_markers: Box<dyn CacheStorage<String, u64> + Send + Sync>,
+    pub sub_logout_markers: Box<dyn CacheStorage<String, LogoutMarker> + Send + Sync>,
 }
 
 impl Cache {
@@ -96,7 +99,7 @@ impl Cache {
         };
         let redis = redis.into_manager();
 
-        let redis_cache = redis::Cache::new(redis, prefix, ttl);
+        let redis_cache = redis::Cache::new(redis, prefix, ttl, mode);
 
         Box::new(redis_cache.with_overlay(local_cache))
     }
@@ -108,12 +111,13 @@ impl Cache {
         redis: Option<RedisConnection>,
         prefix: String,
         ttl: Duration,
+        mode: CacheUpdateMode,
     ) -> Box<dyn CacheStorage<K, V> + Send + Sync>
     where
         K: redis::Key + local::Key + Clone + Display + Hash + 'static,
         V: redis::Value + local::Value + 'static,
     {
-        let local_cache = local::Cache::new(ttl);
+        let local_cache = local::Cache::new(ttl, mode);
 
         let Some(redis) = redis else {
             return Box::new(local_cache.with_hashing());
@@ -189,7 +193,7 @@ impl Cache {
     }
 
     /// Insert logout marker for a specific OIDC subject
-    async fn insert_sub_logout_marker(&self, sub: String, marker: u64) -> Result<()> {
+    async fn insert_sub_logout_marker(&self, sub: String, marker: LogoutMarker) -> Result<()> {
         self.sub_logout_markers
             .insert(sub, marker)
             .await
@@ -210,12 +214,13 @@ impl Cache {
         let sub = String::from(sub);
         match self.sub_logout_markers.get(&sub).await {
             Ok(Some(mut marker)) => {
-                marker += 1;
+                marker.increment();
                 self.insert_sub_logout_marker(sub, marker).await?;
                 Ok(())
             }
             Ok(None) => {
-                self.insert_sub_logout_marker(sub, 0).await?;
+                self.insert_sub_logout_marker(sub, LogoutMarker::from(0))
+                    .await?;
                 Ok(())
             }
             Err(e) => {
