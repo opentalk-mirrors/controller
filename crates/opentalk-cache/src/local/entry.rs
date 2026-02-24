@@ -36,4 +36,14 @@ impl<K, V> Expiry<K, Entry<V>> for EntryExpiry {
     ) -> Option<Duration> {
         value.ttl
     }
+
+    fn expire_after_update(
+        &self,
+        _key: &K,
+        value: &Entry<V>,
+        _updated_at: Instant,
+        _duration_until_expiry: Option<Duration>,
+    ) -> Option<Duration> {
+        value.ttl
+    }
 }

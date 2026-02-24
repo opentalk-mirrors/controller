@@ -137,4 +137,29 @@ mod tests {
         let cached_value = cache.get(&original_key).await.unwrap();
         assert_eq!(cached_value, None);
     }
+
+    #[tokio::test]
+    async fn reset_ttl_on_entry_update() {
+        let (cache, original_key, _original_value) = setup().await;
+
+        let delta = Duration::from_millis(50);
+        tokio::time::sleep(DEFAULT_TTL - delta).await;
+
+        // Update the cache entry before expiration -> this should reset the TTL
+        let new_value = String::from("new value");
+        cache
+            .insert(original_key.clone(), new_value.clone())
+            .await
+            .unwrap();
+        tokio::time::sleep(delta * 2).await;
+
+        // Time a bit longer than default TTL has passed since first insertion, but the entry should still be available
+        let cached_value = cache.get(&original_key).await.unwrap();
+        assert_eq!(Some(new_value), cached_value);
+
+        // Time a bit longer than default TTL has passed since the update, now the entry should be expired
+        tokio::time::sleep(DEFAULT_TTL).await;
+        let cached_value = cache.get(&original_key).await.unwrap();
+        assert_eq!(cached_value, None);
+    }
 }
