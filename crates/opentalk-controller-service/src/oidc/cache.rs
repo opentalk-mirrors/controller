@@ -6,7 +6,7 @@ use core::time::Duration;
 use std::{fmt::Display, hash::Hash};
 
 use chrono::{DateTime, TimeDelta, Utc};
-use openidconnect::AccessToken;
+use openidconnect::{AccessToken, SubjectIdentifier};
 use opentalk_cache::{
     CacheError, CacheStorage, CacheUpdateMode, hashing::WithHashing, local, overlay::WithOverlay,
     redis,
@@ -14,7 +14,7 @@ use opentalk_cache::{
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{Tenant, User};
 use opentalk_signaling_core::RedisConnection;
-use snafu::Snafu;
+use snafu::{Report, Snafu};
 
 use super::cacheable::{
     AccessTokenResult, ApiError as CacheableApiError, Tenant as CacheableTenant,
@@ -186,6 +186,46 @@ impl Cache {
             .insert(access_token.secret().clone(), value)
             .await
             .map_err(AccesTokenCacheError::from)
+    }
+
+    /// Insert logout marker for a specific OIDC subject
+    async fn insert_sub_logout_marker(&self, sub: String, marker: u64) -> Result<()> {
+        self.sub_logout_markers
+            .insert(sub, marker)
+            .await
+            .map_err(|e| {
+                log::warn!(
+                    "Failed to cache logout marker, error: {}",
+                    Report::from_error(&e)
+                );
+                AccesTokenCacheError::from(e)
+            })
+    }
+
+    /// Insert or update logout marker for a specific OIDC subject in the cache
+    /// to invalidate all existing access tokens for the subject
+    /// If marker for the subject does not exist: insert a new one with value 0
+    /// If marker for the subject exists: increment the marker
+    pub async fn upsert_sub_logout_marker(&self, sub: SubjectIdentifier) -> Result<()> {
+        let sub = String::from(sub);
+        match self.sub_logout_markers.get(&sub).await {
+            Ok(Some(mut marker)) => {
+                marker += 1;
+                self.insert_sub_logout_marker(sub, marker).await?;
+                Ok(())
+            }
+            Ok(None) => {
+                self.insert_sub_logout_marker(sub, 0).await?;
+                Ok(())
+            }
+            Err(e) => {
+                log::warn!(
+                    "Failed to retreive logout marker from the cache, error: {}",
+                    Report::from_error(&e)
+                );
+                Err(AccesTokenCacheError::from(e))
+            }
+        }
     }
 }
 

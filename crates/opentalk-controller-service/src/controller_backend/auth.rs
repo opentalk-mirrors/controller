@@ -46,12 +46,22 @@ impl ControllerBackend {
     pub(crate) async fn post_logout(&self, logout_token: &LogoutToken) -> Result<(), ApiError> {
         let result = self.oidc_token_handler.verify_logout_token(logout_token);
 
-        let _sub = result.map_err(|_| {
+        let sub = result.map_err(|_| {
             log::warn!("Received an invalid logout token");
             ApiError::bad_request()
                 .with_code("invalid_token")
                 .with_message("provided logout token is invalid")
         })?;
+
+        self.oidc_cache
+            .upsert_sub_logout_marker(sub)
+            .await
+            .map_err(|_| {
+                log::warn!("Could not update logout marker in cache");
+                ApiError::bad_request()
+                    .with_code("service_unavailable")
+                    .with_message("an internal error occured")
+            })?;
 
         Ok(())
     }
