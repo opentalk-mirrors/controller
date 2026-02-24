@@ -22,7 +22,7 @@ use super::cacheable::{
 };
 
 #[derive(Debug, Snafu)]
-pub enum AccesTokenCacheError {
+pub enum OidcCacheError {
     #[snafu(display("cache error: {source}"))]
     Cache { source: CacheError },
 
@@ -36,9 +36,9 @@ pub enum AccesTokenCacheError {
     CannotUpdateNonExistingToken,
 }
 
-pub type Result<T, E = AccesTokenCacheError> = std::result::Result<T, E>;
+pub type Result<T, E = OidcCacheError> = std::result::Result<T, E>;
 
-impl From<CacheError> for AccesTokenCacheError {
+impl From<CacheError> for OidcCacheError {
     fn from(source: CacheError) -> Self {
         Self::Cache { source }
     }
@@ -135,14 +135,14 @@ impl Cache {
         maybe_expires_at: Option<DateTime<Utc>>,
     ) -> Result<()> {
         let Some(expires_at) = maybe_expires_at else {
-            return Err(AccesTokenCacheError::NoExpiryForToken);
+            return Err(OidcCacheError::NoExpiryForToken);
         };
 
         let token_ttl = expires_at - Utc::now();
 
         // Don't cache tokens that expire too soon
         if token_ttl <= chrono::Duration::seconds(MIN_TOKEN_TTL_SECS) {
-            return Err(AccesTokenCacheError::TokenTtlTooShort { ttl: token_ttl });
+            return Err(OidcCacheError::TokenTtlTooShort { ttl: token_ttl });
         }
 
         let value = match value {
@@ -157,7 +157,7 @@ impl Cache {
                 token_ttl.to_std().expect("duration was previously checked"),
             )
             .await
-            .map_err(AccesTokenCacheError::from)
+            .map_err(OidcCacheError::from)
     }
 
     /// Updates value for a valid cached access token
@@ -176,8 +176,8 @@ impl Cache {
 
         match self.access_tokens.get(access_token.secret()).await {
             Ok(Some(_)) => (),
-            Ok(None) => return Err(AccesTokenCacheError::CannotUpdateNonExistingToken),
-            Err(e) => return Err(AccesTokenCacheError::from(e)),
+            Ok(None) => return Err(OidcCacheError::CannotUpdateNonExistingToken),
+            Err(e) => return Err(OidcCacheError::from(e)),
         }
 
         // We know the token exists in the cache, so we can safely update it with default TTL
@@ -185,7 +185,7 @@ impl Cache {
         self.access_tokens
             .insert(access_token.secret().clone(), value)
             .await
-            .map_err(AccesTokenCacheError::from)
+            .map_err(OidcCacheError::from)
     }
 
     /// Insert logout marker for a specific OIDC subject
@@ -198,7 +198,7 @@ impl Cache {
                     "Failed to cache logout marker, error: {}",
                     Report::from_error(&e)
                 );
-                AccesTokenCacheError::from(e)
+                OidcCacheError::from(e)
             })
     }
 
@@ -223,7 +223,7 @@ impl Cache {
                     "Failed to retreive logout marker from the cache, error: {}",
                     Report::from_error(&e)
                 );
-                Err(AccesTokenCacheError::from(e))
+                Err(OidcCacheError::from(e))
             }
         }
     }
