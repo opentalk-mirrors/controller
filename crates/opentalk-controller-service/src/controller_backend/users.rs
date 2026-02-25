@@ -26,7 +26,7 @@ use opentalk_types_common::{
     time::Timestamp,
     users::UserId,
 };
-use snafu::{ResultExt, Whatever};
+use snafu::{Report, ResultExt, Whatever};
 
 use crate::{
     ControllerBackend, ToUserProfile, email_to_libravatar_url, helpers::asset_to_asset_resource,
@@ -87,9 +87,28 @@ impl ControllerBackend {
         // Update the access token cache as well to reflect the changes immediately.
         let tenant = inventory.get_tenant(user.tenant_id).await?;
 
-        self.oidc_cache
-            .upsert_access_token_patch_me(user, tenant, access_token)
+        let value = Ok((tenant, user));
+
+        // Though we've verified the access token in the middlware already
+        // we use this method again to retreive token's expiry time
+        let info = self
+            .oidc_token_handler
+            .verify_access_token(access_token)
             .await?;
+
+        if let Err(e) = self
+            .oidc_cache
+            .insert_access_token(access_token, value, info.exp)
+            .await
+        {
+            log::warn!(
+                "Failed to update user profile in the access token cache: {}",
+                Report::from_error(e)
+            );
+            return Err(ApiError::internal()
+                .with_message("Failed to update user profile in the access token cache")
+                .into());
+        }
 
         Ok(Some(user_profile))
     }

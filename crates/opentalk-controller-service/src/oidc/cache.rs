@@ -14,15 +14,11 @@ use opentalk_cache::{
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{Tenant, User};
 use opentalk_signaling_core::RedisConnection;
-use snafu::{Report, ResultExt, Snafu, Whatever};
+use snafu::Snafu;
 
-use super::{
-    OnlyExpiryClaim,
-    cacheable::{
-        AccessTokenResult, ApiError as CacheableApiError, Tenant as CacheableTenant,
-        User as CacheableUser,
-    },
-    jwt::decode_token,
+use super::cacheable::{
+    AccessTokenResult, ApiError as CacheableApiError, Tenant as CacheableTenant,
+    User as CacheableUser,
 };
 
 #[derive(Debug, Snafu)]
@@ -121,44 +117,6 @@ impl Cache {
             )
             .await
             .map_err(AccesTokenCacheError::from)
-    }
-
-    /// A hacky helper function that was introduced in the past
-    /// specifically for the patch_me endpoint
-    /// to update the access token cache with new user data
-    pub async fn upsert_access_token_patch_me(
-        &self,
-        user: User,
-        tenant: Tenant,
-        access_token: &AccessToken,
-    ) -> Result<(), CaptureApiError> {
-        let access_token = access_token.secret();
-        let claim = decode_token::<OnlyExpiryClaim>(access_token)
-            .whatever_context::<&str, Whatever>(
-                "failed to decode access token for user profile update",
-            )?;
-
-        let token_ttl = claim.exp - Utc::now();
-        if token_ttl > chrono::Duration::seconds(MIN_TOKEN_TTL_SECS) {
-            match token_ttl.to_std() {
-                Ok(token_ttl_std) => {
-                    self.access_tokens
-                        .insert_with_ttl(
-                            access_token.to_string(),
-                            Ok((tenant.into(), user.into())),
-                            token_ttl_std,
-                        )
-                        .await?;
-                }
-                Err(e) => {
-                    log::debug!(
-                        "abort user profile cache update due to invalid token TTL, {}",
-                        Report::from_error(e)
-                    );
-                }
-            }
-        }
-        Ok(())
     }
 }
 
