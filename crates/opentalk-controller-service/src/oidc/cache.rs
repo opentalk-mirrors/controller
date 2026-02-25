@@ -19,8 +19,8 @@ use snafu::{Report, Snafu};
 use super::{
     LogoutMarker,
     cacheable::{
-        AccessTokenResult, ApiError as CacheableApiError, Tenant as CacheableTenant,
-        User as CacheableUser,
+        AccessTokenResult, ApiError as CacheableApiError, DecodeFromCacheError,
+        Tenant as CacheableTenant, User as CacheableUser,
     },
 };
 
@@ -28,6 +28,9 @@ use super::{
 pub enum OidcCacheError {
     #[snafu(display("cache error: {source}"))]
     Cache { source: CacheError },
+
+    #[snafu(display("cache error while decoding: {source}"))]
+    DecodeFromCacheError { source: DecodeFromCacheError },
 
     #[snafu(display("token expires soon and will not be cached (ttl={ttl:?})"))]
     TokenTtlTooShort { ttl: TimeDelta },
@@ -44,6 +47,12 @@ pub type Result<T, E = OidcCacheError> = std::result::Result<T, E>;
 impl From<CacheError> for OidcCacheError {
     fn from(source: CacheError) -> Self {
         Self::Cache { source }
+    }
+}
+
+impl From<DecodeFromCacheError> for OidcCacheError {
+    fn from(source: DecodeFromCacheError) -> Self {
+        Self::DecodeFromCacheError { source }
     }
 }
 
@@ -190,6 +199,45 @@ impl Cache {
             .insert(access_token.secret().clone(), value)
             .await
             .map_err(OidcCacheError::from)
+    }
+
+    /// Get cached result for an access token
+    pub async fn get_access_token(
+        &self,
+        access_token: &AccessToken,
+    ) -> Result<Option<Result<(Tenant, User), CaptureApiError>>, OidcCacheError> {
+        match self.access_tokens.get(access_token.secret()).await {
+            Ok(Some(Ok((tenant, user)))) => {
+                let tenant = tenant.try_into().map_err(|e| {
+                log::warn!(
+                    "Error when attempting to read tenant information loaded from token cache: {}",
+                    Report::from_error(&e)
+                );
+                OidcCacheError::from(e)
+            })?;
+                let user = user.try_into().map_err(|e| {
+                log::warn!(
+                    "Error when attempting to read user information loaded from token cache: {}",
+                    Report::from_error(&e)
+                );
+                OidcCacheError::from(e)
+            })?;
+
+                Ok(Some(Ok((tenant, user))))
+            }
+            Ok(Some(Err(cached_error))) => {
+                let cached_error = CaptureApiError::try_from(cached_error).map_err(|e| {
+                log::warn!(
+                    "Error when attempting to read verification result loaded from token cache: {}",
+                    Report::from_error(&e)
+                );
+                OidcCacheError::from(e)
+            })?;
+                Ok(Some(Err(cached_error)))
+            }
+            Ok(None) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
     }
 
     /// Insert logout marker for a specific OIDC subject

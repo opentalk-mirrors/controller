@@ -23,10 +23,9 @@ use actix_web_httpauth::headers::authorization::Authorization;
 use diesel_async::scoped_futures::ScopedFutureExt as _;
 use kustos::prelude::PoliciesBuilder;
 use openidconnect::AccessToken;
-use opentalk_cache::CacheStorage;
 use opentalk_controller_service::{
     controller_backend::RoomsPoliciesBuilderExt,
-    oidc::{AccessTokenResult, Cache, OidcTokenHandler, OpenIdConnectUserInfo},
+    oidc::{Cache, OidcTokenHandler, OpenIdConnectUserInfo},
     phone_numbers::parse_phone_number,
 };
 use opentalk_controller_service_facade::RequestUser;
@@ -233,12 +232,16 @@ pub async fn check_access_token(
     oidc_cache: &Cache,
     access_token: &AccessToken,
 ) -> Result<(Tenant, User), CaptureApiError> {
-    if let Some(cached_result) =
-        get_cached_result(oidc_cache.access_tokens.as_ref(), access_token).await?
+    // Check if access token has been cached already
+    if let Some(result) = oidc_cache
+        .get_access_token(access_token)
+        .await
+        .map_err(|_| ApiError::internal())?
     {
-        return cached_result;
+        return result;
     }
 
+    // Access token arrived for the first time
     let verification_result = oidc_ctx.verify_access_token(access_token).await?;
 
     let inner_result =
@@ -256,45 +259,6 @@ pub async fn check_access_token(
     }
 
     inner_result
-}
-
-/// Attempt to retrieve cached result
-async fn get_cached_result(
-    cache: &dyn CacheStorage<String, AccessTokenResult>,
-    access_token: &AccessToken,
-) -> Result<Option<Result<(Tenant, User), CaptureApiError>>, CaptureApiError> {
-    match cache.get(access_token.secret()).await {
-        Ok(Some(Ok((tenant, user)))) => {
-            let tenant = tenant.try_into().map_err(|e| {
-                log::warn!(
-                    "Error when attempting to read tenant information loaded from token cache: {}",
-                    Report::from_error(e)
-                );
-                ApiError::internal()
-            })?;
-            let user = user.try_into().map_err(|e| {
-                log::warn!(
-                    "Error when attempting to read user information loaded from token cache: {}",
-                    Report::from_error(e)
-                );
-                ApiError::internal()
-            })?;
-
-            Ok(Some(Ok((tenant, user))))
-        }
-        Ok(Some(Err(api_error))) => {
-            let api_error = CaptureApiError::try_from(api_error).map_err(|e| {
-                log::warn!(
-                    "Error when attempting to read verification result loaded from token cache: {}",
-                    Report::from_error(e)
-                );
-                ApiError::internal()
-            })?;
-            Ok(Some(Err(api_error)))
-        }
-        Ok(None) => Ok(None),                        // Cache miss
-        Err(cache_error) => Err(cache_error.into()), // Cache access error
-    }
 }
 
 /// Fetches all associated user data of the access token
