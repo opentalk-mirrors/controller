@@ -25,6 +25,7 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use futures_core::Stream;
 use kustos::Authz;
+use openidconnect::AccessToken;
 use opentalk_controller_service_facade::{
     AssetDownloadProxyStream, OpenTalkControllerService, RequestUser,
 };
@@ -750,7 +751,7 @@ impl OpenTalkControllerService for ControllerBackend {
         &self,
         current_user: RequestUser,
         patch: PatchMeRequestBody,
-        access_token: &str,
+        access_token: &AccessToken,
     ) -> Result<Option<PrivateUserProfile>, ApiError> {
         Ok(self.patch_me(current_user, patch, access_token).await?)
     }

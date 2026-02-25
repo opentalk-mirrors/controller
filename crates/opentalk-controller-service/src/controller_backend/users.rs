@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use openidconnect::AccessToken;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::{
     TenantAssignment, UserSearchBackend, UserSearchBackendKeycloak,
@@ -36,7 +37,7 @@ impl ControllerBackend {
         &self,
         current_user: RequestUser,
         patch: PatchMeRequestBody,
-        access_token: &str,
+        access_token: &AccessToken,
     ) -> Result<Option<PrivateUserProfile>, CaptureApiError> {
         if patch.is_empty() {
             return Ok(None);

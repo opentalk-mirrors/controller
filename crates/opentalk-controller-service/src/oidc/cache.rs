@@ -130,8 +130,9 @@ impl Cache {
         &self,
         user: User,
         tenant: Tenant,
-        access_token: &str,
+        access_token: &AccessToken,
     ) -> Result<(), CaptureApiError> {
+        let access_token = access_token.secret();
         let claim = decode_token::<OnlyExpiryClaim>(access_token)
             .whatever_context::<&str, Whatever>(
                 "failed to decode access token for user profile update",

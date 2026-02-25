@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use openidconnect::AccessToken;
+
 mod asset_download_proxy_stream;
 mod start_room_error;
 
@@ -516,7 +518,7 @@ pub trait OpenTalkControllerService: Send + Sync {
         &self,
         current_user: RequestUser,
         patch: PatchMeRequestBody,
-        access_token: &str,
+        access_token: &AccessToken,
     ) -> Result<Option<PrivateUserProfile>, ApiError>;
 
     /// Get the current user's profile.
