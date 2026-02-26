@@ -12,6 +12,7 @@
 pub mod signaling;
 pub mod headers;
 pub mod internal;
+pub mod livekit_proxy;
 pub mod upload;
 pub mod v1;
 

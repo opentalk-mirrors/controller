@@ -487,6 +487,11 @@ impl Controller {
                     .service(api::signaling::ws_service)
                     .service(metrics::metrics)
                     .with_swagger_service_if(swagger_service_enabled)
+                    .service(
+                        web::scope("livekit")
+                            .service(web::scope("v1").service(api::livekit_proxy::proxy))
+                            .service(api::livekit_proxy::proxy),
+                    )
                     .service(internal_service_scope(service_auth_middleware))
                     .service(v1_scope(
                         settings_provider.clone(),
