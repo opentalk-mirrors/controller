@@ -86,19 +86,11 @@ impl ControllerBackend {
 
         // Update the access token cache as well to reflect the changes immediately.
         let tenant = inventory.get_tenant(user.tenant_id).await?;
-
         let value = Ok((tenant, user));
-
-        // Though we've verified the access token in the middlware already
-        // we use this method again to retreive token's expiry time
-        let info = self
-            .oidc_token_handler
-            .verify_access_token(access_token)
-            .await?;
 
         if let Err(e) = self
             .oidc_cache
-            .insert_access_token(access_token, value, info.exp)
+            .update_access_token(access_token, value)
             .await
         {
             log::warn!(
