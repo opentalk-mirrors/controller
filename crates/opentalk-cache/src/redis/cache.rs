@@ -4,7 +4,7 @@
 
 use std::{marker::PhantomData, time::Duration};
 
-use redis::AsyncCommands as _;
+use redis::{AsyncCommands as _, SetExpiry, SetOptions};
 use snafu::ResultExt as _;
 
 use super::{Connection, Error, Key, Value};
@@ -75,16 +75,16 @@ where
         // Limit the ttl to the ttl of this [`Cache`].
         let ttl = ttl.min(self.ttl);
 
+        let redis_key = super::RedisCacheKey {
+            prefix: &self.prefix,
+            key: &key,
+        };
+        let expiration = SetExpiry::EX(ttl.as_secs());
+        let opts = SetOptions::default().with_expiration(expiration);
+
         self.connection
             .clone()
-            .set_ex::<_, _, ()>(
-                super::RedisCacheKey {
-                    prefix: &self.prefix,
-                    key: &key,
-                },
-                value.encode_for_redis()?,
-                ttl.as_secs(),
-            )
+            .set_options::<_, _, ()>(redis_key, value.encode_for_redis()?, opts)
             .await
             .context(super::error::RedisSnafu)?;
         Ok(())
