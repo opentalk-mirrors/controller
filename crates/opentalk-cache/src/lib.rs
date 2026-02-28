@@ -30,3 +30,9 @@ pub trait CacheStorage<K, V> {
 
     async fn invalidate(&self, key: &K) -> Result<()>;
 }
+
+#[derive(Debug, Clone, Copy)]
+pub enum CacheUpdateMode {
+    KeepTtl,
+    ResetTtl,
+}
