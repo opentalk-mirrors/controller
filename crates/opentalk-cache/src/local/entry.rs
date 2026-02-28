@@ -6,17 +6,21 @@ use std::time::{Duration, Instant};
 
 use moka::Expiry;
 
+use crate::CacheUpdateMode;
+
 #[derive(Debug, Clone, Copy)]
 pub(super) struct Entry<V> {
     value: V,
     ttl: Option<Duration>,
+    mode: CacheUpdateMode,
 }
 
 impl<V> Entry<V> {
-    pub(super) fn new(value: V, ttl: Duration) -> Self {
+    pub(super) fn new(value: V, ttl: Duration, mode: CacheUpdateMode) -> Self {
         Self {
             value,
             ttl: Some(ttl),
+            mode,
         }
     }
 
@@ -42,8 +46,11 @@ impl<K, V> Expiry<K, Entry<V>> for EntryExpiry {
         _key: &K,
         value: &Entry<V>,
         _updated_at: Instant,
-        _duration_until_expiry: Option<Duration>,
+        duration_until_expiry: Option<Duration>,
     ) -> Option<Duration> {
-        value.ttl
+        match value.mode {
+            CacheUpdateMode::KeepTtl => duration_until_expiry,
+            CacheUpdateMode::ResetTtl => value.ttl,
+        }
     }
 }

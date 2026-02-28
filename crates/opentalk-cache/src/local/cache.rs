@@ -5,11 +5,12 @@
 use std::time::Duration;
 
 use super::{Entry, EntryExpiry, Key, Value};
-use crate::{CacheStorage, Result};
+use crate::{CacheStorage, CacheUpdateMode, Result};
 
 pub struct Cache<K, V> {
     ttl: Duration,
     inner: moka::future::Cache<K, Entry<V>>,
+    mode: CacheUpdateMode,
 }
 
 impl<K, V> Cache<K, V>
@@ -17,13 +18,14 @@ where
     K: Key + 'static,
     V: Value + 'static,
 {
-    pub fn new(ttl: Duration) -> Self {
+    pub fn new(ttl: Duration, mode: CacheUpdateMode) -> Self {
         Self {
             ttl,
             inner: moka::future::Cache::builder()
                 .time_to_live(ttl)
                 .expire_after(EntryExpiry)
                 .build(),
+            mode,
         }
     }
 }
@@ -43,12 +45,16 @@ where
     }
 
     async fn insert(&self, key: K, value: V) -> Result<()> {
-        self.inner.insert(key, Entry::new(value, self.ttl)).await;
+        self.inner
+            .insert(key, Entry::new(value, self.ttl, self.mode))
+            .await;
         Ok(())
     }
 
     async fn insert_with_ttl(&self, key: K, value: V, ttl: Duration) -> Result<()> {
-        self.inner.insert(key, Entry::new(value, ttl)).await;
+        self.inner
+            .insert(key, Entry::new(value, ttl, self.mode))
+            .await;
         Ok(())
     }
 
@@ -69,9 +75,10 @@ mod tests {
     const DEFAULT_TTL: Duration = Duration::from_millis(300);
     const CUSTOM_SHORTER_TTL: Duration = Duration::from_millis(100);
     const CUSTOM_LONGER_TTL: Duration = Duration::from_millis(500);
+    const DEFAULT_CACHE_UPDATE_MODE: CacheUpdateMode = CacheUpdateMode::ResetTtl;
 
     async fn setup() -> (Cache<String, String>, String, String) {
-        let cache = Cache::new(DEFAULT_TTL);
+        let cache = Cache::new(DEFAULT_TTL, DEFAULT_CACHE_UPDATE_MODE);
         let key = String::from("key");
         let value = String::from("value");
 
@@ -80,7 +87,7 @@ mod tests {
     }
 
     async fn setup_with_entry_ttl(ttl: Duration) -> (Cache<String, String>, String, String) {
-        let cache = Cache::new(DEFAULT_TTL);
+        let cache = Cache::new(DEFAULT_TTL, DEFAULT_CACHE_UPDATE_MODE);
         let key = String::from("key");
         let value = String::from("value");
 
@@ -160,6 +167,27 @@ mod tests {
         // Time a bit longer than default TTL has passed since the update, now the entry should be expired
         tokio::time::sleep(DEFAULT_TTL).await;
         let cached_value = cache.get(&original_key).await.unwrap();
+        assert_eq!(cached_value, None);
+    }
+
+    #[tokio::test]
+    async fn keep_ttl_on_entry_update() {
+        let cache = Cache::new(DEFAULT_TTL, CacheUpdateMode::KeepTtl);
+        let key = String::from("key");
+        let value = String::from("value");
+
+        cache.insert(key.clone(), value.clone()).await.unwrap();
+
+        let delta = Duration::from_millis(50);
+        tokio::time::sleep(DEFAULT_TTL - delta).await;
+
+        // Update the cache entry before expiration -> this should keep the original TTL
+        let new_value = String::from("new value");
+        cache.insert(key.clone(), new_value).await.unwrap();
+        tokio::time::sleep(delta * 2).await;
+
+        // Wait a bit longer than default TTL has passed since first insertion, the value should be expired
+        let cached_value = cache.get(&key).await.unwrap();
         assert_eq!(cached_value, None);
     }
 }
