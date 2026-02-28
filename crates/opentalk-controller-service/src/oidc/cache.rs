@@ -31,6 +31,9 @@ pub enum AccesTokenCacheError {
 
     #[snafu(display("token has no expiry and will not be cached"))]
     NoExpiryForToken,
+
+    #[snafu(display("token doen't exist in cache and cannot be updated"))]
+    CannotUpdateNonExistingToken,
 }
 
 pub type Result<T, E = AccesTokenCacheError> = std::result::Result<T, E>;
@@ -86,7 +89,7 @@ impl Cache {
 
     /// Insert an access token into the cache with a specific expiry date
     /// Cache will reject a token, which has no expiry date or its ttl is too short
-    /// Cache stores either a valid token metadata or an error
+    /// Value is either a valid token metadata or an error
     pub async fn insert_access_token(
         &self,
         access_token: &AccessToken,
@@ -115,6 +118,34 @@ impl Cache {
                 value,
                 token_ttl.to_std().expect("duration was previously checked"),
             )
+            .await
+            .map_err(AccesTokenCacheError::from)
+    }
+
+    /// Updates value for a valid cached access token
+    /// Cache will reject a token, which do not exist in the cache yet
+    /// On update the original TTL of the cache entry will be kept
+    /// Value is either a valid token metadata or an error
+    pub async fn update_access_token(
+        &self,
+        access_token: &AccessToken,
+        value: Result<(Tenant, User), CaptureApiError>,
+    ) -> Result<()> {
+        let value = match value {
+            Ok((tenant, user)) => Ok((CacheableTenant::from(tenant), CacheableUser::from(user))),
+            Err(e) => Err(CacheableApiError::from(e)),
+        };
+
+        match self.access_tokens.get(access_token.secret()).await {
+            Ok(Some(_)) => (),
+            Ok(None) => return Err(AccesTokenCacheError::CannotUpdateNonExistingToken),
+            Err(e) => return Err(AccesTokenCacheError::from(e)),
+        }
+
+        // We know the token exists in the cache, so we can safely update it with default TTL
+        // The cache is configured to keep original TTL on update
+        self.access_tokens
+            .insert(access_token.secret().clone(), value)
             .await
             .map_err(AccesTokenCacheError::from)
     }
