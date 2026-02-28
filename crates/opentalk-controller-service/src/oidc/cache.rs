@@ -83,7 +83,7 @@ impl Cache {
         };
         let redis = redis.into_manager();
 
-        let redis_cache = redis::Cache::new(redis, prefix, ttl);
+        let redis_cache = redis::Cache::new(redis, prefix, ttl, mode);
 
         Box::new(redis_cache.with_overlay(local_cache).with_hashing())
     }

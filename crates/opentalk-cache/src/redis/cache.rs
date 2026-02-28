@@ -8,13 +8,14 @@ use redis::{AsyncCommands as _, SetExpiry, SetOptions};
 use snafu::ResultExt as _;
 
 use super::{Connection, Error, Key, Value};
-use crate::{CacheStorage, Result};
+use crate::{CacheStorage, CacheUpdateMode, Result};
 
 pub struct Cache<K, V> {
     connection: Connection,
     prefix: String,
     ttl: Duration,
     _phantom: PhantomData<(K, V)>,
+    mode: CacheUpdateMode,
 }
 
 impl<K, V> Cache<K, V>
@@ -22,12 +23,18 @@ where
     K: Key + 'static,
     V: Value + 'static,
 {
-    pub fn new(connection: Connection, prefix: String, ttl: Duration) -> Self {
+    pub fn new(
+        connection: Connection,
+        prefix: String,
+        ttl: Duration,
+        mode: CacheUpdateMode,
+    ) -> Self {
         Self {
             connection,
             prefix,
             ttl,
             _phantom: PhantomData,
+            mode,
         }
     }
 
@@ -79,8 +86,14 @@ where
             prefix: &self.prefix,
             key: &key,
         };
-        let expiration = SetExpiry::EX(ttl.as_secs());
-        let opts = SetOptions::default().with_expiration(expiration);
+
+        let opts = {
+            let expiration: SetExpiry = match self.mode {
+                CacheUpdateMode::ResetTtl => SetExpiry::EX(ttl.as_secs()),
+                CacheUpdateMode::KeepTtl => SetExpiry::KEEPTTL,
+            };
+            SetOptions::default().with_expiration(expiration)
+        };
 
         self.connection
             .clone()
