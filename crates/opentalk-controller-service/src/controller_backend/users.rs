@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use openidconnect::AccessToken;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::{
     TenantAssignment, UserSearchBackend, UserSearchBackendKeycloak,
@@ -25,7 +26,7 @@ use opentalk_types_common::{
     time::Timestamp,
     users::UserId,
 };
-use snafu::{ResultExt, Whatever};
+use snafu::{Report, ResultExt, Whatever};
 
 use crate::{
     ControllerBackend, ToUserProfile, email_to_libravatar_url, helpers::asset_to_asset_resource,
@@ -36,7 +37,7 @@ impl ControllerBackend {
         &self,
         current_user: RequestUser,
         patch: PatchMeRequestBody,
-        access_token: &str,
+        access_token: &AccessToken,
     ) -> Result<Option<PrivateUserProfile>, CaptureApiError> {
         if patch.is_empty() {
             return Ok(None);
@@ -85,10 +86,21 @@ impl ControllerBackend {
 
         // Update the access token cache as well to reflect the changes immediately.
         let tenant = inventory.get_tenant(user.tenant_id).await?;
+        let value = Ok((tenant, user));
 
-        self.oidc_cache
-            .upsert_access_token_patch_me(user, tenant, access_token)
-            .await?;
+        if let Err(e) = self
+            .oidc_cache
+            .update_access_token(access_token, value)
+            .await
+        {
+            log::warn!(
+                "Failed to update user profile in the access token cache: {}",
+                Report::from_error(e)
+            );
+            return Err(ApiError::internal()
+                .with_message("Failed to update user profile in the access token cache")
+                .into());
+        }
 
         Ok(Some(user_profile))
     }

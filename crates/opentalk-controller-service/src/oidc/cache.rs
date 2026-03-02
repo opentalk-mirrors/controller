@@ -14,15 +14,11 @@ use opentalk_cache::{
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{Tenant, User};
 use opentalk_signaling_core::RedisConnection;
-use snafu::{Report, ResultExt, Snafu, Whatever};
+use snafu::Snafu;
 
-use super::{
-    OnlyExpiryClaim,
-    cacheable::{
-        AccessTokenResult, ApiError as CacheableApiError, Tenant as CacheableTenant,
-        User as CacheableUser,
-    },
-    jwt::decode_token,
+use super::cacheable::{
+    AccessTokenResult, ApiError as CacheableApiError, Tenant as CacheableTenant,
+    User as CacheableUser,
 };
 
 #[derive(Debug, Snafu)]
@@ -35,6 +31,9 @@ pub enum AccesTokenCacheError {
 
     #[snafu(display("token has no expiry and will not be cached"))]
     NoExpiryForToken,
+
+    #[snafu(display("token doen't exist in cache and cannot be updated"))]
+    CannotUpdateNonExistingToken,
 }
 
 pub type Result<T, E = AccesTokenCacheError> = std::result::Result<T, E>;
@@ -90,7 +89,7 @@ impl Cache {
 
     /// Insert an access token into the cache with a specific expiry date
     /// Cache will reject a token, which has no expiry date or its ttl is too short
-    /// Cache stores either a valid token metadata or an error
+    /// Value is either a valid token metadata or an error
     pub async fn insert_access_token(
         &self,
         access_token: &AccessToken,
@@ -123,41 +122,32 @@ impl Cache {
             .map_err(AccesTokenCacheError::from)
     }
 
-    /// A hacky helper function that was introduced in the past
-    /// specifically for the patch_me endpoint
-    /// to update the access token cache with new user data
-    pub async fn upsert_access_token_patch_me(
+    /// Updates value for a valid cached access token
+    /// Cache will reject a token, which do not exist in the cache yet
+    /// On update the original TTL of the cache entry will be kept
+    /// Value is either a valid token metadata or an error
+    pub async fn update_access_token(
         &self,
-        user: User,
-        tenant: Tenant,
-        access_token: &str,
-    ) -> Result<(), CaptureApiError> {
-        let claim = decode_token::<OnlyExpiryClaim>(access_token)
-            .whatever_context::<&str, Whatever>(
-                "failed to decode access token for user profile update",
-            )?;
+        access_token: &AccessToken,
+        value: Result<(Tenant, User), CaptureApiError>,
+    ) -> Result<()> {
+        let value = match value {
+            Ok((tenant, user)) => Ok((CacheableTenant::from(tenant), CacheableUser::from(user))),
+            Err(e) => Err(CacheableApiError::from(e)),
+        };
 
-        let token_ttl = claim.exp - Utc::now();
-        if token_ttl > chrono::Duration::seconds(MIN_TOKEN_TTL_SECS) {
-            match token_ttl.to_std() {
-                Ok(token_ttl_std) => {
-                    self.access_tokens
-                        .insert_with_ttl(
-                            access_token.to_string(),
-                            Ok((tenant.into(), user.into())),
-                            token_ttl_std,
-                        )
-                        .await?;
-                }
-                Err(e) => {
-                    log::debug!(
-                        "abort user profile cache update due to invalid token TTL, {}",
-                        Report::from_error(e)
-                    );
-                }
-            }
+        match self.access_tokens.get(access_token.secret()).await {
+            Ok(Some(_)) => (),
+            Ok(None) => return Err(AccesTokenCacheError::CannotUpdateNonExistingToken),
+            Err(e) => return Err(AccesTokenCacheError::from(e)),
         }
-        Ok(())
+
+        // We know the token exists in the cache, so we can safely update it with default TTL
+        // The cache is configured to keep original TTL on update
+        self.access_tokens
+            .insert(access_token.secret().clone(), value)
+            .await
+            .map_err(AccesTokenCacheError::from)
     }
 }
 

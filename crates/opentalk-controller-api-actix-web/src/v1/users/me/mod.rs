@@ -66,11 +66,7 @@ pub async fn patch(
     let current_user = current_user.into_inner();
 
     let user_profile = service
-        .patch_me(
-            current_user.clone(),
-            patch.into_inner(),
-            access_token.secret(),
-        )
+        .patch_me(current_user.clone(), patch.into_inner(), &access_token)
         .await?;
 
     match user_profile {
