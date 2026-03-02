@@ -21,6 +21,7 @@ actix-rt.workspace = true
 actix-web = { workspace = true, features = ["rustls-0_23"] }
 actix-web-actors = "4.3"
 actix-web-httpauth.workspace = true
+actix-ws.workspace = true
 async-trait.workspace = true
 bytes.workspace = true
 bytestring = { workspace = true, features = ["serde"] }
@@ -30,8 +31,10 @@ either.workspace = true
 futures.workspace = true
 http.workspace = true
 itertools.workspace = true
+jsonwebtoken.workspace = true
 kustos.workspace = true
 lapin-pool.workspace = true
+livekit-api.workspace = true
 log = { workspace = true, features = ["serde"] }
 md5.workspace = true
 openidconnect.workspace = true
@@ -85,6 +88,10 @@ service-probe = "0.4"
 snafu.workspace = true
 tokio = { workspace = true, features = ["signal"] }
 tokio-stream.workspace = true
+tokio-tungstenite = { version = "0.28", features = [
+  "rustls-tls-native-roots",
+  "url",
+] }
 tracing.workspace = true
 tracing-actix-web = { version = "0.7" }
 tracing-futures = "0.2"
@@ -93,6 +100,7 @@ tracing-subscriber = { version = "0.3", features = [
   "env-filter",
   "parking_lot",
 ] }
+url.workspace = true
 utoipa = { workspace = true, features = ["actix_extras"] }
 utoipa-swagger-ui = { workspace = true, features = [
   "actix-web",

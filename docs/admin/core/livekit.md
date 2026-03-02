@@ -6,12 +6,12 @@
 
 The section in the [configuration file](configuration.md) is called `livekit`.
 
-| Field         | Type     | Required | Default value | Description                                                                                                                                                                                    |
-| ------------- | -------- | -------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `api_key`     | `string` | yes      | -             | The name of the API key used by the {{ product_name }} controller to communicate with the LiveKit API.                                                                                         |
-| `api_secret`  | `string` | yes      | -             | The API secret used by the {{ product_name }} controller to communicate with the LiveKit API.                                                                                                  |
-| `public_url`  | `string` | yes      | -             | The URL under which the LiveKit server can be reached by the {{ product_name }} frontend. The {{ product_name }} controller itself will not use this URL, but just pass it on to the frontend. |
-| `service_url` | `string` | yes      | -             | The URL under which the {{ product_name }} controller communicates with the LiveKit server.                                                                                                    |
+| Field         | Type     | Required | Default value | Description                                                                                                                                                                                                                         |
+| ------------- | -------- | -------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api_key`     | `string` | yes      | -             | The name of the API key used by the {{ product_name }} controller to communicate with the LiveKit API.                                                                                                                              |
+| `api_secret`  | `string` | yes      | -             | The API secret used by the {{ product_name }} controller to communicate with the LiveKit API.                                                                                                                                       |
+| `public_url`  | `string` | yes      | -             | The URL under which the LiveKit server can be reached by the {{ product_name }} frontend. The {{ product_name }} controller will not use this URL, but just pass it on to the frontend ([see also](#using-built-in-livekit-proxy)). |
+| `service_url` | `string` | yes      | -             | The URL under which the {{ product_name }} controller communicates with the LiveKit server.                                                                                                                                         |
 
 Example:
 
@@ -19,8 +19,8 @@ Example:
 [livekit]
 api_key = "controller_key"
 api_secret = "-secret-"
-public_url = "https://livekit-public.example.com"
-service_url = "https://livekit-internal.example.com"
+public_url = "https://controller-public.example.com/livekit"
+service_url = "http://livekit-internal.lan"
 ```
 
 - Ensure that `public_url` is reachable for all users connecting to LiveKit.
@@ -66,8 +66,18 @@ service_url = "https://livekit-internal.example.com"
       level: info
     ```
 
-- Adjust Reverse Proxy Configuration
+### Proxying LiveKit Signaling
 
-    If you plan to host LiveKit behind a reverse proxy, ensure that:
-    - The reverse proxy handles the TLS encryption.
-    - Port 7880 (or the configured port) is set as the target for the reverse proxy.
+#### Using built-in LiveKit proxy
+
+In order to ensure that only partipants with an active controller connection can join the LiveKit room, the controller provides a proxy endpoint under `/livekit`.
+Direct access to the LiveKit singnaling endpoint must be prevented (e.q. by firewall rules).
+
+This endpoint is available since:
+
+- {{ product_name }} 25.4.6 (controller 0.32.7)
+- {{ product_name }} 25.3.3 (controller 0.31.4)
+
+#### Reverse proxy configuration
+
+Since the versions listed [here](#using-built-in-livekit-proxy) LiveKit signaling should only be exposed via the controller proxy endpoint.

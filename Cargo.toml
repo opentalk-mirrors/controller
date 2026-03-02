@@ -58,6 +58,7 @@ actix-http = "3"
 actix-rt = "2"
 actix-web = { version = "4", default-features = true }
 actix-web-httpauth = "0.8"
+actix-ws = "0.4.0"
 anstream = "1.0"
 arc-swap = "1"
 async-stream = "0.3"
