@@ -8,7 +8,8 @@ use std::{fmt::Display, hash::Hash};
 use chrono::{DateTime, TimeDelta, Utc};
 use openidconnect::AccessToken;
 use opentalk_cache::{
-    CacheError, CacheStorage, hashing::WithHashing, local, overlay::WithOverlay, redis,
+    CacheError, CacheStorage, CacheUpdateMode, hashing::WithHashing, local, overlay::WithOverlay,
+    redis,
 };
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{Tenant, User};
@@ -60,6 +61,7 @@ impl Cache {
                 redis,
                 "user-access-tokens".to_string(),
                 Duration::from_secs(300),
+                CacheUpdateMode::KeepTtl,
             ),
         }
     }
@@ -68,19 +70,20 @@ impl Cache {
         redis: Option<RedisConnection>,
         prefix: String,
         ttl: Duration,
+        mode: CacheUpdateMode,
     ) -> Box<dyn CacheStorage<K, V> + Send + Sync>
     where
         K: redis::Key + local::Key + Clone + Display + Hash + 'static,
         V: redis::Value + local::Value + 'static,
     {
-        let local_cache = local::Cache::new(ttl);
+        let local_cache = local::Cache::new(ttl, mode);
 
         let Some(redis) = redis else {
             return Box::new(local_cache.with_hashing());
         };
         let redis = redis.into_manager();
 
-        let redis_cache = redis::Cache::new(redis, prefix, ttl);
+        let redis_cache = redis::Cache::new(redis, prefix, ttl, mode);
 
         Box::new(redis_cache.with_overlay(local_cache).with_hashing())
     }
