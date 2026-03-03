@@ -3,15 +3,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use diesel::Insertable;
-use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
-use opentalk_types_common::{assets::AssetId, modules::ModuleId, rooms::RoomId, tenants::TenantId};
+use opentalk_types_common::{assets::AssetId, modules::ModuleId, tenants::TenantId};
 
-use crate::{
-    schema::{assets, room_assets},
-    tables::assets::{Asset, RoomAsset},
-};
+use crate::schema::assets;
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = assets)]
@@ -43,28 +38,5 @@ impl From<inventory::NewAsset> for NewAsset {
             tenant_id,
             size,
         }
-    }
-}
-
-impl NewAsset {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn insert_for_room(self, conn: &mut DbConnection, room_id: RoomId) -> Result<Asset> {
-        conn.transaction(|conn| {
-            async move {
-                let asset: Asset = self.insert_into(assets::table).get_result(conn).await?;
-
-                RoomAsset {
-                    room_id,
-                    asset_id: asset.id,
-                }
-                .insert_into(room_assets::table)
-                .execute(conn)
-                .await?;
-
-                Ok(asset)
-            }
-            .scope_boxed()
-        })
-        .await
     }
 }

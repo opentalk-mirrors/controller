@@ -4,4 +4,5 @@
 
 //! Contains database queries
 
+pub mod assets;
 pub mod events;
