@@ -10,13 +10,14 @@ use opentalk_controller_service_facade::{RequestUser, StartRoomError};
 use opentalk_controller_settings::{Settings, common::HttpCorsAllowedOrigin};
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{Event, Inventory};
-use opentalk_roomserver_client::{Error, RequestTokenError};
+use opentalk_roomserver_client::{Error, PatchRoomError, RequestTokenError};
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
     client_parameters::{ClientKind, ClientParameters, Role},
     module_settings::ModuleSettings,
     public_user_profile::PublicUserProfile,
     room_parameters::{EventContext, RoomParameters},
+    room_parameters_patch::RoomParametersPatch,
     tariff_details::TariffDetails,
 };
 use opentalk_roomserver_types_training_participation_report::settings::TrainingParticipationReportSettings;
@@ -129,6 +130,36 @@ impl ControllerBackend {
             token: access.token,
             roomserver_address: access.public_url.to_string(),
         })
+    }
+
+    pub(crate) async fn patch_room_parameters(
+        &self,
+        room_id: RoomId,
+        patch: RoomParametersPatch,
+    ) -> Result<(), ApiError> {
+        if patch.is_empty() {
+            // No changes to apply
+            return Ok(());
+        }
+
+        let Some(client) = &self.roomserver_client else {
+            // When the roomserver is not configured, there is nothing to do.
+            return Ok(());
+        };
+
+        match client.patch_room(room_id, patch).await {
+            Ok(()) => Ok(()),
+            // The roomserver returns a 404 NotFound when the room does not exist there yet.
+            // In this case there is nothing to do and the room parameters will be applied when the room is created.
+            Err(Error::ApiError(opentalk_roomserver_client::ApiError {
+                code: PatchRoomError::NotFound,
+                ..
+            })) => Ok(()),
+            Err(err) => {
+                tracing::error!("Failed to patch roomserver room parameters: {err}");
+                Err(ApiError::internal().with_message("Failed to patch roomserver room parameters"))
+            }
+        }
     }
 
     async fn request_roomserver_access(

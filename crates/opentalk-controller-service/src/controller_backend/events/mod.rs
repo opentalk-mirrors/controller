@@ -30,6 +30,7 @@ use opentalk_inventory::{
     transaction,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
+use opentalk_roomserver_types::room_parameters_patch::RoomParametersPatch;
 use opentalk_types_api_v1::{
     error::ApiError,
     events::{
@@ -866,7 +867,7 @@ impl ControllerBackend {
                     )?;
 
                     UpdateEvent {
-                        title: patch.title,
+                        title: patch.title.clone(),
                         description: patch.description,
                         updated_by: current_user.id,
                         updated_at: Timestamp::now(),
@@ -902,7 +903,7 @@ impl ControllerBackend {
                     }
 
                     UpdateEvent {
-                        title: patch.title,
+                        title: patch.title.clone(),
                         description: patch.description,
                         updated_by: current_user.id,
                         updated_at: Timestamp::now(),
@@ -950,7 +951,7 @@ impl ControllerBackend {
                     }
 
                     UpdateEvent {
-                        title: patch.title,
+                        title: patch.title.clone(),
                         description: patch.description,
                         updated_by: current_user.id,
                         updated_at: Timestamp::now(),
@@ -973,6 +974,16 @@ impl ControllerBackend {
 
             inventory.update_event(event_id, update_event).await?
         };
+
+        // Update the room parameters of the roomserver (if applicable)
+        self.patch_room_parameters(
+            room.id,
+            RoomParametersPatch {
+                password: patch.password,
+                title: patch.title,
+            },
+        )
+        .await?;
 
         let invited_users = get_invited_mail_recipients_for_event(
             inventory.as_mut(),
