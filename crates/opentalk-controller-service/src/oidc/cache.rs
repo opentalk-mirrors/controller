@@ -159,11 +159,14 @@ impl Cache {
         }
 
         let value = match value {
-            Ok((tenant, user)) => Ok((
-                CacheableTenant::from(tenant),
-                CacheableUser::from(user),
-                LogoutMarker::from(0),
-            )),
+            Ok((tenant, user)) => {
+                let logout_marker = self.calculate_logout_marker(&user.oidc_sub).await?;
+                Ok((
+                    CacheableTenant::from(tenant),
+                    CacheableUser::from(user),
+                    logout_marker,
+                ))
+            }
             Err(e) => Err(CacheableApiError::from(e)),
         };
 
