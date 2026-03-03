@@ -24,6 +24,7 @@ use crate::{
 
 /// Diesel resource struct
 #[derive(Debug, Clone, Queryable, Identifiable)]
+#[diesel(table_name = assets)]
 pub struct Asset {
     pub id: AssetId,
     pub created_at: DateTime<Utc>,
