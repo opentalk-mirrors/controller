@@ -153,12 +153,9 @@ impl EventInviteInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err, skip_all)]
-    async fn get_email_invites_pending_for_user(
-        &mut self,
-        user_id: UserId,
-    ) -> Result<Vec<EventInvite>> {
+    async fn get_invites_pending_for_user(&mut self, user_id: UserId) -> Result<Vec<EventInvite>> {
         Ok(
-            db::queries::events::get_email_invites_pending_for_user(&mut self.inner, user_id)
+            db::queries::events::get_invites_pending_for_user(&mut self.inner, user_id)
                 .await
                 .context(DatabaseSnafu)?
                 .into_iter()

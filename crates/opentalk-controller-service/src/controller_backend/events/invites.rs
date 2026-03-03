@@ -498,9 +498,7 @@ impl ControllerBackend {
     ) -> Result<GetEventInvitesPendingResponseBody, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let event_invites = inventory
-            .get_email_invites_pending_for_user(user_id)
-            .await?;
+        let event_invites = inventory.get_invites_pending_for_user(user_id).await?;
 
         Ok(GetEventInvitesPendingResponseBody {
             total_pending_invites: event_invites.len() as u32,

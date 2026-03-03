@@ -95,7 +95,7 @@ pub async fn get_event_invites_paginated(
 }
 
 #[tracing::instrument(err, skip_all)]
-pub async fn get_email_invites_pending_for_user(
+pub async fn get_invites_pending_for_user(
     conn: &mut DbConnection,
     user_id: UserId,
 ) -> Result<Vec<EventInvite>> {
