@@ -1306,7 +1306,7 @@ paths:
       tags:
         - "api::v1::rooms"
       summary: Create a new room
-      description: Creates a new room withh the settings given in the request body.
+      description: Creates a new room with the settings given in the request body.
       operationId: post_rooms
       requestBody:
         content:
