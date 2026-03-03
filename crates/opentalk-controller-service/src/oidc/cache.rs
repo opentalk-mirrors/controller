@@ -6,7 +6,7 @@ use core::time::Duration;
 use std::{fmt::Display, hash::Hash};
 
 use chrono::{DateTime, TimeDelta, Utc};
-use openidconnect::AccessToken;
+use openidconnect::{AccessToken, SubjectIdentifier};
 use opentalk_cache::{
     CacheError, CacheStorage, CacheUpdateMode, hashing::WithHashing, local, overlay::WithOverlay,
     redis,
@@ -14,15 +14,18 @@ use opentalk_cache::{
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{Tenant, User};
 use opentalk_signaling_core::RedisConnection;
-use snafu::Snafu;
+use snafu::{Report, Snafu};
 
-use super::cacheable::{
-    AccessTokenResult, ApiError as CacheableApiError, Tenant as CacheableTenant,
-    User as CacheableUser,
+use super::{
+    LogoutMarker,
+    cacheable::{
+        AccessTokenResult, ApiError as CacheableApiError, Tenant as CacheableTenant,
+        User as CacheableUser,
+    },
 };
 
 #[derive(Debug, Snafu)]
-pub enum AccesTokenCacheError {
+pub enum OidcCacheError {
     #[snafu(display("cache error: {source}"))]
     Cache { source: CacheError },
 
@@ -36,36 +39,75 @@ pub enum AccesTokenCacheError {
     CannotUpdateNonExistingToken,
 }
 
-pub type Result<T, E = AccesTokenCacheError> = std::result::Result<T, E>;
+pub type Result<T, E = OidcCacheError> = std::result::Result<T, E>;
 
-impl From<CacheError> for AccesTokenCacheError {
+impl From<CacheError> for OidcCacheError {
     fn from(source: CacheError) -> Self {
         Self::Cache { source }
     }
 }
 
+const ACCESS_TOKEN_DEFAULT_TTL_SECS: u64 = 60 * 5;
+/// Must be much longer, than for access tokens
+const SUB_LOGOUT_MARKERS_DEFAULT_TTL_SECS: u64 = 60 * 60 * 2;
 const MIN_TOKEN_TTL_SECS: i64 = 10;
 
 /// Cache for OpenID Connect related data
 pub struct Cache {
     /// Cache storage for access tokens
     pub access_tokens: Box<dyn CacheStorage<String, AccessTokenResult> + Send + Sync>,
+    /// Cache storage for logout markers of the OIDC subjects
+    pub sub_logout_markers: Box<dyn CacheStorage<String, LogoutMarker> + Send + Sync>,
 }
 
 impl Cache {
     /// Create a new [`Cache`] instance with an optional [`RedisConnection`].
     pub fn create(redis: Option<RedisConnection>) -> Self {
         Self {
-            access_tokens: Self::build_cache(
-                redis,
+            access_tokens: Self::build_cache_with_hashing(
+                redis.clone(),
                 "user-access-tokens".to_string(),
-                Duration::from_secs(300),
+                Duration::from_secs(ACCESS_TOKEN_DEFAULT_TTL_SECS),
                 CacheUpdateMode::KeepTtl,
+            ),
+            sub_logout_markers: Self::build_cache(
+                redis,
+                "sub-logout-markers".to_string(),
+                Duration::from_secs(SUB_LOGOUT_MARKERS_DEFAULT_TTL_SECS),
+                CacheUpdateMode::ResetTtl,
             ),
         }
     }
 
+    /// Build a cache storage
+    /// If Redis connection is available, combine a Redis cache with a local in-memory cache as an overlay
+    /// Otherise only local cache is used
     fn build_cache<K, V>(
+        redis: Option<RedisConnection>,
+        prefix: String,
+        ttl: Duration,
+        mode: CacheUpdateMode,
+    ) -> Box<dyn CacheStorage<K, V> + Send + Sync>
+    where
+        K: redis::Key + local::Key + Clone + Display + Hash + 'static,
+        V: redis::Value + local::Value + 'static,
+    {
+        let local_cache = local::Cache::new(ttl, mode);
+
+        let Some(redis) = redis else {
+            return Box::new(local_cache);
+        };
+        let redis = redis.into_manager();
+
+        let redis_cache = redis::Cache::new(redis, prefix, ttl, mode);
+
+        Box::new(redis_cache.with_overlay(local_cache))
+    }
+
+    /// Build a cache storage with key hashing to reduce memory usage for large keys
+    /// If Redis connection is available, compose a Redis cache with a local in-memory cache as an overly
+    /// Otherise only local cache is used
+    fn build_cache_with_hashing<K, V>(
         redis: Option<RedisConnection>,
         prefix: String,
         ttl: Duration,
@@ -97,14 +139,14 @@ impl Cache {
         maybe_expires_at: Option<DateTime<Utc>>,
     ) -> Result<()> {
         let Some(expires_at) = maybe_expires_at else {
-            return Err(AccesTokenCacheError::NoExpiryForToken);
+            return Err(OidcCacheError::NoExpiryForToken);
         };
 
         let token_ttl = expires_at - Utc::now();
 
         // Don't cache tokens that expire too soon
         if token_ttl <= chrono::Duration::seconds(MIN_TOKEN_TTL_SECS) {
-            return Err(AccesTokenCacheError::TokenTtlTooShort { ttl: token_ttl });
+            return Err(OidcCacheError::TokenTtlTooShort { ttl: token_ttl });
         }
 
         let value = match value {
@@ -119,7 +161,7 @@ impl Cache {
                 token_ttl.to_std().expect("duration was previously checked"),
             )
             .await
-            .map_err(AccesTokenCacheError::from)
+            .map_err(OidcCacheError::from)
     }
 
     /// Updates value for a valid cached access token
@@ -138,8 +180,8 @@ impl Cache {
 
         match self.access_tokens.get(access_token.secret()).await {
             Ok(Some(_)) => (),
-            Ok(None) => return Err(AccesTokenCacheError::CannotUpdateNonExistingToken),
-            Err(e) => return Err(AccesTokenCacheError::from(e)),
+            Ok(None) => return Err(OidcCacheError::CannotUpdateNonExistingToken),
+            Err(e) => return Err(OidcCacheError::from(e)),
         }
 
         // We know the token exists in the cache, so we can safely update it with default TTL
@@ -147,7 +189,48 @@ impl Cache {
         self.access_tokens
             .insert(access_token.secret().clone(), value)
             .await
-            .map_err(AccesTokenCacheError::from)
+            .map_err(OidcCacheError::from)
+    }
+
+    /// Insert logout marker for a specific OIDC subject
+    async fn insert_sub_logout_marker(&self, sub: String, marker: LogoutMarker) -> Result<()> {
+        self.sub_logout_markers
+            .insert(sub, marker)
+            .await
+            .map_err(|e| {
+                log::warn!(
+                    "Failed to cache logout marker, error: {}",
+                    Report::from_error(&e)
+                );
+                OidcCacheError::from(e)
+            })
+    }
+
+    /// Insert or update logout marker for a specific OIDC subject in the cache
+    /// to invalidate all existing access tokens for the subject
+    /// If marker for the subject does not exist: insert a new one with value 0
+    /// If marker for the subject exists: increment the marker
+    pub async fn upsert_sub_logout_marker(&self, sub: SubjectIdentifier) -> Result<()> {
+        let sub = String::from(sub);
+        match self.sub_logout_markers.get(&sub).await {
+            Ok(Some(mut marker)) => {
+                marker.increment();
+                self.insert_sub_logout_marker(sub, marker).await?;
+                Ok(())
+            }
+            Ok(None) => {
+                self.insert_sub_logout_marker(sub, LogoutMarker::from(0))
+                    .await?;
+                Ok(())
+            }
+            Err(e) => {
+                log::warn!(
+                    "Failed to retreive logout marker from the cache, error: {}",
+                    Report::from_error(&e)
+                );
+                Err(OidcCacheError::from(e))
+            }
+        }
     }
 }
 
