@@ -266,21 +266,23 @@ impl Cache {
 
     /// Insert or update logout marker for a specific OIDC subject in the cache
     /// to invalidate all existing access tokens for the subject
-    /// If marker for the subject does not exist: insert a new one with value 0
-    /// If marker for the subject exists: increment the marker
     pub async fn upsert_sub_logout_marker(&self, sub: SubjectIdentifier) -> Result<()> {
         let sub = String::from(sub);
-        match self.sub_logout_markers.get(&sub).await {
+        let logout_marker = self.calculate_logout_marker(&sub).await?;
+        self.insert_sub_logout_marker(sub, logout_marker).await?;
+        Ok(())
+    }
+
+    /// Calculate logout marker for the associated OIDC subject
+    /// If marker for the subject does not exist: insert a new one with value 0
+    /// If marker for the subject exists: increment the marker
+    async fn calculate_logout_marker(&self, sub: &String) -> Result<LogoutMarker> {
+        match self.sub_logout_markers.get(sub).await {
             Ok(Some(mut marker)) => {
                 marker.increment();
-                self.insert_sub_logout_marker(sub, marker).await?;
-                Ok(())
+                Ok(marker)
             }
-            Ok(None) => {
-                self.insert_sub_logout_marker(sub, LogoutMarker::from(0))
-                    .await?;
-                Ok(())
-            }
+            Ok(None) => Ok(LogoutMarker::from(0)),
             Err(e) => {
                 log::warn!(
                     "Failed to retreive logout marker from the cache, error: {}",
