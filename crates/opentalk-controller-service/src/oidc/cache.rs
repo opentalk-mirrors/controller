@@ -159,7 +159,11 @@ impl Cache {
         }
 
         let value = match value {
-            Ok((tenant, user)) => Ok((CacheableTenant::from(tenant), CacheableUser::from(user))),
+            Ok((tenant, user)) => Ok((
+                CacheableTenant::from(tenant),
+                CacheableUser::from(user),
+                LogoutMarker::from(0),
+            )),
             Err(e) => Err(CacheableApiError::from(e)),
         };
 
@@ -187,16 +191,22 @@ impl Cache {
             Err(e) => Err(CacheableApiError::from(e)),
         };
 
-        match self.access_tokens.get(access_token.secret()).await {
-            Ok(Some(_)) => (),
+        let cached = match self.access_tokens.get(access_token.secret()).await {
+            Ok(Some(result)) => result,
             Ok(None) => return Err(OidcCacheError::CannotUpdateNonExistingToken),
             Err(e) => return Err(OidcCacheError::from(e)),
-        }
+        };
+
+        // For valid token we need to preserve the logout marker
+        let value_with_logout = match cached {
+            Ok((_, _, logout_marker)) => value.map(|(tenant, user)| (tenant, user, logout_marker)),
+            Err(e) => Err(e),
+        };
 
         // We know the token exists in the cache, so we can safely update it with default TTL
         // The cache is configured to keep original TTL on update
         self.access_tokens
-            .insert(access_token.secret().clone(), value)
+            .insert(access_token.secret().clone(), value_with_logout)
             .await
             .map_err(OidcCacheError::from)
     }
@@ -207,7 +217,7 @@ impl Cache {
         access_token: &AccessToken,
     ) -> Result<Option<Result<(Tenant, User), CaptureApiError>>, OidcCacheError> {
         match self.access_tokens.get(access_token.secret()).await {
-            Ok(Some(Ok((tenant, user)))) => {
+            Ok(Some(Ok((tenant, user, _)))) => {
                 let tenant = tenant.try_into().map_err(|e| {
                 log::warn!(
                     "Error when attempting to read tenant information loaded from token cache: {}",
