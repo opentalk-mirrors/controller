@@ -7,6 +7,7 @@ use opentalk_types_common::{
     tenants::TenantId,
     time::{TimeZone, Timestamp},
     users::{DisplayName, Language, Theme, UserId, UserTitle},
+    utils::ExampleData,
 };
 
 use crate::Event;
@@ -79,5 +80,34 @@ impl User {
     /// Tell whether a user is allowed to edit an event.
     pub fn can_edit(&self, event: &Event) -> bool {
         self.id == event.created_by
+    }
+}
+
+impl ExampleData for User {
+    fn example_data() -> Self {
+        use std::str::FromStr;
+
+        Self {
+            id: UserId::nil(),
+            id_serial: 0,
+            oidc_sub: String::from("12345678-90ab-cdef-1234-567890abcdef"),
+            email: String::from("email@mail.com"),
+            title: UserTitle::from_str("M.Sc.").unwrap(),
+            firstname: String::from("John"),
+            lastname: String::from("Doe"),
+            language: Some("en".parse().expect("valid language")),
+            display_name: DisplayName::from_str("John Doe").unwrap(),
+            dashboard_theme: Some(Theme::Light),
+            conference_theme: Some(Theme::Light),
+            phone: Some(String::from("+1234567890")),
+            tenant_id: TenantId::nil(),
+            tariff_id: TariffId::nil(),
+            tariff_status: TariffStatus::Paid,
+            disabled_since: None,
+            avatar_url: Some(String::from("www.avatar.com/avatar.png")),
+            timezone: Some(TimeZone::utc()),
+            created_at: Timestamp::unix_epoch(),
+            updated_at: Timestamp::unix_epoch(),
+        }
     }
 }
