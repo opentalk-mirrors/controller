@@ -25,7 +25,7 @@ use kustos::prelude::PoliciesBuilder;
 use openidconnect::AccessToken;
 use opentalk_controller_service::{
     controller_backend::RoomsPoliciesBuilderExt,
-    oidc::{Cache, OidcTokenHandler, OpenIdConnectUserInfo},
+    oidc::{Cache, OidcCacheError, OidcTokenHandler, OpenIdConnectUserInfo},
     phone_numbers::parse_phone_number,
 };
 use opentalk_controller_service_facade::RequestUser;
@@ -236,7 +236,13 @@ pub async fn check_access_token(
     if let Some(result) = oidc_cache
         .get_access_token(access_token)
         .await
-        .map_err(|_| ApiError::internal())?
+        .map_err(|e| match e {
+            OidcCacheError::RevokedByLogout => ApiError::unauthorized()
+                .with_www_authenticate(AuthenticationError::AccessTokenInactive)
+                .with_code("revoked_token")
+                .with_message("The access token has been revoked by sub logout"),
+            _ => ApiError::internal(),
+        })?
     {
         return result;
     }
