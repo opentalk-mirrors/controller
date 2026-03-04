@@ -10,6 +10,7 @@ mod claims;
 mod introspect_info;
 mod jwt;
 mod logout_marker;
+mod oidc_cache_error;
 mod oidc_context;
 mod oidc_token_handler;
 mod open_id_connect_user_info;
@@ -24,6 +25,7 @@ use claims::{JWTAccessTokenClaims, JWTLogoutTokenClaims, OpenTalkAdditionalClaim
 use introspect_info::IntrospectInfo;
 pub use jwt::{VerifyError, decode_token};
 pub use logout_marker::LogoutMarker;
+pub use oidc_cache_error::OidcCacheError;
 use oidc_context::OidcContext;
 pub use oidc_token_handler::{OidcTokenHandler, build_oidc_token_handler};
 pub use open_id_connect_user_info::OpenIdConnectUserInfo;

@@ -5,59 +5,25 @@
 use core::time::Duration;
 use std::{fmt::Display, hash::Hash};
 
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::{DateTime, Utc};
 use openidconnect::{AccessToken, SubjectIdentifier};
 use opentalk_cache::{
-    CacheError, CacheStorage, CacheUpdateMode, hashing::WithHashing, local, overlay::WithOverlay,
-    redis,
+    CacheStorage, CacheUpdateMode, hashing::WithHashing, local, overlay::WithOverlay, redis,
 };
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{Tenant, User};
 use opentalk_signaling_core::RedisConnection;
-use snafu::{Report, Snafu};
+use snafu::Report;
 
 use super::{
-    LogoutMarker,
+    LogoutMarker, OidcCacheError,
     cacheable::{
-        AccessTokenResult, ApiError as CacheableApiError, DecodeFromCacheError,
-        Tenant as CacheableTenant, User as CacheableUser,
+        AccessTokenResult, ApiError as CacheableApiError, Tenant as CacheableTenant,
+        User as CacheableUser,
     },
 };
 
-#[derive(Debug, Snafu)]
-pub enum OidcCacheError {
-    #[snafu(display("cache error: {source}"))]
-    Cache { source: CacheError },
-
-    #[snafu(display("cache error while decoding: {source}"))]
-    DecodeFromCacheError { source: DecodeFromCacheError },
-
-    #[snafu(display("token expires soon and will not be cached (ttl={ttl:?})"))]
-    TokenTtlTooShort { ttl: TimeDelta },
-
-    #[snafu(display("token has no expiry and will not be cached"))]
-    NoExpiryForToken,
-
-    #[snafu(display("token doen't exist in cache and cannot be updated"))]
-    CannotUpdateNonExistingToken,
-
-    #[snafu(display("token has been revoked by sub logout"))]
-    RevokedByLogout,
-}
-
 pub type Result<T, E = OidcCacheError> = std::result::Result<T, E>;
-
-impl From<CacheError> for OidcCacheError {
-    fn from(source: CacheError) -> Self {
-        Self::Cache { source }
-    }
-}
-
-impl From<DecodeFromCacheError> for OidcCacheError {
-    fn from(source: DecodeFromCacheError) -> Self {
-        Self::DecodeFromCacheError { source }
-    }
-}
 
 const ACCESS_TOKEN_DEFAULT_TTL_SECS: u64 = 60 * 5;
 /// Must be much longer, than for access tokens
