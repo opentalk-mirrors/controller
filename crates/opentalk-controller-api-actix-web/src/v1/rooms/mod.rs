@@ -72,7 +72,7 @@ pub async fn get(
 
 /// Create a new room
 ///
-/// Creates a new room withh the settings given in the request body.
+/// Creates a new room with the settings given in the request body.
 #[utoipa::path(
     request_body = PostRoomsRequestBody,
     tag = "api::v1::rooms",
