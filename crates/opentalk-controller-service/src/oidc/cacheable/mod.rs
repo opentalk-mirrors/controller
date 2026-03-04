@@ -22,5 +22,7 @@ pub use tenant::Tenant;
 pub use user::User;
 use validation_error_entry::ValidationErrorEntry;
 
+use super::logout_marker::LogoutMarker;
+
 /// The result of analyzing an access token.
-pub type AccessTokenResult = Result<(Tenant, User), ApiError>;
+pub type AccessTokenResult = Result<(Tenant, User, LogoutMarker), ApiError>;

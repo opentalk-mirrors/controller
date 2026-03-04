@@ -5227,7 +5227,6 @@ dependencies = [
  "log",
  "md5",
  "openidconnect",
- "opentalk-cache",
  "opentalk-controller-api-actix-web",
  "opentalk-controller-service",
  "opentalk-controller-service-facade",

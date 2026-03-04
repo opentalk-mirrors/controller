@@ -38,7 +38,6 @@ livekit-api.workspace = true
 log = { workspace = true, features = ["serde"] }
 md5.workspace = true
 openidconnect.workspace = true
-opentalk-cache.workspace = true
 opentalk-controller-api-actix-web.workspace = true
 opentalk-controller-service.workspace = true
 opentalk-controller-service-facade.workspace = true
