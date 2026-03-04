@@ -4,10 +4,12 @@
 
 //! Provides roomserver-related implementation
 
+use std::collections::BTreeMap;
+
 use opentalk_controller_service_facade::{RequestUser, StartRoomError};
 use opentalk_controller_settings::{Settings, common::HttpCorsAllowedOrigin};
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_inventory::Inventory;
+use opentalk_inventory::{Event, Inventory};
 use opentalk_roomserver_client::{Error, RequestTokenError};
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
@@ -33,6 +35,7 @@ use opentalk_types_common::{
     rooms::RoomId,
     shared_folders::{SharedFolder, SharedFolderAccess},
     streaming::StreamingLink,
+    tariffs::QuotaType,
     users::UserInfo,
 };
 
@@ -190,7 +193,15 @@ impl ControllerBackend {
 
         let call_in = Self::get_call_in_info(inventory.as_mut(), &settings, room.id).await?;
 
-        let event = Self::get_event_context(inventory.as_mut(), room.id).await?;
+        let db_event = inventory.get_event_for_room(room.id).await?;
+        let show_meeting_details = db_event
+            .as_ref()
+            .map(|event| event.show_meeting_details)
+            .unwrap_or(false);
+        let event = match db_event {
+            Some(event) => Self::build_event_context(event, inventory.as_mut()).await?,
+            None => None,
+        };
 
         let streaming_links = Self::build_streaming_links(inventory.as_mut(), room.id).await?;
 
@@ -207,6 +218,19 @@ impl ControllerBackend {
         let disabled_modules = tariff.disabled_modules();
         module_settings.retain(|module_id, _| !disabled_modules.contains(module_id));
 
+        let mut used_quota = BTreeMap::new();
+        for quota_type in tariff.quotas.keys() {
+            let used = match quota_type {
+                QuotaType::RoomParticipantLimit | QuotaType::RoomTimeLimitSecs => 0,
+                QuotaType::MaxStorage => inventory
+                    .get_user_storage_used_size_u64(room.created_by.id)
+                    .await
+                    .unwrap_or(0),
+            };
+            // This can't be None because the quota_type are the keys in the quotas BTreeMap
+            let _ = used_quota.insert(quota_type.clone(), used);
+        }
+
         let disabled_features = tariff
             .disabled_features()
             .into_iter()
@@ -216,6 +240,7 @@ impl ControllerBackend {
             id: tariff.id,
             name: tariff.name,
             quotas: tariff.quotas,
+            used_quota,
             disabled_features,
         };
 
@@ -266,6 +291,7 @@ impl ControllerBackend {
             invite_code,
             tariff,
             streaming_links,
+            show_meeting_details,
             e2e_encryption: false,
             module_settings,
             preferred_language,
@@ -277,14 +303,10 @@ impl ControllerBackend {
         Ok(parameters)
     }
 
-    async fn get_event_context(
+    async fn build_event_context(
+        event: Event,
         inventory: &mut dyn Inventory,
-        room_id: RoomId,
     ) -> Result<Option<EventContext>, CaptureApiError> {
-        let Some(event) = inventory.get_event_for_room(room_id).await? else {
-            return Ok(None);
-        };
-
         let shared_folder = match inventory.get_event_shared_folder(event.id).await? {
             Some(event_shared_folder) => Some(SharedFolder {
                 read: SharedFolderAccess {
