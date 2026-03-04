@@ -40,6 +40,9 @@ pub enum OidcCacheError {
 
     #[snafu(display("token doen't exist in cache and cannot be updated"))]
     CannotUpdateNonExistingToken,
+
+    #[snafu(display("token has been revoked by sub logout"))]
+    RevokedByLogout,
 }
 
 pub type Result<T, E = OidcCacheError> = std::result::Result<T, E>;
@@ -214,13 +217,43 @@ impl Cache {
             .map_err(OidcCacheError::from)
     }
 
+    /// Lazy access token invalidation based on sub logout
+    /// If an access token has been cached before it's assoiciated sub has been logged out
+    /// it is considered as revoked
+    async fn is_access_token_revoked_by_sub_logout(
+        &self,
+        token_logout_marker: LogoutMarker,
+        sub: &String,
+    ) -> Result<bool> {
+        match self.sub_logout_markers.get(sub).await {
+            Ok(Some(sub_logout_marker)) => {
+                Ok(token_logout_marker.value() <= sub_logout_marker.value())
+            }
+            Ok(None) => Ok(false),
+            Err(e) => {
+                log::warn!(
+                    "Failed to retreive logout marker from the cache, error: {}",
+                    Report::from_error(&e)
+                );
+                Err(OidcCacheError::from(e))
+            }
+        }
+    }
+
     /// Get cached result for an access token
     pub async fn get_access_token(
         &self,
         access_token: &AccessToken,
     ) -> Result<Option<Result<(Tenant, User), CaptureApiError>>, OidcCacheError> {
         match self.access_tokens.get(access_token.secret()).await {
-            Ok(Some(Ok((tenant, user, _)))) => {
+            Ok(Some(Ok((tenant, user, token_logout_marker)))) => {
+                let is_revoked = self
+                    .is_access_token_revoked_by_sub_logout(token_logout_marker, user.oidc_sub())
+                    .await;
+                if let Ok(true) = is_revoked {
+                    return Err(OidcCacheError::RevokedByLogout);
+                }
+
                 let tenant = tenant.try_into().map_err(|e| {
                 log::warn!(
                     "Error when attempting to read tenant information loaded from token cache: {}",

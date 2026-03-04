@@ -37,6 +37,12 @@ pub struct User {
     updated_at: i64,
 }
 
+impl User {
+    pub fn oidc_sub(&self) -> &String {
+        &self.oidc_sub
+    }
+}
+
 impl From<opentalk_inventory::User> for User {
     fn from(
         opentalk_inventory::User {
