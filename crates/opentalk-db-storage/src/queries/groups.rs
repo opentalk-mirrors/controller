@@ -2,27 +2,69 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+//! Contains groups database queries
+
 use std::collections::BTreeSet;
 
-use diesel::BoolExpressionMethods;
-use diesel::{ExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
+use diesel::prelude::*;
+use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
+use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{
     tenants::TenantId,
     users::{GroupId, GroupName, UserId},
 };
 
-use crate::schema::{groups, user_groups};
-
-pub use crate::tables::{
-    groups::{Group, NewGroup},
-    user_groups::{NewUserGroupRelation, UserGroupRelation},
+use crate::{
+    schema::{groups, user_groups},
+    tables::{
+        groups::{Group, NewGroup},
+        user_groups::NewUserGroupRelation,
+    },
 };
 
-/// Get or create groups in the database by their name and tenant_id
-/// If the group is currently not stored, create a new group and returns the ID along the already present ones.
-/// Does not preserve the order of groups passed to the function
+#[tracing::instrument(err, skip_all)]
+pub async fn get_groups_for_user(conn: &mut DbConnection, user_id: UserId) -> Result<Vec<Group>> {
+    user_groups::table
+        .inner_join(groups::table)
+        .filter(user_groups::user_id.eq(user_id))
+        .select(groups::all_columns)
+        .order_by(groups::id_serial)
+        .load(conn)
+        .await
+        .map_err(DatabaseError::from)
+}
+
+/// Insert the new group. If the group already exists for the OIDC issuer the group will be
+/// returned instead
+#[tracing::instrument(err, skip_all)]
+pub async fn insert_or_get_group(conn: &mut DbConnection, group: Group) -> Result<Group> {
+    conn.transaction(|conn| {
+        async move {
+            let group = groups::table
+                .select(groups::all_columns)
+                .filter(groups::name.eq(&group.name))
+                .first(conn)
+                .await
+                .optional()?;
+
+            if let Some(group) = group {
+                return Ok(group);
+            }
+
+            diesel::insert_into(groups::table)
+                .values(group)
+                .get_result(conn)
+                .await
+                .map_err(DatabaseError::from)
+        }
+        .scope_boxed()
+    })
+    .await
+}
+/// Get or create groups in the database by their name and tenant_id.
+///
+/// If the group is currently not stored, create a new group and returns the ID along the already
+/// present ones. Does not preserve the order of groups passed to the function
 pub async fn get_or_create_groups_by_name(
     conn: &mut DbConnection,
     groups: &[(TenantId, GroupName)],
@@ -31,6 +73,7 @@ pub async fn get_or_create_groups_by_name(
         .iter()
         .map(|&(tenant_id, ref name)| NewGroup { name, tenant_id })
         .collect();
+
     diesel::insert_into(groups::table)
         .values(&new_groups)
         .on_conflict((groups::tenant_id, groups::name))
@@ -39,7 +82,6 @@ pub async fn get_or_create_groups_by_name(
         .await?;
 
     let mut query = groups::table.select(groups::all_columns).into_boxed();
-
     for (tenant_id, group_name) in groups {
         query = query.or_filter(
             groups::tenant_id
@@ -48,16 +90,16 @@ pub async fn get_or_create_groups_by_name(
         );
     }
 
-    let groups: Vec<Group> = query.load(conn).await?;
+    let groups = query.load(conn).await?;
 
     Ok(groups)
 }
 
-/// Add a user to a set of groups
+/// Add a user to a set of groups.
 ///
-/// The result will contain the set of ids for the groups to which the user was
-/// effectively added. Any groups passed into the `groups` parameters where the
-/// user was already a member anyway will be missing from the returned set.
+/// The result will contain the set of ids for the groups to which the user was effectively added.
+/// Any groups passed into the `groups` parameters where the user was already a member anyway will
+/// be missing from the returned set.
 #[tracing::instrument(err, skip_all)]
 pub async fn insert_user_into_groups(
     conn: &mut DbConnection,

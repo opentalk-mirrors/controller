@@ -26,8 +26,8 @@ use opentalk_types_common::{
 use serde::{Deserialize, Serialize};
 
 use super::{
-    groups::{Group, UserGroupRelation},
     schema::{assets, groups, room_assets, rooms, users},
+    tables::{groups::Group, user_groups::UserGroupRelation},
 };
 use crate::{levenshtein, lower, newtypes::LanguageIdentifier, paginate::Paginate as _, soundex};
 

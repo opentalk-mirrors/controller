@@ -5,12 +5,7 @@
 use std::collections::BTreeSet;
 
 use bigdecimal::BigDecimal;
-use opentalk_db_storage::{
-    groups::{
-        insert_user_into_groups, remove_user_from_all_groups, remove_user_from_all_groups_except,
-    },
-    users::{self as db},
-};
+use opentalk_db_storage as db;
 use opentalk_inventory::{Group, NewUser, UpdateUser, UpsertOutcome, User, UserInventory};
 use opentalk_types_common::{
     tenants::TenantId,
@@ -25,7 +20,7 @@ use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 impl UserInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn create_user(&mut self, new_user: NewUser) -> Result<User> {
-        Ok(db::NewUser::from(new_user)
+        Ok(db::users::NewUser::from(new_user)
             .insert(&mut self.inner)
             .await
             .context(DatabaseSnafu)?
@@ -34,7 +29,7 @@ impl UserInventory for DatabaseConnection {
 
     #[tracing::instrument(err, skip_all)]
     async fn get_user(&mut self, user_id: UserId) -> Result<User> {
-        Ok(db::User::get(&mut self.inner, user_id)
+        Ok(db::users::User::get(&mut self.inner, user_id)
             .await
             .context(DatabaseSnafu)?
             .into())
@@ -42,7 +37,7 @@ impl UserInventory for DatabaseConnection {
 
     #[tracing::instrument(err, skip_all)]
     async fn update_user<'a>(&mut self, user_id: UserId, user: UpdateUser<'a>) -> Result<User> {
-        Ok(db::UpdateUser::from(user)
+        Ok(db::users::UpdateUser::from(user)
             .apply(&mut self.inner, user_id)
             .await
             .context(DatabaseSnafu)?
@@ -51,7 +46,7 @@ impl UserInventory for DatabaseConnection {
 
     #[tracing::instrument(err, skip_all)]
     async fn delete_user(&mut self, user_id: UserId) -> Result<()> {
-        Ok(db::User::delete_by_id(&mut self.inner, user_id)
+        Ok(db::users::User::delete_by_id(&mut self.inner, user_id)
             .await
             .context(DatabaseSnafu)?)
     }
@@ -59,7 +54,7 @@ impl UserInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn set_last_authenticated_at_to_now(&mut self, user_id: UserId) -> Result<()> {
         Ok(
-            db::User::update_last_authenticated_at_by_id(&mut self.inner, user_id)
+            db::users::User::update_last_authenticated_at_by_id(&mut self.inner, user_id)
                 .await
                 .context(DatabaseSnafu)?,
         )
@@ -67,7 +62,7 @@ impl UserInventory for DatabaseConnection {
 
     #[tracing::instrument(err, skip_all)]
     async fn get_all_users(&mut self) -> Result<Vec<User>> {
-        Ok(db::User::get_all(&mut self.inner)
+        Ok(db::users::User::get_all(&mut self.inner)
             .await
             .context(DatabaseSnafu)?
             .into_iter()
@@ -77,7 +72,7 @@ impl UserInventory for DatabaseConnection {
 
     #[tracing::instrument(err, skip_all)]
     async fn get_all_users_with_groups(&mut self) -> Result<Vec<(User, Vec<Group>)>> {
-        Ok(db::User::get_all_with_groups(&mut self.inner)
+        Ok(db::users::User::get_all_with_groups(&mut self.inner)
             .await
             .context(DatabaseSnafu)?
             .into_iter()
@@ -87,7 +82,7 @@ impl UserInventory for DatabaseConnection {
 
     #[tracing::instrument(err, skip_all)]
     async fn get_users_by_ids(&mut self, user_ids: &[UserId]) -> Result<Vec<User>> {
-        Ok(db::User::get_all_by_ids(&mut self.inner, user_ids)
+        Ok(db::users::User::get_all_by_ids(&mut self.inner, user_ids)
             .await
             .context(DatabaseSnafu)?
             .into_iter()
@@ -98,7 +93,7 @@ impl UserInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn get_user_ids_disabled_before(&mut self, timestamp: Timestamp) -> Result<Vec<UserId>> {
         Ok(
-            db::User::get_disabled_before(&mut self.inner, timestamp.into())
+            db::users::User::get_disabled_before(&mut self.inner, timestamp.into())
                 .await
                 .context(DatabaseSnafu)?,
         )
@@ -111,7 +106,7 @@ impl UserInventory for DatabaseConnection {
         email_address: &str,
     ) -> Result<Option<User>> {
         Ok(
-            db::User::get_by_email(&mut self.inner, tenant_id, email_address)
+            db::users::User::get_by_email(&mut self.inner, tenant_id, email_address)
                 .await
                 .context(DatabaseSnafu)?
                 .map(Into::into),
@@ -125,7 +120,7 @@ impl UserInventory for DatabaseConnection {
         phone_number_e164: &str,
     ) -> Result<Vec<User>> {
         Ok(
-            db::User::get_by_phone(&mut self.inner, tenant_id, phone_number_e164)
+            db::users::User::get_by_phone(&mut self.inner, tenant_id, phone_number_e164)
                 .await
                 .context(DatabaseSnafu)?
                 .into_iter()
@@ -140,7 +135,7 @@ impl UserInventory for DatabaseConnection {
         user: NewUser,
         enforce_display_name_on_update: bool,
     ) -> Result<UpsertOutcome<User>> {
-        let user = db::NewUser::from(user)
+        let user = db::users::NewUser::from(user)
             .insert_or_update_by_oidc_sub(&mut self.inner, enforce_display_name_on_update)
             .await
             .context(DatabaseSnafu)?;
@@ -158,7 +153,7 @@ impl UserInventory for DatabaseConnection {
         subs: &[&str],
     ) -> Result<Vec<User>> {
         Ok(
-            db::User::get_all_by_oidc_subs(&mut self.inner, tenant_id, subs)
+            db::users::User::get_all_by_oidc_subs(&mut self.inner, tenant_id, subs)
                 .await
                 .context(DatabaseSnafu)?
                 .into_iter()
@@ -170,7 +165,7 @@ impl UserInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn get_user_for_tenant(&mut self, tenant_id: TenantId, user_id: UserId) -> Result<User> {
         Ok(
-            db::User::get_filtered_by_tenant(&mut self.inner, tenant_id, user_id)
+            db::users::User::get_filtered_by_tenant(&mut self.inner, tenant_id, user_id)
                 .await
                 .context(DatabaseSnafu)?
                 .into(),
@@ -183,9 +178,11 @@ impl UserInventory for DatabaseConnection {
         user_id: UserId,
         groups: &[GroupId],
     ) -> Result<BTreeSet<GroupId>> {
-        Ok(insert_user_into_groups(&mut self.inner, user_id, groups)
-            .await
-            .context(DatabaseSnafu)?)
+        Ok(
+            db::queries::groups::insert_user_into_groups(&mut self.inner, user_id, groups)
+                .await
+                .context(DatabaseSnafu)?,
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -194,32 +191,38 @@ impl UserInventory for DatabaseConnection {
         user_id: UserId,
         group_ids_to_keep: &[GroupId],
     ) -> Result<BTreeSet<GroupId>> {
+        Ok(db::queries::groups::remove_user_from_all_groups_except(
+            &mut self.inner,
+            user_id,
+            group_ids_to_keep,
+        )
+        .await
+        .context(DatabaseSnafu)?)
+    }
+
+    #[tracing::instrument(err, skip_all)]
+    async fn remove_user_from_all_groups(&mut self, user_id: UserId) -> Result<()> {
         Ok(
-            remove_user_from_all_groups_except(&mut self.inner, user_id, group_ids_to_keep)
+            db::queries::groups::remove_user_from_all_groups(&mut self.inner, user_id)
                 .await
                 .context(DatabaseSnafu)?,
         )
     }
 
     #[tracing::instrument(err, skip_all)]
-    async fn remove_user_from_all_groups(&mut self, user_id: UserId) -> Result<()> {
-        Ok(remove_user_from_all_groups(&mut self.inner, user_id)
-            .await
-            .context(DatabaseSnafu)?)
-    }
-
-    #[tracing::instrument(err, skip_all)]
     async fn get_user_storage_used_size(&mut self, user_id: UserId) -> Result<BigDecimal> {
-        Ok(db::User::get_used_storage(&mut self.inner, &user_id)
+        Ok(db::users::User::get_used_storage(&mut self.inner, &user_id)
             .await
             .context(DatabaseSnafu)?)
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_user_storage_used_size_u64(&mut self, user_id: UserId) -> Result<u64> {
-        Ok(db::User::get_used_storage_u64(&mut self.inner, &user_id)
-            .await
-            .context(DatabaseSnafu)?)
+        Ok(
+            db::users::User::get_used_storage_u64(&mut self.inner, &user_id)
+                .await
+                .context(DatabaseSnafu)?,
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -230,7 +233,7 @@ impl UserInventory for DatabaseConnection {
         limit: usize,
     ) -> Result<Vec<User>> {
         Ok(
-            db::User::find(&mut self.inner, tenant_id, search_string, limit)
+            db::users::User::find(&mut self.inner, tenant_id, search_string, limit)
                 .await
                 .context(DatabaseSnafu)?
                 .into_iter()
