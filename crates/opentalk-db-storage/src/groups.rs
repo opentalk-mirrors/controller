@@ -5,7 +5,6 @@
 use std::collections::BTreeSet;
 
 use diesel::BoolExpressionMethods;
-use diesel::Queryable;
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DbConnection, Result};
@@ -14,29 +13,12 @@ use opentalk_types_common::{
     users::{GroupId, GroupName, UserId},
 };
 
-use crate::{
-    schema::{groups, user_groups},
-    users::User,
+use crate::schema::{groups, user_groups};
+
+pub use crate::tables::{
+    groups::{Group, NewGroup},
+    user_groups::{NewUserGroupRelation, UserGroupRelation},
 };
-
-pub use crate::tables::groups::{Group, NewGroup};
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = user_groups)]
-pub struct NewUserGroupRelation {
-    pub user_id: UserId,
-    pub group_id: GroupId,
-}
-
-#[derive(Debug, Queryable, Identifiable, Associations)]
-#[diesel(table_name = user_groups)]
-#[diesel(belongs_to(User, foreign_key = user_id))]
-#[diesel(belongs_to(Group, foreign_key = group_id))]
-#[diesel(primary_key(user_id, group_id))]
-pub struct UserGroupRelation {
-    pub user_id: UserId,
-    pub group_id: GroupId,
-}
 
 /// Get or create groups in the database by their name and tenant_id
 /// If the group is currently not stored, create a new group and returns the ID along the already present ones.
