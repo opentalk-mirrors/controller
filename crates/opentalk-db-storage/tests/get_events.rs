@@ -6,8 +6,13 @@ use chrono::{TimeZone as _, Utc};
 use chrono_tz::Tz;
 use opentalk_database::DbConnection;
 use opentalk_db_storage::{
-    events::{Event, EventInvite, GetEventsCursor, NewEvent, NewEventInvite, UpdateEventInvite},
+    self as db,
+    queries::events::cursor::GetEventsCursor,
     rooms::NewRoom,
+    tables::{
+        event_invites::{NewEventInvite, UpdateEventInvite},
+        events::{Event, NewEvent},
+    },
     tenants::{OidcTenantId, get_or_create_tenant_by_oidc_id},
     users::User,
 };
@@ -47,7 +52,7 @@ async fn make_event(
     .await
     .unwrap();
 
-    NewEvent {
+    let new_event = NewEvent {
         title: "Test Event".parse().expect("valid event title"),
         description: "Test Event".parse().expect("valid event description"),
         room: room.id,
@@ -63,10 +68,11 @@ async fn make_event(
         is_adhoc,
         tenant_id: tenant.id,
         show_meeting_details: false,
-    }
-    .insert(conn)
-    .await
-    .unwrap()
+    };
+
+    db::queries::events::create_event(conn, new_event)
+        .await
+        .unwrap()
 }
 
 async fn update_invite_status(
@@ -80,7 +86,9 @@ async fn update_invite_status(
         role: None,
     };
 
-    changeset.apply(conn, user_id, event_id).await.unwrap();
+    db::queries::events::update_event_invite(conn, event_id, user_id, changeset)
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
@@ -113,7 +121,7 @@ async fn serial_test_test() {
         // Test cursor
 
         // Get first two events 1, 2
-        let first_two = Event::get_all_for_user_paginated(
+        let first_two = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -139,7 +147,7 @@ async fn serial_test_test() {
         let cursor = GetEventsCursor::from_last_event_in_query(query_event2);
 
         // Use that to get 3,4
-        let next_two = Event::get_all_for_user_paginated(
+        let next_two = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -164,7 +172,7 @@ async fn serial_test_test() {
         // Then 5,6
         let cursor = GetEventsCursor::from_last_event_in_query(query_event4);
 
-        let next_two = Event::get_all_for_user_paginated(
+        let next_two = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -189,7 +197,7 @@ async fn serial_test_test() {
         // Then 7,8
         let cursor = GetEventsCursor::from_last_event_in_query(query_event6);
 
-        let next_two = Event::get_all_for_user_paginated(
+        let next_two = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -214,7 +222,7 @@ async fn serial_test_test() {
 
     {
         // Test time_min
-        let only_event8 = Event::get_all_for_user_paginated(
+        let only_event8 = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -236,7 +244,7 @@ async fn serial_test_test() {
 
     {
         // Test time_max
-        let every_event_except_event8 = Event::get_all_for_user_paginated(
+        let every_event_except_event8 = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -264,7 +272,7 @@ async fn serial_test_test() {
     }
     {
         // Test both time_min + time_max
-        let only_event_at_3h = Event::get_all_for_user_paginated(
+        let only_event_at_3h = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user,
             false,
@@ -305,7 +313,7 @@ async fn serial_test_get_events_invite_filter() {
     let pending_event = make_event(&mut conn, &inviter, Some(1), true).await;
 
     // Check that the creator of the events gets created events when filtering by `Accepted` invite status
-    let all_events = Event::get_all_for_user_paginated(
+    let all_events = db::queries::events::get_all_events_for_user_paginated(
         &mut conn,
         inviter.clone(),
         false,
@@ -345,7 +353,7 @@ async fn serial_test_get_events_invite_filter() {
     );
 
     // Check that no events are returned when filtering for `Declined`
-    let no_events = Event::get_all_for_user_paginated(
+    let no_events = db::queries::events::get_all_events_for_user_paginated(
         &mut conn,
         inviter.clone(),
         false,
@@ -373,16 +381,17 @@ async fn serial_test_get_events_invite_filter() {
 
     // invite the invitee to all events
     for event in events {
-        NewEventInvite {
+        let new_event_invite = NewEventInvite {
             event_id: event.id,
             invitee: invitee.id,
             created_by: inviter.id,
             created_at: None,
             role: InviteRole::User,
-        }
-        .try_insert(&mut conn)
-        .await
-        .unwrap();
+        };
+
+        db::queries::events::try_create_event_invite(&mut conn, new_event_invite)
+            .await
+            .unwrap();
     }
 
     update_invite_status(
@@ -410,7 +419,7 @@ async fn serial_test_get_events_invite_filter() {
     .await;
 
     // check `accepted` invites
-    let accepted_events = Event::get_all_for_user_paginated(
+    let accepted_events = db::queries::events::get_all_events_for_user_paginated(
         &mut conn,
         invitee.clone(),
         false,
@@ -435,7 +444,7 @@ async fn serial_test_get_events_invite_filter() {
     );
 
     // check `declined` invites
-    let declined_events = Event::get_all_for_user_paginated(
+    let declined_events = db::queries::events::get_all_events_for_user_paginated(
         &mut conn,
         invitee.clone(),
         false,
@@ -460,7 +469,7 @@ async fn serial_test_get_events_invite_filter() {
     );
 
     // check `tentative` invites
-    let tentative_events = Event::get_all_for_user_paginated(
+    let tentative_events = db::queries::events::get_all_events_for_user_paginated(
         &mut conn,
         invitee.clone(),
         false,
@@ -485,7 +494,7 @@ async fn serial_test_get_events_invite_filter() {
     );
 
     // check `pending` invites
-    let pending_events = Event::get_all_for_user_paginated(
+    let pending_events = db::queries::events::get_all_events_for_user_paginated(
         &mut conn,
         invitee.clone(),
         false,
@@ -510,7 +519,7 @@ async fn serial_test_get_events_invite_filter() {
     );
 
     // expect all events when no invite_status_filter is set
-    let all_events = Event::get_all_for_user_paginated(
+    let all_events = db::queries::events::get_all_events_for_user_paginated(
         &mut conn,
         invitee.clone(),
         false,
@@ -564,57 +573,58 @@ async fn serial_test_get_event_invites() {
     // EVENT 1 MIT JEEZ LOUISE AND GERHARD
     let event1 = make_event(&mut conn, &ferdinand, Some(1), true).await;
 
-    NewEventInvite {
+    let new_event_invite = NewEventInvite {
         event_id: event1.id,
         invitee: louise.id,
         created_by: ferdinand.id,
         created_at: None,
         role: InviteRole::User,
-    }
-    .try_insert(&mut conn)
-    .await
-    .unwrap();
+    };
+    db::queries::events::try_create_event_invite(&mut conn, new_event_invite)
+        .await
+        .unwrap();
 
-    NewEventInvite {
+    let new_event_invite = NewEventInvite {
         event_id: event1.id,
         invitee: gerhard.id,
         created_by: ferdinand.id,
         created_at: None,
-        role: InviteRole::Moderator,
-    }
-    .try_insert(&mut conn)
-    .await
-    .unwrap();
+        role: InviteRole::User,
+    };
+    db::queries::events::try_create_event_invite(&mut conn, new_event_invite)
+        .await
+        .unwrap();
 
     // EVENT 2 MIT JEEZ LOUSE UND FERDINAND
     let event2 = make_event(&mut conn, &gerhard, Some(1), true).await;
 
-    NewEventInvite {
+    let new_event_invite = NewEventInvite {
         event_id: event2.id,
         invitee: louise.id,
-        created_by: gerhard.id,
+        created_by: ferdinand.id,
         created_at: None,
         role: InviteRole::User,
-    }
-    .try_insert(&mut conn)
-    .await
-    .unwrap();
-
-    NewEventInvite {
-        event_id: event2.id,
-        invitee: ferdinand.id,
-        created_by: gerhard.id,
-        created_at: None,
-        role: InviteRole::Moderator,
-    }
-    .try_insert(&mut conn)
-    .await
-    .unwrap();
-
-    let events = &[&event1, &event2][..];
-    let invites_with_invitees = EventInvite::get_for_events(&mut conn, events)
+    };
+    db::queries::events::try_create_event_invite(&mut conn, new_event_invite)
         .await
         .unwrap();
+
+    let new_event_invite = NewEventInvite {
+        event_id: event2.id,
+        invitee: ferdinand.id,
+        created_by: ferdinand.id,
+        created_at: None,
+        role: InviteRole::User,
+    };
+    db::queries::events::try_create_event_invite(&mut conn, new_event_invite)
+        .await
+        .unwrap();
+
+    let events = &[&event1, &event2][..];
+    let invites_with_invitees =
+        db::queries::events::get_event_user_invites_for_events(&mut conn, events)
+            .await
+            .unwrap();
 
     for (event, invites_with_users) in events.iter().zip(invites_with_invitees) {
         println!("Event: {event:#?}");
@@ -644,7 +654,7 @@ async fn serial_test_get_event_adhoc() {
     let event4 = make_event(&mut conn, &user, Some(1), true).await;
     let event5 = make_event(&mut conn, &user, Some(1), true).await;
 
-    let all = Event::get_all_for_user_paginated(
+    let all = db::queries::events::get_all_events_for_user_paginated(
         &mut conn,
         user.clone(),
         false,
@@ -668,7 +678,7 @@ async fn serial_test_get_event_adhoc() {
     assert_eq!(all[3].0, event4);
     assert_eq!(all[4].0, event5);
 
-    let adhoc = Event::get_all_for_user_paginated(
+    let adhoc = db::queries::events::get_all_events_for_user_paginated(
         &mut conn,
         user.clone(),
         false,
@@ -689,7 +699,7 @@ async fn serial_test_get_event_adhoc() {
     assert_eq!(adhoc[1].0, event4);
     assert_eq!(adhoc[2].0, event5);
 
-    let non_adhoc = Event::get_all_for_user_paginated(
+    let non_adhoc = db::queries::events::get_all_events_for_user_paginated(
         &mut conn,
         user.clone(),
         false,
@@ -725,7 +735,7 @@ async fn serial_test_get_event_time_independent() {
     let event4 = make_event(&mut conn, &user, None, false).await;
     let event5 = make_event(&mut conn, &user, Some(2), false).await;
 
-    let all = Event::get_all_for_user_paginated(
+    let all = db::queries::events::get_all_events_for_user_paginated(
         &mut conn,
         user.clone(),
         false,
@@ -751,7 +761,7 @@ async fn serial_test_get_event_time_independent() {
     assert_eq!(all[3].0, event3);
     assert_eq!(all[4].0, event5);
 
-    let time_independent = Event::get_all_for_user_paginated(
+    let time_independent = db::queries::events::get_all_events_for_user_paginated(
         &mut conn,
         user.clone(),
         false,
@@ -772,7 +782,7 @@ async fn serial_test_get_event_time_independent() {
     assert_eq!(time_independent[1].0, event2);
     assert_eq!(time_independent[2].0, event4);
 
-    let time_dependent = Event::get_all_for_user_paginated(
+    let time_dependent = db::queries::events::get_all_events_for_user_paginated(
         &mut conn,
         user.clone(),
         false,
@@ -813,26 +823,29 @@ async fn serial_test_get_event_min_max_time() {
     .await
     .unwrap();
 
-    let event1 = NewEvent {
-        title: "Test Event".parse().expect("valid event title"),
-        description: "Test Event".parse().expect("valid event description"),
-        room: room1.id,
-        created_by: user.id,
-        updated_by: user.id,
-        is_all_day: Some(false),
-        starts_at: None,
-        starts_at_tz: None,
-        ends_at: None,
-        ends_at_tz: None,
-        duration_secs: None,
-        recurrence_pattern: None,
-        is_adhoc: false,
-        tenant_id: user.tenant_id,
-        show_meeting_details: false,
-    }
-    .insert(&mut conn)
-    .await
-    .unwrap();
+    let event1 = {
+        let event = NewEvent {
+            title: "Test Event".parse().expect("valid event title"),
+            description: "Test Event".parse().expect("valid event description"),
+            room: room1.id,
+            created_by: user.id,
+            updated_by: user.id,
+            is_all_day: Some(false),
+            starts_at: None,
+            starts_at_tz: None,
+            ends_at: None,
+            ends_at_tz: None,
+            duration_secs: None,
+            recurrence_pattern: None,
+            is_adhoc: false,
+            tenant_id: user.tenant_id,
+            show_meeting_details: false,
+        };
+
+        db::queries::events::create_event(&mut conn, event)
+            .await
+            .unwrap()
+    };
 
     let room2 = NewRoom {
         created_by: user.id,
@@ -845,30 +858,33 @@ async fn serial_test_get_event_min_max_time() {
     .await
     .unwrap();
 
-    let event2 = NewEvent {
-        title: "Test Event".parse().expect("valid event title"),
-        description: "Test Event".parse().expect("valid event description"),
-        room: room2.id,
-        created_by: user.id,
-        updated_by: user.id,
-        is_all_day: Some(false),
-        starts_at: Some(Tz::UTC.with_ymd_and_hms(2020, 1, 1, 10, 0, 0).unwrap()),
-        starts_at_tz: Some(TimeZone::from(Tz::UTC)),
-        ends_at: Some(Tz::UTC.with_ymd_and_hms(2020, 1, 1, 11, 0, 0).unwrap()),
-        ends_at_tz: Some(TimeZone::from(Tz::UTC)),
-        duration_secs: Some(3600),
-        recurrence_pattern: None,
-        is_adhoc: false,
-        tenant_id: user.tenant_id,
-        show_meeting_details: false,
-    }
-    .insert(&mut conn)
-    .await
-    .unwrap();
+    let event2 = {
+        let event = NewEvent {
+            title: "Test Event".parse().expect("valid event title"),
+            description: "Test Event".parse().expect("valid event description"),
+            room: room2.id,
+            created_by: user.id,
+            updated_by: user.id,
+            is_all_day: Some(false),
+            starts_at: Some(Tz::UTC.with_ymd_and_hms(2020, 1, 1, 10, 0, 0).unwrap()),
+            starts_at_tz: Some(TimeZone::from(Tz::UTC)),
+            ends_at: Some(Tz::UTC.with_ymd_and_hms(2020, 1, 1, 11, 0, 0).unwrap()),
+            ends_at_tz: Some(TimeZone::from(Tz::UTC)),
+            duration_secs: Some(3600),
+            recurrence_pattern: None,
+            is_adhoc: false,
+            tenant_id: user.tenant_id,
+            show_meeting_details: false,
+        };
+
+        db::queries::events::create_event(&mut conn, event)
+            .await
+            .unwrap()
+    };
 
     {
         // Query without any time restrictions
-        let events = Event::get_all_for_user_paginated(
+        let events = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -892,7 +908,7 @@ async fn serial_test_get_event_min_max_time() {
 
     {
         // Query an open timeframe before the event
-        let events = Event::get_all_for_user_paginated(
+        let events = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -913,7 +929,7 @@ async fn serial_test_get_event_min_max_time() {
 
     {
         // Query a closed timeframe before the event
-        let events = Event::get_all_for_user_paginated(
+        let events = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -934,7 +950,7 @@ async fn serial_test_get_event_min_max_time() {
 
     {
         // Query an open timeframe after the event
-        let events = Event::get_all_for_user_paginated(
+        let events = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -955,7 +971,7 @@ async fn serial_test_get_event_min_max_time() {
 
     {
         // Query an closed timeframe after the event
-        let events = Event::get_all_for_user_paginated(
+        let events = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -976,7 +992,7 @@ async fn serial_test_get_event_min_max_time() {
 
     {
         // Query a timeframe ending at the start of the event
-        let events = Event::get_all_for_user_paginated(
+        let events = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -998,7 +1014,7 @@ async fn serial_test_get_event_min_max_time() {
 
     {
         // Query a timeframe starting at the end of the event
-        let events = Event::get_all_for_user_paginated(
+        let events = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -1020,7 +1036,7 @@ async fn serial_test_get_event_min_max_time() {
 
     {
         // Query an open timeframe overlapping the first half of the event
-        let events = Event::get_all_for_user_paginated(
+        let events = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -1042,7 +1058,7 @@ async fn serial_test_get_event_min_max_time() {
 
     {
         // Query a timeframe overlapping the first half of the event
-        let events = Event::get_all_for_user_paginated(
+        let events = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -1064,7 +1080,7 @@ async fn serial_test_get_event_min_max_time() {
 
     {
         // Query an open timeframe overlapping the second half of the event
-        let events = Event::get_all_for_user_paginated(
+        let events = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -1086,7 +1102,7 @@ async fn serial_test_get_event_min_max_time() {
 
     {
         // Query a timeframe overlapping the second half of the event
-        let events = Event::get_all_for_user_paginated(
+        let events = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -1108,7 +1124,7 @@ async fn serial_test_get_event_min_max_time() {
 
     {
         // Query a timeframe fully inside the event
-        let events = Event::get_all_for_user_paginated(
+        let events = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,
@@ -1130,7 +1146,7 @@ async fn serial_test_get_event_min_max_time() {
 
     {
         // Query a timeframe surrounding the event
-        let events = Event::get_all_for_user_paginated(
+        let events = db::queries::events::get_all_events_for_user_paginated(
             &mut conn,
             user.clone(),
             false,

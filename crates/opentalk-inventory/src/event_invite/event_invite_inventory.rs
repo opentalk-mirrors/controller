@@ -68,11 +68,8 @@ pub trait EventInviteInventory {
         events: &[&Event],
     ) -> Result<Vec<Vec<EventEmailInvite>>>;
 
-    /// Get all pending email invites for a user.
-    async fn get_email_invites_pending_for_user(
-        &mut self,
-        user_id: UserId,
-    ) -> Result<Vec<EventInvite>>;
+    /// Get all pending invites for a user.
+    async fn get_invites_pending_for_user(&mut self, user_id: UserId) -> Result<Vec<EventInvite>>;
 
     /// Delete an event invite for a specific invitee.
     async fn delete_event_invite_by_invitee(

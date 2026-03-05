@@ -20,7 +20,6 @@ mod macros;
 mod schema;
 
 pub mod assets;
-pub mod events;
 pub mod groups;
 pub mod invites;
 pub mod jobs;
@@ -29,9 +28,11 @@ pub mod module_resources;
 pub mod newtypes;
 pub mod paginate;
 pub mod paginated;
+pub mod queries;
 pub mod rooms;
 pub mod sip_configs;
 pub mod streaming_targets;
+pub mod tables;
 pub mod tariffs;
 pub mod tenants;
 pub mod users;
@@ -56,7 +57,7 @@ pub mod sql_types {
     };
 
     pub use super::{
-        events::EventExceptionKindType as EventExceptionKind,
         jobs::{JobStatusType as JobStatus, JobTypeType as JobType, LogLevelType as LogLevel},
+        tables::event_exceptions::EventExceptionKindType as EventExceptionKind,
     };
 }
