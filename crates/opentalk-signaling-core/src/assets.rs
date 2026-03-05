@@ -12,6 +12,7 @@ use aws_sdk_s3::primitives::{ByteStream, ByteStreamError};
 use bytes::Bytes;
 use futures::Stream;
 use opentalk_inventory::{Asset, Inventory, InventoryProvider, NewAsset, Room};
+use opentalk_types_api_v1::assets::Quota;
 use opentalk_types_common::{
     assets::{AssetFileKind, AssetId, FileExtension},
     events::EventTitle,
@@ -127,9 +128,8 @@ pub struct AssetSaved {
     /// The filename of the saved asset
     pub filename: String,
 
-    /// The remaining quota of the user after the asset was saved. None if the user has
-    /// no quota.
-    pub remaining_quota: Option<u64>,
+    /// The quota after the asset has been saved
+    pub quota: Quota,
 }
 
 /// Save an asset in the long term storage
@@ -210,7 +210,10 @@ where
         .map(|asset| AssetSaved {
             asset_id: asset.id,
             filename,
-            remaining_quota: storage_quota.map(|q| q.saturating_sub(size as u64)),
+            quota: Quota {
+                total: storage_quota.total,
+                used: storage_quota.used.saturating_add(size as u64),
+            },
         })
         .context(InventoryQuerySnafu)
     };
@@ -268,7 +271,7 @@ async fn insert_asset_into_inventory(
 async fn prepare_storage(
     room_id: RoomId,
     inventory: &mut dyn Inventory,
-) -> Result<(Room, Option<u64>), AssetError> {
+) -> Result<(Room, Quota), AssetError> {
     let room = inventory
         .get_room(room_id)
         .await
@@ -330,10 +333,7 @@ pub fn asset_key(asset_id: &AssetId) -> String {
 ///
 /// If the storage usage is limited for a user by a storage quota, the current remaining quota is
 /// returned. Otherwise `None` is returned.
-pub async fn verify_storage_usage(
-    inventory: &mut dyn Inventory,
-    user_id: UserId,
-) -> Result<Option<u64>> {
+pub async fn verify_storage_usage(inventory: &mut dyn Inventory, user_id: UserId) -> Result<Quota> {
     let used_storage = inventory
         .get_user_storage_used_size_u64(user_id)
         .await
@@ -350,7 +350,10 @@ pub async fn verify_storage_usage(
         return AssetStorageExceededSnafu.fail();
     }
 
-    Ok(storage_quota.map(|q| q.saturating_sub(used_storage)))
+    Ok(Quota {
+        total: storage_quota,
+        used: used_storage,
+    })
 }
 
 #[cfg(test)]

@@ -4771,17 +4771,14 @@ components:
       description: "Response for the `POST /services/roomserver/room/{room_id}/asset` endpoint"
       required:
         - asset_resource
+        - quota
       properties:
         asset_resource:
           $ref: "#/components/schemas/AssetResource"
           description: The asset that was uploaded
-        remaining_quota_bytes:
-          type:
-            - integer
-            - "null"
-          format: int64
-          description: "The remaining quota in bytes for the room, if applicable."
-          minimum: 0
+        quota:
+          $ref: "#/components/schemas/Quota"
+          description: The total and used quota in bytes
     PostCallInStartRequestBody:
       type: object
       description: "Body for the `POST /services/call_in/start` endpoint"
@@ -5166,6 +5163,24 @@ components:
       example:
         lobby: true
         password: "9876543210"
+    Quota:
+      type: object
+      description: Quota information
+      required:
+        - used
+      properties:
+        total:
+          type:
+            - integer
+            - "null"
+          format: int64
+          description: "The total quota available, if applicable"
+          minimum: 0
+        used:
+          type: integer
+          format: int64
+          description: The used quota
+          minimum: 0
     RecurrencePattern:
       type: array
       items:

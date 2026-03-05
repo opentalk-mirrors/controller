@@ -459,6 +459,8 @@ skip = [
   { name = "socket2", version = "0.5" },
   { name = "spin", version = "0.9" },
   { name = "spki", version = "0.6" },
+  { name = "strum", version = "0.27" },
+  { name = "strum_macros", version = "0.27" },
   { name = "thiserror", version = "1" },
   { name = "thiserror-impl", version = "1" },
   { name = "tinystr", version = "0.7" },

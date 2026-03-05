@@ -88,6 +88,6 @@ pub async fn post_asset(
 
     Ok(ApiResponse::new(PostAssetResponseBody {
         asset_resource,
-        remaining_quota_bytes: asset_saved.remaining_quota,
+        quota: asset_saved.quota,
     }))
 }
