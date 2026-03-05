@@ -4,124 +4,22 @@
 
 use std::collections::BTreeSet;
 
-use derive_more::{AsRef, Display, From, FromStr, Into};
-use diesel::{
-    BoolExpressionMethods, ExpressionMethods, Identifiable, Insertable, OptionalExtension,
-    QueryDsl, Queryable, prelude::*,
-};
-use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
+use diesel::BoolExpressionMethods;
+use diesel::Queryable;
+use diesel::{ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 use opentalk_database::{DbConnection, Result};
-use opentalk_diesel_newtype::DieselNewtype;
-use opentalk_inventory as inventory;
 use opentalk_types_common::{
     tenants::TenantId,
     users::{GroupId, GroupName, UserId},
 };
-use serde::{Deserialize, Serialize};
 
-use super::{
+use crate::{
     schema::{groups, user_groups},
     users::User,
 };
 
-#[derive(
-    AsRef,
-    Display,
-    From,
-    FromStr,
-    Into,
-    Serialize,
-    Deserialize,
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    DieselNewtype,
-    AsExpression,
-    FromSqlRow,
-)]
-#[diesel(sql_type = diesel::sql_types::BigInt)]
-pub struct SerialGroupId(i64);
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Queryable, Insertable, Identifiable)]
-#[diesel(table_name = groups)]
-pub struct Group {
-    pub id: GroupId,
-    pub id_serial: SerialGroupId,
-    pub name: GroupName,
-    pub tenant_id: TenantId,
-}
-
-impl From<Group> for inventory::Group {
-    fn from(
-        Group {
-            id,
-            id_serial: _,
-            name,
-            tenant_id,
-        }: Group,
-    ) -> Self {
-        Self {
-            id,
-            name,
-            tenant_id,
-        }
-    }
-}
-
-impl Group {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn get_all_for_user(conn: &mut DbConnection, user_id: UserId) -> Result<Vec<Group>> {
-        let query = user_groups::table
-            .inner_join(groups::table)
-            .filter(user_groups::user_id.eq(user_id))
-            .select(groups::all_columns)
-            .order_by(groups::id_serial);
-
-        let groups: Vec<Group> = query.load(conn).await?;
-
-        Ok(groups)
-    }
-}
-#[derive(Debug, Insertable)]
-#[diesel(table_name = groups)]
-pub struct NewGroup<'a> {
-    pub name: &'a GroupName,
-    pub tenant_id: TenantId,
-}
-
-impl NewGroup<'_> {
-    /// Insert the new group. If the group already exists for the OIDC issuer the group will be returned instead
-    #[tracing::instrument(err, skip_all)]
-    pub async fn insert_or_get(self, conn: &mut DbConnection) -> Result<Group> {
-        conn.transaction(|conn| {
-            async move {
-                let query = groups::table
-                    .select(groups::all_columns)
-                    .filter(groups::name.eq(&self.name));
-
-                let group: Option<Group> = query.first(conn).await.optional()?;
-
-                let group = if let Some(group) = group {
-                    group
-                } else {
-                    diesel::insert_into(groups::table)
-                        .values(self)
-                        .get_result(conn)
-                        .await?
-                };
-
-                Ok(group)
-            }
-            .scope_boxed()
-        })
-        .await
-    }
-}
+pub use crate::tables::groups::{Group, NewGroup};
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = user_groups)]

@@ -12,3 +12,4 @@ pub mod event_invites;
 pub mod event_shared_folders;
 pub mod event_training_participation_report_parameter_sets;
 pub mod events;
+pub mod groups;
