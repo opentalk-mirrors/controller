@@ -6,7 +6,7 @@ use opentalk_database::DatabaseError;
 use opentalk_db_storage as db;
 use opentalk_inventory::{Asset, AssetInventory, NewAsset, UpdateAsset};
 use opentalk_types_common::{
-    assets::{AssetId, AssetSorting},
+    assets::{AssetId, AssetSorting, FileSize},
     events::EventId,
     order::Ordering,
     pagination::{ItemCount, Page, PageSize},
@@ -30,7 +30,11 @@ impl AssetInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err, skip_all)]
-    async fn delete_asset_from_room(&mut self, room_id: RoomId, asset_id: AssetId) -> Result<()> {
+    async fn delete_asset_from_room(
+        &mut self,
+        room_id: RoomId,
+        asset_id: AssetId,
+    ) -> Result<FileSize> {
         Ok(
             db::queries::assets::delete_asset_from_room(&mut self.inner, room_id, asset_id)
                 .await

@@ -10,7 +10,7 @@ use diesel::{
 use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{
-    assets::{AssetId, AssetSorting},
+    assets::{AssetId, AssetSorting, FileSize},
     events::EventId,
     order::Ordering,
     pagination::{ItemCount, Page, PageSize},
@@ -117,7 +117,7 @@ pub async fn delete_asset_from_room(
     conn: &mut DbConnection,
     room_id: RoomId,
     asset_id: AssetId,
-) -> Result<()> {
+) -> Result<FileSize> {
     conn.transaction(|conn| {
         async move {
             //FIXME: This check (as well as the room_id parameter) can be removed when assets have their own permission
@@ -134,10 +134,12 @@ pub async fn delete_asset_from_room(
                 .await?;
 
             diesel::delete(assets::table.filter(assets::id.eq(asset_id)))
-                .execute(conn)
-                .await?;
-
-            Ok(())
+                .load::<Asset>(conn)
+                .await?
+                .iter()
+                .map(|asset| asset.size)
+                .reduce(|acc, e| acc.saturating_add(e))
+                .ok_or(DatabaseError::NotFound)
         }
         .scope_boxed()
     })
