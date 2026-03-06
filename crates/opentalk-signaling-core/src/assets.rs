@@ -326,6 +326,21 @@ pub fn asset_key(asset_id: &AssetId) -> String {
     format!("assets/{asset_id}")
 }
 
+async fn get_storage_quota(inventory: &mut dyn Inventory, user_id: UserId) -> Result<Quota> {
+    let total = inventory
+        .get_tariff_for_user(user_id)
+        .await
+        .context(InventoryQuerySnafu)?
+        .quota(&QuotaType::MaxStorage);
+
+    let used = inventory
+        .get_user_storage_used_size_u64(user_id)
+        .await
+        .context(InventoryQuerySnafu)?;
+
+    Ok(Quota { total, used })
+}
+
 /// Verify that the storage quota wasn't exhausted. Files don't need to fit into the remaining quota,
 /// there only needs to be remaining quota.
 ///
@@ -334,26 +349,13 @@ pub fn asset_key(asset_id: &AssetId) -> String {
 /// If the storage usage is limited for a user by a storage quota, the current remaining quota is
 /// returned. Otherwise `None` is returned.
 pub async fn verify_storage_usage(inventory: &mut dyn Inventory, user_id: UserId) -> Result<Quota> {
-    let used_storage = inventory
-        .get_user_storage_used_size_u64(user_id)
-        .await
-        .context(InventoryQuerySnafu)?;
-    let user_tariff = inventory
-        .get_tariff_for_user(user_id)
-        .await
-        .context(InventoryQuerySnafu)?;
+    let quota = get_storage_quota(inventory, user_id).await?;
 
-    let storage_quota = user_tariff.quota(&QuotaType::MaxStorage);
-    if let Some(max_storage) = storage_quota
-        && used_storage > max_storage
-    {
-        return AssetStorageExceededSnafu.fail();
+    if quota.is_exceeded() {
+        AssetStorageExceededSnafu.fail()
+    } else {
+        Ok(quota)
     }
-
-    Ok(Quota {
-        total: storage_quota,
-        used: used_storage,
-    })
 }
 
 #[cfg(test)]
