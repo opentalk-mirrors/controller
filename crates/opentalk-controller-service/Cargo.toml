@@ -43,7 +43,7 @@ opentalk-controller-utils.workspace = true
 opentalk-database.workspace = true
 opentalk-inventory.workspace = true
 opentalk-keycloak-admin.workspace = true
-opentalk-mail-worker-protocol.workspace = true
+opentalk-mail-worker-protocol = { workspace = true, features = ["client"] }
 opentalk-nextcloud-client.workspace = true
 opentalk-roomserver-client.workspace = true
 opentalk-roomserver-types.workspace = true
