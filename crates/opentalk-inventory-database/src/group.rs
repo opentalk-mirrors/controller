@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::groups::get_or_create_groups_by_name;
+use opentalk_db_storage as db;
 use opentalk_inventory::{Group, GroupInventory};
 use opentalk_types_common::{
     tenants::TenantId,
@@ -19,18 +19,20 @@ impl GroupInventory for DatabaseConnection {
         &mut self,
         groups: &[(TenantId, GroupName)],
     ) -> Result<Vec<Group>> {
-        Ok(get_or_create_groups_by_name(&mut self.inner, groups)
-            .await
-            .context(DatabaseSnafu)?
-            .into_iter()
-            .map(Into::into)
-            .collect())
+        Ok(
+            db::queries::groups::get_or_create_groups_by_name(&mut self.inner, groups)
+                .await
+                .context(DatabaseSnafu)?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_groups_for_user(&mut self, user_id: UserId) -> Result<Vec<Group>> {
         Ok(
-            opentalk_db_storage::groups::Group::get_all_for_user(&mut self.inner, user_id)
+            db::queries::groups::get_groups_for_user(&mut self.inner, user_id)
                 .await
                 .context(DatabaseSnafu)?
                 .into_iter()
