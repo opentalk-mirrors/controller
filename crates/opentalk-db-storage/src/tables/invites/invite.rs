@@ -5,50 +5,25 @@
 use std::collections::{HashMap, HashSet};
 
 use chrono::{DateTime, Utc};
-use derive_more::{AsRef, Display, From, FromStr, Into};
 use diesel::{
     BoolExpressionMethods, ExpressionMethods, Identifiable, JoinOnDsl, OptionalExtension as _,
     QueryDsl, Queryable,
 };
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DbConnection, Result};
-use opentalk_diesel_newtype::DieselNewtype;
 use opentalk_inventory as inventory;
 use opentalk_types_common::{
     pagination::{ItemCount, Page, PageSize},
     rooms::{RoomId, invite_codes::InviteCode},
     users::UserId,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::{
     paginate::Paginate as _,
     schema::{invites, users},
+    tables::invites::{InviteCodeSerialId, NewInvite},
     users::User,
 };
-
-#[derive(
-    AsRef,
-    Display,
-    From,
-    FromStr,
-    Into,
-    Serialize,
-    Deserialize,
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    AsExpression,
-    FromSqlRow,
-    DieselNewtype,
-)]
-#[diesel(sql_type = diesel::sql_types::BigInt)]
-pub struct InviteCodeSerialId(i64);
 
 /// Diesel invites struct
 ///
@@ -374,105 +349,5 @@ impl Invite {
             .load(conn)
             .await
             .map_err(Into::into)
-    }
-}
-
-/// Diesel invites struct
-///
-/// Represents a new invite in the database
-#[derive(Debug, Clone, Insertable)]
-#[diesel(table_name = invites)]
-pub struct NewInvite {
-    pub created_by: UserId,
-    pub updated_by: UserId,
-    pub room: RoomId,
-    pub active: bool,
-    pub expiration: Option<DateTime<Utc>>,
-}
-
-impl From<inventory::NewRoomInvite> for NewInvite {
-    fn from(
-        inventory::NewRoomInvite {
-            created_by,
-            updated_by,
-            room,
-            active,
-            expiration,
-        }: inventory::NewRoomInvite,
-    ) -> Self {
-        Self {
-            created_by,
-            updated_by,
-            room,
-            active,
-            expiration: expiration.map(Into::into),
-        }
-    }
-}
-
-impl NewInvite {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn insert(self, conn: &mut DbConnection) -> Result<Invite> {
-        let query = diesel::insert_into(invites::table).values(self);
-
-        let invite = query.get_result(conn).await?;
-
-        Ok(invite)
-    }
-}
-
-/// Diesel invites struct
-///
-/// Represents a changeset of in invite
-#[derive(Debug, AsChangeset)]
-#[diesel(table_name = invites)]
-pub struct UpdateInvite {
-    pub updated_by: Option<UserId>,
-    pub updated_at: Option<DateTime<Utc>>,
-    pub room: Option<RoomId>,
-    pub active: Option<bool>,
-    pub expiration: Option<Option<DateTime<Utc>>>,
-}
-
-impl From<inventory::UpdateRoomInvite> for UpdateInvite {
-    fn from(
-        inventory::UpdateRoomInvite {
-            updated_by,
-            updated_at,
-            room,
-            active,
-            expiration,
-        }: inventory::UpdateRoomInvite,
-    ) -> Self {
-        Self {
-            updated_by,
-            updated_at: updated_at.map(Into::into),
-            room,
-            active,
-            expiration: expiration.map(|e| e.map(Into::into)),
-        }
-    }
-}
-
-impl UpdateInvite {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn apply(
-        self,
-        conn: &mut DbConnection,
-        room_id: RoomId,
-        invite_code_id: InviteCode,
-    ) -> Result<Invite> {
-        let query = diesel::update(invites::table)
-            .filter(
-                invites::id
-                    .eq(invite_code_id)
-                    .and(invites::room.eq(room_id)),
-            )
-            .set(self)
-            .returning(invites::all_columns);
-
-        let invite = query.get_result(conn).await?;
-
-        Ok(invite)
     }
 }
