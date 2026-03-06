@@ -22,16 +22,17 @@ use crate::{DatabaseConnection, Error, Result, error::DatabaseSnafu};
 impl RoomInviteInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn create_room_invite(&mut self, invite: NewRoomInvite) -> Result<RoomInvite> {
-        Ok(db::tables::invites::NewInvite::from(invite)
-            .insert(&mut self.inner)
-            .await
-            .context(DatabaseSnafu)?
-            .into())
+        Ok(
+            db::queries::invites::create_room_invite(&mut self.inner, invite.into())
+                .await
+                .context(DatabaseSnafu)?
+                .into(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn get_room_invite(&mut self, invite_code: InviteCode) -> Result<RoomInvite> {
-        match db::tables::invites::Invite::get(&mut self.inner, invite_code).await {
+        match db::queries::invites::get_room_invite(&mut self.inner, invite_code).await {
             Ok(invite) => Ok(invite.into()),
             Err(DatabaseError::NotFound) => Err(Error::NotFound),
             Err(err) => Err(err).context(DatabaseSnafu)?,
@@ -39,7 +40,7 @@ impl RoomInviteInventory for DatabaseConnection {
     }
 
     async fn get_all_room_invites(&mut self) -> Result<Vec<RoomInvite>> {
-        Ok(db::tables::invites::Invite::get_all(&mut self.inner)
+        Ok(db::queries::invites::get_all_invites(&mut self.inner)
             .await
             .context(DatabaseSnafu)?
             .into_iter()
@@ -50,7 +51,7 @@ impl RoomInviteInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn get_valid_invite_for_room(&mut self, room_id: RoomId) -> Result<Option<RoomInvite>> {
         Ok(
-            db::tables::invites::Invite::get_valid_for_room(&mut self.inner, room_id, Utc::now())
+            db::queries::invites::get_valid_invite_for_room(&mut self.inner, room_id, Utc::now())
                 .await
                 .context(DatabaseSnafu)?
                 .map(Into::into),
@@ -63,7 +64,7 @@ impl RoomInviteInventory for DatabaseConnection {
         room_id: RoomId,
         user_id: UserId,
     ) -> Result<RoomInvite> {
-        Ok(db::tables::invites::Invite::get_valid_or_create_for_room(
+        Ok(db::queries::invites::get_or_create_valid_invite_for_room(
             &mut self.inner,
             room_id,
             user_id,
@@ -76,7 +77,7 @@ impl RoomInviteInventory for DatabaseConnection {
     #[tracing::instrument(err, skip_all)]
     async fn get_room_invites_updated_by(&mut self, user_id: UserId) -> Result<Vec<RoomInvite>> {
         Ok(
-            db::tables::invites::Invite::get_updated_by(&mut self.inner, user_id)
+            db::queries::invites::get_room_invites_updated_by(&mut self.inner, user_id)
                 .await
                 .context(DatabaseSnafu)?
                 .into_iter()
@@ -93,7 +94,7 @@ impl RoomInviteInventory for DatabaseConnection {
         page: Page,
     ) -> Result<(Vec<RoomInviteWithUsers>, ItemCount)> {
         let (invites, overall) =
-            db::tables::invites::Invite::get_all_for_room_with_users_paginated(
+            db::queries::invites::get_room_invites_paginated_with_creator_and_updater(
                 &mut self.inner,
                 room_id,
                 limit,
@@ -118,9 +119,12 @@ impl RoomInviteInventory for DatabaseConnection {
         invite_code: InviteCode,
     ) -> Result<RoomInviteWithUsers> {
         let (invite, created_by, updated_by) =
-            db::tables::invites::Invite::get_with_users(&mut self.inner, invite_code)
-                .await
-                .context(DatabaseSnafu)?;
+            db::queries::invites::get_room_invite_with_creator_and_updater(
+                &mut self.inner,
+                invite_code,
+            )
+            .await
+            .context(DatabaseSnafu)?;
         Ok(RoomInviteWithUsers::new(
             invite.into(),
             created_by.into(),
@@ -135,11 +139,15 @@ impl RoomInviteInventory for DatabaseConnection {
         invite_code: InviteCode,
         invite: UpdateRoomInvite,
     ) -> Result<RoomInvite> {
-        Ok(db::tables::invites::UpdateInvite::from(invite)
-            .apply(&mut self.inner, room_id, invite_code)
-            .await
-            .context(DatabaseSnafu)?
-            .into())
+        Ok(db::queries::invites::update_room_invite(
+            &mut self.inner,
+            invite.into(),
+            room_id,
+            invite_code,
+        )
+        .await
+        .context(DatabaseSnafu)?
+        .into())
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -147,7 +155,7 @@ impl RoomInviteInventory for DatabaseConnection {
         &mut self,
         expired_before: Timestamp,
     ) -> Result<Vec<(InviteCode, RoomId)>> {
-        Ok(db::tables::invites::Invite::get_inactive_or_expired_before(
+        Ok(db::queries::invites::get_inactive_or_expired_before_invite(
             &mut self.inner,
             expired_before.into(),
         )

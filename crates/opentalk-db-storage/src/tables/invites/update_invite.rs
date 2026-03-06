@@ -3,16 +3,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use chrono::{DateTime, Utc};
-use diesel::{BoolExpressionMethods, ExpressionMethods};
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
-use opentalk_types_common::{
-    rooms::{RoomId, invite_codes::InviteCode},
-    users::UserId,
-};
+use opentalk_types_common::{rooms::RoomId, users::UserId};
 
-use crate::{schema::invites, tables::invites::Invite};
+use crate::schema::invites;
 
 /// Diesel invites struct
 ///
@@ -44,28 +38,5 @@ impl From<inventory::UpdateRoomInvite> for UpdateInvite {
             active,
             expiration: expiration.map(|e| e.map(Into::into)),
         }
-    }
-}
-
-impl UpdateInvite {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn apply(
-        self,
-        conn: &mut DbConnection,
-        room_id: RoomId,
-        invite_code_id: InviteCode,
-    ) -> Result<Invite> {
-        let query = diesel::update(invites::table)
-            .filter(
-                invites::id
-                    .eq(invite_code_id)
-                    .and(invites::room.eq(room_id)),
-            )
-            .set(self)
-            .returning(invites::all_columns);
-
-        let invite = query.get_result(conn).await?;
-
-        Ok(invite)
     }
 }

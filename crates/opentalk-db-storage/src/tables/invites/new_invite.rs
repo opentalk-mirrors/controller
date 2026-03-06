@@ -3,12 +3,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use chrono::{DateTime, Utc};
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
 use opentalk_types_common::{rooms::RoomId, users::UserId};
 
-use crate::{schema::invites, tables::invites::Invite};
+use crate::schema::invites;
 
 /// Diesel invites struct
 ///
@@ -40,16 +38,5 @@ impl From<inventory::NewRoomInvite> for NewInvite {
             active,
             expiration: expiration.map(Into::into),
         }
-    }
-}
-
-impl NewInvite {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn insert(self, conn: &mut DbConnection) -> Result<Invite> {
-        let query = diesel::insert_into(invites::table).values(self);
-
-        let invite = query.get_result(conn).await?;
-
-        Ok(invite)
     }
 }
