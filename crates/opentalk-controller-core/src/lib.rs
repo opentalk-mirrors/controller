@@ -35,7 +35,10 @@ use opentalk_jobs::job_runner::JobRunner;
 use opentalk_keycloak_admin::{AuthorizedClient, KeycloakAdminClient};
 use opentalk_roomserver_client::Client as RoomServerClient;
 use opentalk_service_auth::service::ApiKeyAuthorization;
-use opentalk_signaling_core::{ExchangeHandle, ExchangeTask, ObjectStorage, RedisConnection};
+use opentalk_signaling_core::{
+    ExchangeHandle, ExchangeTask, NoOpStorageNotifier, ObjectStorage, RedisConnection,
+    RoomServerStorageNotifier, StorageNotifier,
+};
 use opentalk_types_api_v1::{auth::OidcProvider, error::ApiError};
 use rustls_pki_types::{CertificateDer, PrivatePkcs8KeyDer};
 use service_probe::{ServiceState, set_service_state, start_probe};
@@ -421,6 +424,16 @@ impl Controller {
 
                 let swagger_service_enabled = !settings_provider.get().endpoints.disable_openapi;
 
+                let storage_notifier: Arc<dyn StorageNotifier> =
+                    if let Some(room_server_settings) = &settings_provider.get().roomserver {
+                        Arc::new(RoomServerStorageNotifier::new(RoomServerClient::new(
+                            room_server_settings.url.clone(),
+                            room_server_settings.api_key.clone(),
+                        )))
+                    } else {
+                        Arc::new(NoOpStorageNotifier)
+                    };
+
                 App::new()
                     .wrap(RequestMetrics::new(metrics.endpoint.clone()))
                     .wrap(cors)
@@ -439,6 +452,7 @@ impl Controller {
                     .app_data(signaling_metrics.clone())
                     .app_data(metrics.clone())
                     .app_data(http_client.clone())
+                    .app_data(Data::from(storage_notifier))
                     .service(well_known::opentalk::api::get)
                     .service(metrics::metrics)
                     .with_swagger_service_if(swagger_service_enabled)

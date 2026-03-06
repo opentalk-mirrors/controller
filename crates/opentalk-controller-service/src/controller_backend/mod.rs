@@ -34,7 +34,7 @@ use opentalk_inventory::InventoryProvider;
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_roomserver_client::Client as RoomServerClient;
 use opentalk_signaling_core::{
-    ObjectStorage, ObjectStorageError,
+    ObjectStorage, ObjectStorageError, StorageNotifier,
     assets::{AssetSaved, ByStreamExt, NewAssetFileName, asset_key},
 };
 use opentalk_types_api_internal::{
@@ -357,18 +357,26 @@ impl OpenTalkControllerService for ControllerBackend {
 
     async fn create_room_asset(
         &self,
+        storage_notifier: &dyn StorageNotifier,
         room_id: RoomId,
         filename: NewAssetFileName,
         namespace: Option<ModuleId>,
         data: Box<dyn Stream<Item = Result<Bytes, ObjectStorageError>> + Unpin>,
     ) -> Result<(AssetResource, AssetSaved), ApiError> {
         Ok(self
-            .create_room_asset(room_id, filename, namespace, data)
+            .create_room_asset(storage_notifier, room_id, filename, namespace, data)
             .await?)
     }
 
-    async fn delete_room_asset(&self, room_id: RoomId, asset_id: AssetId) -> Result<(), ApiError> {
-        Ok(self.delete_room_asset(room_id, asset_id).await?)
+    async fn delete_room_asset(
+        &self,
+        storage_notifier: &dyn StorageNotifier,
+        room_id: RoomId,
+        asset_id: AssetId,
+    ) -> Result<(), ApiError> {
+        Ok(self
+            .delete_room_asset(storage_notifier, room_id, asset_id)
+            .await?)
     }
 
     async fn new_event(

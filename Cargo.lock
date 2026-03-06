@@ -6552,6 +6552,7 @@ dependencies = [
  "opentalk-controller-settings",
  "opentalk-inventory",
  "opentalk-r3dlock",
+ "opentalk-roomserver-client",
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",

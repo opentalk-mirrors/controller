@@ -183,7 +183,7 @@ mod tests {
     use opentalk_controller_settings::MinIO;
     use opentalk_inventory::{InventoryProvider as _, NewAsset, UpdateAsset};
     use opentalk_signaling_core::{
-        ChunkFormat, ObjectStorage, ObjectStorageError,
+        ChunkFormat, NoOpStorageNotifier, ObjectStorage, ObjectStorageError,
         assets::{AssetSaved, NewAssetFileName, save_asset},
     };
     use opentalk_test_util::common::TestContext;
@@ -342,6 +342,7 @@ mod tests {
             let AssetSaved { asset_id, .. } = save_asset(
                 object_storage,
                 db_ctx.inventory_provider.as_ref(),
+                &NoOpStorageNotifier,
                 room.id,
                 None,
                 filename,

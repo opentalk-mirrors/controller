@@ -10,7 +10,7 @@ use actix_web::{
 };
 use futures::TryStreamExt as _;
 use opentalk_controller_service_facade::{
-    NewAssetFileName, ObjectStorageError, OpenTalkControllerService,
+    NewAssetFileName, ObjectStorageError, OpenTalkControllerService, StorageNotifier,
 };
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -130,6 +130,7 @@ pub async fn get(
 #[post("/rooms/{room_id}/assets")]
 pub async fn post(
     service: Data<dyn OpenTalkControllerService>,
+    notifier: Data<dyn StorageNotifier>,
     path: Path<RoomId>,
     query: Query<PostAssetQuery>,
     data: Payload,
@@ -150,7 +151,13 @@ pub async fn post(
     });
 
     let (resource, _) = service
-        .create_room_asset(room_id, filename, query.namespace, Box::new(data))
+        .create_room_asset(
+            notifier.as_ref(),
+            room_id,
+            filename,
+            query.namespace,
+            Box::new(data),
+        )
         .await?;
 
     let response = PostAssetResponseBody(resource);

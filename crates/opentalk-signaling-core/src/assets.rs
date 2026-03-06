@@ -24,7 +24,7 @@ use opentalk_types_common::{
 };
 use snafu::{IntoError, ResultExt, Snafu};
 
-use crate::{ObjectStorage, ObjectStorageError, object_storage::ChunkFormat};
+use crate::{ObjectStorage, ObjectStorageError, StorageNotifier, object_storage::ChunkFormat};
 
 #[derive(Debug, Snafu)]
 pub enum AssetError {
@@ -142,9 +142,11 @@ pub struct AssetSaved {
 /// stay empty.
 ///
 /// Returns a tuple containing the asset id and the filename on success.
+#[allow(clippy::too_many_arguments)]
 pub async fn save_asset<E>(
     storage: &ObjectStorage,
     inventory_provider: &dyn InventoryProvider,
+    storage_notifier: &dyn StorageNotifier,
     room_id: RoomId,
     namespace: Option<ModuleId>,
     mut filename: NewAssetFileName,
@@ -154,14 +156,11 @@ pub async fn save_asset<E>(
 where
     ObjectStorageError: From<E>,
 {
-    let (room, storage_quota) = {
-        let mut inventory = inventory_provider
-            .get_inventory()
-            .await
-            .context(InventoryConnectionSnafu)?;
-
-        prepare_storage(room_id, inventory.as_mut()).await
-    }?;
+    let mut inventory = inventory_provider
+        .get_inventory()
+        .await
+        .context(InventoryConnectionSnafu)?;
+    let (room, storage_quota) = prepare_storage(room_id, inventory.as_mut()).await?;
 
     let asset_id = AssetId::generate();
 
@@ -228,6 +227,18 @@ where
                 .with_context(|_| RollbackSnafu::<AssetError> { rollback_reason: e }),
         };
     }
+
+    // Update the room parameters of all roomserver rooms with the same owner
+    let creator = inventory
+        .get_room(room_id)
+        .await
+        .context(InventoryQuerySnafu)?
+        .created_by;
+    let new_quota = get_storage_quota(inventory.as_mut(), creator).await?;
+    storage_notifier
+        .notify(creator, storage_quota, new_quota)
+        .await;
+
     result
 }
 
@@ -304,6 +315,7 @@ pub async fn get_asset(
 pub async fn delete_asset(
     storage: &ObjectStorage,
     inventory_provider: &dyn InventoryProvider,
+    storage_notifier: &dyn StorageNotifier,
     room_id: RoomId,
     asset_id: AssetId,
 ) -> Result<()> {
@@ -311,15 +323,32 @@ pub async fn delete_asset(
         .get_inventory()
         .await
         .context(InventoryConnectionSnafu)?;
-    inventory
+
+    let creator = inventory
+        .get_room(room_id)
+        .await
+        .context(InventoryQuerySnafu)?
+        .created_by;
+    let old_quota = get_storage_quota(inventory.as_mut(), creator).await?;
+
+    let size: i64 = inventory
         .delete_asset_from_room(room_id, asset_id)
         .await
-        .context(InventoryQuerySnafu)?;
+        .context(InventoryQuerySnafu)?
+        .into();
 
     storage
         .delete(asset_key(&asset_id))
         .await
-        .context(ObjectStorageSnafu)
+        .context(ObjectStorageSnafu)?;
+
+    let new_quota = Quota {
+        total: old_quota.total,
+        used: old_quota.used.saturating_sub(size.unsigned_abs()),
+    };
+    storage_notifier.notify(creator, old_quota, new_quota).await;
+
+    Ok(())
 }
 
 pub fn asset_key(asset_id: &AssetId) -> String {

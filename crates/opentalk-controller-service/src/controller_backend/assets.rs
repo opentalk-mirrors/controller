@@ -8,7 +8,7 @@ use bytes::Bytes;
 use futures_core::Stream;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_signaling_core::{
-    ChunkFormat, ObjectStorageError,
+    ChunkFormat, ObjectStorageError, StorageNotifier,
     assets::{
         AssetError, AssetSaved, ByStreamExt, NewAssetFileName, asset_key, delete_asset, get_asset,
         save_asset,
@@ -87,9 +87,10 @@ impl ControllerBackend {
         Ok(token)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, data))]
+    #[tracing::instrument(level = "debug", skip(self, storage_notifier, data))]
     pub(crate) async fn create_room_asset(
         &self,
+        storage_notifier: &dyn StorageNotifier,
         room_id: RoomId,
         filename: NewAssetFileName,
         namespace: Option<ModuleId>,
@@ -98,6 +99,7 @@ impl ControllerBackend {
         let res = save_asset(
             &self.storage.clone(),
             self.inventory_provider.as_ref(),
+            storage_notifier,
             room_id,
             namespace,
             filename,
@@ -130,12 +132,14 @@ impl ControllerBackend {
 
     pub(crate) async fn delete_room_asset(
         &self,
+        storage_notifier: &dyn StorageNotifier,
         room_id: RoomId,
         asset_id: AssetId,
     ) -> Result<(), CaptureApiError> {
         delete_asset(
             &self.storage,
             self.inventory_provider.as_ref(),
+            storage_notifier,
             room_id,
             asset_id,
         )

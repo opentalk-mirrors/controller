@@ -12,7 +12,9 @@ use bytes::Bytes;
 use opentalk_controller_api_actix_web::utoipa::responses::{InternalServerError, Unauthorized};
 use opentalk_controller_service_facade::{NewAssetFileName, OpenTalkControllerService};
 use opentalk_inventory::InventoryProvider;
-use opentalk_signaling_core::{ChunkFormat, ObjectStorage, ObjectStorageError, assets::save_asset};
+use opentalk_signaling_core::{
+    ChunkFormat, ObjectStorage, ObjectStorageError, StorageNotifier, assets::save_asset,
+};
 use opentalk_types_api_internal::recording::RecordingTarget;
 use opentalk_types_api_v1::{
     error::{ApiError, ErrorBody},
@@ -109,6 +111,7 @@ pub async fn post_start(
 pub(crate) async fn get_upload(
     storage_connection_provider: Data<dyn InventoryProvider>,
     storage: Data<ObjectStorage>,
+    notifier: Data<dyn StorageNotifier>,
     request: HttpRequest,
     Query(GetRecordingUploadQuery {
         room_id,
@@ -137,6 +140,7 @@ pub(crate) async fn get_upload(
             let result = save_asset(
                 &storage,
                 storage_connection_provider.as_ref(),
+                notifier.as_ref(),
                 room_id,
                 Some(opentalk_types_signaling_recording::MODULE_ID),
                 filename,

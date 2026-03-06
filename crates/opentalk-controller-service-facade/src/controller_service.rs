@@ -12,7 +12,7 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use futures_core::Stream;
 use opentalk_signaling_core::{
-    ObjectStorageError,
+    ObjectStorageError, StorageNotifier,
     assets::{AssetSaved, ByStreamExt, NewAssetFileName},
 };
 use opentalk_types_api_internal::{
@@ -220,6 +220,7 @@ pub trait OpenTalkControllerService: Send + Sync {
     /// Create an asset for a room from an uploaded file.
     async fn create_room_asset(
         &self,
+        storage_notifier: &dyn StorageNotifier,
         room_id: RoomId,
         filename: NewAssetFileName,
         namespace: Option<ModuleId>,
@@ -227,7 +228,12 @@ pub trait OpenTalkControllerService: Send + Sync {
     ) -> Result<(AssetResource, AssetSaved), ApiError>;
 
     /// Delete an asset from a room.
-    async fn delete_room_asset(&self, room_id: RoomId, asset_id: AssetId) -> Result<(), ApiError>;
+    async fn delete_room_asset(
+        &self,
+        storage_notifier: &dyn StorageNotifier,
+        room_id: RoomId,
+        asset_id: AssetId,
+    ) -> Result<(), ApiError>;
 
     /// Create a new event
     async fn new_event(
