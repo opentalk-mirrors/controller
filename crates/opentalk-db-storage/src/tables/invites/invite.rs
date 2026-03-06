@@ -30,6 +30,7 @@ use crate::{
 /// Represents an invite in the database
 #[derive(Debug, Queryable, Identifiable, Associations)]
 #[diesel(belongs_to(User, foreign_key = created_by))]
+#[diesel(table_name = invites)]
 pub struct Invite {
     pub id: InviteCode,
     pub id_serial: InviteCodeSerialId,
