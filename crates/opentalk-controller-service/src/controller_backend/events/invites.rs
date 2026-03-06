@@ -43,12 +43,12 @@ use opentalk_types_common::{
 };
 use snafu::Report;
 
-use super::super::{verify_invite_read, verify_invite_write};
 use crate::{
     ControllerBackend,
     controller_backend::{
         RoomsPoliciesBuilderExt,
         events::{EventInviteeExt, EventPoliciesBuilderExt},
+        utils::verify_invite_write,
     },
     events::{
         enrich_from_optional_user_search, enrich_invitees_from_optional_user_search,
@@ -72,11 +72,6 @@ impl ControllerBackend {
     ) -> Result<(Vec<EventInvitee>, PageSize, Page, ItemCount), CaptureApiError> {
         let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
-
-        let event = inventory.get_event(event_id).await?;
-        let room = inventory.get_room(event.room).await?;
-        let tariff = self.get_tariff_for_room(room.id).await?;
-        verify_invite_read(&tariff, &room)?;
 
         // FIXME: Preliminary solution, consider using UNION when Diesel supports it.
         // As in #[get("/events")], we simply get all invitees and truncate them afterwards.
@@ -136,15 +131,9 @@ impl ControllerBackend {
         query: PostEventInviteQuery,
         create_invite: PostEventInviteBody,
     ) -> Result<bool, CaptureApiError> {
-        let settings = self.settings_provider.get();
-
         let mut inventory = self.inventory_provider.get_inventory().await?;
-
         let event = inventory.get_event(event_id).await?;
-        let room = inventory.get_room(event.room).await?;
-        let tariff = self.get_tariff_for_room(room.id).await?;
-        verify_invite_write(&tariff, &room)?;
-
+        let settings = self.settings_provider.get();
         let mail_service = (!query.suppress_email_notification)
             .then(|| self.mail_service.as_ref().clone())
             .flatten();
@@ -193,11 +182,7 @@ impl ControllerBackend {
         update_invite: &PatchInviteBody,
     ) -> Result<(), CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
-
         let event = inventory.get_event(event_id).await?;
-        let room = inventory.get_room(event.room).await?;
-        let tariff = self.get_tariff_for_room(room.id).await?;
-        verify_invite_write(&tariff, &room)?;
 
         if event.created_by != current_user.id {
             return Err(ApiError::forbidden().into());
@@ -224,11 +209,7 @@ impl ControllerBackend {
         update_invite: &PatchEmailInviteBody,
     ) -> Result<(), CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
-
         let event = inventory.get_event(event_id).await?;
-        let room = inventory.get_room(event.room).await?;
-        let tariff = self.get_tariff_for_room(room.id).await?;
-        verify_invite_write(&tariff, &room)?;
 
         if event.created_by != current_user.id {
             return Err(ApiError::forbidden().into());
@@ -260,11 +241,6 @@ impl ControllerBackend {
             .then(|| self.mail_service.as_ref().clone())
             .flatten();
         let mut inventory = self.inventory_provider.get_inventory().await?;
-
-        let event = inventory.get_event(event_id).await?;
-        let room = inventory.get_room(event.room).await?;
-        let tariff = self.get_tariff_for_room(room.id).await?;
-        verify_invite_write(&tariff, &room)?;
 
         // TODO(w.rabl) Further DB access optimization (replacing call to get_with_invite_and_room)?
         let (
@@ -370,11 +346,6 @@ impl ControllerBackend {
         let settings = self.settings_provider.get();
         let default_user_language = Language(settings.defaults.user_language.clone());
         let mut inventory = self.inventory_provider.get_inventory().await?;
-
-        let event = inventory.get_event(event_id).await?;
-        let room = inventory.get_room(event.room).await?;
-        let tariff = self.get_tariff_for_room(room.id).await?;
-        verify_invite_write(&tariff, &room)?;
 
         let email = email.to_lowercase().to_string();
 
@@ -643,8 +614,6 @@ async fn create_email_event_invite(
     email_invite: EmailInvite,
     mail_service: &Option<MailService>,
 ) -> Result<bool, CaptureApiError> {
-    let email = email_invite.email.to_lowercase();
-
     #[allow(clippy::large_enum_variant)]
     enum UserState {
         ExistsAndIsAlreadyInvited,
@@ -663,12 +632,14 @@ async fn create_email_event_invite(
             sip_config: Option<RoomSipConfig>,
             shared_folder: Option<SharedFolder>,
             streaming_targets: Vec<RoomStreamingTarget>,
+            email: EmailAddress,
         },
     }
 
     let state = {
         let mut inventory = inventory_provider.get_inventory().await?;
 
+        let email = email_invite.email.to_lowercase();
         let (event, room, sip_config) = inventory
             .get_event_with_room_and_sip_config(event_id)
             .await?;
@@ -677,7 +648,6 @@ async fn create_email_event_invite(
             .await?
             .map(SharedFolder::from);
         let streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
-
         let invitee_user = inventory
             .get_user_by_email(current_user.tenant_id, email.as_ref())
             .await?;
@@ -716,6 +686,7 @@ async fn create_email_event_invite(
                 sip_config,
                 shared_folder,
                 streaming_targets,
+                email,
             }
         }
     };
@@ -769,6 +740,7 @@ async fn create_email_event_invite(
             sip_config,
             shared_folder,
             streaming_targets,
+            email,
         } => {
             create_invite_to_non_matching_email(
                 settings,
@@ -874,6 +846,17 @@ async fn create_invite_to_non_matching_email(
                             ApiError::internal()
                         })?;
                 } else {
+                    // # DO NOT REMOVE
+                    //
+                    // Super duper important (for now).
+                    //
+                    // This is part of a hopefully soon-to-be legacy implementation, that aims to
+                    // ensure that no event invite codes are created when e2ee is enabled.
+                    //
+                    // There is going to be refactor that addresses this in a more idiomatic manner,
+                    // but in the meantime this check **cannot** be removed.
+                    verify_invite_write(room_tariff, &room)?;
+
                     let invite = inventory
                         .create_room_invite(NewRoomInvite {
                             active: true,
