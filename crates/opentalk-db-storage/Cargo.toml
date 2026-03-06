@@ -49,8 +49,8 @@ opentalk-types-signaling-recording = { workspace = true, features = [
   "backend",
 ] }
 redis-args.workspace = true
-refinery = { version = "0.8", features = ["tokio-postgres"] }
-refinery-core = "0.8"
+refinery = { version = "0.9", features = ["tokio-postgres"] }
+refinery-core = "0.9"
 serde.workspace = true
 serde_json = { workspace = true, features = ["raw_value"] }
 snafu.workspace = true
