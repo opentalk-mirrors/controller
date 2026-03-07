@@ -29,7 +29,7 @@ pub mod metrics;
 pub mod oidc;
 pub mod phone_numbers;
 pub mod services;
-pub mod signaling;
+
 pub mod user_profiles;
 
 pub use controller_backend::ControllerBackend;

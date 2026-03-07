@@ -7,18 +7,12 @@ use std::sync::Arc;
 use kustos::Authz;
 use opentalk_inventory::User;
 use opentalk_inventory_database::DatabaseConnectionPool;
-use opentalk_signaling_core::{
-    SignalingModule, VolatileStaticMemoryStorage, VolatileStorage,
-    module_tester::{ModuleTester, WsMessageOutgoing},
-};
 use opentalk_types_common::{rooms::RoomId, users::DisplayName};
-use opentalk_types_signaling::{ParticipantId, Role};
-use opentalk_types_signaling_control::event::ControlEvent;
-use pretty_assertions::assert_eq;
+use opentalk_types_signaling::ParticipantId;
 use snafu::{ResultExt, Whatever};
 use tokio::sync::broadcast::Sender;
 
-use crate::{database::DatabaseContext, redis};
+use crate::database::DatabaseContext;
 
 #[derive(Debug)]
 pub struct TestUser {
@@ -49,23 +43,16 @@ pub const USER_2: TestUser = TestUser {
 
 pub const USERS: [TestUser; 2] = [USER_1, USER_2];
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum TestContextVolatileStorage {
-    Redis,
-    Memory,
-}
-
 /// The [`TestContext`] provides access to redis & postgres for tests
 pub struct TestContext {
     pub db_ctx: DatabaseContext,
-    pub volatile: VolatileStorage,
     pub authz: Arc<Authz>,
     pub shutdown: Sender<()>,
 }
 
 impl TestContext {
     /// Creates a new [`TestContext`]
-    pub async fn new(storage: TestContextVolatileStorage) -> Self {
+    pub async fn new() -> Self {
         let _ = setup_logging();
 
         let db_ctx = DatabaseContext::new(true).await;
@@ -75,23 +62,15 @@ impl TestContext {
 
         let enforcer = kustos::Authz::new(inventory_provider).await.unwrap();
 
-        let volatile = match storage {
-            TestContextVolatileStorage::Redis => VolatileStorage::Right(redis::setup().await),
-            TestContextVolatileStorage::Memory => {
-                VolatileStorage::Left(VolatileStaticMemoryStorage)
-            }
-        };
-
         TestContext {
             db_ctx,
-            volatile,
             authz: Arc::new(enforcer),
             shutdown,
         }
     }
 
     pub async fn default() -> Self {
-        Self::new(TestContextVolatileStorage::Memory).await
+        Self::new().await
     }
 }
 
@@ -112,10 +91,7 @@ pub fn setup_logging() -> Result<(), Whatever> {
 }
 
 /// Creates a new [`ModuleTester`] with two users
-pub async fn setup_users<M: SignalingModule>(
-    test_ctx: &TestContext,
-    params: M::Params,
-) -> (ModuleTester<M>, User, User) {
+pub async fn setup_users(test_ctx: &TestContext) -> (User, User) {
     let waiting_room = false;
 
     let user1 = test_ctx
@@ -129,79 +105,11 @@ pub async fn setup_users<M: SignalingModule>(
         .await
         .unwrap();
 
-    let room = test_ctx
+    let _room = test_ctx
         .db_ctx
         .create_test_room(ROOM_ID, user1.id, waiting_room)
         .await
         .unwrap();
 
-    let mut module_tester = ModuleTester::new(
-        test_ctx.db_ctx.inventory_provider.clone(),
-        test_ctx.authz.clone(),
-        test_ctx.volatile.clone(),
-        room,
-    );
-
-    // Join with user1
-    module_tester
-        .join_user(
-            USER_1.participant_id,
-            user1.clone(),
-            Role::Moderator,
-            &USER_1.name.parse().expect("valid display name"),
-            params.clone(),
-        )
-        .await
-        .unwrap();
-
-    // Expect a JoinSuccess response
-    if let WsMessageOutgoing::Control(ControlEvent::JoinSuccess(join_success)) = module_tester
-        .receive_ws_message(&USER_1.participant_id)
-        .await
-        .unwrap()
-    {
-        assert_eq!(join_success.id, USER_1.participant_id);
-        assert_eq!(join_success.role, Role::Moderator);
-        assert!(join_success.participants.is_empty());
-    } else {
-        panic!("Expected ParticipantJoined Event ")
-    }
-
-    // Join with user2
-    module_tester
-        .join_user(
-            USER_2.participant_id,
-            user2.clone(),
-            Role::User,
-            &USER_2.name.parse().expect("valid display name"),
-            params.clone(),
-        )
-        .await
-        .unwrap();
-
-    // Expect a JoinSuccess on user2 websocket
-    if let WsMessageOutgoing::Control(ControlEvent::JoinSuccess(join_success)) = module_tester
-        .receive_ws_message(&USER_2.participant_id)
-        .await
-        .unwrap()
-    {
-        assert_eq!(join_success.id, USER_2.participant_id);
-        assert_eq!(join_success.role, Role::User);
-        assert_eq!(join_success.participants.len(), 1);
-    } else {
-        panic!("Expected JoinSuccess message");
-    }
-
-    // Expect a ParticipantJoined event on user1 websocket
-    if let WsMessageOutgoing::Control(ControlEvent::Joined(participant)) = module_tester
-        .receive_ws_message(&USER_1.participant_id)
-        .await
-        .unwrap()
-    {
-        assert_eq!(participant.id, USER_2.participant_id);
-    } else {
-        panic!("Expected ParticipantJoined Event ")
-    }
-
-    (module_tester, user1, user2)
+    (user1, user2)
 }

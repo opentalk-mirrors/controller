@@ -11,7 +11,6 @@ use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::deletion::room::associated_resource_ids_for_invite;
 use opentalk_inventory::InventoryProvider;
 use opentalk_log::{debug, info};
-use opentalk_signaling_core::ExchangeHandle;
 use opentalk_types_common::time::Timestamp;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
@@ -48,7 +47,6 @@ impl Job for InviteCleanup {
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
         authz: Authz,
-        _exchange_handle: ExchangeHandle,
         _settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {

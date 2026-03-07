@@ -41,7 +41,6 @@ use log::Log;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::InventoryProvider;
 use opentalk_log::{error, info};
-use opentalk_signaling_core::ExchangeHandle;
 use serde_json::json;
 use snafu::Report;
 
@@ -51,7 +50,6 @@ pub async fn execute<J: Job>(
     logger: &dyn Log,
     inventory_provider: Arc<dyn InventoryProvider>,
     authz: Authz,
-    exchange_handle: ExchangeHandle,
     settings: &Settings,
     parameters: serde_json::Value,
     timeout: Duration,
@@ -72,14 +70,7 @@ pub async fn execute<J: Job>(
 
     match tokio::time::timeout(
         timeout,
-        J::execute(
-            logger,
-            inventory_provider,
-            authz,
-            exchange_handle,
-            settings,
-            parameters,
-        ),
+        J::execute(logger, inventory_provider, authz, settings, parameters),
     )
     .await
     {
@@ -143,7 +134,6 @@ pub trait Job {
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
         authz: Authz,
-        exchange_handle: ExchangeHandle,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error>;

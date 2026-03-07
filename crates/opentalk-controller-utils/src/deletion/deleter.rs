@@ -6,7 +6,7 @@ use kustos::Authz;
 use log::Log;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::Inventory;
-use opentalk_signaling_core::{ExchangeHandle, ObjectStorage};
+use opentalk_signaling_core::ObjectStorage;
 use opentalk_types_common::users::UserId;
 
 use super::Error;
@@ -34,21 +34,14 @@ pub trait Deleter: Sync {
         inventory: &mut dyn Inventory,
         authz: &Authz,
         user_id: Option<UserId>,
-        exchange_handle: ExchangeHandle,
         settings: &Settings,
         object_storage: &ObjectStorage,
     ) -> Result<(), Error> {
         let prepared_commit = self.prepare_commit(logger, inventory).await?;
         self.check_permissions(&prepared_commit, logger, authz, user_id)
             .await?;
-        self.pre_commit(
-            &prepared_commit,
-            logger,
-            inventory,
-            exchange_handle,
-            settings,
-        )
-        .await?;
+        self.pre_commit(&prepared_commit, logger, inventory, settings)
+            .await?;
         let commit_output = self
             .commit_to_inventory(prepared_commit, logger, inventory)
             .await?;
@@ -90,7 +83,6 @@ pub trait Deleter: Sync {
         _prepared_commit: &Self::PreparedCommit,
         _logger: &dyn Log,
         _inventory: &mut dyn Inventory,
-        _exchange_handle: ExchangeHandle,
         _settings: &Settings,
     ) -> Result<(), Error> {
         Ok(())

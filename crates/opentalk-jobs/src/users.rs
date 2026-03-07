@@ -10,7 +10,7 @@ use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::deletion::{Deleter, user::UserDeleter};
 use opentalk_inventory::{Inventory, InventoryProvider, UpdateEvent, UpdateRoomInvite};
 use opentalk_log::{debug, info, warn};
-use opentalk_signaling_core::{ExchangeHandle, ObjectStorage};
+use opentalk_signaling_core::ObjectStorage;
 use opentalk_types_common::{events::EventId, rooms::RoomId, time::Timestamp, users::UserId};
 use snafu::Report;
 
@@ -25,7 +25,6 @@ pub(crate) async fn perform_deletion(
     logger: &dyn Log,
     inventory_provider: Arc<dyn InventoryProvider>,
     authz: Authz,
-    exchange_handle: ExchangeHandle,
     settings: &Settings,
     fail_on_shared_folder_deletion_error: bool,
     delete_selector: DeleteSelector,
@@ -37,7 +36,6 @@ pub(crate) async fn perform_deletion(
         logger,
         inventory.as_mut(),
         &authz,
-        exchange_handle.clone(),
         settings,
         &object_storage,
         fail_on_shared_folder_deletion_error,
@@ -54,7 +52,6 @@ async fn delete_users(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     authz: &Authz,
-    exchange_handle: ExchangeHandle,
     settings: &Settings,
     object_storage: &ObjectStorage,
     fail_on_shared_folder_deletion_error: bool,
@@ -74,7 +71,6 @@ async fn delete_users(
         logger,
         inventory,
         authz,
-        exchange_handle.clone(),
         settings,
         object_storage,
         fail_on_shared_folder_deletion_error,
@@ -86,7 +82,6 @@ async fn delete_users(
         logger,
         inventory,
         authz,
-        exchange_handle.clone(),
         settings,
         object_storage,
         orphaned_rooms,
@@ -98,7 +93,6 @@ async fn delete_users(
         logger,
         inventory,
         authz,
-        exchange_handle.clone(),
         settings,
         object_storage,
         &user_candidates,
@@ -115,7 +109,6 @@ pub(crate) async fn delete_users_internal(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     authz: &Authz,
-    exchange_handle: ExchangeHandle,
     settings: &Settings,
     object_storage: &ObjectStorage,
     user_ids: &[UserId],
@@ -128,15 +121,7 @@ pub(crate) async fn delete_users_internal(
         let deleter = UserDeleter::new(user_id);
 
         if let Err(e) = deleter
-            .perform(
-                logger,
-                inventory,
-                authz,
-                None,
-                exchange_handle.clone(),
-                settings,
-                object_storage,
-            )
+            .perform(logger, inventory, authz, None, settings, object_storage)
             .await
         {
             warn!(log: logger, "Failed deletion: {}", Report::from_error(e));
@@ -159,7 +144,6 @@ async fn delete_user_events(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     authz: &Authz,
-    exchange_handle: ExchangeHandle,
     settings: &Settings,
     object_storage: &ObjectStorage,
     fail_on_shared_folder_deletion_error: bool,
@@ -185,7 +169,6 @@ async fn delete_user_events(
         logger,
         inventory,
         authz,
-        exchange_handle,
         settings,
         object_storage,
         fail_on_shared_folder_deletion_error,

@@ -21,22 +21,16 @@ actix-rt.workspace = true
 actix-web = { workspace = true, features = ["rustls-0_23"] }
 actix-web-actors = "4.3"
 actix-web-httpauth.workspace = true
-actix-ws.workspace = true
-async-trait.workspace = true
 bytes.workspace = true
-bytestring = { workspace = true, features = ["serde"] }
 chrono.workspace = true
 diesel-async.workspace = true
 either.workspace = true
 futures.workspace = true
 http.workspace = true
 itertools.workspace = true
-jsonwebtoken.workspace = true
 kustos.workspace = true
 lapin-pool.workspace = true
-livekit-api.workspace = true
 log = { workspace = true, features = ["serde"] }
-md5.workspace = true
 openidconnect.workspace = true
 opentalk-controller-api-actix-web.workspace = true
 opentalk-controller-service.workspace = true
@@ -49,13 +43,10 @@ opentalk-inventory.workspace = true
 opentalk-inventory-database.workspace = true
 opentalk-jobs.workspace = true
 opentalk-keycloak-admin.workspace = true
-opentalk-r3dlock.workspace = true
 opentalk-roomserver-client.workspace = true
+opentalk-roomserver-modules.workspace = true
 opentalk-service-auth = { workspace = true, features = ["actix"] }
 opentalk-signaling-core.workspace = true
-opentalk-signaling-module-breakout.workspace = true
-opentalk-signaling-module-moderation.workspace = true
-opentalk-signaling-module-subroom-audio.workspace = true
 opentalk-types-api-internal = { workspace = true, features = ["utoipa"] }
 opentalk-types-api-v1 = { workspace = true, features = ["backend"] }
 opentalk-types-common = { workspace = true, features = [
@@ -63,16 +54,9 @@ opentalk-types-common = { workspace = true, features = [
   "backend",
   "clap",
 ] }
-opentalk-types-signaling = { workspace = true, features = ["backend"] }
-opentalk-types-signaling-breakout = { workspace = true, features = ["backend"] }
-opentalk-types-signaling-control = { workspace = true, features = ["backend"] }
-opentalk-types-signaling-moderation = { workspace = true, features = [
-  "backend",
-] }
 opentalk-types-signaling-recording = { workspace = true, features = [
   "backend",
 ] }
-opentalk-types-signaling-subroom-audio.workspace = true
 opentelemetry = { workspace = true, features = ["metrics", "trace"] }
 opentelemetry-otlp = { workspace = true, features = ["grpc-tonic"] }
 opentelemetry-prometheus.workspace = true
@@ -85,15 +69,10 @@ rustls = "0.23"
 rustls-pemfile = "2.0"
 rustls-pki-types = "1.3"
 serde.workspace = true
-serde_json.workspace = true
 service-probe = "0.4"
 snafu.workspace = true
 tokio = { workspace = true, features = ["signal"] }
 tokio-stream.workspace = true
-tokio-tungstenite = { version = "0.28", features = [
-  "rustls-tls-native-roots",
-  "url",
-] }
 tracing.workspace = true
 tracing-actix-web = { version = "0.7" }
 tracing-futures = "0.2"
@@ -102,7 +81,6 @@ tracing-subscriber = { version = "0.3", features = [
   "env-filter",
   "parking_lot",
 ] }
-url.workspace = true
 utoipa = { workspace = true, features = ["actix_extras"] }
 utoipa-swagger-ui = { workspace = true, features = [
   "actix-web",

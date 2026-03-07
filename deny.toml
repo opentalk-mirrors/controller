@@ -38,28 +38,6 @@ ignore = [
   # - rsa releases a fixed version
   "RUSTSEC-2023-0071",
 
-  # | yaml-rust unmaintained
-  # | Solution: No safe upgrade is available!
-  #
-  # We need to wait until the dependency updates to an alternative crate.
-  #
-  # Dependency chain: typst 0.12.0 -> syntect 5.2.0 -> yaml-rust 0.4.5
-  "RUSTSEC-2024-0320",
-
-  # | paste unmaintained
-  # |
-  # | The creator of the crate `paste` has stated in the [`README.md`](https://github.com/dtolnay/paste/blob/master/README.md)
-  # | that this project is not longer maintained as well as archived the repository
-  # | Announcement: https://github.com/dtolnay/paste
-  # | Solution: No safe upgrade is available!
-  #
-  # We need to wait until dependencies update to an alternative crate.
-  #
-  # Dependency chains:
-  # reqwest v0.12.12 -> hyper-rustls v0.27.5 -> rustls v0.23.23 -> aws-lc-rs v1.12.5 -> paste v1.0.15
-  # actix-web v4.10.2 -> actix-http v3.10.0 -> actix-tls v3.4.0 -> tokio-rustls v0.26.2 -> rustls v0.23.23 -> aws-lc-rs v1.12.5 -> paste v1.0.15
-  "RUSTSEC-2024-0436",
-
   # | rustls-pemfile is unmaintained
   # |
   # | The rustls-pemfile crate is no longer maintained. The repository has been archived since August
@@ -70,15 +48,65 @@ ignore = [
   # We need to wait until dependencies update to an alternative crate.
   "RUSTSEC-2025-0134",
 
+  # | yaml-rust is unmaintained.
+  # |
+  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2024-0320
+  # | The maintainer seems [unreachable](https://github.com/chyh1990/yaml-rust/issues/197).
+  # |
+  # | Many issues and pull requests have been submitted over the years
+  # | without any [response](https://github.com/chyh1990/yaml-rust/issues/160).
+  # |
+  # | ## Alternatives
+  # |
+  # | Consider switching to the actively maintained `yaml-rust2` fork of the original project:
+  # |
+  # | - [yaml-rust2](https://github.com/Ethiraric/yaml-rust2)
+  # | - [yaml-rust2 @ crates.io](https://crates.io/crates/yaml-rust2)
+  # | Announcement: https://github.com/rustsec/advisory-db/issues/1921
+  # | Solution: No safe upgrade is available!  
+  #
+  # This is a transitive dependency, so we can't just switch, but must instead wait for
+  # our dependencies to do so.
+  "RUSTSEC-2024-0320",
+
   # | Bincode is unmaintained
+  # |
   # | Due to a doxxing and harassment incident, the bincode team has taken the decision to cease development permanently.
+  # |
   # | The team considers version 1.3.3 a complete version of bincode that is not in need of any updates.
+  # |
+  # | ## Alternatives to consider
+  # |
+  # | * [wincode](https://crates.io/crates/wincode)
+  # | * [postcard](https://crates.io/crates/postcard)
+  # | * [bitcode](https://crates.io/crates/bitcode)
+  # | * [rkyv](https://crates.io/crates/rkyv)
+  # |
+  # | Announcement: https://git.sr.ht/~stygianentity/bincode/tree/v3.0/item/README.md
   # | Solution: No safe upgrade is available!
   #
-  # Looks like we need to migrate to an alternative.
-  #
-  # The replacement will be tracked in [#1212](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1212).
+  # This is a transitive dependency, so we can't just switch, but must instead wait for
+  # our dependencies to do so.
   "RUSTSEC-2025-0141",
+
+  # | paste - no longer maintained
+  # |
+  # | The creator of the crate `paste` has stated in the [`README.md`](https://github.com/dtolnay/paste/blob/master/README.md)
+  # | that this project is not longer maintained as well as archived the repository
+  # |
+  # | ## Possible Alternative(s)
+  # |
+  # | - [`pastey`]: a fork of paste and is aimed to be a drop-in replacement with additional features for paste crate
+  # | - [`with_builtin_macros`]: crate providing a [superset of `paste`'s functionality including general `macro_rules!` eager expansions](https://docs.rs/with_builtin_macros/0.1.0/with_builtin_macros/macro.with_eager_expansions.html)  and `concat!`/`concat_idents!` macros
+
+  # | [`pastey`]: https://crates.io/crates/pastey
+  # | [`with_builtin_macros`]: https://crates.io/crates/with_builtin_macros
+  # | Announcement: https://github.com/dtolnay/paste
+  # | Solution: No safe upgrade is available!
+  #
+  # This is a transitive dependency, so we can't just switch, but must instead wait for
+  # our dependencies to do so.
+  "RUSTSEC-2024-0436",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -182,6 +210,63 @@ exceptions = [
   ], name = "opentalk-roomserver-common" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-automod" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-chat" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-e2ee" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-echo" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-legal-vote" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-livekit" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-meeting-notes" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-meeting-report" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-moderation" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-polls" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-raise-hands" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-recording" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-shared-folder" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-subroom-audio" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-timer" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-training-participation-report" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-whiteboard" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-modules" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-room" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-signaling" },
   { allow = [
     "EUPL-1.2",
@@ -239,6 +324,9 @@ exceptions = [
   ], name = "opentalk-roomserver-types-whiteboard" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-web-api" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-service-auth" },
   { allow = [
     "EUPL-1.2",
@@ -263,61 +351,7 @@ exceptions = [
   ], name = "opentalk-types-signaling" },
   { allow = [
     "EUPL-1.2",
-  ], name = "opentalk-types-signaling-asset-storage" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-automod" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-breakout" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-chat" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-control" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-e2ee" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-legal-vote" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-livekit" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-meeting-notes" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-meeting-report" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-moderation" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-polls" },
-  { allow = [
-    "EUPL-1.2",
   ], name = "opentalk-types-signaling-recording" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-recording-service" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-shared-folder" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-subroom-audio" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-timer" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-training-participation-report" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types-signaling-whiteboard" },
 ]
 
 # Some crates don't have (easily) machine readable licensing information,
@@ -424,7 +458,6 @@ skip = [
   { name = "linux-raw-sys", version = "0.3" },
   { name = "litemap", version = "0.7" },
   { name = "moxcms", version = "0.7" },
-  { name = "openssl-probe", version = "0.1" },
   { name = "p256", version = "0.11" },
   { name = "petgraph", version = "0.6" },
   { name = "phf", version = "0.12" },
@@ -437,6 +470,7 @@ skip = [
   { name = "prost-build", version = "0.12" },
   { name = "prost-derive", version = "0.12" },
   { name = "prost-derive", version = "0.13" },
+  { name = "prost-derive", version = "0.13" },
   { name = "prost-types", version = "0.12" },
   { name = "rand", version = "0.8" },
   { name = "rand", version = "0.9" },
@@ -448,8 +482,6 @@ skip = [
   { name = "rfc6979", version = "0.3" },
   { name = "rustix", version = "0.37" },
   { name = "rustls", version = "0.21" },
-  { name = "rustls-native-certs", version = "0.6" },
-  { name = "rustls-pemfile", version = "1" },
   { name = "rustls-webpki", version = "0.101" },
   { name = "sec1", version = "0.3" },
   { name = "serde_spanned", version = "0.6" },

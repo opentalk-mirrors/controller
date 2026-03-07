@@ -15,7 +15,6 @@ workspace = true
 
 [dependencies]
 actix-http.workspace = true
-actix-rt = { workspace = true, optional = true }
 async-trait.workspace = true
 aws-sdk-s3.workspace = true
 bytes.workspace = true
@@ -31,24 +30,21 @@ derive_more = { workspace = true, features = [
 either.workspace = true
 futures.workspace = true
 http.workspace = true
-kustos.workspace = true
 lapin.workspace = true
 lapin-pool.workspace = true
 log.workspace = true
 opentalk-controller-settings.workspace = true
-opentalk-etherpad-client.workspace = true
 opentalk-inventory.workspace = true
 opentalk-r3dlock.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["backend"] }
 opentalk-types-common = { workspace = true, features = ["backend"] }
 opentalk-types-signaling = { workspace = true, features = ["backend"] }
-opentalk-types-signaling-control = { workspace = true, features = ["backend"] }
 opentelemetry = { workspace = true, features = ["metrics", "trace"] }
 opentelemetry_sdk.workspace = true
 parking_lot.workspace = true
 redis = { workspace = true, features = ["connection-manager", "tokio-comp"] }
 redis-args.workspace = true
-reqwest.workspace = true
+reqwest = { workspace = true, features = ["stream"] }
 rustc-hash.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
@@ -57,7 +53,6 @@ snafu.workspace = true
 tokio.workspace = true
 tokio-stream.workspace = true
 tracing.workspace = true
-tracing-actix-web = "0.7.10"
 url.workspace = true
 uuid = { workspace = true, features = ["v4"] }
 
@@ -69,4 +64,4 @@ serial_test.workspace = true
 [features]
 default = []
 mocking = []
-module_tester = ["actix-rt"]
+module_tester = []

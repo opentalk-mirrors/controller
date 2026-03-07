@@ -9,7 +9,7 @@ mod events;
 mod invites;
 mod module_resources;
 pub mod rooms;
-mod services;
+
 mod sip_configs;
 mod streaming_targets;
 mod tariff;
@@ -34,7 +34,7 @@ use opentalk_inventory::InventoryProvider;
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_roomserver_client::Client as RoomServerClient;
 use opentalk_signaling_core::{
-    ExchangeHandle, ObjectStorage, ObjectStorageError, VolatileStorage,
+    ObjectStorage, ObjectStorageError,
     assets::{AssetSaved, ByStreamExt, NewAssetFileName, asset_key},
 };
 use opentalk_types_api_internal::{
@@ -66,8 +66,7 @@ use opentalk_types_api_v1::{
         GetRoomsResponseBody, RoomResource,
         by_room_id::{
             GetRoomEventResponseBody, PostRoomsRoomserverStartInvitedRequestBody,
-            PostRoomsRoomserverStartRequestBody, PostRoomsStartInvitedRequestBody,
-            PostRoomsStartRequestBody, RoomsStartResponseBody, RoomserverStartResponseBody,
+            PostRoomsRoomserverStartRequestBody, RoomserverStartResponseBody,
             assets::RoomsByRoomIdAssetsGetResponseBody,
             invites::{
                 GetRoomsInvitesResponseBody, InviteResource, PostInviteRequestBody,
@@ -123,8 +122,6 @@ pub struct ControllerBackend {
     oidc_token_handler: Arc<dyn OidcTokenHandler>,
     frontend_oidc_provider: OidcProvider,
     storage: Arc<ObjectStorage>,
-    volatile: VolatileStorage,
-    exchange_handle: ExchangeHandle,
     mail_service: Arc<Option<MailService>>,
     user_search_client: Arc<Option<KeycloakAdminClient>>,
     module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
@@ -142,8 +139,6 @@ impl ControllerBackend {
         oidc_token_handler: Arc<dyn OidcTokenHandler>,
         frontend_oidc_provider: OidcProvider,
         storage: Arc<ObjectStorage>,
-        volatile: VolatileStorage,
-        exchange_handle: ExchangeHandle,
         mail_service: Arc<Option<MailService>>,
         user_search_client: Arc<Option<KeycloakAdminClient>>,
         module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
@@ -157,8 +152,6 @@ impl ControllerBackend {
             oidc_token_handler,
             frontend_oidc_provider,
             storage,
-            volatile,
-            exchange_handle,
             mail_service,
             user_search_client,
             module_features,
@@ -269,25 +262,6 @@ impl OpenTalkControllerService for ControllerBackend {
         invite_code: Option<InviteCode>,
     ) -> Result<GetRoomEventResponseBody, ApiError> {
         Ok(self.get_room_event(room_id, invite_code).await?)
-    }
-
-    async fn start_room_session(
-        &self,
-        current_user: RequestUser,
-        room_id: RoomId,
-        request: PostRoomsStartRequestBody,
-    ) -> Result<RoomsStartResponseBody, ApiError> {
-        Ok(self
-            .start_room_session(current_user, room_id, request)
-            .await?)
-    }
-
-    async fn start_invited_room_session(
-        &self,
-        room_id: RoomId,
-        request: PostRoomsStartInvitedRequestBody,
-    ) -> Result<RoomsStartResponseBody, ApiError> {
-        Ok(self.start_invited_room_session(room_id, request).await?)
     }
 
     async fn start_roomserver_room_session(

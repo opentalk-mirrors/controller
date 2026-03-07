@@ -1179,7 +1179,6 @@ impl ControllerBackend {
                 inventory.as_mut(),
                 &self.authz,
                 Some(current_user_id),
-                self.exchange_handle.clone(),
                 &settings,
                 &self.storage,
             )
