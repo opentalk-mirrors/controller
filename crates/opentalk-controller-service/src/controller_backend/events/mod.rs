@@ -912,6 +912,20 @@ impl ControllerBackend {
                         date: None,
                     }
                 }
+                // This is only a temporary solution which will be replaced by a deserialize impl in
+                // the types crate.
+                PatchEventDateKind::PatchTimeDependent { date, .. } if date.is_empty() => {
+                    // The patch modifies an event regardless of the time dependents.
+                    UpdateEvent {
+                        title: patch.title.clone(),
+                        description: patch.description,
+                        updated_by: current_user.id,
+                        updated_at: Timestamp::now(),
+                        is_adhoc: patch.is_adhoc,
+                        show_meeting_details: patch.show_meeting_details,
+                        date: None,
+                    }
+                }
                 PatchEventDateKind::PatchTimeDependent { date, .. } => {
                     // The patch modifies an time dependent event.
                     let recurrence_pattern = date.recurrence_pattern.to_multiline_string();
