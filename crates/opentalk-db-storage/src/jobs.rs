@@ -62,6 +62,7 @@ impl From<inventory::JobExecutionId> for SerialId {
 }
 
 #[derive(Debug, Clone, Queryable, Identifiable, PartialEq, Eq)]
+#[diesel(table_name = jobs)]
 pub struct Job {
     pub id: SerialId,
     pub name: String,
@@ -134,6 +135,7 @@ impl Job {
 }
 
 #[derive(Debug, Clone, Queryable, Identifiable, PartialEq, Eq)]
+#[diesel(table_name = job_executions)]
 pub struct JobExecution {
     pub id: SerialId,
     pub job_id: SerialId,
@@ -253,6 +255,7 @@ impl UpdateJobExecution {
 }
 
 #[derive(Debug, Clone, Queryable, Identifiable, PartialEq, Eq)]
+#[diesel(table_name = job_execution_logs)]
 pub struct JobExecutionLog {
     pub id: SerialId,
     pub execution_id: SerialId,
