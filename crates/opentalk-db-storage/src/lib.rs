@@ -19,7 +19,6 @@ use diesel::sql_types::Text;
 mod macros;
 mod schema;
 
-pub mod invites;
 pub mod jobs;
 pub mod migrations;
 pub mod module_resources;
