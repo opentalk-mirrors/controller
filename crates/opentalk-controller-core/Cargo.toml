@@ -55,6 +55,7 @@ opentalk-service-auth = { workspace = true, features = ["actix"] }
 opentalk-signaling-core.workspace = true
 opentalk-signaling-module-breakout.workspace = true
 opentalk-signaling-module-moderation.workspace = true
+opentalk-signaling-module-subroom-audio.workspace = true
 opentalk-types-api-internal = { workspace = true, features = ["utoipa"] }
 opentalk-types-api-v1 = { workspace = true, features = ["backend"] }
 opentalk-types-common = { workspace = true, features = [
@@ -71,6 +72,7 @@ opentalk-types-signaling-moderation = { workspace = true, features = [
 opentalk-types-signaling-recording = { workspace = true, features = [
   "backend",
 ] }
+opentalk-types-signaling-subroom-audio.workspace = true
 opentelemetry = { workspace = true, features = ["metrics", "trace"] }
 opentelemetry-otlp = { workspace = true, features = ["grpc-tonic"] }
 opentelemetry-prometheus.workspace = true

@@ -34,10 +34,11 @@ use opentalk_types_signaling_subroom_audio::{
     whisper_id::WhisperId,
 };
 use snafu::ResultExt;
-use storage::SubroomAudioStorage;
 
 mod exchange;
 mod storage;
+
+pub use storage::SubroomAudioStorage;
 
 const ACCESS_TOKEN_TTL: Duration = Duration::from_secs(32);
 
@@ -52,12 +53,12 @@ pub struct SubroomAudioParams {
     room_client: RoomClient,
 }
 
-trait SubroomAudioStorageProvider {
-    fn storage(&mut self) -> &mut dyn SubroomAudioStorage;
+pub trait SubroomAudioStorageProvider {
+    fn subroom_audio_storage(&mut self) -> &mut dyn SubroomAudioStorage;
 }
 
 impl SubroomAudioStorageProvider for VolatileStorage {
-    fn storage(&mut self) -> &mut dyn SubroomAudioStorage {
+    fn subroom_audio_storage(&mut self) -> &mut dyn SubroomAudioStorage {
         match self.as_mut() {
             Either::Left(v) => v,
             Either::Right(v) => v,
@@ -194,7 +195,7 @@ impl SubroomAudio {
                 };
 
                 ctx.volatile
-                    .storage()
+                    .subroom_audio_storage()
                     .remove_participant(self.room_id, whisper_id, self.participant_id)
                     .await?;
 
@@ -269,7 +270,7 @@ impl SubroomAudio {
                 .params
                 .room_client
                 .remove_participant(
-                    &whisper_group.whisper_id.to_string(),
+                    &self.livekit_room_name(whisper_group.whisper_id),
                     &self.participant_id.to_string(),
                 )
                 .await;
@@ -277,7 +278,7 @@ impl SubroomAudio {
 
         let group_deleted = ctx
             .volatile
-            .storage()
+            .subroom_audio_storage()
             .remove_participant(self.room_id, whisper_group.whisper_id, self.participant_id)
             .await?;
 
@@ -302,7 +303,7 @@ impl SubroomAudio {
     ) -> Result<Option<WhisperGroup>, SignalingModuleError> {
         let participants = match ctx
             .volatile
-            .storage()
+            .subroom_audio_storage()
             .get_whisper_group(self.room_id, whisper_id)
             .await
         {
@@ -379,7 +380,7 @@ impl SubroomAudio {
         whisper_participants.insert(self.participant_id, WhisperState::Creator);
 
         ctx.volatile
-            .storage()
+            .subroom_audio_storage()
             .create_whisper_group(self.room_id, whisper_id, &whisper_participants)
             .await?;
 
@@ -432,7 +433,7 @@ impl SubroomAudio {
             .collect::<BTreeMap<_, _>>();
 
         ctx.volatile
-            .storage()
+            .subroom_audio_storage()
             .add_participants(self.room_id, whisper_id, &new_participants)
             .await?;
 
@@ -515,7 +516,7 @@ impl SubroomAudio {
 
         let room_participants = ctx
             .volatile
-            .storage()
+            .subroom_audio_storage()
             .get_all_participants(self.room_id)
             .await?;
 
@@ -552,7 +553,7 @@ impl SubroomAudio {
         let token = self.create_access_token(whisper_id)?;
 
         ctx.volatile
-            .storage()
+            .subroom_audio_storage()
             .update_participant_state(
                 self.room_id,
                 whisper_id,
@@ -577,7 +578,7 @@ impl SubroomAudio {
         if let Err(e) = self
             .params
             .room_client
-            .delete_room(&whisper_id.to_string())
+            .delete_room(&self.livekit_room_name(whisper_id))
             .await
         {
             log::debug!(
@@ -597,7 +598,10 @@ impl SubroomAudio {
     ) -> Result<String, SignalingModuleError> {
         self.params
             .room_client
-            .create_room(&whisper_id.to_string(), CreateRoomOptions::default())
+            .create_room(
+                &self.livekit_room_name(whisper_id),
+                CreateRoomOptions::default(),
+            )
             .await
             .whatever_context::<&str, SignalingModuleError>(
                 "Failed to create livekit whisper room",
@@ -623,7 +627,7 @@ impl SubroomAudio {
             room_record: false,
             room_admin: false,
             room_join: true,
-            room: whisper_id.to_string(),
+            room: self.livekit_room_name(whisper_id),
             destination_room: String::new(),
             can_publish: true,
             can_subscribe: true,
@@ -647,14 +651,14 @@ impl SubroomAudio {
     ) -> Result<(), SignalingModuleError> {
         let whisper_groups = ctx
             .volatile
-            .storage()
+            .subroom_audio_storage()
             .get_all_whisper_group_ids(self.room_id)
             .await?;
 
         for whisper_id in whisper_groups {
             let participants = ctx
                 .volatile
-                .storage()
+                .subroom_audio_storage()
                 .get_whisper_group(self.room_id, whisper_id)
                 .await?;
 
@@ -679,7 +683,7 @@ impl SubroomAudio {
     async fn cleanup_whisper_groups(&self, ctx: &mut DestroyContext<'_>, room_id: SignalingRoomId) {
         let whisper_ids = match ctx
             .volatile
-            .storage()
+            .subroom_audio_storage()
             .get_all_whisper_group_ids(room_id)
             .await
         {
@@ -693,7 +697,7 @@ impl SubroomAudio {
         for whisper_id in whisper_ids {
             if let Err(e) = ctx
                 .volatile
-                .storage()
+                .subroom_audio_storage()
                 .delete_whisper_group(room_id, whisper_id)
                 .await
             {
@@ -708,5 +712,9 @@ impl SubroomAudio {
             Some(state) => state == &WhisperState::Creator,
             None => false,
         }
+    }
+
+    fn livekit_room_name(&self, whisper_id: WhisperId) -> String {
+        format!("{}#{whisper_id}", self.room_id)
     }
 }

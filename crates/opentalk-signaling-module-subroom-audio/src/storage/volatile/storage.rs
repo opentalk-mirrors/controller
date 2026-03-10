@@ -73,6 +73,17 @@ impl SubroomAudioStorage for VolatileStaticMemoryStorage {
         Ok(())
     }
 
+    async fn is_participant_in_whisper_group(
+        &mut self,
+        room: SignalingRoomId,
+        whisper_id: WhisperId,
+        participant_id: ParticipantId,
+    ) -> Result<bool, SignalingModuleError> {
+        state()
+            .read()
+            .is_participant_in_whisper_group(room, whisper_id, participant_id)
+    }
+
     #[tracing::instrument(level = "debug", skip(self))]
     async fn remove_participant(
         &mut self,

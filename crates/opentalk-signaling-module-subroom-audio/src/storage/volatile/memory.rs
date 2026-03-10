@@ -87,6 +87,21 @@ impl MemorySubroomAudio {
         whisper_group.extend(participant_ids.iter());
     }
 
+    pub(crate) fn is_participant_in_whisper_group(
+        &self,
+        room: SignalingRoomId,
+        whisper_id: WhisperId,
+        participant_id: ParticipantId,
+    ) -> Result<bool, SignalingModuleError> {
+        if let Some(groups) = self.state.get(&room)
+            && let Some(group) = groups.get(&whisper_id)
+        {
+            Ok(group.contains_key(&participant_id))
+        } else {
+            Ok(false)
+        }
+    }
+
     pub(crate) fn remove_participant(
         &mut self,
         room: SignalingRoomId,
