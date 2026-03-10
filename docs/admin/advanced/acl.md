@@ -41,6 +41,8 @@ Options:
 This subcommand is used to recreate all ACL entries from the current database content. Some updates to {{ product_name }} require
 this command to be run after migration.
 
+The controller must be restarted after execution of the `fix-acl` command has finished in order to update cached permissions from the database.
+
 ### Help output
 
 Help output looks like this:
