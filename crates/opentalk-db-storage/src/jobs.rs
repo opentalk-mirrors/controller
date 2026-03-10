@@ -3,136 +3,16 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use chrono::{DateTime, Utc};
-use derive_more::{AsRef, Display, From, FromStr, Into};
+use derive_more::Display;
 use diesel::{ExpressionMethods, Identifiable, Insertable, QueryDsl, Queryable};
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DbConnection, Result};
-use opentalk_diesel_newtype::DieselNewtype;
 use opentalk_inventory as inventory;
 use opentalk_types_common::sql_enum;
-use serde::{Deserialize, Serialize};
 
-use crate::schema::{job_execution_logs, job_executions, jobs};
+use crate::schema::{job_execution_logs, job_executions};
 
-#[derive(
-    AsRef,
-    Display,
-    From,
-    FromStr,
-    Into,
-    Serialize,
-    Deserialize,
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    AsExpression,
-    FromSqlRow,
-    DieselNewtype,
-)]
-#[diesel(sql_type = diesel::sql_types::BigInt)]
-pub struct SerialJobId(i64);
-
-impl From<SerialJobId> for inventory::JobId {
-    fn from(SerialJobId(value): SerialJobId) -> Self {
-        Self::from(value)
-    }
-}
-
-impl From<inventory::JobId> for SerialJobId {
-    fn from(value: inventory::JobId) -> Self {
-        Self(value.into())
-    }
-}
-
-impl From<SerialJobId> for inventory::JobExecutionId {
-    fn from(SerialJobId(value): SerialJobId) -> Self {
-        Self::from(value)
-    }
-}
-
-impl From<inventory::JobExecutionId> for SerialJobId {
-    fn from(value: inventory::JobExecutionId) -> Self {
-        Self(value.into())
-    }
-}
-
-#[derive(Debug, Clone, Queryable, Identifiable, PartialEq, Eq)]
-#[diesel(table_name = jobs)]
-pub struct Job {
-    pub id: SerialJobId,
-    pub name: String,
-    pub kind: JobType,
-    pub parameters: serde_json::Value,
-    pub timeout_secs: i32,
-    pub recurrence: String,
-}
-
-impl From<Job> for inventory::Job {
-    fn from(
-        Job {
-            id,
-            name,
-            kind,
-            parameters,
-            timeout_secs,
-            recurrence,
-        }: Job,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            name,
-            kind: kind.into(),
-            parameters,
-            timeout_secs,
-            recurrence,
-        }
-    }
-}
-
-impl From<inventory::Job> for Job {
-    fn from(
-        inventory::Job {
-            id,
-            name,
-            kind,
-            parameters,
-            timeout_secs,
-            recurrence,
-        }: inventory::Job,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            name,
-            kind: kind.into(),
-            parameters,
-            timeout_secs,
-            recurrence,
-        }
-    }
-}
-
-impl Job {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn get(conn: &mut DbConnection, id: SerialJobId) -> Result<Self> {
-        let query = jobs::table.filter(jobs::id.eq(id));
-
-        let job: Job = query.get_result(conn).await?;
-
-        Ok(job)
-    }
-
-    #[tracing::instrument(err, skip_all)]
-    pub async fn get_all(conn: &mut DbConnection) -> Result<Vec<Self>> {
-        let query = jobs::table;
-        let job = query.load(conn).await?;
-        Ok(job)
-    }
-}
+pub use crate::tables::jobs::{Job, JobTypeType, SerialJobId};
 
 #[derive(Debug, Clone, Queryable, Identifiable, PartialEq, Eq)]
 #[diesel(table_name = job_executions)]
@@ -313,54 +193,6 @@ impl NewJobExecutionLog {
             .await?;
 
         Ok(())
-    }
-}
-
-sql_enum!(
-    #[derive(PartialEq, Eq, Display)]
-    JobType,
-    "job_type",
-    JobTypeType,
-    {
-        AdhocEventCleanup = b"adhoc_event_cleanup",
-        EventCleanup = b"event_cleanup",
-        InviteCleanup = b"invite_cleanup",
-        SelfCheck = b"self_check",
-        SyncStorageFiles = b"sync_storage_files",
-        RoomCleanup = b"room_cleanup",
-        KeycloakAccountSync = b"keycloak_account_sync",
-        UserCleanup = b"user_cleanup"
-    }
-);
-
-impl From<JobType> for inventory::JobType {
-    fn from(value: JobType) -> Self {
-        match value {
-            JobType::AdhocEventCleanup => Self::AdhocEventCleanup,
-            JobType::EventCleanup => Self::EventCleanup,
-            JobType::UserCleanup => Self::UserCleanup,
-            JobType::InviteCleanup => Self::InviteCleanup,
-            JobType::SelfCheck => Self::SelfCheck,
-            JobType::SyncStorageFiles => Self::SyncStorageFiles,
-            JobType::RoomCleanup => Self::RoomCleanup,
-            JobType::KeycloakAccountSync => Self::KeycloakAccountSync,
-        }
-    }
-}
-
-impl From<inventory::JobType> for JobType {
-    fn from(value: inventory::JobType) -> Self {
-        use inventory::JobType as Other;
-        match value {
-            Other::AdhocEventCleanup => Self::AdhocEventCleanup,
-            Other::EventCleanup => Self::EventCleanup,
-            Other::UserCleanup => Self::UserCleanup,
-            Other::InviteCleanup => Self::InviteCleanup,
-            Other::SelfCheck => Self::SelfCheck,
-            Other::SyncStorageFiles => Self::SyncStorageFiles,
-            Other::RoomCleanup => Self::RoomCleanup,
-            Other::KeycloakAccountSync => Self::KeycloakAccountSync,
-        }
     }
 }
 
