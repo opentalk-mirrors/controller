@@ -35,27 +35,27 @@ use crate::schema::{job_execution_logs, job_executions, jobs};
     DieselNewtype,
 )]
 #[diesel(sql_type = diesel::sql_types::BigInt)]
-pub struct SerialId(i64);
+pub struct SerialJobId(i64);
 
-impl From<SerialId> for inventory::JobId {
-    fn from(SerialId(value): SerialId) -> Self {
+impl From<SerialJobId> for inventory::JobId {
+    fn from(SerialJobId(value): SerialJobId) -> Self {
         Self::from(value)
     }
 }
 
-impl From<inventory::JobId> for SerialId {
+impl From<inventory::JobId> for SerialJobId {
     fn from(value: inventory::JobId) -> Self {
         Self(value.into())
     }
 }
 
-impl From<SerialId> for inventory::JobExecutionId {
-    fn from(SerialId(value): SerialId) -> Self {
+impl From<SerialJobId> for inventory::JobExecutionId {
+    fn from(SerialJobId(value): SerialJobId) -> Self {
         Self::from(value)
     }
 }
 
-impl From<inventory::JobExecutionId> for SerialId {
+impl From<inventory::JobExecutionId> for SerialJobId {
     fn from(value: inventory::JobExecutionId) -> Self {
         Self(value.into())
     }
@@ -64,7 +64,7 @@ impl From<inventory::JobExecutionId> for SerialId {
 #[derive(Debug, Clone, Queryable, Identifiable, PartialEq, Eq)]
 #[diesel(table_name = jobs)]
 pub struct Job {
-    pub id: SerialId,
+    pub id: SerialJobId,
     pub name: String,
     pub kind: JobType,
     pub parameters: serde_json::Value,
@@ -118,7 +118,7 @@ impl From<inventory::Job> for Job {
 
 impl Job {
     #[tracing::instrument(err, skip_all)]
-    pub async fn get(conn: &mut DbConnection, id: SerialId) -> Result<Self> {
+    pub async fn get(conn: &mut DbConnection, id: SerialJobId) -> Result<Self> {
         let query = jobs::table.filter(jobs::id.eq(id));
 
         let job: Job = query.get_result(conn).await?;
@@ -137,8 +137,8 @@ impl Job {
 #[derive(Debug, Clone, Queryable, Identifiable, PartialEq, Eq)]
 #[diesel(table_name = job_executions)]
 pub struct JobExecution {
-    pub id: SerialId,
-    pub job_id: SerialId,
+    pub id: SerialJobId,
+    pub job_id: SerialJobId,
     pub started_at: DateTime<Utc>,
     pub ended_at: Option<DateTime<Utc>>,
     pub job_status: JobStatus,
@@ -187,7 +187,7 @@ impl From<inventory::JobExecution> for JobExecution {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = job_executions)]
 pub struct NewJobExecution {
-    pub job_id: SerialId,
+    pub job_id: SerialJobId,
     pub started_at: DateTime<Utc>,
     pub ended_at: Option<DateTime<Utc>>,
     pub job_status: JobStatus,
@@ -246,7 +246,7 @@ impl From<inventory::UpdateJobExecution> for UpdateJobExecution {
 
 impl UpdateJobExecution {
     #[tracing::instrument(err, skip_all)]
-    pub async fn apply(self, conn: &mut DbConnection, id: SerialId) -> Result<JobExecution> {
+    pub async fn apply(self, conn: &mut DbConnection, id: SerialJobId) -> Result<JobExecution> {
         let target = job_executions::table.filter(job_executions::id.eq(&id));
         let job_execution = diesel::update(target).set(self).get_result(conn).await?;
 
@@ -257,8 +257,8 @@ impl UpdateJobExecution {
 #[derive(Debug, Clone, Queryable, Identifiable, PartialEq, Eq)]
 #[diesel(table_name = job_execution_logs)]
 pub struct JobExecutionLog {
-    pub id: SerialId,
-    pub execution_id: SerialId,
+    pub id: SerialJobId,
+    pub execution_id: SerialJobId,
     pub logged_at: DateTime<Utc>,
     pub log_level: LogLevel,
     pub log_message: String,
@@ -269,7 +269,7 @@ impl JobExecutionLog {}
 #[derive(Debug, Insertable)]
 #[diesel(table_name = job_execution_logs)]
 pub struct NewJobExecutionLog {
-    pub execution_id: SerialId,
+    pub execution_id: SerialJobId,
     pub logged_at: DateTime<Utc>,
     pub log_level: LogLevel,
     pub log_message: String,
