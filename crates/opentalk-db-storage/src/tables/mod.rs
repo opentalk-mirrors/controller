@@ -14,6 +14,7 @@ pub mod event_training_participation_report_parameter_sets;
 pub mod events;
 pub mod groups;
 pub mod invites;
+pub mod job_execution_logs;
 pub mod job_executions;
 pub mod jobs;
 pub mod user_groups;
