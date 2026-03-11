@@ -11,7 +11,7 @@ use opentalk_database::{DatabaseError, DbConnection, Result};
 use crate::{
     schema::{job_execution_logs, job_executions, jobs},
     tables::{
-        job_execution_logs::{JobExecutionLog, NewJobExecutionLog},
+        job_execution_logs::NewJobExecutionLog,
         job_executions::{JobExecution, NewJobExecution, UpdateJobExecution},
         jobs::{Job, SerialJobId},
     },
@@ -53,18 +53,6 @@ pub async fn update_job_execution(
 
     diesel::update(target)
         .set(update_job_execution)
-        .get_result(conn)
-        .await
-        .map_err(DatabaseError::from)
-}
-
-#[tracing::instrument(err, skip_all)]
-pub async fn create_job_execution_log(
-    conn: &mut DbConnection,
-    new_job_execution_log: NewJobExecutionLog,
-) -> Result<JobExecutionLog> {
-    diesel::insert_into(job_execution_logs::table)
-        .values(new_job_execution_log)
         .get_result(conn)
         .await
         .map_err(DatabaseError::from)
