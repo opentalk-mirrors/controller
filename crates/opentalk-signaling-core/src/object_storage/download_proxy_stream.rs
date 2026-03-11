@@ -13,7 +13,7 @@ pub struct DownloadProxyStream {
     pub status: u16,
 
     /// The HTTP headers to be added to the response.
-    pub headers: BTreeMap<String, String>,
+    pub headers: BTreeMap<String, Bytes>,
 
     /// The stream containing the data which should be sent in the response.
     pub stream:

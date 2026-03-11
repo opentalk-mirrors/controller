@@ -662,7 +662,7 @@ impl ObjectStorage {
                 response
                     .headers()
                     .get(k)
-                    .map(|v| (k.to_string(), v.to_str().unwrap().to_string()))
+                    .map(|v| (k.to_string(), Bytes::copy_from_slice(v.as_bytes())))
             })
             .collect();
 
