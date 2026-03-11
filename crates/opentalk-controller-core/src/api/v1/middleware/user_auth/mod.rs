@@ -34,6 +34,7 @@ use crate::api::v1::middleware::user_auth::bearer_or_invite_code::BearerOrInvite
 
 mod access_token;
 mod bearer_or_invite_code;
+mod provisioning;
 
 /// Middleware factory
 ///
