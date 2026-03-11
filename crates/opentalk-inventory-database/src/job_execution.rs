@@ -34,22 +34,26 @@ impl JobExecutionInventory for DatabaseConnection {
         job_execution_id: JobExecutionId,
         job_execution: UpdateJobExecution,
     ) -> Result<JobExecution> {
-        Ok(db::jobs::UpdateJobExecution::from(job_execution)
-            .apply(&mut self.inner, job_execution_id.into())
-            .await
-            .context(DatabaseSnafu)?
-            .into())
+        Ok(db::queries::jobs::update_job_execution(
+            &mut self.inner,
+            job_execution.into(),
+            job_execution_id.into(),
+        )
+        .await
+        .context(DatabaseSnafu)?
+        .into())
     }
 
     async fn create_job_execution(
         &mut self,
         job_execution: NewJobExecution,
     ) -> Result<JobExecution> {
-        Ok(db::jobs::NewJobExecution::from(job_execution)
-            .insert(&mut self.inner)
-            .await
-            .context(DatabaseSnafu)?
-            .into())
+        Ok(
+            db::queries::jobs::create_job_execution(&mut self.inner, job_execution.into())
+                .await
+                .context(DatabaseSnafu)?
+                .into(),
+        )
     }
 
     /// Create a new batch of job execution logs.

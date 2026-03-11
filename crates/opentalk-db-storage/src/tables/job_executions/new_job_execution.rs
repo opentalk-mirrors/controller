@@ -4,16 +4,11 @@
 
 use chrono::{DateTime, Utc};
 use diesel::Insertable;
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
 
 use crate::{
     schema::job_executions,
-    tables::{
-        job_executions::{JobExecution, JobStatus},
-        jobs::SerialJobId,
-    },
+    tables::{job_executions::JobStatus, jobs::SerialJobId},
 };
 
 #[derive(Debug, Insertable)]
@@ -40,17 +35,5 @@ impl From<inventory::NewJobExecution> for NewJobExecution {
             ended_at: ended_at.map(Into::into),
             job_status: job_status.into(),
         }
-    }
-}
-
-impl NewJobExecution {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn insert(self, conn: &mut DbConnection) -> Result<JobExecution> {
-        let job_execution = self
-            .insert_into(job_executions::table)
-            .get_result(conn)
-            .await?;
-
-        Ok(job_execution)
     }
 }

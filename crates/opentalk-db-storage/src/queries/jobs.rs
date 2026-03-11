@@ -9,8 +9,12 @@ use diesel_async::RunQueryDsl;
 use opentalk_database::{DatabaseError, DbConnection, Result};
 
 use crate::{
-    schema::jobs,
-    tables::jobs::{Job, SerialJobId},
+    schema::{job_executions, jobs},
+    tables::job_executions::{NewJobExecution, UpdateJobExecution},
+    tables::{
+        job_executions::JobExecution,
+        jobs::{Job, SerialJobId},
+    },
 };
 
 #[tracing::instrument(err, skip_all)]
@@ -25,4 +29,31 @@ pub async fn get_job(conn: &mut DbConnection, id: SerialJobId) -> Result<Job> {
 #[tracing::instrument(err, skip_all)]
 pub async fn get_all_jobs(conn: &mut DbConnection) -> Result<Vec<Job>> {
     jobs::table.load(conn).await.map_err(DatabaseError::from)
+}
+
+#[tracing::instrument(err, skip_all)]
+pub async fn create_job_execution(
+    conn: &mut DbConnection,
+    new_job_execution: NewJobExecution,
+) -> Result<JobExecution> {
+    diesel::insert_into(job_executions::table)
+        .values(new_job_execution)
+        .get_result(conn)
+        .await
+        .map_err(DatabaseError::from)
+}
+
+#[tracing::instrument(err, skip_all)]
+pub async fn update_job_execution(
+    conn: &mut DbConnection,
+    update_job_execution: UpdateJobExecution,
+    id: SerialJobId,
+) -> Result<JobExecution> {
+    let target = job_executions::table.filter(job_executions::id.eq(&id));
+
+    diesel::update(target)
+        .set(update_job_execution)
+        .get_result(conn)
+        .await
+        .map_err(DatabaseError::from)
 }
