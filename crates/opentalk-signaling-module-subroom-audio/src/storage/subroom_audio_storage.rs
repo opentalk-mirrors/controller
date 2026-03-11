@@ -12,7 +12,7 @@ use opentalk_types_signaling::ParticipantId;
 use opentalk_types_signaling_subroom_audio::{state::WhisperState, whisper_id::WhisperId};
 
 #[async_trait(?Send)]
-pub(crate) trait SubroomAudioStorage: ControlStorageParticipantSet {
+pub trait SubroomAudioStorage: ControlStorageParticipantSet {
     async fn create_whisper_group(
         &mut self,
         room: SignalingRoomId,
@@ -43,6 +43,13 @@ pub(crate) trait SubroomAudioStorage: ControlStorageParticipantSet {
         whisper_id: WhisperId,
         participant_ids: &BTreeMap<ParticipantId, WhisperState>,
     ) -> Result<(), SignalingModuleError>;
+
+    async fn is_participant_in_whisper_group(
+        &mut self,
+        room: SignalingRoomId,
+        whisper_id: WhisperId,
+        participant_id: ParticipantId,
+    ) -> Result<bool, SignalingModuleError>;
 
     async fn remove_participant(
         &mut self,

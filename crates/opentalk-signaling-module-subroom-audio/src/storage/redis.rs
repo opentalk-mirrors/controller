@@ -120,6 +120,19 @@ impl SubroomAudioStorage for RedisConnection {
             })
     }
 
+    async fn is_participant_in_whisper_group(
+        &mut self,
+        room: SignalingRoomId,
+        whisper_id: WhisperId,
+        participant_id: ParticipantId,
+    ) -> Result<bool, SignalingModuleError> {
+        self.hexists(WhisperGroupKey { room, whisper_id }, participant_id)
+            .await
+            .context(RedisSnafu {
+                message: "Failed to test if participant is in whisper group",
+            })
+    }
+
     /// Remove a participant from the given whisper group
     ///
     /// Returns true when this group gets deleted due to the last participant being removed

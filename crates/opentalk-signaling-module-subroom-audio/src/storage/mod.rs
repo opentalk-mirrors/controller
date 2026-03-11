@@ -6,7 +6,7 @@ mod redis;
 mod subroom_audio_storage;
 mod volatile;
 
-pub(crate) use subroom_audio_storage::SubroomAudioStorage;
+pub use subroom_audio_storage::SubroomAudioStorage;
 
 #[cfg(test)]
 mod test_common {

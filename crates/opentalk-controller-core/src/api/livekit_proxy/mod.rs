@@ -24,8 +24,10 @@ use opentalk_signaling_core::{
         storage::{ControlStorageParticipantAttributes, JOINED_AT, LEFT_AT, LocalRoomAttributeId},
     },
 };
+use opentalk_signaling_module_subroom_audio::SubroomAudioStorageProvider;
 use opentalk_types_common::time::Timestamp;
 use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling_subroom_audio::whisper_id::WhisperId;
 use serde::Deserialize;
 use snafu::Report;
 use tokio::time::{Instant, interval_at};
@@ -113,29 +115,13 @@ pub async fn proxy(
     let identity = decoded.claims.sub;
     let room = decoded.claims.video.room;
 
-    let room = if let Some((room_id, breakout_room_id)) = room.split_once(':') {
-        let room_id = room_id
-            .parse()
-            .map_err(|_| ProxyError(StatusCode::BAD_REQUEST))?;
-
-        let breakout_room_id = breakout_room_id
-            .parse()
-            .map_err(|_| ProxyError(StatusCode::BAD_REQUEST))?;
-
-        SignalingRoomId::new(room_id, Some(breakout_room_id))
-    } else {
-        let room_id = room
-            .parse()
-            .map_err(|_| ProxyError(StatusCode::BAD_REQUEST))?;
-
-        SignalingRoomId::new(room_id, None)
-    };
+    let (room, whisper_id) = parse_livekit_room(room)?;
 
     let participant_id = identity
         .parse()
         .map_err(|_| ProxyError(StatusCode::BAD_REQUEST))?;
 
-    assert_user_is_in_room(&mut volatile, room, participant_id).await?;
+    assert_user_is_in_room(&mut volatile, room, participant_id, whisper_id).await?;
 
     let livekit_url = signaling.livekit.service_url.parse::<Url>().map_err(|e| {
         log::error!("Failed to parse livekit.service_url, {e:?}");
@@ -192,6 +178,7 @@ pub async fn proxy(
         volatile,
         room,
         participant_id,
+        whisper_id,
         to_client,
         from_client,
         stream,
@@ -200,10 +187,43 @@ pub async fn proxy(
     Ok(response)
 }
 
+/// OpenTalk creates the livekit room name from the following pattern: `{room_id}:{breakout_room_id}#{whisper_id}`,
+/// where `breakout_room_id` and `whisper_id` are optional
+fn parse_livekit_room(
+    room: String,
+) -> Result<(SignalingRoomId, Option<WhisperId>), actix_web::Error> {
+    let bad_request = |_| ProxyError(StatusCode::BAD_REQUEST);
+
+    // Split room-id & whisper-id at #
+    let (room, whisper_id) = match room.split_once('#') {
+        Some((room, whisper_id)) => {
+            let whisper_id = whisper_id.parse().map_err(bad_request)?;
+
+            (room, Some(whisper_id))
+        }
+        None => (room.as_str(), None),
+    };
+
+    // Split signaling-room-id into room and breakout
+    let (room, breakout) = match room.split_once(':') {
+        Some((room, breakout)) => {
+            let breakout = breakout.parse().map_err(bad_request)?;
+
+            (room, Some(breakout))
+        }
+        None => (room, None),
+    };
+
+    let room = room.parse().map_err(bad_request)?;
+
+    Ok((SignalingRoomId::new(room, breakout), whisper_id))
+}
+
 async fn connection_task(
     mut volatile: VolatileStorage,
     room: SignalingRoomId,
     participant_id: ParticipantId,
+    whisper_id: Option<WhisperId>,
     mut to_client: actix_ws::Session,
     from_client: actix_ws::MessageStream,
     mut livekit_connection: tokio_tungstenite::WebSocketStream<
@@ -270,7 +290,7 @@ async fn connection_task(
                 }
             }
             _ = recheck_interval.tick() => {
-                if assert_user_is_in_room(&mut volatile, room, participant_id).await.is_err() {
+                if assert_user_is_in_room(&mut volatile, room, participant_id, whisper_id).await.is_err() {
                     return;
                 }
             }
@@ -282,6 +302,7 @@ async fn assert_user_is_in_room(
     volatile: &mut VolatileStorage,
     room: SignalingRoomId,
     participant_id: ParticipantId,
+    whisper_id: Option<WhisperId>,
 ) -> Result<(), actix_web::Error> {
     let (joined_at, left_at) = get_participant_attributes(volatile, room, participant_id)
         .await
@@ -297,8 +318,28 @@ async fn assert_user_is_in_room(
         log::warn!(
             "Closing livekit connection due to identity ({participant_id}) not being present in the requested room ({room}) on the controller"
         );
+
         Err(ProxyError(StatusCode::FORBIDDEN).into())
     } else {
+        // Verify that the user is in the whisper group
+        if let Some(whisper_id) = whisper_id {
+            let is_in_whisper_group = volatile
+                .subroom_audio_storage()
+                .is_participant_in_whisper_group(room, whisper_id, participant_id)
+                .await
+                .map_err(|e| {
+                    log::warn!(
+                        "Failed to test if participant is in whisper group, {:?}",
+                        Report::from_error(e)
+                    );
+                    ProxyError(StatusCode::INTERNAL_SERVER_ERROR)
+                })?;
+
+            if !is_in_whisper_group {
+                return Err(ProxyError(StatusCode::FORBIDDEN).into());
+            }
+        }
+
         Ok(())
     }
 }
