@@ -66,10 +66,10 @@ impl JobExecutionInventory for DatabaseConnection {
         let job_execution_logs: Vec<_> = job_execution_logs
             .iter()
             .cloned()
-            .map(db::jobs::NewJobExecutionLog::from)
+            .map(db::tables::job_execution_logs::NewJobExecutionLog::from)
             .collect();
         Ok(
-            db::jobs::NewJobExecutionLog::insert_batch(&mut self.inner, &job_execution_logs)
+            db::queries::jobs::create_job_execution_logs(&mut self.inner, &job_execution_logs)
                 .await
                 .context(DatabaseSnafu)?,
         )

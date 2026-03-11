@@ -4,16 +4,11 @@
 
 use chrono::{DateTime, Utc};
 use diesel::Insertable;
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
 
 use crate::{
     schema::job_execution_logs,
-    tables::{
-        job_execution_logs::{JobExecutionLog, LogLevel},
-        jobs::SerialJobId,
-    },
+    tables::{job_execution_logs::LogLevel, jobs::SerialJobId},
 };
 
 #[derive(Debug, Insertable)]
@@ -40,28 +35,5 @@ impl From<inventory::NewJobExecutionLog> for NewJobExecutionLog {
             log_level: log_level.into(),
             log_message,
         }
-    }
-}
-
-impl NewJobExecutionLog {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn insert(self, conn: &mut DbConnection) -> Result<JobExecutionLog> {
-        let job_execution = self
-            .insert_into(job_execution_logs::table)
-            .get_result(conn)
-            .await?;
-
-        Ok(job_execution)
-    }
-
-    #[tracing::instrument(err, skip_all)]
-    pub async fn insert_batch(conn: &mut DbConnection, batch: &[Self]) -> Result<()> {
-        // todo: is there a maximum amount of rows for batch inserts?
-        batch
-            .insert_into(job_execution_logs::table)
-            .execute(conn)
-            .await?;
-
-        Ok(())
     }
 }
