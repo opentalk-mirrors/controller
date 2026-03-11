@@ -301,3 +301,193 @@ impl std::fmt::Debug for Cache {
         write!(f, "Caches")
     }
 }
+
+/// We are testing only local cache without Redis connection
+#[cfg(test)]
+mod tests {
+    use opentalk_types_common::utils::ExampleData;
+    use tokio;
+
+    use super::*;
+
+    fn create_cache() -> Cache {
+        Cache::create(None)
+    }
+
+    fn create_access_token() -> AccessToken {
+        AccessToken::new(String::from("access-token-1"))
+    }
+
+    fn create_expiration() -> Option<DateTime<Utc>> {
+        Some(Utc::now() + chrono::Duration::seconds(MIN_TOKEN_TTL_SECS + 1))
+    }
+
+    fn create_user() -> User {
+        User::example_data()
+    }
+
+    fn create_tenant() -> Tenant {
+        Tenant::example_data()
+    }
+
+    fn create_valid_value() -> Result<(Tenant, User), CaptureApiError> {
+        Ok((create_tenant(), create_user()))
+    }
+
+    fn create_sub(sub: &str) -> SubjectIdentifier {
+        SubjectIdentifier::new(sub.to_owned())
+    }
+
+    #[tokio::test]
+    async fn insert_access_token_successfully() {
+        let cache = create_cache();
+        let access_token = create_access_token();
+        let expires_at = create_expiration();
+        let value = create_valid_value();
+
+        let result = cache
+            .insert_access_token(&access_token, value, expires_at)
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn insert_access_token_with_no_expiration_failed() {
+        let cache = create_cache();
+        let access_token = create_access_token();
+        let expires_at = None;
+        let value = create_valid_value();
+
+        let result = cache
+            .insert_access_token(&access_token, value, expires_at)
+            .await;
+        assert!(matches!(
+            result.err(),
+            Some(OidcCacheError::NoExpiryForToken)
+        ));
+    }
+
+    #[tokio::test]
+    async fn insert_access_token_with_short_expiration_failed() {
+        let cache = create_cache();
+        let access_token = create_access_token();
+        let expires_at = Some(Utc::now() + chrono::Duration::seconds(MIN_TOKEN_TTL_SECS - 1));
+        let value = create_valid_value();
+
+        let result = cache
+            .insert_access_token(&access_token, value, expires_at)
+            .await;
+        assert!(matches!(
+            result.err(),
+            Some(OidcCacheError::TokenTtlTooShort { ttl: _ })
+        ));
+    }
+
+    #[tokio::test]
+    async fn update_access_token_for_existing_token_successfully() {
+        let cache = create_cache();
+        let access_token = create_access_token();
+        let expires_at = create_expiration();
+        let mut value = create_valid_value();
+
+        cache
+            .insert_access_token(&access_token, value.clone(), expires_at)
+            .await
+            .expect("Failed to insert access token");
+
+        // Update value for the existing token
+        let update_name = "UpdateName".to_string();
+        value.as_mut().unwrap().1.firstname = update_name.clone();
+        let result = cache.update_access_token(&access_token, value).await;
+        assert!(result.is_ok());
+
+        // Check updated value
+        let updated_value = cache
+            .get_access_token(&access_token)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        assert_eq!(updated_value.1.firstname, update_name)
+    }
+
+    #[tokio::test]
+    async fn update_access_token_for_nonexisting_token_failed() {
+        let cache = create_cache();
+        let access_token = create_access_token();
+        let value = create_valid_value();
+
+        let result = cache.update_access_token(&access_token, value).await;
+        assert!(matches!(
+            result.err(),
+            Some(OidcCacheError::CannotUpdateNonExistingToken)
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_access_token_for_existing_token_successfully() {
+        let cache = create_cache();
+        let access_token = create_access_token();
+        let expires_at = create_expiration();
+        let value = create_valid_value();
+
+        cache
+            .insert_access_token(&access_token, value.clone(), expires_at)
+            .await
+            .expect("Failed to insert access token");
+
+        let result = cache.get_access_token(&access_token).await;
+        assert_ne!(None, result.unwrap());
+    }
+
+    #[tokio::test]
+    async fn get_access_token_for_nonexisting_token_successfully() {
+        let cache = create_cache();
+        let access_token = create_access_token();
+        let result = cache.get_access_token(&access_token).await;
+        assert_eq!(None, result.unwrap());
+    }
+
+    #[tokio::test]
+    // If an access token has been cached before it's assoiciated sub has been logged out
+    // it is considered as revoked and cache should return an error when attempting to get it
+    async fn get_access_token_cached_before_sub_logout_failed() {
+        let cache = create_cache();
+        let access_token = create_access_token();
+        let expires_at = create_expiration();
+        let value = create_valid_value();
+
+        let _ = cache
+            .insert_access_token(&access_token, value.clone(), expires_at)
+            .await;
+
+        let sub = create_sub(&value.as_ref().unwrap().1.oidc_sub);
+        let _ = cache.upsert_sub_logout_marker(sub).await;
+
+        let result = cache.get_access_token(&access_token).await;
+        assert!(matches!(
+            result.err(),
+            Some(OidcCacheError::RevokedByLogout)
+        ));
+    }
+
+    #[tokio::test]
+    // If an access token has been cached after it's assoiciated sub has been logged out
+    // it should be considered as valid and cache should return it successfully
+    async fn get_access_token_cached_after_sub_logout_successfully() {
+        let cache = create_cache();
+        let access_token = create_access_token();
+        let expires_at = create_expiration();
+        let value = create_valid_value();
+
+        let sub = create_sub(&value.as_ref().unwrap().1.oidc_sub);
+        let _ = cache.upsert_sub_logout_marker(sub).await;
+
+        let _ = cache
+            .insert_access_token(&access_token, value.clone(), expires_at)
+            .await;
+
+        let result = cache.get_access_token(&access_token).await;
+        assert!(result.is_ok());
+    }
+}
