@@ -5,5 +5,4 @@
 pub use crate::tables::{
     job_execution_logs::{LogLevelType, NewJobExecutionLog},
     job_executions::{JobStatusType, NewJobExecution, UpdateJobExecution},
-    jobs::{Job, JobTypeType, SerialJobId},
 };

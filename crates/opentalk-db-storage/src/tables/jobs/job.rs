@@ -2,9 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use diesel::{ExpressionMethods, Identifiable, QueryDsl, Queryable};
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
+use diesel::{Identifiable, Queryable};
 use opentalk_inventory as inventory;
 
 use crate::{
@@ -64,23 +62,5 @@ impl From<inventory::Job> for Job {
             timeout_secs,
             recurrence,
         }
-    }
-}
-
-impl Job {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn get(conn: &mut DbConnection, id: SerialJobId) -> Result<Self> {
-        let query = jobs::table.filter(jobs::id.eq(id));
-
-        let job: Job = query.get_result(conn).await?;
-
-        Ok(job)
-    }
-
-    #[tracing::instrument(err, skip_all)]
-    pub async fn get_all(conn: &mut DbConnection) -> Result<Vec<Self>> {
-        let query = jobs::table;
-        let job = query.load(conn).await?;
-        Ok(job)
     }
 }

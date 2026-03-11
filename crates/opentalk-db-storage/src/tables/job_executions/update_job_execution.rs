@@ -9,9 +9,9 @@ use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
 
 use crate::{
-    jobs::SerialJobId,
     schema::job_executions,
     tables::job_executions::{JobExecution, JobStatus},
+    tables::jobs::SerialJobId,
 };
 
 #[derive(Debug, AsChangeset)]
