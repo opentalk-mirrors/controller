@@ -148,7 +148,7 @@ where
 
                 match access_token_or_invite_code {
                     AccessTokenOrInviteCode::AccessToken(access_token) => {
-                        match access_token::check_access_token(
+                        match access_token::authenticate_user(
                             &settings,
                             &authz,
                             inventory_provider.as_ref(),
