@@ -418,6 +418,7 @@ impl Controller {
             let signaling_metrics = Data::from(self.metrics.signaling.clone());
             let storage = Arc::downgrade(&self.storage);
             let inventory_provider = Arc::downgrade(&self.inventory_provider);
+            let http_client = Data::new(reqwest::Client::new());
 
             let oidc_ctx = Arc::downgrade(&self.oidc);
             let shutdown = self.shutdown.clone();
@@ -483,14 +484,15 @@ impl Controller {
                     .app_data(SignalingProtocols::data())
                     .app_data(signaling_metrics.clone())
                     .app_data(metrics.clone())
+                    .app_data(http_client.clone())
                     .service(well_known::opentalk::api::get)
                     .service(api::signaling::ws_service)
                     .service(metrics::metrics)
                     .with_swagger_service_if(swagger_service_enabled)
                     .service(
                         web::scope("livekit")
-                            .service(web::scope("v1").service(api::livekit_proxy::proxy))
-                            .service(api::livekit_proxy::proxy),
+                            .service(api::livekit_proxy::proxy_validate)
+                            .service(api::livekit_proxy::proxy_signaling),
                     )
                     .service(internal_service_scope(service_auth_middleware))
                     .service(v1_scope(

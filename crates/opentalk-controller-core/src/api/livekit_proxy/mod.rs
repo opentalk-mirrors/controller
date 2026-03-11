@@ -6,8 +6,9 @@ use std::time::Duration;
 
 use actix_http::{StatusCode, header::AUTHORIZATION};
 use actix_web::{
-    HttpRequest, HttpResponse, Responder, ResponseError,
+    HttpRequest, HttpResponse, ResponseError,
     body::BoxBody,
+    http::header::{HeaderName as ActixHeaderName, HeaderValue as ActixHeaderValue},
     routes,
     web::{self, Data, Query},
 };
@@ -16,7 +17,7 @@ use bytestring::ByteString;
 use futures::{SinkExt, StreamExt};
 use jsonwebtoken::{DecodingKey, Validation};
 use livekit_api::access_token::Claims;
-use opentalk_controller_settings::SettingsProvider;
+use opentalk_controller_settings::{ControllerSignaling, SettingsProvider};
 use opentalk_signaling_core::{
     SignalingModuleError, SignalingRoomId, VolatileStorage,
     control::{
@@ -28,6 +29,10 @@ use opentalk_signaling_module_subroom_audio::SubroomAudioStorageProvider;
 use opentalk_types_common::time::Timestamp;
 use opentalk_types_signaling::ParticipantId;
 use opentalk_types_signaling_subroom_audio::whisper_id::WhisperId;
+use reqwest::header::{
+    HeaderMap as ReqwestHeaderMap, HeaderName as ReqwestHeaderName,
+    HeaderValue as ReqwestHeaderValue,
+};
 use serde::Deserialize;
 use snafu::Report;
 use tokio::time::{Instant, interval_at};
@@ -59,15 +64,90 @@ struct LiveKitQuery {
 }
 
 #[routes]
+#[get("/rtc/validate")]
+#[get("/rtc/v1/validate")]
+pub async fn proxy_validate(
+    settings: Data<SettingsProvider>,
+    req: HttpRequest,
+    body: web::Payload,
+    http_client: Data<reqwest::Client>,
+) -> actix_web::Result<HttpResponse> {
+    let settings = settings.get();
+    let Some(signaling) = settings.signaling.controller() else {
+        return Err(ProxyError(StatusCode::UNPROCESSABLE_ENTITY).into());
+    };
+
+    let path = if req.uri().path().ends_with("v1/validate") {
+        "rtc/v1/validate"
+    } else {
+        "rtc/validate"
+    };
+
+    let mut livekit_url = build_livekit_url(signaling, path)?;
+    livekit_url.set_query(req.uri().query());
+
+    let mut headers = ReqwestHeaderMap::new();
+    for (header_name, header_value) in req.headers() {
+        let name = ReqwestHeaderName::from_bytes(header_name.as_str().as_bytes())
+            .map_err(|_| ProxyError(StatusCode::BAD_REQUEST))?;
+        let value = ReqwestHeaderValue::from_bytes(header_value.as_bytes())
+            .map_err(|_| ProxyError(StatusCode::BAD_REQUEST))?;
+
+        headers.append(name, value);
+    }
+
+    let body = body
+        .to_bytes()
+        .await
+        .map_err(|_| ProxyError(StatusCode::BAD_REQUEST))?;
+
+    let response = http_client
+        .get(livekit_url)
+        .headers(headers)
+        .body(body)
+        .send()
+        .await
+        .map_err(|_| ProxyError(StatusCode::INTERNAL_SERVER_ERROR))?;
+
+    reqwest_response_to_actix(response).await
+}
+
+async fn reqwest_response_to_actix(
+    reqwest_response: reqwest::Response,
+) -> Result<HttpResponse, actix_web::Error> {
+    let status = reqwest_response.status().as_u16();
+    let status =
+        StatusCode::from_u16(status).map_err(|_| ProxyError(StatusCode::INTERNAL_SERVER_ERROR))?;
+
+    let mut actix_response = HttpResponse::build(status);
+
+    for (header_name, header_value) in reqwest_response.headers() {
+        let name = ActixHeaderName::from_bytes(header_name.as_str().as_bytes())
+            .map_err(|_| ProxyError(StatusCode::BAD_REQUEST))?;
+        let value = ActixHeaderValue::from_bytes(header_value.as_bytes())
+            .map_err(|_| ProxyError(StatusCode::BAD_REQUEST))?;
+
+        actix_response.append_header((name, value));
+    }
+
+    let response_body = reqwest_response
+        .bytes()
+        .await
+        .map_err(|_| ProxyError(StatusCode::INTERNAL_SERVER_ERROR))?;
+
+    Ok(actix_response.body(response_body))
+}
+
+#[routes]
 #[get("/rtc")]
 #[get("/rtc/v1")]
-pub async fn proxy(
+pub async fn proxy_signaling(
     settings: Data<SettingsProvider>,
     req: HttpRequest,
     body: web::Payload,
     Query(query): Query<LiveKitQuery>,
     volatile: Data<VolatileStorage>,
-) -> actix_web::Result<impl Responder> {
+) -> actix_web::Result<HttpResponse> {
     let mut volatile = (**volatile).clone();
 
     let settings = settings.get();
@@ -123,15 +203,7 @@ pub async fn proxy(
 
     assert_user_is_in_room(&mut volatile, room, participant_id, whisper_id).await?;
 
-    let livekit_url = signaling.livekit.service_url.parse::<Url>().map_err(|e| {
-        log::error!("Failed to parse livekit.service_url, {e:?}");
-        ProxyError(StatusCode::INTERNAL_SERVER_ERROR)
-    })?;
-
-    let mut livekit_url = livekit_url.join("rtc").map_err(|e| {
-        log::error!("Failed to join livekit.service_url with rtc, {e:?}");
-        ProxyError(StatusCode::INTERNAL_SERVER_ERROR)
-    })?;
+    let mut livekit_url = build_livekit_url(signaling, "rtc")?;
 
     match livekit_url.scheme() {
         "https" => livekit_url
@@ -185,6 +257,20 @@ pub async fn proxy(
     ));
 
     Ok(response)
+}
+
+fn build_livekit_url(signaling: &ControllerSignaling, path: &str) -> Result<Url, actix_web::Error> {
+    let livekit_url = signaling.livekit.service_url.parse::<Url>().map_err(|e| {
+        log::error!("Failed to parse livekit.service_url, {e:?}");
+        ProxyError(StatusCode::INTERNAL_SERVER_ERROR)
+    })?;
+
+    let livekit_url = livekit_url.join(path).map_err(|e| {
+        log::error!("Failed to join livekit.service_url with rtc/validate, {e:?}");
+        ProxyError(StatusCode::INTERNAL_SERVER_ERROR)
+    })?;
+
+    Ok(livekit_url)
 }
 
 /// OpenTalk creates the livekit room name from the following pattern: `{room_id}:{breakout_room_id}#{whisper_id}`,
