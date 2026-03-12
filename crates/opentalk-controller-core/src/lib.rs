@@ -1053,7 +1053,8 @@ fn internal_service_scope(auth_middleware: Option<ApiKeyAuthorization>) -> Scope
             .service(api::internal::module_resources::create)
             .service(api::internal::module_resources::get)
             .service(api::internal::module_resources::patch)
-            .service(api::internal::module_resources::delete),
+            .service(api::internal::module_resources::delete)
+            .service(api::internal::call_in::post),
     )
 }
 

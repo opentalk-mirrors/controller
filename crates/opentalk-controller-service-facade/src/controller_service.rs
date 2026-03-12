@@ -15,8 +15,11 @@ use opentalk_signaling_core::{
     ObjectStorageError,
     assets::{AssetSaved, ByStreamExt, NewAssetFileName},
 };
-use opentalk_types_api_internal::module_resources::{
-    ModuleResource, ModuleResourceFilter, ModuleResourceOperation, NewModuleResource,
+use opentalk_types_api_internal::{
+    call_in::PostCallInStartRoomServerRequestBody,
+    module_resources::{
+        ModuleResource, ModuleResourceFilter, ModuleResourceOperation, NewModuleResource,
+    },
 };
 use opentalk_types_api_v1::{
     assets::{AssetResource, AssetSortingQuery},
@@ -187,6 +190,12 @@ pub trait OpenTalkControllerService: Send + Sync {
         &self,
         request: PostCallInStartRequestBody,
     ) -> Result<PostServiceStartResponseBody, ApiError>;
+
+    /// Starts a signaling session for call-in
+    async fn start_call_in_roomserver(
+        &self,
+        request: PostCallInStartRoomServerRequestBody,
+    ) -> Result<RoomserverStartResponseBody, ApiError>;
 
     /// Get the assets associated with a room.
     async fn get_room_assets(

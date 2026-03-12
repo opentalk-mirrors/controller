@@ -161,7 +161,7 @@ impl ControllerBackend {
         }
     }
 
-    async fn request_roomserver_access(
+    pub(crate) async fn request_roomserver_access(
         &self,
         room: RoomResource,
         client_parameters: ClientParameters,
