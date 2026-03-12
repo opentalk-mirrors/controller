@@ -53,6 +53,7 @@ pub struct SerialRoomId(i64);
 ///
 /// Is used as a result in various queries. Represents a room column
 #[derive(Debug, Clone, Queryable, Identifiable)]
+#[diesel(table_name = rooms)]
 pub struct Room {
     pub id: RoomId,
     pub id_serial: SerialRoomId,
@@ -224,7 +225,6 @@ impl Room {
         Self::delete_by_id(conn, self.id).await
     }
 }
-
 /// Diesel insertable room struct
 ///
 /// Represents fields that have to be provided on room insertion.
