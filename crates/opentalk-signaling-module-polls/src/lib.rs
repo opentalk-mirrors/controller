@@ -318,12 +318,9 @@ impl Polls {
                     return Ok(());
                 }
 
-                if self
-                    .config
-                    .as_ref()
-                    .filter(|config| config.state.id == finish.id && !config.state.is_expired())
-                    .is_some()
-                {
+                if self.config.as_ref().is_some_and(|config| {
+                    config.state.id == finish.id && !config.state.is_expired()
+                }) {
                     // Delete config to stop vote
                     ctx.volatile.storage().delete_polls_state(self.room).await?;
 
