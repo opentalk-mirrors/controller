@@ -9,3 +9,4 @@ pub mod events;
 pub mod groups;
 pub mod invites;
 pub mod jobs;
+pub mod rooms;

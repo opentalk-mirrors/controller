@@ -17,7 +17,7 @@ use opentalk_types_signaling_recording::{StreamKindSecret, StreamStatus, StreamT
 use snafu::{Report, Snafu};
 use url::Url;
 
-use crate::{rooms::Room, schema::room_streaming_targets};
+use crate::{schema::room_streaming_targets, tables::rooms::Room};
 
 #[derive(Debug, Snafu)]
 pub enum StreamTargetConversionError {

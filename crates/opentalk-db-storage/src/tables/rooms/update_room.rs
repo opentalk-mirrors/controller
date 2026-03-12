@@ -2,13 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
-use opentalk_types_common::rooms::{RoomId, RoomPassword};
+use opentalk_types_common::rooms::RoomPassword;
 
-use crate::{schema::rooms, tables::rooms::Room};
+use crate::schema::rooms;
 
 /// Diesel room struct for updates
 ///
@@ -34,15 +31,5 @@ impl From<inventory::UpdateRoom> for UpdateRoom {
             waiting_room,
             e2e_encryption,
         }
-    }
-}
-
-impl UpdateRoom {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn apply(self, conn: &mut DbConnection, room_id: RoomId) -> Result<Room> {
-        let target = rooms::table.filter(rooms::id.eq(&room_id));
-        let room = diesel::update(target).set(self).get_result(conn).await?;
-
-        Ok(room)
     }
 }

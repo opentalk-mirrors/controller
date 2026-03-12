@@ -2,13 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
 use opentalk_types_common::{rooms::RoomPassword, tenants::TenantId, users::UserId};
 
-use crate::{schema::rooms, tables::rooms::Room};
+use crate::schema::rooms;
 
 /// Diesel insertable room struct
 ///
@@ -40,14 +37,5 @@ impl From<inventory::NewRoom> for NewRoom {
             tenant_id,
             e2e_encryption,
         }
-    }
-}
-
-impl NewRoom {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn insert(self, conn: &mut DbConnection) -> Result<Room> {
-        let room = self.insert_into(rooms::table).get_result(conn).await?;
-
-        Ok(room)
     }
 }

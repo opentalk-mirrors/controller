@@ -8,10 +8,10 @@ use opentalk_database::DbConnection;
 use opentalk_db_storage::{
     self as db,
     queries::events::cursor::GetEventsCursor,
-    rooms::NewRoom,
     tables::{
         event_invites::{NewEventInvite, UpdateEventInvite},
         events::{Event, NewEvent},
+        rooms::NewRoom,
     },
     tenants::{OidcTenantId, get_or_create_tenant_by_oidc_id},
     users::User,
@@ -41,16 +41,17 @@ async fn make_event(
         .await
         .unwrap();
 
-    let room = NewRoom {
-        created_by: user.id,
-        password: None,
-        waiting_room: false,
-        e2e_encryption: false,
-        tenant_id: user.tenant_id,
-    }
-    .insert(conn)
-    .await
-    .unwrap();
+    let room = {
+        let room = NewRoom {
+            created_by: user.id,
+            password: None,
+            waiting_room: false,
+            e2e_encryption: false,
+            tenant_id: user.tenant_id,
+        };
+
+        db::queries::rooms::create_room(conn, room).await.unwrap()
+    };
 
     let new_event = NewEvent {
         title: "Test Event".parse().expect("valid event title"),
@@ -812,16 +813,19 @@ async fn serial_test_get_event_min_max_time() {
 
     let user = make_user(&mut conn, "Test", "Tester", "Test Tester").await;
 
-    let room1 = NewRoom {
-        created_by: user.id,
-        password: None,
-        waiting_room: false,
-        e2e_encryption: false,
-        tenant_id: user.tenant_id,
-    }
-    .insert(&mut conn)
-    .await
-    .unwrap();
+    let room1 = {
+        let room = NewRoom {
+            created_by: user.id,
+            password: None,
+            waiting_room: false,
+            e2e_encryption: false,
+            tenant_id: user.tenant_id,
+        };
+
+        db::queries::rooms::create_room(&mut conn, room)
+            .await
+            .unwrap()
+    };
 
     let event1 = {
         let event = NewEvent {
@@ -847,16 +851,19 @@ async fn serial_test_get_event_min_max_time() {
             .unwrap()
     };
 
-    let room2 = NewRoom {
-        created_by: user.id,
-        password: None,
-        waiting_room: false,
-        e2e_encryption: false,
-        tenant_id: user.tenant_id,
-    }
-    .insert(&mut conn)
-    .await
-    .unwrap();
+    let room2 = {
+        let room = NewRoom {
+            created_by: user.id,
+            password: None,
+            waiting_room: false,
+            e2e_encryption: false,
+            tenant_id: user.tenant_id,
+        };
+
+        db::queries::rooms::create_room(&mut conn, room)
+            .await
+            .unwrap()
+    };
 
     let event2 = {
         let event = NewEvent {

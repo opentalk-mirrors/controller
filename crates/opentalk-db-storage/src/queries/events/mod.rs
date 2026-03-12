@@ -38,7 +38,6 @@ pub use training_participation_report::*;
 
 use crate::{
     queries::events::cursor::{GetEventExceptionsCursor, GetEventsCursor},
-    rooms::Room,
     schema::{
         event_exceptions, event_favorites, event_invites, event_shared_folders,
         event_training_participation_report_parameter_sets, events, rooms, sip_configs, tariffs,
@@ -51,6 +50,7 @@ use crate::{
         event_shared_folders::EventSharedFolder,
         event_training_participation_report_parameter_sets::EventTrainingParticipationReportParameterSet,
         events::{Event, NewEvent, UpdateEvent},
+        rooms::Room,
     },
     tariffs::Tariff,
     users::User,
