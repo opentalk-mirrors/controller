@@ -20,6 +20,7 @@ use opentalk_types_api_internal::{
     module_resources::{
         ModuleResource, ModuleResourceFilter, ModuleResourceOperation, NewModuleResource,
     },
+    recording::RecordingTarget,
 };
 use opentalk_types_api_v1::{
     assets::{AssetResource, AssetSortingQuery},
@@ -184,6 +185,12 @@ pub trait OpenTalkControllerService: Send + Sync {
         &self,
         body: PostRecordingStartRequestBody,
     ) -> Result<PostServiceStartResponseBody, ApiError>;
+
+    /// Starts a signaling session for recording
+    async fn start_recording_roomserver(
+        &self,
+        body: RecordingTarget,
+    ) -> Result<RoomserverStartResponseBody, ApiError>;
 
     /// Starts a signaling session for call-in
     async fn start_call_in(

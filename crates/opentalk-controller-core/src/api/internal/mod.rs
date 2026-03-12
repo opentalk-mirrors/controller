@@ -5,3 +5,4 @@
 pub mod assets;
 pub mod call_in;
 pub mod module_resources;
+pub mod recording;

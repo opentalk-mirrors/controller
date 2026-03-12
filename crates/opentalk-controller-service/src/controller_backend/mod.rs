@@ -42,6 +42,7 @@ use opentalk_types_api_internal::{
     module_resources::{
         ModuleResource, ModuleResourceFilter, ModuleResourceOperation, NewModuleResource,
     },
+    recording::RecordingTarget,
 };
 use opentalk_types_api_v1::{
     assets::{AssetResource, AssetSortingQuery},
@@ -313,6 +314,13 @@ impl OpenTalkControllerService for ControllerBackend {
         body: PostRecordingStartRequestBody,
     ) -> Result<PostServiceStartResponseBody, ApiError> {
         Ok(self.start_recording(body).await?)
+    }
+
+    async fn start_recording_roomserver(
+        &self,
+        body: RecordingTarget,
+    ) -> Result<RoomserverStartResponseBody, ApiError> {
+        Ok(self.start_recording_roomserver(body).await?)
     }
 
     async fn start_call_in(
