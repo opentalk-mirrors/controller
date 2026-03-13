@@ -17,6 +17,7 @@ pub mod invites;
 pub mod job_execution_logs;
 pub mod job_executions;
 pub mod jobs;
+pub mod room_streaming_targets;
 pub mod rooms;
 pub mod sip_configs;
 pub mod user_groups;
