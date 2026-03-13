@@ -35,7 +35,7 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         room_id: RoomId,
     ) -> Result<Vec<RoomStreamingTargetRecord>> {
         Ok(
-            db::RoomStreamingTargetRecord::get_all_for_room(&mut self.inner, room_id)
+            db::RoomStreamingTarget::get_all_for_room(&mut self.inner, room_id)
                 .await
                 .context(DatabaseSnafu)?
                 .into_iter()
@@ -51,7 +51,7 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         streaming_target_id: StreamingTargetId,
     ) -> Result<RoomStreamingTargetRecord> {
         Ok(
-            db::RoomStreamingTargetRecord::get(&mut self.inner, streaming_target_id, room_id)
+            db::RoomStreamingTarget::get(&mut self.inner, streaming_target_id, room_id)
                 .await
                 .context(DatabaseSnafu)?
                 .into(),
@@ -89,13 +89,11 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         room_id: RoomId,
         streaming_target_id: StreamingTargetId,
     ) -> Result<()> {
-        Ok(db::RoomStreamingTargetRecord::delete_by_id(
-            &mut self.inner,
-            room_id,
-            streaming_target_id,
+        Ok(
+            db::RoomStreamingTarget::delete_by_id(&mut self.inner, room_id, streaming_target_id)
+                .await
+                .context(DatabaseSnafu)?,
         )
-        .await
-        .context(DatabaseSnafu)?)
     }
 
     async fn replace_room_streaming_targets(

@@ -7,10 +7,10 @@ use diesel_async::RunQueryDsl;
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_inventory as inventory;
 use opentalk_types_common::{
+    self as types,
     rooms::RoomId,
     streaming::{
-        RoomStreamingTarget, StreamingKey, StreamingKind, StreamingTarget, StreamingTargetId,
-        StreamingTargetKind,
+        StreamingKey, StreamingKind, StreamingTarget, StreamingTargetId, StreamingTargetKind,
     },
 };
 use opentalk_types_signaling_recording::{StreamKindSecret, StreamStatus, StreamTargetSecret};
@@ -22,7 +22,7 @@ use crate::{schema::room_streaming_targets, tables::rooms::Room};
 #[derive(Debug, Queryable, Identifiable, Associations, Insertable)]
 #[diesel(belongs_to(Room, foreign_key = room_id))]
 #[diesel(table_name = room_streaming_targets)]
-pub struct RoomStreamingTargetRecord {
+pub struct RoomStreamingTarget {
     pub id: StreamingTargetId,
     pub room_id: RoomId,
     pub name: String,
@@ -32,7 +32,7 @@ pub struct RoomStreamingTargetRecord {
     pub public_url: String,
 }
 
-impl From<inventory::RoomStreamingTargetRecord> for RoomStreamingTargetRecord {
+impl From<inventory::RoomStreamingTargetRecord> for RoomStreamingTarget {
     fn from(
         inventory::RoomStreamingTargetRecord {
             id,
@@ -56,9 +56,9 @@ impl From<inventory::RoomStreamingTargetRecord> for RoomStreamingTargetRecord {
     }
 }
 
-impl From<RoomStreamingTargetRecord> for inventory::RoomStreamingTargetRecord {
+impl From<RoomStreamingTarget> for inventory::RoomStreamingTargetRecord {
     fn from(
-        RoomStreamingTargetRecord {
+        RoomStreamingTarget {
             id,
             room_id,
             name,
@@ -66,7 +66,7 @@ impl From<RoomStreamingTargetRecord> for inventory::RoomStreamingTargetRecord {
             streaming_endpoint,
             streaming_key,
             public_url,
-        }: RoomStreamingTargetRecord,
+        }: RoomStreamingTarget,
     ) -> Self {
         Self {
             id,
@@ -80,14 +80,14 @@ impl From<RoomStreamingTargetRecord> for inventory::RoomStreamingTargetRecord {
     }
 }
 
-impl RoomStreamingTargetRecord {
+impl RoomStreamingTarget {
     /// Retrieve a single streaming target
     #[tracing::instrument(err, skip_all)]
     pub async fn get(
         conn: &mut DbConnection,
         streaming_target_id: StreamingTargetId,
         room_id: RoomId,
-    ) -> Result<RoomStreamingTargetRecord> {
+    ) -> Result<RoomStreamingTarget> {
         let streaming_target = room_streaming_targets::table
             .filter(room_streaming_targets::id.eq(streaming_target_id))
             .filter(room_streaming_targets::room_id.eq(room_id))
@@ -102,7 +102,7 @@ impl RoomStreamingTargetRecord {
     pub async fn get_all_for_room(
         conn: &mut DbConnection,
         room_id: RoomId,
-    ) -> Result<Vec<RoomStreamingTargetRecord>> {
+    ) -> Result<Vec<RoomStreamingTarget>> {
         let streaming_targets = room_streaming_targets::table
             .filter(room_streaming_targets::room_id.eq(room_id))
             .load(conn)
@@ -142,10 +142,10 @@ impl RoomStreamingTargetRecord {
     }
 }
 
-impl TryFrom<RoomStreamingTargetRecord> for RoomStreamingTarget {
+impl TryFrom<RoomStreamingTarget> for types::streaming::RoomStreamingTarget {
     type Error = DatabaseError;
 
-    fn try_from(record: RoomStreamingTargetRecord) -> Result<Self, Self::Error> {
+    fn try_from(record: RoomStreamingTarget) -> Result<Self, Self::Error> {
         let kind = match record.kind {
             StreamingKind::Custom => StreamingTargetKind::Custom {
                 streaming_endpoint: Url::parse(&record.streaming_endpoint)?,
@@ -170,10 +170,10 @@ pub enum StreamTargetConversionError {
     WrongUrl { target: String },
 }
 
-impl TryFrom<RoomStreamingTargetRecord> for StreamTargetSecret {
+impl TryFrom<RoomStreamingTarget> for StreamTargetSecret {
     type Error = StreamTargetConversionError;
 
-    fn try_from(value: RoomStreamingTargetRecord) -> Result<Self, Self::Error> {
+    fn try_from(value: RoomStreamingTarget) -> Result<Self, Self::Error> {
         Ok(Self {
             name: value.name,
             kind: StreamKindSecret::Livestream(match value.kind {

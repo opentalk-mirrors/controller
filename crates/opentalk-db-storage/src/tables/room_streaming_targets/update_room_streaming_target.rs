@@ -11,9 +11,7 @@ use opentalk_types_common::{
     streaming::{StreamingKind, StreamingTargetId},
 };
 
-use crate::{
-    schema::room_streaming_targets, tables::room_streaming_targets::RoomStreamingTargetRecord,
-};
+use crate::{schema::room_streaming_targets, tables::room_streaming_targets::RoomStreamingTarget};
 
 /// Diesel streaming target struct
 ///
@@ -55,7 +53,7 @@ impl UpdateRoomStreamingTarget {
         conn: &mut DbConnection,
         room_id: RoomId,
         streaming_target_id: StreamingTargetId,
-    ) -> Result<RoomStreamingTargetRecord> {
+    ) -> Result<RoomStreamingTarget> {
         let query = diesel::update(room_streaming_targets::table)
             .filter(room_streaming_targets::id.eq(streaming_target_id))
             .filter(room_streaming_targets::room_id.eq(room_id))

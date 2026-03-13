@@ -12,7 +12,7 @@ use opentalk_types_common::{
 
 use crate::{
     schema::room_streaming_targets,
-    tables::{room_streaming_targets::RoomStreamingTargetRecord, rooms::Room},
+    tables::{room_streaming_targets::RoomStreamingTarget, rooms::Room},
 };
 
 #[derive(Debug, Associations, Insertable)]
@@ -29,10 +29,10 @@ pub struct RoomStreamingTargetNew {
 
 impl RoomStreamingTargetNew {
     #[tracing::instrument(err, skip_all)]
-    pub async fn insert(self, conn: &mut DbConnection) -> Result<RoomStreamingTargetRecord> {
+    pub async fn insert(self, conn: &mut DbConnection) -> Result<RoomStreamingTarget> {
         let query = diesel::insert_into(room_streaming_targets::table).values(self);
 
-        let room_streaming_target: RoomStreamingTargetRecord = query.get_result(conn).await?;
+        let room_streaming_target: RoomStreamingTarget = query.get_result(conn).await?;
 
         Ok(room_streaming_target)
     }

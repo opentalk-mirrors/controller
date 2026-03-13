@@ -5,22 +5,23 @@
 use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{
+    self as types,
     rooms::RoomId,
-    streaming::{RoomStreamingTarget, StreamingTarget, StreamingTargetKind},
+    streaming::{StreamingTarget, StreamingTargetKind},
 };
 use snafu::Report;
 
 use crate::schema::room_streaming_targets;
 
 pub use crate::tables::room_streaming_targets::{
-    RoomStreamingTargetNew, RoomStreamingTargetRecord, UpdateRoomStreamingTarget,
+    RoomStreamingTarget, RoomStreamingTargetNew, UpdateRoomStreamingTarget,
 };
 
 pub async fn get_room_streaming_targets(
     conn: &mut DbConnection,
     room_id: RoomId,
-) -> Result<Vec<RoomStreamingTarget>> {
-    let streaming_targets = RoomStreamingTargetRecord::get_all_for_room(conn, room_id).await?;
+) -> Result<Vec<types::streaming::RoomStreamingTarget>> {
+    let streaming_targets = RoomStreamingTarget::get_all_for_room(conn, room_id).await?;
 
     let room_streaming_targets = streaming_targets
         .into_iter()
@@ -44,7 +45,7 @@ pub async fn get_room_streaming_targets(
                 }
             })?;
 
-            let room_streaming_target = RoomStreamingTarget {
+            let room_streaming_target = types::streaming::RoomStreamingTarget {
                 id: st.id,
                 streaming_target: StreamingTarget {
                     name: st.name,
@@ -67,7 +68,7 @@ pub async fn insert_room_streaming_target(
     conn: &mut DbConnection,
     room_id: RoomId,
     streaming_target: StreamingTarget,
-) -> Result<RoomStreamingTarget> {
+) -> Result<types::streaming::RoomStreamingTarget> {
     let streaming_target_record = RoomStreamingTargetNew::from_streaming_target_kind(
         streaming_target.kind.clone(),
         room_id,
@@ -76,7 +77,7 @@ pub async fn insert_room_streaming_target(
     .insert(conn)
     .await?;
 
-    let room_streaming_target = RoomStreamingTarget {
+    let room_streaming_target = types::streaming::RoomStreamingTarget {
         id: streaming_target_record.id,
         streaming_target,
     };
@@ -87,11 +88,11 @@ pub async fn override_room_streaming_targets(
     conn: &mut DbConnection,
     room_id: RoomId,
     streaming_targets: Vec<StreamingTarget>,
-) -> Result<Vec<RoomStreamingTarget>> {
+) -> Result<Vec<types::streaming::RoomStreamingTarget>> {
     conn.transaction(|conn| {
         async move {
             // Delete existing records by room_id
-            RoomStreamingTargetRecord::delete_by_room_id(conn, room_id).await?;
+            RoomStreamingTarget::delete_by_room_id(conn, room_id).await?;
 
             let new_records: Vec<RoomStreamingTargetNew> = streaming_targets
                 .into_iter()
@@ -105,7 +106,7 @@ pub async fn override_room_streaming_targets(
                 .collect();
 
             // Insert new records and fetch the resulting records
-            let inserted_records: Vec<RoomStreamingTargetRecord> =
+            let inserted_records: Vec<RoomStreamingTarget> =
                 diesel::insert_into(room_streaming_targets::table)
                     .values(&new_records)
                     .get_results(conn)

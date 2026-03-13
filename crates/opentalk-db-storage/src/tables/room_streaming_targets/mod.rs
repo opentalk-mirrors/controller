@@ -4,10 +4,10 @@
 
 //! Contains streaming targets table structs
 
+mod room_streaming_target;
 mod room_streaming_target_new;
-mod room_streaming_target_record;
 mod update_room_streaming_target;
 
+pub use room_streaming_target::RoomStreamingTarget;
 pub use room_streaming_target_new::RoomStreamingTargetNew;
-pub use room_streaming_target_record::RoomStreamingTargetRecord;
 pub use update_room_streaming_target::UpdateRoomStreamingTarget;
