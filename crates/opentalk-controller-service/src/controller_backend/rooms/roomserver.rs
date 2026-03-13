@@ -35,7 +35,6 @@ use opentalk_types_common::{
     call_in::CallInInfo,
     rooms::RoomId,
     shared_folders::{SharedFolder, SharedFolderAccess},
-    streaming::StreamingLink,
     tariffs::QuotaType,
     users::UserInfo,
 };
@@ -234,7 +233,7 @@ impl ControllerBackend {
             None => None,
         };
 
-        let streaming_links = Self::build_streaming_links(inventory.as_mut(), room.id).await?;
+        let streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
 
         let invite_code = inventory
             .get_valid_invite_for_room(room.id)
@@ -321,7 +320,7 @@ impl ControllerBackend {
             event,
             invite_code,
             tariff,
-            streaming_links,
+            streaming_targets,
             show_meeting_details,
             e2e_encryption: false,
             module_settings,
@@ -410,32 +409,5 @@ impl ControllerBackend {
                 id: sip_config.sip_id,
                 password: sip_config.password,
             }))
-    }
-
-    async fn build_streaming_links(
-        inventory: &mut dyn Inventory,
-        room_id: RoomId,
-    ) -> Result<Vec<StreamingLink>, CaptureApiError> {
-        let streaming_targets = inventory.get_room_streaming_target_records(room_id).await?;
-        let mut streaming_links = Vec::new();
-
-        for target in streaming_targets {
-            let url = match target.public_url.parse() {
-                Ok(url) => url,
-                Err(err) => {
-                    log::warn!(
-                        "Unparsable streaming url in streaming records for room {room_id}: {err}"
-                    );
-                    continue;
-                }
-            };
-
-            streaming_links.push(StreamingLink {
-                name: target.name,
-                url,
-            });
-        }
-
-        Ok(streaming_links)
     }
 }
