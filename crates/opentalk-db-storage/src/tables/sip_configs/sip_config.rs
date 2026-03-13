@@ -18,6 +18,7 @@ use crate::{
 
 /// Diesel SipConfig struct
 #[derive(Debug, Clone, Queryable, Identifiable)]
+#[diesel(table_name = sip_configs)]
 pub struct SipConfig {
     pub id: i64,
     pub room: RoomId,
