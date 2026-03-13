@@ -8,12 +8,9 @@ use std::{
 };
 
 use async_trait::async_trait;
-use opentalk_signaling_core::{
-    NotFoundSnafu, SignalingModuleError, SignalingRoomId, VolatileStaticMemoryStorage,
-};
+use opentalk_signaling_core::{SignalingModuleError, SignalingRoomId, VolatileStaticMemoryStorage};
 use opentalk_types_signaling_polls::{ChoiceId, PollId, state::PollsState};
 use parking_lot::RwLock;
-use snafu::OptionExt;
 
 use super::memory::MemoryPollsState;
 use crate::storage::polls_storage::PollsStorage;
@@ -66,12 +63,7 @@ impl PollsStorage for VolatileStaticMemoryStorage {
         room: SignalingRoomId,
         poll: PollId,
     ) -> Result<BTreeMap<ChoiceId, u32>, SignalingModuleError> {
-        state()
-            .read()
-            .poll_results(room, poll)
-            .with_context(|| NotFoundSnafu {
-                message: format!("Could not find results for poll {poll} in room {room}"),
-            })
+        Ok(state().read().poll_results(room, poll).unwrap_or_default())
     }
 
     async fn vote(
