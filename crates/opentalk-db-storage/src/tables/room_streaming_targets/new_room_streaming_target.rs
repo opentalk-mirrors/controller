@@ -18,7 +18,7 @@ use crate::{
 #[derive(Debug, Associations, Insertable)]
 #[diesel(belongs_to(Room, foreign_key = room_id))]
 #[diesel(table_name = room_streaming_targets)]
-pub struct RoomStreamingTargetNew {
+pub struct NewRoomStreamingTarget {
     pub room_id: RoomId,
     pub name: String,
     pub kind: StreamingKind,
@@ -27,7 +27,7 @@ pub struct RoomStreamingTargetNew {
     pub public_url: String,
 }
 
-impl RoomStreamingTargetNew {
+impl NewRoomStreamingTarget {
     #[tracing::instrument(err, skip_all)]
     pub async fn insert(self, conn: &mut DbConnection) -> Result<RoomStreamingTarget> {
         let query = diesel::insert_into(room_streaming_targets::table).values(self);

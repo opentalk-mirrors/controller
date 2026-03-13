@@ -14,7 +14,7 @@ use snafu::Report;
 use crate::schema::room_streaming_targets;
 
 pub use crate::tables::room_streaming_targets::{
-    RoomStreamingTarget, RoomStreamingTargetNew, UpdateRoomStreamingTarget,
+    NewRoomStreamingTarget, RoomStreamingTarget, UpdateRoomStreamingTarget,
 };
 
 pub async fn get_room_streaming_targets(
@@ -69,7 +69,7 @@ pub async fn insert_room_streaming_target(
     room_id: RoomId,
     streaming_target: StreamingTarget,
 ) -> Result<types::streaming::RoomStreamingTarget> {
-    let streaming_target_record = RoomStreamingTargetNew::from_streaming_target_kind(
+    let streaming_target_record = NewRoomStreamingTarget::from_streaming_target_kind(
         streaming_target.kind.clone(),
         room_id,
         streaming_target.name.clone(),
@@ -94,10 +94,10 @@ pub async fn override_room_streaming_targets(
             // Delete existing records by room_id
             RoomStreamingTarget::delete_by_room_id(conn, room_id).await?;
 
-            let new_records: Vec<RoomStreamingTargetNew> = streaming_targets
+            let new_records: Vec<NewRoomStreamingTarget> = streaming_targets
                 .into_iter()
                 .map(|streaming_target| {
-                    RoomStreamingTargetNew::from_streaming_target_kind(
+                    NewRoomStreamingTarget::from_streaming_target_kind(
                         streaming_target.kind,
                         room_id,
                         streaming_target.name,
