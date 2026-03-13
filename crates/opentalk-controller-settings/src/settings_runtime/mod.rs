@@ -89,6 +89,7 @@ pub use reports_typst::{ReportsTypst, reports_typst_default_packages_path};
 pub use roomserver::RoomServer;
 pub use settings::Settings;
 pub use shared_folder::SharedFolder;
+pub use signaling::{ControllerSignaling, Signaling};
 pub use spacedeck::Spacedeck;
 pub use subroom_audio::SubroomAudio;
 pub use tariff_assignment::{DEFAULT_STATIC_TARIFF_NAME, TariffAssignment};

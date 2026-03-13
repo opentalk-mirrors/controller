@@ -6,12 +6,16 @@ use crate::{
     settings_file::RoomServer,
 };
 
+/// Signaling configuration for either Controller or RoomServer signaling
 #[derive(Debug, Clone, PartialEq)]
 pub enum Signaling {
+    /// RoomServer is configured as signaling backend
     RoomServer(RoomServer),
+    /// Controller is configured as signaling backend
     Controller(ControllerSignaling),
 }
 
+/// Configuration for controller based signaling modules
 #[derive(Debug, Clone, PartialEq)]
 pub struct ControllerSignaling {
     /// The SubroomAudio settings.
