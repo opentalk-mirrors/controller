@@ -3,17 +3,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_types_common::{
     rooms::RoomId,
     streaming::{StreamingKind, StreamingTargetKind},
 };
 
-use crate::{
-    schema::room_streaming_targets,
-    tables::{room_streaming_targets::RoomStreamingTarget, rooms::Room},
-};
+use crate::{schema::room_streaming_targets, tables::rooms::Room};
 
 #[derive(Debug, Associations, Insertable)]
 #[diesel(belongs_to(Room, foreign_key = room_id))]
@@ -28,15 +23,6 @@ pub struct NewRoomStreamingTarget {
 }
 
 impl NewRoomStreamingTarget {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn insert(self, conn: &mut DbConnection) -> Result<RoomStreamingTarget> {
-        let query = diesel::insert_into(room_streaming_targets::table).values(self);
-
-        let room_streaming_target: RoomStreamingTarget = query.get_result(conn).await?;
-
-        Ok(room_streaming_target)
-    }
-
     pub fn from_streaming_target_kind(
         streaming_target_kind: StreamingTargetKind,
         room_id: RoomId,

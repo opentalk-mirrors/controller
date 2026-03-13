@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::streaming_targets::{
-    self as db, get_room_streaming_targets, insert_room_streaming_target,
-    override_room_streaming_targets,
-};
+use opentalk_db_storage as db;
 use opentalk_inventory::{
     RoomStreamingTargetInventory, RoomStreamingTargetRecord, UpdateRoomStreamingTarget,
 };
@@ -24,9 +21,14 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         &mut self,
         room_id: RoomId,
     ) -> Result<Vec<RoomStreamingTarget>> {
-        Ok(get_room_streaming_targets(&mut self.inner, room_id)
+        Ok(
+            db::queries::streaming_targets::typed::get_room_streaming_targets(
+                &mut self.inner,
+                room_id,
+            )
             .await
-            .context(DatabaseSnafu)?)
+            .context(DatabaseSnafu)?,
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -35,7 +37,7 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         room_id: RoomId,
     ) -> Result<Vec<RoomStreamingTargetRecord>> {
         Ok(
-            db::RoomStreamingTarget::get_all_for_room(&mut self.inner, room_id)
+            db::queries::streaming_targets::get_room_streaming_targets(&mut self.inner, room_id)
                 .await
                 .context(DatabaseSnafu)?
                 .into_iter()
@@ -50,12 +52,14 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         room_id: RoomId,
         streaming_target_id: StreamingTargetId,
     ) -> Result<RoomStreamingTargetRecord> {
-        Ok(
-            db::RoomStreamingTarget::get(&mut self.inner, streaming_target_id, room_id)
-                .await
-                .context(DatabaseSnafu)?
-                .into(),
+        Ok(db::queries::streaming_targets::get_room_streaming_target(
+            &mut self.inner,
+            streaming_target_id,
+            room_id,
         )
+        .await
+        .context(DatabaseSnafu)?
+        .into())
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -65,9 +69,13 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         streaming_target: StreamingTarget,
     ) -> Result<RoomStreamingTarget> {
         Ok(
-            insert_room_streaming_target(&mut self.inner, room_id, streaming_target)
-                .await
-                .context(DatabaseSnafu)?,
+            db::queries::streaming_targets::create_room_streaming_target(
+                &mut self.inner,
+                room_id,
+                streaming_target,
+            )
+            .await
+            .context(DatabaseSnafu)?,
         )
     }
 
@@ -77,11 +85,17 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         streaming_target_id: StreamingTargetId,
         streaming_target: UpdateRoomStreamingTarget,
     ) -> Result<RoomStreamingTargetRecord> {
-        Ok(db::UpdateRoomStreamingTarget::from(streaming_target)
-            .apply(&mut self.inner, room_id, streaming_target_id)
+        Ok(
+            db::queries::streaming_targets::update_room_streaming_target(
+                &mut self.inner,
+                streaming_target.into(),
+                room_id,
+                streaming_target_id,
+            )
             .await
             .context(DatabaseSnafu)?
-            .into())
+            .into(),
+        )
     }
 
     async fn delete_room_streaming_target(
@@ -90,9 +104,13 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         streaming_target_id: StreamingTargetId,
     ) -> Result<()> {
         Ok(
-            db::RoomStreamingTarget::delete_by_id(&mut self.inner, room_id, streaming_target_id)
-                .await
-                .context(DatabaseSnafu)?,
+            db::queries::streaming_targets::delete_room_streaming_target(
+                &mut self.inner,
+                room_id,
+                streaming_target_id,
+            )
+            .await
+            .context(DatabaseSnafu)?,
         )
     }
 
@@ -102,9 +120,13 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         streaming_targets: Vec<StreamingTarget>,
     ) -> Result<Vec<RoomStreamingTarget>> {
         Ok(
-            override_room_streaming_targets(&mut self.inner, room_id, streaming_targets)
-                .await
-                .context(DatabaseSnafu)?,
+            db::queries::streaming_targets::replace_room_streaming_targets(
+                &mut self.inner,
+                room_id,
+                streaming_targets,
+            )
+            .await
+            .context(DatabaseSnafu)?,
         )
     }
 }
