@@ -43,7 +43,6 @@ use crate::{
         event_training_participation_report_parameter_sets, events, rooms, sip_configs, tariffs,
         users,
     },
-    sip_configs::SipConfig,
     tables::{
         event_exceptions::EventException,
         event_invites::EventInvite,
@@ -51,6 +50,7 @@ use crate::{
         event_training_participation_report_parameter_sets::EventTrainingParticipationReportParameterSet,
         events::{Event, NewEvent, UpdateEvent},
         rooms::Room,
+        sip_configs::SipConfig,
     },
     tariffs::Tariff,
     users::User,
