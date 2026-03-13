@@ -3,15 +3,13 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_inventory as inventory;
 use opentalk_types_common::{
     call_in::{CallInId, CallInPassword},
     rooms::RoomId,
 };
 
-use crate::{schema::sip_configs, tables::sip_configs::SipConfig};
+use crate::schema::sip_configs;
 
 /// Diesel insertable SipConfig struct
 ///
@@ -40,39 +38,5 @@ impl From<inventory::NewRoomSipConfig> for NewSipConfig {
             password,
             enable_lobby,
         }
-    }
-}
-
-impl NewSipConfig {
-    fn re_generate_id(&mut self) {
-        self.sip_id = CallInId::generate();
-    }
-
-    #[tracing::instrument(err, skip_all)]
-    pub async fn insert(mut self, conn: &mut DbConnection) -> Result<SipConfig> {
-        for _ in 0..3 {
-            let query = self.clone().insert_into(sip_configs::table);
-
-            let config = match query.get_result(conn).await {
-                Ok(config) => config,
-                Err(diesel::result::Error::DatabaseError(
-                    diesel::result::DatabaseErrorKind::UniqueViolation,
-                    _,
-                )) => {
-                    self.re_generate_id();
-                    continue;
-                }
-                Err(e) => return Err(e.into()),
-            };
-
-            return Ok(config);
-        }
-
-        Err(DatabaseError::Custom {
-            message: format!(
-                "Failed to insert new sip config for room {} 3 times (collision)",
-                self.room
-            ),
-        })
     }
 }
