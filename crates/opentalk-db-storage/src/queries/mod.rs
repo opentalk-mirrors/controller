@@ -8,3 +8,4 @@ pub mod assets;
 pub mod events;
 pub mod groups;
 pub mod invites;
+pub mod jobs;

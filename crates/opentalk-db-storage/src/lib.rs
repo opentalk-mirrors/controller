@@ -19,7 +19,6 @@ use diesel::sql_types::Text;
 mod macros;
 mod schema;
 
-pub mod jobs;
 pub mod migrations;
 pub mod module_resources;
 pub mod newtypes;
@@ -53,8 +52,9 @@ pub mod sql_types {
         users::ThemeType as Theme,
     };
 
-    pub use super::{
-        jobs::{JobStatusType as JobStatus, JobTypeType as JobType, LogLevelType as LogLevel},
-        tables::event_exceptions::EventExceptionKindType as EventExceptionKind,
+    pub use super::tables::{
+        event_exceptions::EventExceptionKindType as EventExceptionKind,
+        job_execution_logs::LogLevelType as LogLevel, job_executions::JobStatusType as JobStatus,
+        jobs::JobTypeType as JobType,
     };
 }
