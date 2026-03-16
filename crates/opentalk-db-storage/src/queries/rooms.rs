@@ -117,11 +117,6 @@ pub async fn delete_room(conn: &mut DbConnection, room_id: RoomId) -> Result<()>
     Ok(())
 }
 
-/// Delete the room from the database
-pub async fn delete(conn: &mut DbConnection, room: Room) -> Result<()> {
-    delete_room(conn, room.id).await
-}
-
 /// Create new room
 #[tracing::instrument(err, skip_all)]
 pub async fn create_room(conn: &mut DbConnection, new_room: NewRoom) -> Result<Room> {
