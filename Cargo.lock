@@ -2447,7 +2447,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2715,7 +2715,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3704,7 +3704,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.5.10",
+ "socket2 0.6.2",
  "system-configuration",
  "tokio",
  "tower-service",
@@ -4937,7 +4937,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5246,7 +5246,7 @@ dependencies = [
  "log",
  "oauth2",
  "opentalk-controller-service-facade",
- "opentalk-types-api-v1 0.54.0",
+ "opentalk-types-api-v1 0.55.0",
  "opentalk-types-common",
  "serde",
  "serde_json",
@@ -5301,7 +5301,7 @@ dependencies = [
  "opentalk-signaling-module-moderation",
  "opentalk-signaling-module-subroom-audio",
  "opentalk-types-api-internal",
- "opentalk-types-api-v1 0.54.0",
+ "opentalk-types-api-v1 0.55.0",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "opentalk-types-signaling-breakout",
@@ -5380,7 +5380,7 @@ dependencies = [
  "opentalk-signaling-module-breakout",
  "opentalk-signaling-module-moderation",
  "opentalk-types-api-internal",
- "opentalk-types-api-v1 0.54.0",
+ "opentalk-types-api-v1 0.55.0",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "opentelemetry",
@@ -5416,7 +5416,7 @@ dependencies = [
  "openidconnect",
  "opentalk-signaling-core",
  "opentalk-types-api-internal",
- "opentalk-types-api-v1 0.54.0",
+ "opentalk-types-api-v1 0.55.0",
  "opentalk-types-common",
  "pretty_assertions",
  "strum 0.28.0",
@@ -5474,7 +5474,7 @@ dependencies = [
  "opentalk-log",
  "opentalk-nextcloud-client",
  "opentalk-signaling-core",
- "opentalk-types-api-v1 0.54.0",
+ "opentalk-types-api-v1 0.55.0",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "rand 0.10.0",
@@ -6200,7 +6200,7 @@ dependencies = [
  "opentalk-etherpad-client",
  "opentalk-inventory",
  "opentalk-r3dlock",
- "opentalk-types-api-v1 0.54.0",
+ "opentalk-types-api-v1 0.55.0",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "opentalk-types-signaling-control",
@@ -6831,6 +6831,23 @@ name = "opentalk-types-api-v1"
 version = "0.54.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48875e4424a728f596712fe44463a8a9693d76efaaf693453834c80137bf0bfd"
+dependencies = [
+ "chrono",
+ "chrono-tz",
+ "derive_more",
+ "opentalk-types-api-common",
+ "opentalk-types-common",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "url",
+]
+
+[[package]]
+name = "opentalk-types-api-v1"
+version = "0.55.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c47e6a195db5655367e2e48d5e8b400c14683a6c5154a4645c952412f8cbab4"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -8027,7 +8044,7 @@ checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes",
  "heck 0.5.0",
- "itertools 0.10.5",
+ "itertools 0.11.0",
  "log",
  "multimap",
  "once_cell",
@@ -8068,7 +8085,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.10.5",
+ "itertools 0.11.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -8263,7 +8280,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash",
  "rustls 0.23.37",
- "socket2 0.5.10",
+ "socket2 0.6.2",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -8301,9 +8318,9 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.5.10",
+ "socket2 0.6.2",
  "tracing",
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -9026,7 +9043,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -9127,7 +9144,7 @@ dependencies = [
  "security-framework 3.7.0",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -10100,7 +10117,7 @@ dependencies = [
  "getrandom 0.4.1",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -11856,7 +11873,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
