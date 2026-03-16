@@ -12,7 +12,7 @@ use opentalk_types_common::{
 };
 
 use super::schema::sip_configs;
-use crate::{rooms::Room, schema::rooms};
+use crate::{schema::rooms, tables::rooms::Room};
 
 /// Diesel SipConfig struct
 #[derive(Debug, Clone, Queryable, Identifiable)]

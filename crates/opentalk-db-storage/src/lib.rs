@@ -25,7 +25,6 @@ pub mod newtypes;
 pub mod paginate;
 pub mod paginated;
 pub mod queries;
-pub mod rooms;
 pub mod sip_configs;
 pub mod streaming_targets;
 pub mod tables;

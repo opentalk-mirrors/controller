@@ -515,7 +515,7 @@ fn convert_event_and_related_to_inventory_types(
     (event, invite, room, sip_config, is_favorite, shared_folder, tariff): (
         db::tables::events::Event,
         Option<db::tables::event_invites::EventInvite>,
-        opentalk_db_storage::rooms::Room,
+        db::tables::rooms::Room,
         Option<opentalk_db_storage::sip_configs::SipConfig>,
         bool,
         Option<db::tables::event_shared_folders::EventSharedFolder>,

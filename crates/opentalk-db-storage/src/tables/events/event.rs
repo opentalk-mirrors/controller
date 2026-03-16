@@ -15,7 +15,11 @@ use opentalk_types_common::{
 use redis_args::{FromRedisValue, ToRedisArgs};
 use serde::{Deserialize, Serialize};
 
-use crate::{rooms::Room, schema::events, tables::events::EventSerialId, users::User};
+use crate::{
+    schema::events,
+    tables::{events::EventSerialId, rooms::Room},
+    users::User,
+};
 
 #[derive(
     Associations,

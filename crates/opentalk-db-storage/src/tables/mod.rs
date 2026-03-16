@@ -17,4 +17,5 @@ pub mod invites;
 pub mod job_execution_logs;
 pub mod job_executions;
 pub mod jobs;
+pub mod rooms;
 pub mod user_groups;
