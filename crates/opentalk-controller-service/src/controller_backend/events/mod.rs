@@ -848,15 +848,11 @@ impl ControllerBackend {
             None => training_participation_report,
         };
 
-        // Special case: If the patch only modifies the password do not update
-        // the event.
-        let event = if patch.only_modifies_room() {
-            event
-        } else {
-            let update_event = match patch.date {
+        let update_date = if let Some(patch_date) = &patch.date {
+            match patch_date {
                 PatchEventDateKind::SetTimeDependent { date, .. } => {
-                    // The patch changes the event from an time-independent
-                    // event to a time dependent event.
+                    // The patch changes the event from an time-independent event to a time
+                    // dependent event.
                     let recurrence_pattern = date.recurrence_pattern.to_multiline_string();
 
                     let (duration_secs, ends_at_dt, ends_at_tz) = parse_event_dt_params(
@@ -866,65 +862,32 @@ impl ControllerBackend {
                         &recurrence_pattern,
                     )?;
 
-                    UpdateEvent {
-                        title: patch.title.clone(),
-                        description: patch.description,
-                        updated_by: current_user.id,
-                        updated_at: Timestamp::now(),
-                        date: Some(UpdateEventDate {
-                            is_all_day: Some(date.is_all_day),
-                            starts_at: Some(date.starts_at.to_datetime_tz()),
-                            starts_at_tz: Some(date.starts_at.timezone),
-                            ends_at: Some(ends_at_dt),
-                            ends_at_tz: Some(ends_at_tz),
-                            recurrence: Some(UpdateEventRecurrence {
-                                duration_secs,
-                                recurrence_pattern,
-                            }),
+                    Some(UpdateEventDate {
+                        is_all_day: Some(date.is_all_day),
+                        starts_at: Some(date.starts_at.to_datetime_tz()),
+                        starts_at_tz: Some(date.starts_at.timezone),
+                        ends_at: Some(ends_at_dt),
+                        ends_at_tz: Some(ends_at_tz),
+                        recurrence: Some(UpdateEventRecurrence {
+                            duration_secs,
+                            recurrence_pattern,
                         }),
-
-                        is_adhoc: patch.is_adhoc,
-                        show_meeting_details: patch.show_meeting_details,
-                    }
+                    })
                 }
                 PatchEventDateKind::SetTimeIndependent { .. } => {
-                    // The patch will modify an time-independent event or change
-                    // an event to a time-independent event.
+                    // The patch will change an event to a time-independent event.
                     if event
                         .date
                         .as_ref()
                         .and_then(|date| date.recurrence.as_ref())
                         .is_some()
                     {
-                        // Delete all exceptions as the time dependence has been removed.
                         inventory
                             .delete_event_exceptions_for_event(event.id)
                             .await?;
                     }
 
-                    UpdateEvent {
-                        title: patch.title.clone(),
-                        description: patch.description,
-                        updated_by: current_user.id,
-                        updated_at: Timestamp::now(),
-                        is_adhoc: patch.is_adhoc,
-                        show_meeting_details: patch.show_meeting_details,
-                        date: None,
-                    }
-                }
-                // This is only a temporary solution which will be replaced by a deserialize impl in
-                // the types crate.
-                PatchEventDateKind::PatchTimeDependent { date, .. } if date.is_empty() => {
-                    // The patch modifies an event regardless of the time dependents.
-                    UpdateEvent {
-                        title: patch.title.clone(),
-                        description: patch.description,
-                        updated_by: current_user.id,
-                        updated_at: Timestamp::now(),
-                        is_adhoc: patch.is_adhoc,
-                        show_meeting_details: patch.show_meeting_details,
-                        date: None,
-                    }
+                    None
                 }
                 PatchEventDateKind::PatchTimeDependent { date, .. } => {
                     // The patch modifies an time dependent event.
@@ -955,35 +918,45 @@ impl ControllerBackend {
                         parse_event_dt_params(is_all_day, starts_at, ends_at, &recurrence_pattern)?;
 
                     if event.is_recurring() {
-                        // Delete all exceptions for recurring events as the patch may modify
-                        // fields that influence the timestamps at which instances (occurrences)
-                        // are generated, making it impossible to match the exceptions to
-                        // instances.
+                        // Delete all exceptions for recurring events as the patch may modify fields
+                        // that influence the timestamps at which instances (occurrences) are
+                        // generated, making it impossible to match the exceptions to instances.
                         inventory
                             .delete_event_exceptions_for_event(event.id)
                             .await?;
                     }
 
-                    UpdateEvent {
-                        title: patch.title.clone(),
-                        description: patch.description,
-                        updated_by: current_user.id,
-                        updated_at: Timestamp::now(),
-                        is_adhoc: patch.is_adhoc,
-                        show_meeting_details: patch.show_meeting_details,
-                        date: Some(UpdateEventDate {
-                            is_all_day: Some(is_all_day),
-                            starts_at: Some(starts_at.to_datetime_tz()),
-                            starts_at_tz: Some(starts_at.timezone),
-                            ends_at: Some(ends_at_dt),
-                            ends_at_tz: Some(ends_at_tz),
-                            recurrence: Some(UpdateEventRecurrence {
-                                duration_secs,
-                                recurrence_pattern,
-                            }),
+                    Some(UpdateEventDate {
+                        is_all_day: Some(is_all_day),
+                        starts_at: Some(starts_at.to_datetime_tz()),
+                        starts_at_tz: Some(starts_at.timezone),
+                        ends_at: Some(ends_at_dt),
+                        ends_at_tz: Some(ends_at_tz),
+                        recurrence: Some(UpdateEventRecurrence {
+                            duration_secs,
+                            recurrence_pattern,
                         }),
-                    }
+                    })
                 }
+            }
+        } else {
+            // The event date did not change regardless if the event was previously time-indepent
+            // or not.
+            None
+        };
+
+        let event = if patch.only_modifies_room() {
+            // Special case: If the patch only modifies the password do not update the event.
+            event
+        } else {
+            let update_event = UpdateEvent {
+                title: patch.title.clone(),
+                description: patch.description,
+                updated_by: current_user.id,
+                updated_at: Timestamp::now(),
+                is_adhoc: patch.is_adhoc,
+                show_meeting_details: patch.show_meeting_details,
+                date: update_date,
             };
 
             inventory.update_event(event_id, update_event).await?
