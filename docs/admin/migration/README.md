@@ -87,7 +87,7 @@ You must change that section to:
 ```toml
 # Basic OIDC configuration
 [oidc]
-base_url = "https://accounts.example.com/auth/realms/MyRealm"
+authority = "https://accounts.example.com/auth/realms/MyRealm"
 
 # Frontend configuration
 [oidc.frontend]
