@@ -243,9 +243,6 @@ exceptions = [
   ], name = "opentalk-service-auth" },
   { allow = [
     "EUPL-1.2",
-  ], name = "opentalk-types" },
-  { allow = [
-    "EUPL-1.2",
   ], name = "opentalk-types-api-common" },
   { allow = [
     "EUPL-1.2",
@@ -423,9 +420,11 @@ skip = [
   { name = "imagesize", version = "0.13" },
   { name = "itertools", version = "0.10" },
   { name = "itertools", version = "0.11" },
+  { name = "itertools", version = "0.12" },
   { name = "kurbo", version = "0.11" },
   { name = "linux-raw-sys", version = "0.3" },
   { name = "litemap", version = "0.7" },
+  { name = "moxcms", version = "0.7" },
   { name = "openssl-probe", version = "0.1" },
   { name = "p256", version = "0.11" },
   { name = "petgraph", version = "0.6" },
@@ -471,7 +470,6 @@ skip = [
   { name = "toml_edit", version = "0.22" },
   { name = "tonic", version = "0.12" },
   { name = "tower", version = "0.4" },
-  { name = "untrusted", version = "0.7.1" },
   { name = "writeable", version = "0.5" },
   { name = "yoke", version = "0.7" },
   { name = "yoke-derive", version = "0.7" },
