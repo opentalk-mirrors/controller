@@ -1036,9 +1036,12 @@ fn internal_service_scope(auth_middleware: Option<ApiKeyAuthorization>) -> Scope
     let services = web::scope("/internal");
 
     let Some(auth_middleware) = auth_middleware else {
-        log::debug!(
-            "Missing `http.service_api_keys` configuration, internal service routes are disabled"
-        );
+        static WARN: std::sync::Once = std::sync::Once::new();
+        WARN.call_once(|| {
+            log::debug!(
+                "Missing `http.service_api_keys` configuration, internal service routes are disabled"
+            );
+        });
 
         return services;
     };
