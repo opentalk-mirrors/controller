@@ -69,7 +69,9 @@ pub async fn create_room_sip_config(
     conn: &mut DbConnection,
     mut new_sip_config: NewSipConfig,
 ) -> Result<SipConfig> {
-    for _ in 0..3 {
+    const ATTEMPTS: u8 = 3;
+
+    for _ in 0..ATTEMPTS {
         let query = diesel::insert_into(sip_configs::table).values(&new_sip_config);
 
         let config = match query.get_result(conn).await {
@@ -89,8 +91,8 @@ pub async fn create_room_sip_config(
 
     Err(DatabaseError::Custom {
         message: format!(
-            "Failed to insert new sip config for room {} 3 times (collision)",
-            new_sip_config.room
+            "Failed to insert new sip config for room {} {} times (collision)",
+            new_sip_config.room, ATTEMPTS
         ),
     })
 }
