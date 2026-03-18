@@ -51,10 +51,6 @@ pub async fn delete_room_sip_config(conn: &mut DbConnection, room_id: RoomId) ->
     Ok(())
 }
 
-pub async fn delete(conn: &mut DbConnection, sip_config: &SipConfig) -> Result<()> {
-    delete_room_sip_config(conn, sip_config.room).await
-}
-
 pub async fn update_room_sip_config(
     conn: &mut DbConnection,
     update_sip_config: UpdateSipConfig,
