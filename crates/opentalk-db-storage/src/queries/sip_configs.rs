@@ -17,17 +17,6 @@ use crate::{
     },
 };
 
-/// Get the sip config for the specified sip_id
-#[tracing::instrument(err, skip_all)]
-pub async fn get(conn: &mut DbConnection, sip_id: CallInId) -> Result<Option<SipConfig>> {
-    sip_configs::table
-        .filter(sip_configs::sip_id.eq(&sip_id))
-        .get_result(conn)
-        .await
-        .optional()
-        .map_err(DatabaseError::from)
-}
-
 #[tracing::instrument(err, skip_all)]
 pub async fn get_room_sip_config_with_room(
     conn: &mut DbConnection,
