@@ -10,11 +10,12 @@ use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{call_in::CallInId, rooms::RoomId};
 
 use crate::{
-    schema::{rooms, sip_configs},
+    schema::{rooms, sip_configs, users},
     tables::{
         rooms::Room,
         sip_configs::{NewSipConfig, SipConfig, UpdateSipConfig},
     },
+    users::User,
 };
 
 #[tracing::instrument(err, skip_all)]
@@ -29,6 +30,19 @@ pub async fn get_room_sip_config_with_room(
         .await
         .optional()
         .map_err(DatabaseError::from)
+}
+
+#[tracing::instrument(err, skip_all)]
+pub async fn get_room_sip_config_with_room_and_creator(
+    conn: &mut DbConnection,
+    sip_id: &CallInId,
+) -> Result<Option<(SipConfig, Room, User)>> {
+    let query = sip_configs::table
+        .filter(sip_configs::sip_id.eq(sip_id))
+        .inner_join(rooms::table)
+        .inner_join(users::table.on(users::id.eq(rooms::created_by)));
+
+    Ok(query.get_result(conn).await.optional()?)
 }
 
 /// Get the sip config for the specified room
