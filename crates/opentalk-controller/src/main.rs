@@ -12,6 +12,15 @@ type Result<T, E = Whatever> = std::result::Result<T, E>;
 
 #[actix_web::main]
 async fn main() {
+    // We explicitly opt in to using 'aws-lc-rs', otherwise a conflict
+    // between the 'aws-lc-rs' cypto provider and other available crypto
+    // providers (activated by non-changeable features of transitive
+    // dependencies) can cause runtime errors.
+    //
+    // See: https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1320
+    rustls::crypto::CryptoProvider::install_default(rustls::crypto::aws_lc_rs::default_provider())
+        .expect("valid default crypto provider expected");
+
     let args = cli::Args::parse();
 
     if let Err(err) = args.exec().await {
