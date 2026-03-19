@@ -13,7 +13,7 @@ use opentalk_types_common::{
     },
 };
 use opentalk_types_signaling_recording::{StreamKindSecret, StreamStatus, StreamTargetSecret};
-use snafu::Snafu;
+use snafu::{Report, Snafu};
 use url::Url;
 
 use crate::{schema::room_streaming_targets, tables::rooms::Room};
@@ -85,9 +85,25 @@ impl TryFrom<RoomStreamingTarget> for types::streaming::RoomStreamingTarget {
     fn try_from(record: RoomStreamingTarget) -> Result<Self, Self::Error> {
         let kind = match record.kind {
             StreamingKind::Custom => StreamingTargetKind::Custom {
-                streaming_endpoint: Url::parse(&record.streaming_endpoint)?,
+                streaming_endpoint: Url::parse(&record.streaming_endpoint).map_err(|err| {
+                    log::warn!(
+                        "Failed to parse streaming endpoint: {}",
+                        Report::from_error(err)
+                    );
+                    DatabaseError::Custom {
+                        message: "Inconsistent data".to_string(),
+                    }
+                })?,
                 streaming_key: record.streaming_key,
-                public_url: Url::parse(&record.public_url)?,
+                public_url: Url::parse(&record.public_url).map_err(|err| {
+                    log::warn!(
+                        "Invalid public url entry in db: {}",
+                        Report::from_error(err)
+                    );
+                    DatabaseError::Custom {
+                        message: "Inconsistent data".to_string(),
+                    }
+                })?,
             },
         };
 
