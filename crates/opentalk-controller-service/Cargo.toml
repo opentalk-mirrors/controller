@@ -68,7 +68,6 @@ rand.workspace = true
 redis = { workspace = true, features = ["connection-manager", "tokio-comp"] }
 redis-args.workspace = true
 reqwest.workspace = true
-ring.workspace = true
 rkyv = { workspace = true, features = ["uuid-1"] }
 rrule.workspace = true
 scoped-futures.workspace = true
@@ -82,4 +81,5 @@ uuid = { workspace = true, features = ["serde", "v4"] }
 
 [dev-dependencies]
 pretty_assertions.workspace = true
+ring.workspace = true
 serial_test.workspace = true
