@@ -22,12 +22,13 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         room_id: RoomId,
     ) -> Result<Vec<RoomStreamingTarget>> {
         Ok(
-            db::queries::streaming_targets::typed::get_room_streaming_targets(
-                &mut self.inner,
-                room_id,
-            )
-            .await
-            .context(DatabaseSnafu)?,
+            db::queries::streaming_targets::get_room_streaming_targets(&mut self.inner, room_id)
+                .await
+                .context(DatabaseSnafu)?
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context(DatabaseSnafu)?,
         )
     }
 

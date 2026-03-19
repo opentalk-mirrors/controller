@@ -82,7 +82,7 @@ impl From<RoomStreamingTarget> for inventory::RoomStreamingTargetRecord {
 impl TryFrom<RoomStreamingTarget> for types::streaming::RoomStreamingTarget {
     type Error = DatabaseError;
 
-    fn try_from(record: RoomStreamingTarget) -> Result<Self, Self::Error> {
+    fn try_from(record: RoomStreamingTarget) -> Result<Self> {
         let kind = match record.kind {
             StreamingKind::Custom => StreamingTargetKind::Custom {
                 streaming_endpoint: Url::parse(&record.streaming_endpoint).map_err(|err| {

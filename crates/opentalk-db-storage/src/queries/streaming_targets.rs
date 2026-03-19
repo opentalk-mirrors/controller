@@ -10,9 +10,8 @@ use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{
     self as types,
     rooms::RoomId,
-    streaming::{StreamingTarget, StreamingTargetId, StreamingTargetKind},
+    streaming::{StreamingTarget, StreamingTargetId},
 };
-use snafu::Report;
 
 use crate::{
     schema::room_streaming_targets,
@@ -169,58 +168,4 @@ pub async fn update_room_streaming_target(
         .get_result(conn)
         .await
         .map_err(DatabaseError::from)
-}
-
-/// Legacy implementation
-pub mod typed {
-    use opentalk_types_common as types;
-
-    use super::*;
-
-    pub async fn get_room_streaming_targets(
-        conn: &mut DbConnection,
-        room_id: RoomId,
-    ) -> Result<Vec<types::streaming::RoomStreamingTarget>> {
-        let streaming_targets = super::get_room_streaming_targets(conn, room_id).await?;
-
-        let room_streaming_targets = streaming_targets
-            .into_iter()
-            .map(|st| {
-                let streaming_endpoint = st.streaming_endpoint.parse().map_err(|err| {
-                    log::warn!(
-                        "Failed to parse streaming endpoint: {}",
-                        Report::from_error(err)
-                    );
-                    DatabaseError::Custom {
-                        message: "Inconsistent data".to_string(),
-                    }
-                })?;
-                let public_url = st.public_url.parse().map_err(|err| {
-                    log::warn!(
-                        "Invalid public url entry in db: {}",
-                        Report::from_error(err)
-                    );
-                    DatabaseError::Custom {
-                        message: "Inconsistent data".to_string(),
-                    }
-                })?;
-
-                let room_streaming_target = types::streaming::RoomStreamingTarget {
-                    id: st.id,
-                    streaming_target: StreamingTarget {
-                        name: st.name,
-                        kind: StreamingTargetKind::Custom {
-                            streaming_endpoint,
-                            streaming_key: st.streaming_key,
-                            public_url,
-                        },
-                    },
-                };
-
-                Ok(room_streaming_target)
-            })
-            .collect::<Result<Vec<_>>>()?;
-
-        Ok(room_streaming_targets)
-    }
 }
