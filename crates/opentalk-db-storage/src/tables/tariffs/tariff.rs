@@ -39,6 +39,7 @@ use crate::{
 )]
 #[to_redis_args(serde)]
 #[from_redis_value(serde)]
+#[diesel(table_name = tariffs)]
 pub struct Tariff {
     pub id: TariffId,
     pub name: String,
