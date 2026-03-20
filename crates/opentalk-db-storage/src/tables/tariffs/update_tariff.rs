@@ -7,16 +7,10 @@ use std::collections::BTreeMap;
 
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
-use opentalk_types_common::{
-    features::ModuleFeatureId,
-    modules::ModuleId,
-    tariffs::{QuotaType, TariffId},
-};
+use opentalk_types_common::{features::ModuleFeatureId, modules::ModuleId, tariffs::QuotaType};
 
-use crate::{schema::tariffs, tables::tariffs::Tariff, utils::Jsonb};
+use crate::{schema::tariffs, utils::Jsonb};
 
 #[derive(Debug, Clone, AsChangeset)]
 #[diesel(table_name = tariffs)]
@@ -45,13 +39,5 @@ impl From<inventory::UpdateTariff> for UpdateTariff {
             disabled_modules,
             disabled_features,
         }
-    }
-}
-
-impl UpdateTariff {
-    pub async fn apply(self, conn: &mut DbConnection, tariff_id: TariffId) -> Result<Tariff> {
-        let query = diesel::update(tariffs::table.filter(tariffs::id.eq(tariff_id))).set(self);
-        let tariff = query.get_result(conn).await?;
-        Ok(tariff)
     }
 }

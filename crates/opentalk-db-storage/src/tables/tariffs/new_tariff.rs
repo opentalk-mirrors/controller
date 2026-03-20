@@ -6,12 +6,10 @@ use core::fmt::Debug;
 use std::collections::BTreeMap;
 
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
 use opentalk_types_common::{features::ModuleFeatureId, modules::ModuleId, tariffs::QuotaType};
 
-use crate::{schema::tariffs, tables::tariffs::Tariff, utils::Jsonb};
+use crate::{schema::tariffs, utils::Jsonb};
 
 #[derive(Debug, Clone, Insertable)]
 #[diesel(table_name = tariffs)]
@@ -20,15 +18,6 @@ pub struct NewTariff {
     pub quotas: Jsonb<BTreeMap<QuotaType, u64>>,
     pub disabled_modules: Vec<ModuleId>,
     pub disabled_features: Vec<ModuleFeatureId>,
-}
-
-impl NewTariff {
-    pub async fn insert(self, conn: &mut DbConnection) -> Result<Tariff> {
-        let query = self.insert_into(tariffs::table);
-        let tariff = query.get_result(conn).await?;
-
-        Ok(tariff)
-    }
 }
 
 impl From<inventory::NewTariff> for NewTariff {

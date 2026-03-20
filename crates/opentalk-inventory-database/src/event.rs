@@ -519,7 +519,7 @@ fn convert_event_and_related_to_inventory_types(
         Option<db::tables::sip_configs::SipConfig>,
         bool,
         Option<db::tables::event_shared_folders::EventSharedFolder>,
-        opentalk_db_storage::tariffs::Tariff,
+        db::tables::tariffs::Tariff,
     ),
 ) -> (
     Event,

@@ -51,8 +51,8 @@ use crate::{
         events::{Event, NewEvent, UpdateEvent},
         rooms::Room,
         sip_configs::SipConfig,
+        tariffs::Tariff,
     },
-    tariffs::Tariff,
     users::User,
     utils::convert_diesel_query_results,
 };

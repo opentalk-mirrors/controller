@@ -12,3 +12,4 @@ pub mod jobs;
 pub mod rooms;
 pub mod sip_configs;
 pub mod streaming_targets;
+pub mod tariffs;

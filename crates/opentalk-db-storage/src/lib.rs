@@ -26,7 +26,6 @@ pub mod paginate;
 pub mod paginated;
 pub mod queries;
 pub mod tables;
-pub mod tariffs;
 pub mod tenants;
 pub mod users;
 pub mod utils;
