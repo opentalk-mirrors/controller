@@ -4,7 +4,7 @@
 
 use opentalk_database::DbConnection;
 use opentalk_db_storage::{
-    tariffs::Tariff,
+    self as db,
     tenants::{OidcTenantId, get_or_create_tenant_by_oidc_id},
     users::{NewUser, User},
 };
@@ -19,7 +19,8 @@ pub async fn make_user(
     let tenant = get_or_create_tenant_by_oidc_id(conn, &OidcTenantId::from("default".to_owned()))
         .await
         .unwrap();
-    let tariff = Tariff::get_by_name(conn, "OpenTalkDefaultTariff")
+
+    let tariff = db::queries::tariffs::get_tariff_by_name(conn, "OpenTalkDefaultTariff")
         .await
         .unwrap();
 
