@@ -26,7 +26,7 @@ use opentalk_types_common::{
     time::Timestamp,
     users::UserId,
 };
-use snafu::{Report, ResultExt, Whatever};
+use snafu::{ResultExt, Whatever};
 
 use crate::{
     ControllerBackend, ToUserProfile, email_to_libravatar_url, helpers::asset_to_asset_resource,
@@ -93,10 +93,7 @@ impl ControllerBackend {
             .update_access_token(access_token, value)
             .await
         {
-            log::warn!(
-                "Failed to update user profile in the access token cache: {}",
-                Report::from_error(e)
-            );
+            log::warn!("Failed to update user profile in the access token cache: {e}");
             return Err(ApiError::internal()
                 .with_message("Failed to update user profile in the access token cache")
                 .into());

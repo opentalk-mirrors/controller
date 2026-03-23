@@ -23,7 +23,7 @@ use super::{
     },
 };
 
-pub type Result<T, E = OidcCacheError> = std::result::Result<T, E>;
+pub type Result<T, E = CaptureApiError> = std::result::Result<T, E>;
 
 const ACCESS_TOKEN_DEFAULT_TTL_SECS: u64 = 60 * 5;
 /// Must be much longer, than for access tokens
@@ -117,14 +117,16 @@ impl Cache {
         maybe_expires_at: Option<DateTime<Utc>>,
     ) -> Result<()> {
         let Some(expires_at) = maybe_expires_at else {
-            return Err(OidcCacheError::NoExpiryForToken);
+            return Err(CaptureApiError::from(OidcCacheError::NoExpiryForToken));
         };
 
         let token_ttl = expires_at - Utc::now();
 
         // Don't cache tokens that expire too soon
         if token_ttl <= chrono::Duration::seconds(MIN_TOKEN_TTL_SECS) {
-            return Err(OidcCacheError::TokenTtlTooShort { ttl: token_ttl });
+            return Err(CaptureApiError::from(OidcCacheError::TokenTtlTooShort {
+                ttl: token_ttl,
+            }));
         }
 
         let value = match value {
@@ -146,7 +148,7 @@ impl Cache {
                 token_ttl.to_std().expect("duration was previously checked"),
             )
             .await
-            .map_err(OidcCacheError::from)
+            .map_err(CaptureApiError::from)
     }
 
     /// Updates value for a valid cached access token
@@ -165,8 +167,12 @@ impl Cache {
 
         let cached = match self.access_tokens.get(access_token.secret()).await {
             Ok(Some(result)) => result,
-            Ok(None) => return Err(OidcCacheError::CannotUpdateNonExistingToken),
-            Err(e) => return Err(OidcCacheError::from(e)),
+            Ok(None) => {
+                return Err(CaptureApiError::from(
+                    OidcCacheError::CannotUpdateNonExistingToken,
+                ));
+            }
+            Err(e) => return Err(CaptureApiError::from(e)),
         };
 
         // For valid token we need to preserve the logout marker
@@ -180,7 +186,7 @@ impl Cache {
         self.access_tokens
             .insert(access_token.secret().clone(), value_with_logout)
             .await
-            .map_err(OidcCacheError::from)
+            .map_err(CaptureApiError::from)
     }
 
     /// Lazy access token invalidation based on sub logout
@@ -201,7 +207,7 @@ impl Cache {
                     "Failed to retreive logout marker from the cache, error: {}",
                     Report::from_error(&e)
                 );
-                Err(OidcCacheError::from(e))
+                Err(CaptureApiError::from(e))
             }
         }
     }
@@ -210,14 +216,14 @@ impl Cache {
     pub async fn get_access_token(
         &self,
         access_token: &AccessToken,
-    ) -> Result<Option<Result<(Tenant, User), CaptureApiError>>, OidcCacheError> {
+    ) -> Result<Option<Result<(Tenant, User), CaptureApiError>>, CaptureApiError> {
         match self.access_tokens.get(access_token.secret()).await {
             Ok(Some(Ok((tenant, user, token_logout_marker)))) => {
                 let is_revoked = self
                     .is_access_token_revoked_by_sub_logout(token_logout_marker, user.oidc_sub())
                     .await;
                 if let Ok(true) = is_revoked {
-                    return Err(OidcCacheError::RevokedByLogout);
+                    return Err(CaptureApiError::from(OidcCacheError::RevokedByLogout));
                 }
 
                 let tenant = tenant.try_into().map_err(|e| {
@@ -262,7 +268,7 @@ impl Cache {
                     "Failed to cache logout marker, error: {}",
                     Report::from_error(&e)
                 );
-                OidcCacheError::from(e)
+                CaptureApiError::from(e)
             })
     }
 
@@ -290,7 +296,7 @@ impl Cache {
                     "Failed to retreive logout marker from the cache, error: {}",
                     Report::from_error(&e)
                 );
-                Err(OidcCacheError::from(e))
+                Err(CaptureApiError::from(e))
             }
         }
     }
@@ -361,10 +367,12 @@ mod tests {
         let result = cache
             .insert_access_token(&access_token, value, expires_at)
             .await;
-        assert!(matches!(
-            result.err(),
-            Some(OidcCacheError::NoExpiryForToken)
-        ));
+        assert!(
+            result
+                .err()
+                .map(|e| e.to_string().contains("token has no expiry"))
+                .unwrap_or(false)
+        );
     }
 
     #[tokio::test]
@@ -377,10 +385,14 @@ mod tests {
         let result = cache
             .insert_access_token(&access_token, value, expires_at)
             .await;
-        assert!(matches!(
-            result.err(),
-            Some(OidcCacheError::TokenTtlTooShort { ttl: _ })
-        ));
+        assert!(
+            result
+                .err()
+                .map(|e| e
+                    .to_string()
+                    .contains("token expires soon and will not be cached"))
+                .unwrap_or(false)
+        );
     }
 
     #[tokio::test]
@@ -418,10 +430,14 @@ mod tests {
         let value = create_valid_value();
 
         let result = cache.update_access_token(&access_token, value).await;
-        assert!(matches!(
-            result.err(),
-            Some(OidcCacheError::CannotUpdateNonExistingToken)
-        ));
+        assert!(
+            result
+                .err()
+                .map(|e| e
+                    .to_string()
+                    .contains("token doen't exist in cache and cannot be updated"))
+                .unwrap_or(false)
+        );
     }
 
     #[tokio::test]
@@ -449,7 +465,7 @@ mod tests {
     }
 
     #[tokio::test]
-    // If an access token has been cached before it's assoiciated sub has been logged out
+    // If an access token has been cached before it's associated sub has been logged out
     // it is considered as revoked and cache should return an error when attempting to get it
     async fn get_access_token_cached_before_sub_logout_failed() {
         let cache = create_cache();
@@ -465,14 +481,18 @@ mod tests {
         let _ = cache.upsert_sub_logout_marker(sub).await;
 
         let result = cache.get_access_token(&access_token).await;
-        assert!(matches!(
-            result.err(),
-            Some(OidcCacheError::RevokedByLogout)
-        ));
+        assert!(
+            result
+                .err()
+                .map(|e| e
+                    .to_string()
+                    .contains("token has been revoked by sub logout"))
+                .unwrap_or(false)
+        );
     }
 
     #[tokio::test]
-    // If an access token has been cached after it's assoiciated sub has been logged out
+    // If an access token has been cached after it's associated sub has been logged out
     // it should be considered as valid and cache should return it successfully
     async fn get_access_token_cached_after_sub_logout_successfully() {
         let cache = create_cache();
