@@ -237,24 +237,36 @@ pub async fn check_access_token(
         return result;
     }
 
-    // Access token arrived for the first time
-    let verification_result = oidc_ctx.verify_access_token(access_token).await?;
+    // Verifiy access token which is not cached yet
+    // On verification error, cache the error and return early
+    let verification_result = oidc_ctx.verify_access_token(access_token).await;
+    match verification_result {
+        Ok(verification_info) => {
+            let inner_result = check_access_token_inner(
+                settings,
+                authz,
+                inventory_provider,
+                oidc_ctx,
+                access_token,
+            )
+            .await;
+            oidc_cache
+                .insert_access_token(access_token, inner_result.clone(), verification_info.exp)
+                .await
+                .is_err()
+                .then(|| log::warn!("Failed to cache user data error for access token"));
 
-    let inner_result =
-        check_access_token_inner(settings, authz, inventory_provider, oidc_ctx, access_token).await;
-
-    if (inner_result.is_ok()
-        || inner_result
-            .as_ref()
-            .is_err_and(|e| e.status_code().is_server_error()))
-        && let Err(e) = oidc_cache
-            .insert_access_token(access_token, inner_result.clone(), verification_result.exp)
-            .await
-    {
-        log::warn!("Failed to cache access token: {e}");
+            inner_result
+        }
+        Err(error) => {
+            oidc_cache
+                .insert_access_token(access_token, Err(error.clone()), None)
+                .await
+                .is_err()
+                .then(|| log::warn!("Failed to cache verification error for access token"));
+            return Err(error);
+        }
     }
-
-    inner_result
 }
 
 /// Fetches all associated user data of the access token
