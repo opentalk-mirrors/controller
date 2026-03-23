@@ -9,7 +9,7 @@ use clap::Subcommand;
 use opentalk_controller_core::load_settings_provider;
 use opentalk_controller_settings::Settings;
 use opentalk_database::{DatabaseError, Db};
-use opentalk_db_storage::tenants::{Tenant, UpdateTenant};
+use opentalk_db_storage as db;
 use opentalk_inventory::OidcTenantId;
 use opentalk_types_common::tenants::TenantId;
 use snafu::ResultExt as _;
@@ -52,7 +52,7 @@ struct TenantTableRow {
 }
 
 impl TenantTableRow {
-    fn from_tenant(tenant: Tenant) -> Self {
+    fn from_tenant(tenant: db::tables::tenants::Tenant) -> Self {
         Self {
             id: tenant.id,
             oidc_id: tenant.oidc_tenant_id.into(),
@@ -65,7 +65,7 @@ async fn list_all_tenants(settings: &Settings) -> Result<(), DatabaseError> {
     let db = Db::connect(&settings.database)?;
     let mut conn = db.get_conn().await?;
 
-    let tenants = Tenant::get_all(&mut conn).await?;
+    let tenants = db::queries::tenants::get_all_tenants(&mut conn).await?;
     let rows: Vec<TenantTableRow> = tenants
         .into_iter()
         .map(TenantTableRow::from_tenant)
@@ -85,15 +85,15 @@ async fn set_oidc_id(
     let db = Db::connect(&settings.database)?;
     let mut conn = db.get_conn().await?;
 
-    let tenant = Tenant::get(&mut conn, id).await?;
+    let tenant = db::queries::tenants::get_tenant(&mut conn, id).await?;
     let old_oidc_id = tenant.oidc_tenant_id;
 
-    UpdateTenant {
+    let update_tenant = db::tables::tenants::UpdateTenant {
         updated_at: Utc::now(),
         oidc_tenant_id: &new_oidc_id.clone().into(),
-    }
-    .apply(&mut conn, id)
-    .await?;
+    };
+
+    let _ = db::queries::tenants::update_tenant(&mut conn, update_tenant, id).await?;
 
     println!(
         "Updated tenant's oidc-id\n\tid  = {id}\n\told = {old_oidc_id}\n\tnew = {new_oidc_id}"

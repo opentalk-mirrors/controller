@@ -462,7 +462,7 @@ mod tests {
     use serial_test::serial;
 
     use super::*;
-    use crate::tenants::{OidcTenantId, get_or_create_tenant_by_oidc_id};
+    use crate as db;
 
     async fn init_resource(json: Value) -> (ModuleResourceId, DbConnection) {
         let db_ctx = opentalk_test_util::database::DatabaseContext::new(false).await;
@@ -476,9 +476,9 @@ mod tests {
             .await
             .unwrap();
 
-        let tenant = get_or_create_tenant_by_oidc_id(
+        let tenant = db::queries::tenants::get_or_create_tenant_by_oidc_id(
             &mut db_conn,
-            &OidcTenantId::from("OpenTalkDefaultTenant"),
+            &db::tables::tenants::OidcTenantId::from("OpenTalkDefaultTenant"),
         )
         .await
         .unwrap();
@@ -1564,9 +1564,9 @@ mod tests {
             .await
             .unwrap();
 
-        let tenant = get_or_create_tenant_by_oidc_id(
+        let tenant = db::queries::tenants::get_or_create_tenant_by_oidc_id(
             &mut db_conn,
-            &OidcTenantId::from("OpenTalkDefaultTenant"),
+            &db::tables::tenants::OidcTenantId::from("OpenTalkDefaultTenant"),
         )
         .await
         .unwrap();
