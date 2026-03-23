@@ -79,6 +79,34 @@ ignore = [
   #
   # The replacement will be tracked in [#1212](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1212).
   "RUSTSEC-2025-0141",
+
+  # | If a certificate had more than one `distributionPoint`, then only
+  # | the first `distributionPoint` would be considered against each CRL's
+  # | `IssuingDistributionPoint` `distributionPoint`, and then the certificate's
+  # | subsequent `distributionPoint`s would be ignored.
+  # |
+  # | The impact was that correct provided CRLs would not be consulted to
+  # | check revocation. With `UnknownStatusPolicy::Deny` (the default) this
+  # | would lead to incorrect but safe `Error::UnknownRevocationStatus`. With
+  # | `UnknownStatusPolicy::Allow` this would lead to inappropriate acceptance of
+  # | revoked certificates.
+  # |
+  # | This vulnerability is thought to be of limited impact. This is because
+  # | both the certificate and CRL are signed -- an attacker would need to
+  # | compromise a trusted issuing authority to trigger this bug.  An attacker
+  # | with such capabilities could likely bypass revocation checking through other
+  # | more impactful means (such as publishing a valid, empty CRL.)
+  # |
+  # | More likely, this bug would be latent in normal use, and an attacker could
+  # | leverage faulty revocation checking to continue using a revoked credential.
+  # |
+  # | This vulnerability is identified by
+  # | [GHSA-pwjx-qhcg-rvj4](https://github.com/rustls/webpki/security/advisories/GH
+  # | SA-pwjx-qhcg-rvj4). Thank you to @1seal for the report.
+  # 
+  # This is a transitive dependency, we have to wait until the crate which pulls
+  # in this dependency is updated.
+  "RUSTSEC-2026-0049",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -109,7 +137,6 @@ allow = [
   "ISC",
   "MIT",
   "MPL-2.0",
-  "OpenSSL",
   "Unicode-3.0",
   "Zlib",
 ]
@@ -470,6 +497,7 @@ skip = [
   { name = "toml_edit", version = "0.22" },
   { name = "tonic", version = "0.12" },
   { name = "tower", version = "0.4" },
+  { name = "winnow", version = "0.7" },
   { name = "writeable", version = "0.5" },
   { name = "yoke", version = "0.7" },
   { name = "yoke-derive", version = "0.7" },
