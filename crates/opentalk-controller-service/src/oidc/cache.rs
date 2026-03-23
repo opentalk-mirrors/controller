@@ -25,6 +25,8 @@ use super::{
 
 pub type Result<T, E = CaptureApiError> = std::result::Result<T, E>;
 
+use opentalk_types_api_v1::error::ApiError;
+
 const ACCESS_TOKEN_DEFAULT_TTL_SECS: u64 = 60 * 5;
 /// Must be much longer, than for access tokens
 const SUB_LOGOUT_MARKERS_DEFAULT_TTL_SECS: u64 = 60 * 60 * 2;
@@ -298,6 +300,32 @@ impl Cache {
                 );
                 Err(CaptureApiError::from(e))
             }
+        }
+    }
+
+    /// Caches access token errors such as verification errors or inactive tokens
+    /// Internal errors will not be cached, as they can be relevant and not related to the token validity
+    async fn cache_access_token_error(
+        &self,
+        access_token: &AccessToken,
+        error: CaptureApiError,
+    ) -> Result<()> {
+        if ApiError::from(error.clone()).status != 500 {
+            self.access_tokens
+                .insert(
+                    access_token.secret().clone(),
+                    Err(CacheableApiError::from(error)),
+                )
+                .await
+                .map_err(|e| {
+                    log::warn!("Failed to cache access token error: {e}");
+                    CaptureApiError::from(e)
+                })
+        } else {
+            log::warn!("Internal errors will not be cached for acess tokens");
+            Err(CaptureApiError::from(
+                OidcCacheError::NoCachingOfInternalErrors,
+            ))
         }
     }
 }

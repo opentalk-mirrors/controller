@@ -45,6 +45,11 @@ pub enum OidcCacheError {
     /// Error indicating that a formerly valid access token has been revoked by sub logout
     #[snafu(display("token has been revoked by sub logout"))]
     RevokedByLogout,
+
+    /// Error on attmept to cache an internal error for an access token
+    /// This is not allowed, because such errors are transient and do not relate to the token validity
+    #[snafu(display("internal errors will not be cached for acess tokens"))]
+    NoCachingOfInternalErrors,
 }
 
 impl From<CacheError> for OidcCacheError {
@@ -65,6 +70,7 @@ impl From<OidcCacheError> for CaptureApiError {
             OidcCacheError::Cache { .. }
             | OidcCacheError::DecodeFromCacheError { .. }
             | OidcCacheError::TokenTtlTooShort { .. }
+            | OidcCacheError::NoCachingOfInternalErrors
             | OidcCacheError::CannotUpdateNonExistingToken => {
                 CaptureApiError::from(ApiError::internal().with_message(source.to_string()))
             }
