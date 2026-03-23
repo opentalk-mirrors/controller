@@ -118,30 +118,39 @@ impl Cache {
         value: Result<(Tenant, User), CaptureApiError>,
         maybe_expires_at: Option<DateTime<Utc>>,
     ) -> Result<()> {
-        let Some(expires_at) = maybe_expires_at else {
-            return Err(CaptureApiError::from(OidcCacheError::NoExpiryForToken));
+        // If an error passed, we just cache without additional checks
+        let Ok(value) = value else {
+            return self
+                .cache_access_token_error(access_token, value.unwrap_err())
+                .await;
         };
 
-        let token_ttl = expires_at - Utc::now();
+        // Don't cache tokens without expiration
+        let Some(expires_at) = maybe_expires_at else {
+            let error = CaptureApiError::from(OidcCacheError::NoExpiryForToken);
+            // Even if caching will return error, we still want to return the original error to the caller, as it is more relevant
+            let _ = self
+                .cache_access_token_error(access_token, error.clone())
+                .await;
+            return Err(error);
+        };
 
         // Don't cache tokens that expire too soon
+        let token_ttl = expires_at - Utc::now();
         if token_ttl <= chrono::Duration::seconds(MIN_TOKEN_TTL_SECS) {
             return Err(CaptureApiError::from(OidcCacheError::TokenTtlTooShort {
                 ttl: token_ttl,
             }));
         }
 
-        let value = match value {
-            Ok((tenant, user)) => {
-                let logout_marker = self.calculate_logout_marker(&user.oidc_sub).await?;
-                Ok((
-                    CacheableTenant::from(tenant),
-                    CacheableUser::from(user),
-                    logout_marker,
-                ))
-            }
-            Err(e) => Err(CacheableApiError::from(e)),
-        };
+        // Add logout marker to enable lazy invalidation on backchannel logout
+        let (tenant, user) = value;
+        let logout_marker = self.calculate_logout_marker(&user.oidc_sub).await?;
+        let value = Ok((
+            CacheableTenant::from(tenant),
+            CacheableUser::from(user),
+            logout_marker,
+        ));
 
         self.access_tokens
             .insert_with_ttl(
@@ -215,6 +224,8 @@ impl Cache {
     }
 
     /// Get cached result for an access token
+    /// Function also performs lazy invalidation of the access token
+    /// If the cached token has been revoked by backchannel logout, it will update the entry with the error
     pub async fn get_access_token(
         &self,
         access_token: &AccessToken,
@@ -225,7 +236,12 @@ impl Cache {
                     .is_access_token_revoked_by_sub_logout(token_logout_marker, user.oidc_sub())
                     .await;
                 if let Ok(true) = is_revoked {
-                    return Err(CaptureApiError::from(OidcCacheError::RevokedByLogout));
+                    let error = CaptureApiError::from(OidcCacheError::RevokedByLogout);
+                    // Even if caching will return error, we still want to return the original error to the caller, as it is more relevant
+                    let _ = self
+                        .cache_access_token_error(access_token, error.clone())
+                        .await;
+                    return Err(error);
                 }
 
                 let tenant = tenant.try_into().map_err(|e| {
@@ -386,7 +402,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn insert_access_token_with_no_expiration_failed() {
+    async fn insert_access_token_value_with_no_expiration_failed() {
         let cache = create_cache();
         let access_token = create_access_token();
         let expires_at = None;
@@ -399,6 +415,39 @@ mod tests {
             result
                 .err()
                 .map(|e| e.to_string().contains("token has no expiry"))
+                .unwrap_or(false)
+        );
+    }
+
+    #[tokio::test]
+    async fn insert_access_token_error_with_no_expiration_successfully() {
+        let cache = create_cache();
+        let access_token = create_access_token();
+        let expires_at = None;
+        let error = Err(CaptureApiError::from(OidcCacheError::NoExpiryForToken));
+
+        let result = cache
+            .insert_access_token(&access_token, error, expires_at)
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn insert_access_token_internal_error_failed() {
+        let cache = create_cache();
+        let access_token = create_access_token();
+        let expires_at = None;
+        let error = Err(CaptureApiError::from(ApiError::internal()));
+
+        let result = cache
+            .insert_access_token(&access_token, error, expires_at)
+            .await;
+        assert!(
+            result
+                .err()
+                .map(|e| e
+                    .to_string()
+                    .contains("internal errors will not be cached for acess tokens"))
                 .unwrap_or(false)
         );
     }
