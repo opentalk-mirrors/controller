@@ -66,6 +66,7 @@ impl From<&inventory::OidcTenantId> for OidcTenantId {
 }
 
 #[derive(Debug, Clone, Queryable, Identifiable, Serialize, Deserialize)]
+#[diesel(table_name = tenants)]
 pub struct Tenant {
     pub id: TenantId,
     pub created_at: DateTime<Utc>,
