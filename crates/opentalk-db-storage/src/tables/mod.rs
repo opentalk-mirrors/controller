@@ -21,4 +21,5 @@ pub mod room_streaming_targets;
 pub mod rooms;
 pub mod sip_configs;
 pub mod tariffs;
+pub mod tenants;
 pub mod user_groups;
