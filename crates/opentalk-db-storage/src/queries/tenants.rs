@@ -6,10 +6,10 @@
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DatabaseError, DbConnection, Result};
-use opentalk_types_common::{tenants::TenantId, users::UserId};
+use opentalk_types_common::tenants::TenantId;
 
 use crate::{
-    schema::{tenants, users},
+    schema::tenants,
     tables::tenants::{NewTenant, OidcTenantId, Tenant, UpdateTenant},
 };
 
@@ -17,27 +17,6 @@ use crate::{
 pub async fn get_tenant(conn: &mut DbConnection, id: TenantId) -> Result<Tenant> {
     tenants::table
         .filter(tenants::id.eq(id))
-        .get_result(conn)
-        .await
-        .map_err(DatabaseError::from)
-}
-
-#[tracing::instrument(err, skip_all)]
-pub async fn get_by_oidc_id(conn: &mut DbConnection, id: OidcTenantId) -> Result<Option<Tenant>> {
-    tenants::table
-        .filter(tenants::oidc_tenant_id.eq(id))
-        .get_result(conn)
-        .await
-        .optional()
-        .map_err(DatabaseError::from)
-}
-
-#[tracing::instrument(err, skip_all)]
-pub async fn get_for_user(conn: &mut DbConnection, user_id: UserId) -> Result<Tenant> {
-    users::table
-        .inner_join(tenants::table)
-        .filter(users::id.eq(user_id))
-        .select(tenants::all_columns)
         .get_result(conn)
         .await
         .map_err(DatabaseError::from)
