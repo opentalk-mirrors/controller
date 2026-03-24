@@ -233,7 +233,7 @@ pub async fn check_access_token(
     access_token: &AccessToken,
 ) -> Result<(Tenant, User), CaptureApiError> {
     // Check if access token has been cached already
-    if let Some(result) = oidc_cache.get_access_token(access_token).await? {
+    if let Some(result) = oidc_cache.get_access_token(access_token).await {
         return result;
     }
 

@@ -229,7 +229,7 @@ impl Cache {
     pub async fn get_access_token(
         &self,
         access_token: &AccessToken,
-    ) -> Result<Option<Result<(Tenant, User), CaptureApiError>>, CaptureApiError> {
+    ) -> Option<Result<(Tenant, User), CaptureApiError>> {
         match self.access_tokens.get(access_token.secret()).await {
             Ok(Some(Ok((tenant, user, token_logout_marker)))) => {
                 let is_revoked = self
@@ -241,38 +241,49 @@ impl Cache {
                     let _ = self
                         .cache_access_token_error(access_token, error.clone())
                         .await;
-                    return Err(error);
+                    return Some(Err(error));
                 }
 
-                let tenant = tenant.try_into().map_err(|e| {
-                log::warn!(
-                    "Error when attempting to read tenant information loaded from token cache: {}",
-                    Report::from_error(&e)
-                );
-                OidcCacheError::from(e)
-            })?;
-                let user = user.try_into().map_err(|e| {
-                log::warn!(
-                    "Error when attempting to read user information loaded from token cache: {}",
-                    Report::from_error(&e)
-                );
-                OidcCacheError::from(e)
-            })?;
+                let tenant = match Tenant::try_from(tenant) {
+                    Ok(tenant) => tenant,
+                    Err(e) => {
+                        log::warn!(
+                            "Error when attempting to read tenant information loaded from token cache: {}",
+                            Report::from_error(&e)
+                        );
+                        return Some(Err(OidcCacheError::from(e).into()));
+                    }
+                };
 
-                Ok(Some(Ok((tenant, user))))
+                let user = match User::try_from(user) {
+                    Ok(tenant) => tenant,
+                    Err(e) => {
+                        log::warn!(
+                            "Error when attempting to read user information loaded from token cache: {}",
+                            Report::from_error(&e)
+                        );
+                        return Some(Err(OidcCacheError::from(e).into()));
+                    }
+                };
+
+                Some(Ok((tenant, user)))
             }
             Ok(Some(Err(cached_error))) => {
-                let cached_error = CaptureApiError::try_from(cached_error).map_err(|e| {
-                log::warn!(
-                    "Error when attempting to read verification result loaded from token cache: {}",
-                    Report::from_error(&e)
-                );
-                OidcCacheError::from(e)
-            })?;
-                Ok(Some(Err(cached_error)))
+                let cached_error = match CaptureApiError::try_from(cached_error) {
+                    Ok(cached_error) => cached_error,
+                    Err(e) => {
+                        log::warn!(
+                            "Error when attempting to read erroneous verification result loaded from token cache: {}",
+                            Report::from_error(&e)
+                        );
+                        return Some(Err(OidcCacheError::from(e).into()));
+                    }
+                };
+
+                Some(Err(cached_error))
             }
-            Ok(None) => Ok(None),
-            Err(e) => Err(e.into()),
+            Ok(None) => None,
+            Err(e) => Some(Err(e.into())),
         }
     }
 
@@ -495,7 +506,6 @@ mod tests {
             .get_access_token(&access_token)
             .await
             .unwrap()
-            .unwrap()
             .unwrap();
         assert_eq!(updated_value.1.firstname, update_name)
     }
@@ -530,7 +540,7 @@ mod tests {
             .expect("Failed to insert access token");
 
         let result = cache.get_access_token(&access_token).await;
-        assert_ne!(None, result.unwrap());
+        assert_ne!(None, result);
     }
 
     #[tokio::test]
@@ -538,7 +548,7 @@ mod tests {
         let cache = create_cache();
         let access_token = create_access_token();
         let result = cache.get_access_token(&access_token).await;
-        assert_eq!(None, result.unwrap());
+        assert_eq!(None, result);
     }
 
     #[tokio::test]
@@ -557,7 +567,7 @@ mod tests {
         let sub = create_sub(&value.as_ref().unwrap().1.oidc_sub);
         let _ = cache.upsert_sub_logout_marker(sub).await;
 
-        let result = cache.get_access_token(&access_token).await;
+        let result = cache.get_access_token(&access_token).await.unwrap();
         assert!(
             result
                 .err()
@@ -584,7 +594,7 @@ mod tests {
             .insert_access_token(&access_token, value.clone(), expires_at)
             .await;
 
-        let result = cache.get_access_token(&access_token).await;
+        let result = cache.get_access_token(&access_token).await.unwrap();
         assert!(result.is_ok());
     }
 }
