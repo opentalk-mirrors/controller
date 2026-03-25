@@ -4,6 +4,8 @@
 
 use chrono::TimeDelta;
 use opentalk_cache::CacheError;
+use opentalk_controller_utils::CaptureApiError;
+use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use snafu::Snafu;
 
 use super::cacheable::DecodeFromCacheError;
@@ -43,6 +45,11 @@ pub enum OidcCacheError {
     /// Error indicating that a formerly valid access token has been revoked by sub logout
     #[snafu(display("token has been revoked by sub logout"))]
     RevokedByLogout,
+
+    /// Error on attmept to cache an internal error for an access token
+    /// This is not allowed, because such errors are transient and do not relate to the token validity
+    #[snafu(display("internal errors will not be cached for acess tokens"))]
+    NoCachingOfInternalErrors,
 }
 
 impl From<CacheError> for OidcCacheError {
@@ -54,5 +61,31 @@ impl From<CacheError> for OidcCacheError {
 impl From<DecodeFromCacheError> for OidcCacheError {
     fn from(source: DecodeFromCacheError) -> Self {
         Self::DecodeFromCacheError { source }
+    }
+}
+
+impl From<OidcCacheError> for CaptureApiError {
+    fn from(source: OidcCacheError) -> CaptureApiError {
+        match source {
+            OidcCacheError::Cache { .. }
+            | OidcCacheError::DecodeFromCacheError { .. }
+            | OidcCacheError::TokenTtlTooShort { .. }
+            | OidcCacheError::NoCachingOfInternalErrors
+            | OidcCacheError::CannotUpdateNonExistingToken => {
+                CaptureApiError::from(ApiError::internal().with_message(source.to_string()))
+            }
+            OidcCacheError::RevokedByLogout => CaptureApiError::from(
+                ApiError::unauthorized()
+                    .with_www_authenticate(AuthenticationError::AccessTokenInactive)
+                    .with_code("revoked_token")
+                    .with_message(source.to_string()),
+            ),
+            OidcCacheError::NoExpiryForToken => CaptureApiError::from(
+                ApiError::unauthorized()
+                    .with_www_authenticate(AuthenticationError::InvalidAccessToken)
+                    .with_code("invalid_token")
+                    .with_message("access token has no expiry and considered invalid"),
+            ),
+        }
     }
 }

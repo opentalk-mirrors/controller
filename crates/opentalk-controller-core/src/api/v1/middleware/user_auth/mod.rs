@@ -25,7 +25,7 @@ use kustos::prelude::PoliciesBuilder;
 use openidconnect::AccessToken;
 use opentalk_controller_service::{
     controller_backend::RoomsPoliciesBuilderExt,
-    oidc::{Cache, OidcCacheError, OidcTokenHandler, OpenIdConnectUserInfo},
+    oidc::{Cache, OidcTokenHandler, OpenIdConnectUserInfo},
     phone_numbers::parse_phone_number,
 };
 use opentalk_controller_service_facade::RequestUser;
@@ -233,38 +233,40 @@ pub async fn check_access_token(
     access_token: &AccessToken,
 ) -> Result<(Tenant, User), CaptureApiError> {
     // Check if access token has been cached already
-    if let Some(result) = oidc_cache
-        .get_access_token(access_token)
-        .await
-        .map_err(|e| match e {
-            OidcCacheError::RevokedByLogout => ApiError::unauthorized()
-                .with_www_authenticate(AuthenticationError::AccessTokenInactive)
-                .with_code("revoked_token")
-                .with_message("The access token has been revoked by sub logout"),
-            _ => ApiError::internal(),
-        })?
-    {
+    if let Some(result) = oidc_cache.get_access_token(access_token).await {
         return result;
     }
 
-    // Access token arrived for the first time
-    let verification_result = oidc_ctx.verify_access_token(access_token).await?;
+    // Verifiy access token which is not cached yet
+    // On verification error, cache the error and return early
+    let verification_result = oidc_ctx.verify_access_token(access_token).await;
+    match verification_result {
+        Ok(verification_info) => {
+            let inner_result = check_access_token_inner(
+                settings,
+                authz,
+                inventory_provider,
+                oidc_ctx,
+                access_token,
+            )
+            .await;
+            oidc_cache
+                .insert_access_token(access_token, inner_result.clone(), verification_info.exp)
+                .await
+                .is_err()
+                .then(|| log::warn!("Failed to cache user data error for access token"));
 
-    let inner_result =
-        check_access_token_inner(settings, authz, inventory_provider, oidc_ctx, access_token).await;
-
-    if (inner_result.is_ok()
-        || inner_result
-            .as_ref()
-            .is_err_and(|e| e.status_code().is_server_error()))
-        && let Err(e) = oidc_cache
-            .insert_access_token(access_token, inner_result.clone(), verification_result.exp)
-            .await
-    {
-        log::warn!("Failed to cache access token: {e}");
+            inner_result
+        }
+        Err(error) => {
+            oidc_cache
+                .insert_access_token(access_token, Err(error.clone()), None)
+                .await
+                .is_err()
+                .then(|| log::warn!("Failed to cache verification error for access token"));
+            return Err(error);
+        }
     }
-
-    inner_result
 }
 
 /// Fetches all associated user data of the access token
