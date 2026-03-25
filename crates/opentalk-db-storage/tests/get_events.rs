@@ -13,7 +13,6 @@ use opentalk_db_storage::{
         events::{Event, NewEvent},
         rooms::NewRoom,
     },
-    tenants::{OidcTenantId, get_or_create_tenant_by_oidc_id},
     users::User,
 };
 use opentalk_types_common::{
@@ -37,9 +36,12 @@ async fn make_event(
     hour: Option<u32>,
     is_adhoc: bool,
 ) -> Event {
-    let tenant = get_or_create_tenant_by_oidc_id(conn, &OidcTenantId::from("default".to_string()))
-        .await
-        .unwrap();
+    let tenant = db::queries::tenants::get_or_create_tenant_by_oidc_id(
+        conn,
+        &db::tables::tenants::OidcTenantId::from("default".to_string()),
+    )
+    .await
+    .unwrap();
 
     let room = {
         let room = NewRoom {
