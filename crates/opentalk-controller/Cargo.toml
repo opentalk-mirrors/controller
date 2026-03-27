@@ -23,6 +23,7 @@ diesel.workspace = true
 diesel-async.workspace = true
 humansize.workspace = true
 itertools.workspace = true
+jsonwebtoken = { workspace = true, features = ["aws_lc_rs"] }
 kustos.workspace = true
 lapin-pool.workspace = true
 log.workspace = true
