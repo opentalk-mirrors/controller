@@ -249,6 +249,12 @@ impl ControllerBackend {
 
         let room = inventory.get_room(*room_id).await?;
 
+        // Naive check that prevents joining events that were created by a user which is since been
+        // disabled. The `get_user` method returns 404 not found when the user is disabled.
+        if inventory.get_user(room.created_by).await.is_err() {
+            return Err(ApiError::forbidden().into());
+        }
+
         let tariff = self.get_tariff_for_user(room.created_by).await?;
 
         if invite_code.is_some()
@@ -260,7 +266,6 @@ impl ControllerBackend {
         match event.as_ref() {
             Some(event) => {
                 let call_in_tel = settings.call_in.as_ref().map(|call_in| call_in.tel.clone());
-                let mut inventory = self.inventory_provider.get_inventory().await?;
 
                 let event_info = build_event_info(
                     inventory.as_mut(),
@@ -271,6 +276,7 @@ impl ControllerBackend {
                     &tariff,
                 )
                 .await?;
+
                 Ok(GetRoomEventResponseBody(event_info))
             }
             None => Err(ApiError::not_found().into()),
