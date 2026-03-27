@@ -23,3 +23,4 @@ pub mod sip_configs;
 pub mod tariffs;
 pub mod tenants;
 pub mod user_groups;
+pub mod users;
