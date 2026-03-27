@@ -469,6 +469,7 @@ skip = [
   { name = "toml_edit", version = "0.22" },
   { name = "tonic", version = "0.12" },
   { name = "tower", version = "0.4" },
+  { name = "untrusted", version = "0.7" },
   { name = "winnow", version = "0.7" },
   { name = "writeable", version = "0.5" },
   { name = "yoke", version = "0.7" },

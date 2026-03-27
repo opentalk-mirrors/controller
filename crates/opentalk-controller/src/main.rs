@@ -19,7 +19,15 @@ async fn main() {
     //
     // See: https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1320
     rustls::crypto::CryptoProvider::install_default(rustls::crypto::aws_lc_rs::default_provider())
-        .expect("valid default crypto provider expected");
+        .expect("valid default rustls crypto provider expected");
+
+    // The same pattern is used by the `jsonwebtoken` crate, where we must do the same.
+    //
+    // See: https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1326
+    jsonwebtoken::crypto::CryptoProvider::install_default(
+        &jsonwebtoken::crypto::aws_lc::DEFAULT_PROVIDER,
+    )
+    .expect("valid default jsonwebtoken crypto provider expected");
 
     let args = cli::Args::parse();
 
