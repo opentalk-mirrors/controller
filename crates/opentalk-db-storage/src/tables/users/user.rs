@@ -31,6 +31,7 @@ use crate::{
 ///
 /// Is used as a result in various queries. Represents a user column
 #[derive(Clone, Queryable, Identifiable, PartialEq, Eq)]
+#[diesel(table_name=users)]
 pub struct User {
     pub id: UserId,
     pub id_serial: SerialUserId,
