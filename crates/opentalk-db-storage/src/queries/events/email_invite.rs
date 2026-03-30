@@ -18,8 +18,8 @@ use crate::{
         event_email_invites::{EventEmailInvite, NewEventEmailInvite, UpdateEventEmailInvite},
         event_invites::NewEventInvite,
         events::Event,
+        users::User,
     },
-    users::User,
 };
 
 pub async fn migrate_event_email_invites_to_user_invites(

@@ -5,7 +5,10 @@
 use diesel::Queryable;
 use opentalk_types_common::users::{GroupId, UserId};
 
-use crate::{schema::user_groups, tables::groups::Group, users::User};
+use crate::{
+    schema::user_groups,
+    tables::{groups::Group, users::User},
+};
 
 #[derive(Debug, Queryable, Identifiable, Associations)]
 #[diesel(table_name = user_groups)]

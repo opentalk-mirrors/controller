@@ -52,8 +52,8 @@ use crate::{
         rooms::Room,
         sip_configs::SipConfig,
         tariffs::Tariff,
+        users::User,
     },
-    users::User,
     utils::convert_diesel_query_results,
 };
 

@@ -17,8 +17,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     schema::events,
-    tables::{events::EventSerialId, rooms::Room},
-    users::User,
+    tables::{events::EventSerialId, rooms::Room, users::User},
 };
 
 #[derive(

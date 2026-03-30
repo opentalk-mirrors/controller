@@ -5,7 +5,10 @@
 use diesel::Queryable;
 use opentalk_types_common::{events::EventId, users::UserId};
 
-use crate::{schema::event_favorites, tables::events::Event, users::User};
+use crate::{
+    schema::event_favorites,
+    tables::{events::Event, users::User},
+};
 
 #[derive(Associations, Identifiable, Queryable)]
 #[diesel(table_name = event_favorites)]

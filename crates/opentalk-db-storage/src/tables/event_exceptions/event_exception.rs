@@ -15,8 +15,8 @@ use crate::{
     tables::{
         event_exceptions::{EventExceptionId, EventExceptionKind},
         events::Event,
+        users::User,
     },
-    users::User,
 };
 
 #[derive(Associations, Clone, Debug, Identifiable, Queryable)]

@@ -15,8 +15,7 @@ use opentalk_types_common::{
 
 use crate::{
     schema::event_invites,
-    tables::{event_invites::EventInviteId, events::Event},
-    users::User,
+    tables::{event_invites::EventInviteId, events::Event, users::User},
 };
 
 #[derive(Associations, Debug, Identifiable, Queryable)]

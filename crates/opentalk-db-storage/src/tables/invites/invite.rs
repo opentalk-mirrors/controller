@@ -10,7 +10,10 @@ use opentalk_types_common::{
     users::UserId,
 };
 
-use crate::{schema::invites, tables::invites::InviteCodeSerialId, users::User};
+use crate::{
+    schema::invites,
+    tables::{invites::InviteCodeSerialId, users::User},
+};
 
 /// Diesel invites struct
 ///

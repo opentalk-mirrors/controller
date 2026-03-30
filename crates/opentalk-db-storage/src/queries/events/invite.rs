@@ -15,13 +15,14 @@ use opentalk_types_common::{
 };
 
 use crate::{
+    self as db,
     paginate::Paginate,
     schema::{event_invites, events, users},
     tables::{
         event_invites::{EventInvite, NewEventInvite, UpdateEventInvite},
         events::Event,
+        users::User,
     },
-    users::User,
 };
 
 #[tracing::instrument(err, skip_all)]
@@ -37,7 +38,7 @@ pub async fn get_event_user_invites_for_events(
             user_ids.sort_unstable();
             user_ids.dedup();
 
-            let users = User::get_all_by_ids(conn, &user_ids).await?;
+            let users = db::queries::users::get_users_by_ids(conn, &user_ids).await?;
 
             let invites_by_event: Vec<Vec<EventInvite>> = invites.grouped_by(events);
             let mut invites_with_users_by_event = Vec::with_capacity(events.len());

@@ -14,8 +14,8 @@ use crate::{
     tables::{
         rooms::Room,
         sip_configs::{NewSipConfig, SipConfig, UpdateSipConfig},
+        users::User,
     },
-    users::User,
 };
 
 #[tracing::instrument(err, skip_all)]

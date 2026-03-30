@@ -4,16 +4,14 @@
 
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
 use opentalk_types_common::{
     tariffs::{TariffId, TariffStatus},
     time::TimeZone,
-    users::{DisplayName, Theme, UserId, UserTitle},
+    users::{DisplayName, Theme, UserTitle},
 };
 
-use crate::{newtypes::LanguageIdentifier, schema::users, tables::users::User};
+use crate::{newtypes::LanguageIdentifier, schema::users};
 
 /// Diesel user struct for updates
 ///
@@ -81,12 +79,6 @@ impl<'a> From<inventory::UpdateUser<'a>> for UpdateUser<'a> {
 }
 
 impl UpdateUser<'_> {
-    pub async fn apply(self, conn: &mut DbConnection, user_id: UserId) -> Result<User> {
-        let query = diesel::update(users::table.filter(users::id.eq(user_id))).set(self);
-        let user: User = query.get_result(conn).await?;
-        Ok(user)
-    }
-
     pub fn is_empty(&self) -> bool {
         matches!(
             self,
