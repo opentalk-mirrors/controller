@@ -7,8 +7,8 @@ use opentalk_inventory as inventory;
 use opentalk_types_common::{events::EventId, training_participation_report::TimeRange};
 
 use crate::{
-    newtypes::Duration, schema::event_training_participation_report_parameter_sets,
-    tables::events::Event,
+    schema::event_training_participation_report_parameter_sets,
+    tables::{event_training_participation_report_parameter_sets::Duration, events::Event},
 };
 
 #[derive(Debug, Insertable, Queryable, Identifiable, Associations)]

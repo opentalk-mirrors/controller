@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-mod duration;
 mod language_identifier;
 
-pub use duration::Duration;
 pub use language_identifier::LanguageIdentifier;
