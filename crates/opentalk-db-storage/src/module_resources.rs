@@ -240,6 +240,7 @@ impl Filter {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Queryable, Identifiable, Insertable)]
+#[diesel(table_name = module_resources)]
 pub struct ModuleResource {
     pub id: ModuleResourceId,
     pub tenant_id: TenantId,
