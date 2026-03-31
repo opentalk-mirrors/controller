@@ -4,7 +4,7 @@
 
 //! Contains events database queries
 
-pub mod cursor;
+pub mod types;
 
 mod email_invite;
 mod exception;
@@ -37,7 +37,7 @@ pub use shared_folder::*;
 pub use training_participation_report::*;
 
 use crate::{
-    queries::events::cursor::{GetEventExceptionsCursor, GetEventsCursor},
+    queries::events::types::{GetEventExceptionsCursor, GetEventsCursor},
     schema::{
         event_exceptions, event_favorites, event_invites, event_shared_folders,
         event_training_participation_report_parameter_sets, events, rooms, sip_configs, tariffs,

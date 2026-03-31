@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! Contains events cursor structs
+//! Contains event query types
 
 mod get_event_exceptions_cursor;
 mod get_events_cursor;

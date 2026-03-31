@@ -7,7 +7,7 @@ use chrono_tz::Tz;
 use opentalk_database::DbConnection;
 use opentalk_db_storage::{
     self as db,
-    queries::events::cursor::GetEventsCursor,
+    queries::events::types::GetEventsCursor,
     tables::{
         event_invites::{NewEventInvite, UpdateEventInvite},
         events::{Event, NewEvent},
