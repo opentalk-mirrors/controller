@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_database::DatabaseError;
-use opentalk_db_storage::module_resources::JsonOperationError;
+use opentalk_db_storage::queries::module_resources::types::JsonOperationError;
 use opentalk_inventory_common::error::InventoryBackendError;
 use snafu::Snafu;
 

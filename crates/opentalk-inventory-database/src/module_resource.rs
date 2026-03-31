@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_db_storage::module_resources::{self as db};
+use opentalk_db_storage as db;
 use opentalk_inventory::{
     ModuleResource, ModuleResourceFilter, ModuleResourceInventory, ModuleResourceOperation,
     NewModuleResource,
@@ -22,11 +22,12 @@ impl ModuleResourceInventory for DatabaseConnection {
         &mut self,
         resource: NewModuleResource,
     ) -> Result<ModuleResource> {
-        Ok(db::NewModuleResource::from(resource)
-            .insert(&mut self.inner)
-            .await
-            .context(DatabaseSnafu)?
-            .into())
+        Ok(
+            db::queries::module_resources::create_module_resource(&mut self.inner, resource.into())
+                .await
+                .context(DatabaseSnafu)?
+                .into(),
+        )
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -34,14 +35,15 @@ impl ModuleResourceInventory for DatabaseConnection {
         &mut self,
         resource_filter: ModuleResourceFilter,
     ) -> Result<Vec<ModuleResource>> {
-        Ok(
-            db::ModuleResource::get(&mut self.inner, resource_filter.into())
-                .await
-                .context(DatabaseSnafu)?
-                .into_iter()
-                .map(Into::into)
-                .collect(),
+        Ok(db::queries::module_resources::get_module_resource(
+            &mut self.inner,
+            resource_filter.into(),
         )
+        .await
+        .context(DatabaseSnafu)?
+        .into_iter()
+        .map(Into::into)
+        .collect())
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -49,7 +51,7 @@ impl ModuleResourceInventory for DatabaseConnection {
         &mut self,
     ) -> Result<Vec<(ModuleResourceId, UserId, UserId)>> {
         Ok(
-            db::ModuleResource::get_all_with_creator_and_owner(&mut self.inner)
+            db::queries::module_resources::get_all_module_resources(&mut self.inner)
                 .await
                 .context(DatabaseSnafu)?,
         )
@@ -61,14 +63,16 @@ impl ModuleResourceInventory for DatabaseConnection {
         resource_filter: ModuleResourceFilter,
         operations: Vec<ModuleResourceOperation>,
     ) -> Result<Vec<ModuleResource>> {
-        Ok(
-            db::ModuleResource::patch(&mut self.inner, resource_filter.into(), operations)
-                .await
-                .context(JsonOperationSnafu)?
-                .into_iter()
-                .map(Into::into)
-                .collect(),
+        Ok(db::queries::module_resources::patch_module_resources(
+            &mut self.inner,
+            resource_filter.into(),
+            operations,
         )
+        .await
+        .context(JsonOperationSnafu)?
+        .into_iter()
+        .map(Into::into)
+        .collect())
     }
 
     #[tracing::instrument(err, skip_all)]
@@ -77,7 +81,7 @@ impl ModuleResourceInventory for DatabaseConnection {
         room_id: RoomId,
     ) -> Result<Vec<ModuleResourceId>> {
         Ok(
-            db::ModuleResource::get_all_ids_for_room(&mut self.inner, room_id)
+            db::queries::module_resources::get_all_module_ids_for_room(&mut self.inner, room_id)
                 .await
                 .context(DatabaseSnafu)?,
         )
@@ -88,20 +92,26 @@ impl ModuleResourceInventory for DatabaseConnection {
         &mut self,
         resource_filter: ModuleResourceFilter,
     ) -> Result<Vec<ModuleResource>> {
-        Ok(
-            db::ModuleResource::delete(&mut self.inner, resource_filter.into())
-                .await
-                .context(DatabaseSnafu)?
-                .into_iter()
-                .map(Into::into)
-                .collect(),
+        Ok(db::queries::module_resources::delete_module_resources(
+            &mut self.inner,
+            resource_filter.into(),
         )
+        .await
+        .context(DatabaseSnafu)?
+        .into_iter()
+        .map(Into::into)
+        .collect())
     }
 
     #[tracing::instrument(err, skip_all)]
     async fn delete_all_module_resources_for_room(&mut self, room_id: RoomId) -> Result<()> {
-        Ok(db::ModuleResource::delete_by_room(&mut self.inner, room_id)
+        Ok(
+            db::queries::module_resources::delete_all_module_resources_for_room(
+                &mut self.inner,
+                room_id,
+            )
             .await
-            .context(DatabaseSnafu)?)
+            .context(DatabaseSnafu)?,
+        )
     }
 }

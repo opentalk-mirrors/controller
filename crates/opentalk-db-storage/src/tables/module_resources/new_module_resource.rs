@@ -2,13 +2,11 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
+use diesel::Insertable;
 use opentalk_inventory as inventory;
 use opentalk_types_common::{rooms::RoomId, tenants::TenantId, users::UserId};
 
-use crate::{schema::module_resources, tables::module_resources::ModuleResource};
+use crate::schema::module_resources;
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = module_resources)]
@@ -40,17 +38,5 @@ impl From<inventory::NewModuleResource> for NewModuleResource {
             tag,
             data,
         }
-    }
-}
-
-impl NewModuleResource {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn insert(self, conn: &mut DbConnection) -> Result<ModuleResource> {
-        let module: ModuleResource = diesel::insert_into(module_resources::table)
-            .values(self)
-            .get_result(conn)
-            .await?;
-
-        Ok(module)
     }
 }
