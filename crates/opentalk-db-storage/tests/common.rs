@@ -3,10 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_database::DbConnection;
-use opentalk_db_storage::{
-    self as db,
-    users::{NewUser, User},
-};
+use opentalk_db_storage as db;
 use opentalk_types_common::{tariffs::TariffStatus, users::UserTitle};
 
 pub async fn make_user(
@@ -14,7 +11,7 @@ pub async fn make_user(
     firstname: &str,
     lastname: &str,
     display_name: &str,
-) -> User {
+) -> db::tables::users::User {
     let tenant = db::queries::tenants::get_or_create_tenant_by_oidc_id(
         conn,
         &db::tables::tenants::OidcTenantId::from("default".to_owned()),
@@ -26,7 +23,7 @@ pub async fn make_user(
         .await
         .unwrap();
 
-    NewUser {
+    let new_user = db::tables::users::NewUser {
         email: format!(
             "{}.{}@example.org",
             firstname.to_lowercase(),
@@ -44,8 +41,9 @@ pub async fn make_user(
         tariff_id: tariff.id,
         tariff_status: TariffStatus::Default,
         timezone: None,
-    }
-    .insert(conn)
-    .await
-    .unwrap()
+    };
+
+    db::queries::users::create_user(conn, new_user)
+        .await
+        .unwrap()
 }

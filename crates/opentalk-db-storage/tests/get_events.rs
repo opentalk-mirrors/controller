@@ -12,8 +12,8 @@ use opentalk_db_storage::{
         event_invites::{NewEventInvite, UpdateEventInvite},
         events::{Event, NewEvent},
         rooms::NewRoom,
+        users::User,
     },
-    users::User,
 };
 use opentalk_types_common::{
     events::{

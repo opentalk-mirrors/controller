@@ -26,7 +26,6 @@ pub mod paginate;
 pub mod paginated;
 pub mod queries;
 pub mod tables;
-pub mod users;
 pub mod utils;
 
 define_sql_function!(fn lower(x: Text) -> Text);

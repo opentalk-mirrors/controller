@@ -19,8 +19,10 @@ use opentalk_types_common::{
 use crate::{
     paginate::Paginate as _,
     schema::{invites, users},
-    tables::invites::{Invite, NewInvite, UpdateInvite},
-    users::User,
+    tables::{
+        invites::{Invite, NewInvite, UpdateInvite},
+        users::User,
+    },
 };
 
 pub type InviteWithUsers = (Invite, User, User);

@@ -13,13 +13,14 @@ use opentalk_types_common::{
 };
 
 use crate::{
+    self as db,
     paginate::Paginate,
     schema::{events, rooms, users},
     tables::{
         rooms::{NewRoom, Room, UpdateRoom},
         tariffs::Tariff,
+        users::User,
     },
-    users::User,
 };
 
 /// Select a room using the given id
@@ -105,9 +106,9 @@ pub async fn get_all_orphaned_room_ids(conn: &mut DbConnection) -> Result<Vec<Ro
 /// Get the room's tariff
 #[tracing::instrument(err, skip_all)]
 pub async fn get_tariff(conn: &mut DbConnection, room: Room) -> Result<Tariff> {
-    let user = User::get(conn, room.created_by).await?;
+    let user = db::queries::users::get_user(conn, room.created_by).await?;
 
-    crate::queries::tariffs::get_tariff(conn, user.tariff_id).await
+    db::queries::tariffs::get_tariff(conn, user.tariff_id).await
 }
 
 /// Delete a room using the given id
