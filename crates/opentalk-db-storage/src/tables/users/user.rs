@@ -14,7 +14,10 @@ use opentalk_types_common::{
     users::{DisplayName, Language, Theme, UserId, UserTitle},
 };
 
-use crate::{newtypes::LanguageIdentifier, schema::users, tables::users::SerialUserId};
+use crate::{
+    schema::users,
+    tables::users::{LanguageIdentifier, SerialUserId},
+};
 
 /// Diesel user struct
 ///
