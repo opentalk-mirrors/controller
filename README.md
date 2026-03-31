@@ -26,12 +26,20 @@ See the [migration guide](docs/admin/migration.md) for information about upgradi
 
 ## Build the container image
 
-The `Dockerfile` is located at `container/Dockerfile`.
-
-To build the image, execute in the root of the repository:
+If you just want an image, that can be created with:
 
 ```bash
-docker build -f container/Dockerfile . --tag <your tag>
+docker build . --tag <your tag>
+```
+
+If required, the image can be built with one of a small set of different base
+images, a `Dockerfile-<baseimage>` is located in the root directory of this
+project for each of them. `Dockerfile` is a symlink to the latest default image.
+
+To build the image with a specific base image, execute in the root of the repository:
+
+```bash
+docker build -f Dockerfile-<baseimage> . --tag <your tag>
 ```
 
 ## Sub-crates
