@@ -5,10 +5,13 @@
 use chrono::{DateTime, Utc};
 use diesel::{BoolExpressionMethods, ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
+use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::events::EventId;
 
-use crate::{schema::event_exceptions, tables::event_exceptions::EventException};
+use crate::{
+    schema::event_exceptions,
+    tables::event_exceptions::{EventException, EventExceptionId, UpdateEventException},
+};
 
 #[tracing::instrument(err, skip_all)]
 pub async fn get_event_exception(
@@ -60,4 +63,19 @@ pub async fn delete_event_exceptions_for_event(
         .await?;
 
     Ok(())
+}
+
+#[tracing::instrument(err, skip_all)]
+pub async fn update_event_exception(
+    conn: &mut DbConnection,
+    update_event_exception: UpdateEventException,
+    event_exception_id: EventExceptionId,
+) -> Result<EventException> {
+    diesel::update(event_exceptions::table)
+        .filter(event_exceptions::id.eq(event_exception_id))
+        .set(update_event_exception)
+        .returning(event_exceptions::all_columns)
+        .get_result(conn)
+        .await
+        .map_err(DatabaseError::from)
 }

@@ -4,19 +4,13 @@
 
 use chrono::DateTime;
 use chrono_tz::Tz;
-use diesel::ExpressionMethods;
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
 use opentalk_types_common::{
     events::{EventDescription, EventTitle},
     time::TimeZone,
 };
 
-use crate::{
-    schema::event_exceptions,
-    tables::event_exceptions::{EventException, EventExceptionId, EventExceptionKind},
-};
+use crate::{schema::event_exceptions, tables::event_exceptions::EventExceptionKind};
 
 #[derive(AsChangeset, Debug)]
 #[diesel(table_name = event_exceptions)]
@@ -54,23 +48,5 @@ impl From<inventory::UpdateEventException> for UpdateEventException {
             ends_at,
             ends_at_tz,
         }
-    }
-}
-
-impl UpdateEventException {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn apply(
-        self,
-        conn: &mut DbConnection,
-        event_exception_id: EventExceptionId,
-    ) -> Result<EventException> {
-        let query = diesel::update(event_exceptions::table)
-            .filter(event_exceptions::id.eq(event_exception_id))
-            .set(self)
-            .returning(event_exceptions::all_columns);
-
-        let exception = query.get_result(conn).await?;
-
-        Ok(exception)
     }
 }
