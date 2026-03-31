@@ -404,8 +404,7 @@ impl EventInventory for DatabaseConnection {
         event_exception: NewEventException,
     ) -> Result<EventException> {
         Ok(
-            db::tables::event_exceptions::NewEventException::from(event_exception)
-                .insert(&mut self.inner)
+            db::queries::events::create_event_exception(&mut self.inner, event_exception.into())
                 .await
                 .context(DatabaseSnafu)?
                 .into(),

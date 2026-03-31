@@ -5,8 +5,6 @@
 use chrono::{DateTime, Utc};
 use chrono_tz::Tz;
 use diesel::Insertable;
-use diesel_async::RunQueryDsl;
-use opentalk_database::{DbConnection, Result};
 use opentalk_inventory as inventory;
 use opentalk_types_common::{
     events::{EventDescription, EventId, EventTitle},
@@ -14,10 +12,7 @@ use opentalk_types_common::{
     users::UserId,
 };
 
-use crate::{
-    schema::event_exceptions,
-    tables::event_exceptions::{EventException, EventExceptionKind},
-};
+use crate::{schema::event_exceptions, tables::event_exceptions::EventExceptionKind};
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = event_exceptions)]
@@ -34,17 +29,6 @@ pub struct NewEventException {
     pub starts_at_tz: Option<TimeZone>,
     pub ends_at: Option<DateTime<Tz>>,
     pub ends_at_tz: Option<TimeZone>,
-}
-
-impl NewEventException {
-    #[tracing::instrument(err, skip_all)]
-    pub async fn insert(self, conn: &mut DbConnection) -> Result<EventException> {
-        let query = self.insert_into(event_exceptions::table);
-
-        let event_exception = query.get_result(conn).await?;
-
-        Ok(event_exception)
-    }
 }
 
 impl From<NewEventException> for inventory::NewEventException {
