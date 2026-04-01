@@ -20,7 +20,6 @@ mod macros;
 mod schema;
 
 pub mod migrations;
-pub mod module_resources;
 pub mod paginate;
 pub mod paginated;
 pub mod queries;
