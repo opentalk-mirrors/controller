@@ -5,7 +5,10 @@
 use diesel::prelude::*;
 use opentalk_inventory as inventory;
 
-use crate::{newtypes::Duration, schema::event_training_participation_report_parameter_sets};
+use crate::{
+    schema::event_training_participation_report_parameter_sets,
+    tables::event_training_participation_report_parameter_sets::Duration,
+};
 
 #[derive(AsChangeset)]
 #[diesel(table_name = event_training_participation_report_parameter_sets)]

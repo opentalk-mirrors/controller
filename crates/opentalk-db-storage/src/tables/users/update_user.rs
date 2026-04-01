@@ -11,7 +11,7 @@ use opentalk_types_common::{
     users::{DisplayName, Theme, UserTitle},
 };
 
-use crate::{newtypes::LanguageIdentifier, schema::users};
+use crate::{schema::users, tables::users::LanguageIdentifier};
 
 /// Diesel user struct for updates
 ///
