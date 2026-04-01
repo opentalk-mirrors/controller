@@ -11,7 +11,6 @@ use opentalk_controller_settings::{Settings, UserSearchBackend, UserSearchBacken
 use opentalk_inventory::InventoryProvider;
 use opentalk_keycloak_admin::{AuthorizedClient, KeycloakAdminClient};
 use opentalk_log::{debug, info};
-use opentalk_signaling_core::ExchangeHandle;
 use serde::{Deserialize, Serialize};
 use snafu::{ResultExt, ensure};
 
@@ -58,7 +57,6 @@ impl Job for KeycloakAccountSync {
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
         _authz: Authz,
-        _exchange_handle: ExchangeHandle,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {

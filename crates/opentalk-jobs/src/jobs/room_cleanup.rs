@@ -10,7 +10,7 @@ use log::Log;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{Inventory, InventoryProvider};
 use opentalk_log::{debug, info};
-use opentalk_signaling_core::{ExchangeHandle, ObjectStorage};
+use opentalk_signaling_core::ObjectStorage;
 use opentalk_types_common::rooms::RoomId;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
@@ -48,7 +48,6 @@ impl Job for RoomCleanup {
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
         authz: Authz,
-        exchange_handle: ExchangeHandle,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {
@@ -70,7 +69,6 @@ impl Job for RoomCleanup {
             logger,
             inventory.as_mut(),
             &authz,
-            exchange_handle,
             settings,
             &object_storage,
             orphaned_rooms,

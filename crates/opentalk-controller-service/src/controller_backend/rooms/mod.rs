@@ -17,19 +17,10 @@ use opentalk_controller_utils::{
     deletion::{Deleter, RoomDeleter},
 };
 use opentalk_inventory::{NewRoom, NewRoomSipConfig, Room, UpdateRoom, utils::build_event_info};
-use opentalk_signaling_core::Participant;
-use opentalk_signaling_module_breakout::BreakoutStorageProvider as _;
-use opentalk_signaling_module_moderation::ModerationStorageProvider as _;
 use opentalk_types_api_v1::{
     error::{ApiError, ERROR_CODE_INVALID_VALUE, ValidationErrorEntry},
     pagination::PagePaginationQuery,
-    rooms::{
-        GetRoomsResponseBody, RoomResource,
-        by_room_id::{
-            GetRoomEventResponseBody, PostRoomsStartInvitedRequestBody, PostRoomsStartRequestBody,
-            RoomsStartResponseBody,
-        },
-    },
+    rooms::{GetRoomsResponseBody, RoomResource, by_room_id::GetRoomEventResponseBody},
 };
 use opentalk_types_common::{
     features::{self, GUESTS_ALLOWED_FEATURE_ID},
@@ -40,9 +31,7 @@ use opentalk_types_common::{
     users::UserId,
 };
 
-use crate::{
-    ControllerBackend, ToUserProfile, signaling::ticket::start_or_continue_signaling_session,
-};
+use crate::{ControllerBackend, ToUserProfile};
 
 pub mod roomserver;
 
@@ -195,7 +184,6 @@ impl ControllerBackend {
                 inventory.as_mut(),
                 &self.authz,
                 Some(current_user.id),
-                self.exchange_handle.clone(),
                 &settings,
                 &self.storage,
             )
@@ -281,102 +269,6 @@ impl ControllerBackend {
             }
             None => Err(ApiError::not_found().into()),
         }
-    }
-
-    pub(crate) async fn start_room_session(
-        &self,
-        current_user: RequestUser,
-        room_id: RoomId,
-        request: PostRoomsStartRequestBody,
-    ) -> Result<RoomsStartResponseBody, CaptureApiError> {
-        if self.settings_provider.get().roomserver.is_some() {
-            return Err(StartRoomError::LegacySignalingDisabled.into());
-        }
-
-        let mut inventory = self.inventory_provider.get_inventory().await?;
-        let mut volatile = self.volatile.clone();
-
-        let room = inventory.get_room(room_id).await?;
-
-        // check if user is banned from room
-        if volatile
-            .moderation_storage()
-            .is_user_banned(room.id, current_user.id)
-            .await
-            .map_err(Into::<ApiError>::into)?
-        {
-            return Err(StartRoomError::BannedFromRoom.into());
-        }
-
-        if let Some(breakout_room) = request.breakout_room {
-            let config = volatile
-                .breakout_storage()
-                .get_breakout_config(room.id)
-                .await
-                .map_err(Into::<ApiError>::into)?;
-
-            if let Some(config) = config {
-                if !config.is_valid_id(breakout_room) {
-                    return Err(StartRoomError::InvalidBreakoutRoomId.into());
-                }
-            } else {
-                return Err(StartRoomError::NoBreakoutRooms.into());
-            }
-        }
-
-        let (ticket, resumption) = start_or_continue_signaling_session(
-            &mut volatile,
-            current_user.id.into(),
-            room_id,
-            request.breakout_room,
-            request.resumption,
-        )
-        .await?;
-
-        Ok(RoomsStartResponseBody { ticket, resumption })
-    }
-
-    pub(crate) async fn start_invited_room_session(
-        &self,
-        room_id: RoomId,
-        request: PostRoomsStartInvitedRequestBody,
-    ) -> Result<RoomsStartResponseBody, CaptureApiError> {
-        if self.settings_provider.get().roomserver.is_some() {
-            return Err(StartRoomError::LegacySignalingDisabled.into());
-        }
-
-        let room = self
-            .authenticate_guest(&room_id, &request.invite_code, &request.password)
-            .await?;
-
-        let mut volatile = self.volatile.clone();
-
-        if let Some(breakout_room) = request.breakout_room {
-            let config = volatile
-                .breakout_storage()
-                .get_breakout_config(room.id)
-                .await
-                .map_err(Into::<ApiError>::into)?;
-
-            if let Some(config) = config {
-                if !config.is_valid_id(breakout_room) {
-                    return Err(StartRoomError::InvalidBreakoutRoomId.into());
-                }
-            } else {
-                return Err(StartRoomError::NoBreakoutRooms.into());
-            }
-        }
-
-        let (ticket, resumption) = start_or_continue_signaling_session(
-            &mut volatile,
-            Participant::Guest,
-            room_id,
-            request.breakout_room,
-            request.resumption,
-        )
-        .await?;
-
-        Ok(RoomsStartResponseBody { ticket, resumption })
     }
 
     /// Check the provided invite code and room password

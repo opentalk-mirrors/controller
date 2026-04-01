@@ -7,7 +7,6 @@ use std::{sync::Arc, time::Duration};
 use kustos::Authz;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{Inventory, InventoryProvider};
-use opentalk_signaling_core::ExchangeHandle;
 use snafu::{ResultExt, Snafu};
 use tokio::{
     sync::broadcast,
@@ -75,7 +74,6 @@ impl JobRunner {
         authz: Authz,
         shutdown: broadcast::Receiver<()>,
         settings: Arc<Settings>,
-        exchange_handle: ExchangeHandle,
     ) -> Result<(), JobRunnerError> {
         log::info!("Starting JobRunner");
 
@@ -107,7 +105,6 @@ impl JobRunner {
             inventory_provider.clone(),
             authz.clone(),
             settings.clone(),
-            exchange_handle.clone(),
         )
         .await;
 

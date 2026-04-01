@@ -11,7 +11,6 @@ use log::Log;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::InventoryProvider;
 use opentalk_log::{debug, error, info};
-use opentalk_signaling_core::ExchangeHandle;
 use serde::{Deserialize, Serialize};
 use snafu::{Report, ResultExt};
 
@@ -52,7 +51,6 @@ impl Job for UserCleanup {
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
         authz: Authz,
-        exchange_handle: ExchangeHandle,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {
@@ -73,7 +71,6 @@ impl Job for UserCleanup {
             logger,
             inventory_provider,
             authz,
-            exchange_handle,
             settings,
             parameters.fail_on_shared_folder_deletion_error,
             DeleteSelector::DisabledBefore(delete_before.into()),
@@ -103,7 +100,6 @@ mod tests {
     use opentalk_inventory::{
         Event, Inventory, InventoryProvider as _, UpdateEvent, UpdateUser, User,
     };
-    use opentalk_signaling_core::ExchangeHandle;
     use opentalk_test_util::database::DatabaseContext;
     use opentalk_types_common::{events::EventId, time::Timestamp, users::UserId};
 
@@ -201,8 +197,6 @@ mod tests {
         let updated_by =
             set_disabled_since(inventory.as_mut(), updated_by.id, disabled_since).await;
 
-        let exchange_handle = ExchangeHandle::dummy();
-
         // User::get filters disabled users
         let user_exists = inventory
             .get_all_users()
@@ -218,7 +212,6 @@ mod tests {
             logger(),
             db_ctx.inventory_provider.clone(),
             authz,
-            exchange_handle,
             &settings,
             serde_json::from_str("{}").unwrap(),
         )
@@ -255,8 +248,6 @@ mod tests {
             .unwrap();
         let inviter = set_disabled_since(inventory.as_mut(), user.id, disabled_since).await;
 
-        let exchange_handle = ExchangeHandle::dummy();
-
         // User::get filters disabled users
         let user_exists = inventory
             .get_all_users()
@@ -272,7 +263,6 @@ mod tests {
             logger(),
             db_ctx.inventory_provider.clone(),
             authz,
-            exchange_handle,
             &settings,
             serde_json::from_str("{}").unwrap(),
         )

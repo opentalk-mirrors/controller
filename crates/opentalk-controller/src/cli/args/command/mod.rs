@@ -5,7 +5,6 @@
 use std::path::Path;
 
 use clap::Subcommand;
-use opentalk_signaling_modules::Modules;
 
 use crate::Result;
 
@@ -86,7 +85,7 @@ impl Command {
                 command.exec(optional_config_path).await?;
             }
             Command::Modules(command) => {
-                command.exec::<Modules>()?;
+                command.exec()?;
             }
             Command::Openapi(command) => {
                 command.exec()?;

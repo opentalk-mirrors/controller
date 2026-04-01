@@ -6,7 +6,6 @@ use std::{path::Path, sync::Arc, time::Duration};
 
 use clap::Subcommand;
 use kustos::Authz;
-use lapin_pool::RabbitMqPool;
 use log::Log;
 use opentalk_controller_core::load_settings_provider;
 use opentalk_controller_settings::Settings;
@@ -14,7 +13,6 @@ use opentalk_database::Db;
 use opentalk_inventory::{InventoryProvider, JobType};
 use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_jobs::Job;
-use opentalk_signaling_core::{ExchangeHandle, ExchangeTask};
 use serde_json::json;
 use snafu::{ResultExt, ensure_whatever};
 
@@ -101,21 +99,6 @@ async fn execute_job(
         serde_json::from_str(&parameters).whatever_context("Failed to serialize parameter")?;
     ensure_whatever!(parameters.is_object(), "Parameters must be a JSON object");
 
-    let rabbitmq_pool = settings.rabbit_mq.as_ref().map(|config| {
-        RabbitMqPool::from_config(
-            &config.url,
-            config.min_connections,
-            config.max_channels_per_connection,
-        )
-    });
-    let exchange_handle = match (settings.redis.is_some(), &rabbitmq_pool) {
-        (true, Some(rabbitmq_pool)) => ExchangeTask::spawn_with_rabbitmq(rabbitmq_pool.clone())
-            .await
-            .whatever_context("Failed to spawn exchange task")?,
-        _ => ExchangeTask::spawn()
-            .await
-            .whatever_context("Failed to spawn exchange task")?,
-    };
     let inventory_provider = Arc::new(DatabaseConnectionPool::new(db));
 
     let authz = Authz::new(inventory_provider.clone())
@@ -126,7 +109,6 @@ async fn execute_job(
         logger: &logger,
         inventory_provider,
         authz,
-        exchange_handle,
         settings: &settings,
         parameters,
         timeout,
@@ -218,7 +200,6 @@ struct JobExecutionData<'a> {
     logger: &'a dyn Log,
     inventory_provider: Arc<dyn InventoryProvider>,
     authz: Authz,
-    exchange_handle: ExchangeHandle,
     settings: &'a Settings,
     parameters: serde_json::Value,
     timeout: Duration,
@@ -231,7 +212,6 @@ impl JobExecutionData<'_> {
             self.logger,
             self.inventory_provider,
             self.authz,
-            self.exchange_handle,
             self.settings,
             self.parameters,
             self.timeout,

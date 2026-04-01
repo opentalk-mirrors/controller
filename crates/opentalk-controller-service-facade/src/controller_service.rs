@@ -43,8 +43,7 @@ use opentalk_types_api_v1::{
         GetRoomsResponseBody, RoomResource,
         by_room_id::{
             GetRoomEventResponseBody, PostRoomsRoomserverStartInvitedRequestBody,
-            PostRoomsRoomserverStartRequestBody, PostRoomsStartInvitedRequestBody,
-            PostRoomsStartRequestBody, RoomsStartResponseBody, RoomserverStartResponseBody,
+            PostRoomsRoomserverStartRequestBody, RoomserverStartResponseBody,
             assets::RoomsByRoomIdAssetsGetResponseBody,
             invites::{
                 GetRoomsInvitesResponseBody, InviteResource, PostInviteRequestBody,
@@ -149,21 +148,6 @@ pub trait OpenTalkControllerService: Send + Sync {
         room_id: &RoomId,
         invite_code: Option<InviteCode>,
     ) -> Result<GetRoomEventResponseBody, ApiError>;
-
-    /// Start a signaling session as a registered user
-    async fn start_room_session(
-        &self,
-        current_user: RequestUser,
-        room_id: RoomId,
-        request: PostRoomsStartRequestBody,
-    ) -> Result<RoomsStartResponseBody, ApiError>;
-
-    /// Start a signaling session for an invitation code
-    async fn start_invited_room_session(
-        &self,
-        room_id: RoomId,
-        request: PostRoomsStartInvitedRequestBody,
-    ) -> Result<RoomsStartResponseBody, ApiError>;
 
     /// Start a roomserver signaling session as a registered user
     async fn start_roomserver_room_session(

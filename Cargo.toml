@@ -32,26 +32,6 @@ opentalk-kustos-inventory = { path = "crates/opentalk-kustos-inventory", version
 opentalk-log = { path = "crates/opentalk-log", version = "0.33.0" }
 opentalk-r3dlock = { path = "crates/opentalk-r3dlock", version = "0.33.0" }
 opentalk-signaling-core = { path = "crates/opentalk-signaling-core", version = "0.33.0" }
-opentalk-signaling-module-asset-storage = { path = "crates/opentalk-signaling-module-asset-storage", version = "0.33.0" }
-opentalk-signaling-module-automod = { path = "crates/opentalk-signaling-module-automod", version = "0.33.0" }
-opentalk-signaling-module-breakout = { path = "crates/opentalk-signaling-module-breakout", version = "0.33.0" }
-opentalk-signaling-module-chat = { path = "crates/opentalk-signaling-module-chat", version = "0.33.0" }
-opentalk-signaling-module-core = { path = "crates/opentalk-signaling-module-core", version = "0.33.0" }
-opentalk-signaling-module-e2ee = { path = "crates/opentalk-signaling-module-e2ee", version = "0.33.0" }
-opentalk-signaling-module-echo = { path = "crates/opentalk-signaling-module-echo", version = "0.33.0" }
-opentalk-signaling-module-legal-vote = { path = "crates/opentalk-signaling-module-legal-vote", version = "0.33.0" }
-opentalk-signaling-module-livekit = { path = "crates/opentalk-signaling-module-livekit", version = "0.33.0" }
-opentalk-signaling-module-meeting-notes = { path = "crates/opentalk-signaling-module-meeting-notes", version = "0.33.0" }
-opentalk-signaling-module-meeting-report = { path = "crates/opentalk-signaling-module-meeting-report", version = "0.33.0" }
-opentalk-signaling-module-moderation = { path = "crates/opentalk-signaling-module-moderation", version = "0.33.0" }
-opentalk-signaling-module-polls = { path = "crates/opentalk-signaling-module-polls", version = "0.33.0" }
-opentalk-signaling-module-recording = { path = "crates/opentalk-signaling-module-recording", version = "0.33.0" }
-opentalk-signaling-module-shared-folder = { path = "crates/opentalk-signaling-module-shared-folder", version = "0.33.0" }
-opentalk-signaling-module-subroom-audio = { path = "crates/opentalk-signaling-module-subroom-audio", version = "0.33.0" }
-opentalk-signaling-module-timer = { path = "crates/opentalk-signaling-module-timer", version = "0.33.0" }
-opentalk-signaling-module-training-participation-report = { path = "crates/opentalk-signaling-module-training-participation-report", version = "0.33.0" }
-opentalk-signaling-module-whiteboard = { path = "crates/opentalk-signaling-module-whiteboard", version = "0.33.0" }
-opentalk-signaling-modules = { path = "crates/opentalk-signaling-modules", version = "0.33.0" }
 opentalk-test-util = { path = "crates/opentalk-test-util", version = "0.33.0" }
 
 actix-http = "3"
@@ -98,9 +78,6 @@ kustos-shared = "0.32"
 language-tags = "0.3.2"
 lapin = { version = "2", default-features = false }
 lapin-pool = "0.1"
-livekit-api = { version = "0.4", features = ["rustls-tls-native-roots"] }
-livekit-protocol = "0.7.0"
-livekit-runtime = { version = "0.4", default-features = false }
 log = "0.4"
 md5 = "0.8"
 oauth2 = "5.0.0"
@@ -112,6 +89,7 @@ opentalk-mail-worker-protocol = "0.43.0"
 opentalk-nextcloud-client = "0.3.0"
 opentalk-report-generation = "0.2.0"
 opentalk-roomserver-client = "0.0.31"
+opentalk-roomserver-modules = "0.0.31"
 opentalk-roomserver-types = "0.0.31"
 opentalk-roomserver-types-livekit = "0.0.31"
 opentalk-roomserver-types-training-participation-report = "0.0.31"
@@ -134,8 +112,6 @@ opentalk-types-signaling-moderation = "0.43.0"
 opentalk-types-signaling-polls = "0.43.0"
 opentalk-types-signaling-recording = "0.43.0"
 opentalk-types-signaling-recording-service = "0.43.0"
-opentalk-types-signaling-shared-folder = "0.43.0"
-opentalk-types-signaling-subroom-audio = "0.43.1"
 opentalk-types-signaling-timer = "0.43.0"
 opentalk-types-signaling-training-participation-report = "0.14.0"
 opentalk-types-signaling-whiteboard = "0.43.0"

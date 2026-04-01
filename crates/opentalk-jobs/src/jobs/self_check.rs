@@ -10,7 +10,6 @@ use log::Log;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::InventoryProvider;
 use opentalk_log::{debug, error, info, trace, warn};
-use opentalk_signaling_core::ExchangeHandle;
 
 use crate::{Error, Job};
 
@@ -26,7 +25,6 @@ impl Job for SelfCheck {
         logger: &dyn Log,
         _inventory_provider: Arc<dyn InventoryProvider>,
         _authz: Authz,
-        _exchange_handle: ExchangeHandle,
         _settings: &Settings,
         _parameters: Self::Parameters,
     ) -> Result<(), Error> {

@@ -10,10 +10,9 @@ use kustos_shared::access::AccessMethod;
 use log::Log;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{EventSharedFolder, Inventory, transaction};
-use opentalk_log::{debug, warn};
-use opentalk_signaling_core::{ExchangeHandle, ObjectStorage, assets::asset_key, control};
+use opentalk_log::debug;
+use opentalk_signaling_core::{ObjectStorage, assets::asset_key};
 use opentalk_types_common::{assets::AssetId, events::EventId, users::UserId};
-use opentalk_types_signaling::NamespacedEvent;
 use snafu::{ResultExt, ensure};
 
 use super::{Deleter, Error, shared_folders::delete_shared_folders};
@@ -132,31 +131,13 @@ impl Deleter for EventDeleter {
         prepared_commit: &Self::PreparedCommit,
         logger: &dyn Log,
         inventory: &mut dyn Inventory,
-        exchange_handle: ExchangeHandle,
         settings: &Settings,
     ) -> Result<(), Error> {
         let event = inventory.get_event(self.event_id).await?;
-        let room_id = event.room;
+        let _room_id = event.room;
 
-        let message = NamespacedEvent {
-            module: control::MODULE_ID,
-            timestamp: opentalk_types_common::time::Timestamp::now(),
-            payload: control::exchange::Message::RoomDeleted,
-        };
-
-        let message_ttl_milliseconds = settings
-            .rabbit_mq
-            .as_ref()
-            .map(|v| v.message_ttl_milliseconds())
-            .unwrap_or_default();
-
-        if let Err(e) = exchange_handle.publish(
-            control::exchange::global_room_all_participants(room_id),
-            message_ttl_milliseconds,
-            serde_json::to_string(&message).expect("Failed to convert namespaced to json"),
-        ) {
-            warn!(log: logger, "Failed to publish message to exchange, {}", e);
-        }
+        // TODO: send RoomDeleted to roomserver API
+        // See: https://git.opentalk.dev/opentalk/backend/services/controller/-/work_items/1340
 
         delete_shared_folders(
             logger,

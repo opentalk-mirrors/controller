@@ -10,7 +10,7 @@ use log::Log;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{Inventory, transaction};
 use opentalk_log::debug;
-use opentalk_signaling_core::{ExchangeHandle, ObjectStorage};
+use opentalk_signaling_core::ObjectStorage;
 use opentalk_types_common::users::UserId;
 
 use super::{Deleter, Error};
@@ -56,7 +56,6 @@ impl Deleter for UserDeleter {
         _prepared_commit: &Self::PreparedCommit,
         _logger: &dyn Log,
         _inventory: &mut dyn Inventory,
-        _exchange_handle: ExchangeHandle,
         _settings: &Settings,
     ) -> Result<(), Error> {
         Ok(())

@@ -16,7 +16,7 @@ use opentalk_controller_utils::{
 };
 use opentalk_inventory::{Inventory, InventoryProvider, UpdateUser, User};
 use opentalk_log::{debug, info, warn};
-use opentalk_signaling_core::{ExchangeHandle, ObjectStorage};
+use opentalk_signaling_core::ObjectStorage;
 use opentalk_types_common::{events::EventId, rooms::RoomId, time::Timestamp, users::UserId};
 use snafu::Report;
 
@@ -33,7 +33,6 @@ pub(crate) async fn perform_deletion(
     logger: &dyn Log,
     inventory_provider: Arc<dyn InventoryProvider>,
     authz: Authz,
-    exchange_handle: ExchangeHandle,
     settings: &Settings,
     fail_on_shared_folder_deletion_error: bool,
     delete_selector: DeleteSelector,
@@ -45,7 +44,6 @@ pub(crate) async fn perform_deletion(
         logger,
         inventory.as_mut(),
         &authz,
-        exchange_handle.clone(),
         settings,
         &object_storage,
         fail_on_shared_folder_deletion_error,
@@ -57,7 +55,6 @@ pub(crate) async fn perform_deletion(
         logger,
         inventory.as_mut(),
         &authz,
-        exchange_handle,
         settings,
         &object_storage,
         orphaned_rooms,
@@ -77,7 +74,6 @@ async fn delete_events(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     authz: &Authz,
-    exchange_handle: ExchangeHandle,
     settings: &Settings,
     object_storage: &ObjectStorage,
     fail_on_shared_folder_deletion_error: bool,
@@ -92,7 +88,6 @@ async fn delete_events(
         logger,
         inventory,
         authz,
-        exchange_handle,
         settings,
         object_storage,
         fail_on_shared_folder_deletion_error,
@@ -108,7 +103,6 @@ pub(crate) async fn delete_event_candidates(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     authz: &Authz,
-    exchange_handle: ExchangeHandle,
     settings: &Settings,
     object_storage: &ObjectStorage,
     fail_on_shared_folder_deletion_error: bool,
@@ -126,15 +120,7 @@ pub(crate) async fn delete_event_candidates(
         let deleter = EventDeleter::new(event_id, fail_on_shared_folder_deletion_error);
 
         if let Err(e) = deleter
-            .perform(
-                logger,
-                inventory,
-                authz,
-                None,
-                exchange_handle.clone(),
-                settings,
-                object_storage,
-            )
+            .perform(logger, inventory, authz, None, settings, object_storage)
             .await
         {
             warn!(log: logger, "Failed deletion: {}", Report::from_error(e));
@@ -165,7 +151,6 @@ pub(crate) async fn delete_orphaned_rooms(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     authz: &Authz,
-    exchange_handle: ExchangeHandle,
     settings: &Settings,
     object_storage: &ObjectStorage,
     orphaned_rooms: HashSet<RoomId>,
@@ -183,15 +168,7 @@ pub(crate) async fn delete_orphaned_rooms(
         let deleter = RoomDeleter::new(room_id, fail_on_shared_folder_deletion_error);
 
         if let Err(e) = deleter
-            .perform(
-                logger,
-                inventory,
-                authz,
-                None,
-                exchange_handle.clone(),
-                settings,
-                object_storage,
-            )
+            .perform(logger, inventory, authz, None, settings, object_storage)
             .await
         {
             warn!(log: logger, "Failed deletion: {}", Report::from_error(e));

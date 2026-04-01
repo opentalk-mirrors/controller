@@ -10,7 +10,6 @@ use build_info::BuildInfo;
 use clap::Parser;
 use command::Command;
 use opentalk_controller_core::Controller;
-use opentalk_signaling_modules::Modules;
 use opentalk_version::InfoArgs;
 
 use crate::Result;
@@ -65,7 +64,7 @@ impl Args {
         if let Some(command) = self.cmd {
             command.exec(self.config.as_deref()).await?;
         } else {
-            let controller = Controller::create::<Modules>(self.config).await?;
+            let controller = Controller::create(self.config).await?;
             controller.run().await?;
         }
 

@@ -33,8 +33,6 @@ opentalk-nextcloud-client.workspace = true
 opentalk-signaling-core.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["actix"] }
 opentalk-types-common = { workspace = true, features = ["kustos"] }
-opentalk-types-signaling.workspace = true
 rand.workspace = true
 rrule.workspace = true
-serde_json.workspace = true
 snafu.workspace = true

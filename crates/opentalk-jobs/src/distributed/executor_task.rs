@@ -13,7 +13,6 @@ use opentalk_controller_settings::Settings;
 use opentalk_inventory::{
     InventoryProvider, JobId, JobStatus, JobType, NewJobExecution, UpdateJobExecution,
 };
-use opentalk_signaling_core::ExchangeHandle;
 use opentalk_types_common::time::Timestamp;
 use snafu::{ResultExt, Snafu};
 use tokio::{sync::oneshot, task::JoinHandle, time::interval};
@@ -91,7 +90,9 @@ pub struct JobExecutorHandle {
     settings: Arc<Settings>,
     inventory_provider: Arc<dyn InventoryProvider>,
     authz: Authz,
-    exchange_handle: ExchangeHandle,
+    // TODO: add roomserver connection
+    // See: https://git.opentalk.dev/opentalk/backend/services/controller/-/work_items/1340
+    //
     /// Handle to the inner JobExecutor task
     inner_handle: Option<InnerHandle>,
 }
@@ -109,14 +110,12 @@ impl JobExecutorHandle {
         inventory_provider: Arc<dyn InventoryProvider>,
         authz: Authz,
         settings: Arc<Settings>,
-        exchange_handle: ExchangeHandle,
     ) -> Self {
         Self {
             etcd_urls,
             settings,
             inventory_provider,
             authz,
-            exchange_handle,
             inner_handle: None,
         }
     }
@@ -135,7 +134,6 @@ impl JobExecutorHandle {
             self.inventory_provider.clone(),
             self.authz.clone(),
             self.settings.clone(),
-            self.exchange_handle.clone(),
         )
         .await?;
 
@@ -179,7 +177,8 @@ pub(crate) struct JobExecutor {
     settings: Arc<Settings>,
     inventory_provider: Arc<dyn InventoryProvider>,
     authz: Authz,
-    exchange_handle: ExchangeHandle,
+    // TODO: add roomserver connection
+    // See: https://git.opentalk.dev/opentalk/backend/services/controller/-/work_items/1340
     client: Client,
     lease_id: i64,
     keep_alive_handle: JoinHandle<Result<(), ExecutorError>>,
@@ -192,7 +191,6 @@ impl JobExecutor {
         inventory_provider: Arc<dyn InventoryProvider>,
         authz: Authz,
         settings: Arc<Settings>,
-        exchange_handle: ExchangeHandle,
     ) -> Result<InnerHandle, ExecutorError> {
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
 
@@ -206,7 +204,6 @@ impl JobExecutor {
             settings,
             inventory_provider,
             authz,
-            exchange_handle,
             client,
             lease_id,
             keep_alive_handle,
@@ -361,7 +358,6 @@ impl JobExecutor {
             logger: &logger,
             inventory_provider: self.inventory_provider.clone(),
             authz: self.authz.clone(),
-            exchange_handle: self.exchange_handle.clone(),
             settings: self.settings.clone(),
             parameters: job.parameters,
             timeout: Duration::from_secs(job.timeout_secs.max(0) as u64),
@@ -571,7 +567,8 @@ struct JobExecutionData<'a> {
     logger: &'a ExecutionLogger,
     inventory_provider: Arc<dyn InventoryProvider>,
     authz: Authz,
-    exchange_handle: ExchangeHandle,
+    // TODO: add roomserver connection
+    // See: https://git.opentalk.dev/opentalk/backend/services/controller/-/work_items/1340
     settings: Arc<Settings>,
     parameters: serde_json::Value,
     timeout: Duration,
@@ -584,7 +581,6 @@ impl JobExecutionData<'_> {
             self.logger,
             self.inventory_provider,
             self.authz,
-            self.exchange_handle,
             &self.settings,
             self.parameters,
             self.timeout,

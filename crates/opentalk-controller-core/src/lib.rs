@@ -15,7 +15,6 @@ use std::{
 
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, Scope, web, web::Data};
-use api::signaling::SignalingModules;
 use kustos::Authz;
 use lapin_pool::RabbitMqPool;
 use opentalk_controller_api_actix_web::{v1, well_known};
@@ -36,11 +35,7 @@ use opentalk_jobs::job_runner::JobRunner;
 use opentalk_keycloak_admin::{AuthorizedClient, KeycloakAdminClient};
 use opentalk_roomserver_client::Client as RoomServerClient;
 use opentalk_service_auth::service::ApiKeyAuthorization;
-use opentalk_signaling_core::{
-    ExchangeHandle, ExchangeTask, ModulesRegistrar, ObjectStorage, RedisConnection,
-    RegisterModules, SignalingModule, SignalingModuleInitData, VolatileStaticMemoryStorage,
-    VolatileStorage,
-};
+use opentalk_signaling_core::{ExchangeHandle, ExchangeTask, ObjectStorage, RedisConnection};
 use opentalk_types_api_v1::{auth::OidcProvider, error::ApiError};
 use rustls_pki_types::{CertificateDer, PrivatePkcs8KeyDer};
 use service_probe::{ServiceState, set_service_state, start_probe};
@@ -59,10 +54,7 @@ use tracing_actix_web::TracingLogger;
 
 use crate::{
     acl::check_or_create_kustos_default_permissions,
-    api::{
-        signaling::SignalingProtocols,
-        v1::{middleware::metrics::RequestMetrics, response::error::json_error_handler},
-    },
+    api::v1::{middleware::metrics::RequestMetrics, response::error::json_error_handler},
     trace::ReducedSpanBuilder,
 };
 
@@ -135,9 +127,6 @@ pub struct Controller {
     /// Handle to the internal message exchange
     pub exchange_handle: ExchangeHandle,
 
-    /// Cloneable volatile storage
-    pub volatile: VolatileStorage,
-
     /// Reload signal which can be triggered by a user.
     /// When received a module should try to re-read it's config and act accordingly.
     ///
@@ -152,18 +141,13 @@ pub struct Controller {
     /// It is tracking the shutdown progress by counting the shutdown-receiver count.
     pub shutdown: broadcast::Sender<()>,
 
-    /// List of signaling modules registered to the controller.
-    ///
-    /// Can and should be used to extend the controllers signaling endpoint's capabilities.
-    pub signaling_modules: SignalingModules,
-
     /// All metrics of the Application
     pub metrics: metrics::CombinedMetrics,
 }
 
 impl Controller {
     /// Creates a controller instance based on the optional config path command-line argument.
-    pub async fn create<M: RegisterModules>(optional_config_path: Option<PathBuf>) -> Result<Self> {
+    pub async fn create(optional_config_path: Option<PathBuf>) -> Result<Self> {
         let settings_provider = load_settings_provider(optional_config_path.as_deref())?;
 
         log::info!("Starting OpenTalk Controller");
@@ -173,7 +157,7 @@ impl Controller {
             settings_provider.get().defaults.timezone
         );
 
-        let controller = Self::init::<M>(settings_provider, optional_config_path)
+        let controller = Self::init(settings_provider, optional_config_path)
             .await
             .whatever_context("Failed to init controller")?;
 
@@ -181,7 +165,7 @@ impl Controller {
     }
 
     #[tracing::instrument(err, skip(settings_provider))]
-    async fn init<M: RegisterModules>(
+    async fn init(
         settings_provider: SettingsProvider,
         optional_config_path: Option<PathBuf>,
     ) -> Result<Self> {
@@ -281,10 +265,6 @@ impl Controller {
         let redis_conn =
             redis_conn.map(|c| RedisConnection::new(c).with_metrics(metrics.redis.clone()));
         let oidc_cache = Arc::new(Cache::create(redis_conn.clone()));
-        let volatile = match redis_conn {
-            Some(redis) => VolatileStorage::Right(redis),
-            None => VolatileStorage::Left(VolatileStaticMemoryStorage),
-        };
 
         let (shutdown, _) = broadcast::channel::<()>(1);
         let (reload, _) = broadcast::channel::<()>(4);
@@ -319,26 +299,16 @@ impl Controller {
             None => None,
         });
 
-        let mut initializer = ModuleInitializer {
-            init_data: SignalingModuleInitData {
-                startup_settings: settings.clone(),
-                settings_provider: settings_provider.clone(),
-                rabbitmq_pool: rabbitmq_pool.clone(),
-                volatile: volatile.clone(),
-                shutdown: shutdown.clone(),
-                reload: reload.clone(),
-            },
-            signaling_modules: SignalingModules::default(),
-        };
-
-        M::register(&mut initializer).whatever_context("Failed to register modules")?;
-
         let roomserver_client = settings.roomserver.as_ref().map(|roomserver_config| {
             RoomServerClient::new(
                 roomserver_config.url.clone(),
                 roomserver_config.api_key.clone(),
             )
         });
+
+        let registry = opentalk_roomserver_modules::setup_registry();
+
+        let module_features = registry.module_features();
 
         let backend = {
             let oidc_provider = OidcProvider {
@@ -354,11 +324,9 @@ impl Controller {
                 oidc.clone(),
                 oidc_provider,
                 storage.clone(),
-                volatile.clone(),
-                exchange_handle.clone(),
                 mail_service.clone(),
                 user_search_client.clone(),
-                initializer.signaling_modules.get_module_features(),
+                module_features,
                 roomserver_client,
             )
         };
@@ -378,10 +346,8 @@ impl Controller {
             authz,
             rabbitmq_pool,
             exchange_handle,
-            volatile,
             shutdown,
             reload,
-            signaling_modules: initializer.signaling_modules,
             metrics,
         };
 
@@ -390,8 +356,6 @@ impl Controller {
 
     /// Runs the controller until a fatal error occurred or a shutdown is requested (e.g. SIGTERM).
     pub async fn run(self) -> Result<()> {
-        let signaling_modules = Arc::new(self.signaling_modules);
-
         if let Some(Monitoring { port, addr }) = self.startup_settings.monitoring {
             start_probe(addr, port, ServiceState::Up)
                 .await
@@ -404,7 +368,6 @@ impl Controller {
             self.authz.clone(),
             self.shutdown.subscribe(),
             self.startup_settings.clone(),
-            self.exchange_handle.clone(),
         )
         .await
         .whatever_context("Failed to start Job Runner")?;
@@ -412,9 +375,6 @@ impl Controller {
         // Start HTTP Server
         let http_server = {
             let settings_provider = self.settings_provider.clone();
-            let volatile = self.volatile.clone();
-            let exchange_handle = Data::new(self.exchange_handle);
-            let signaling_modules = Arc::downgrade(&signaling_modules);
             let signaling_metrics = Data::from(self.metrics.signaling.clone());
             let storage = Arc::downgrade(&self.storage);
             let inventory_provider = Arc::downgrade(&self.inventory_provider);
@@ -455,12 +415,10 @@ impl Controller {
 
                 let oidc_ctx = Data::from(oidc_ctx.upgrade().unwrap());
                 let authz = Data::new(self.authz.clone());
-                let volatile = Data::new(volatile.clone());
 
                 let acl = authz_middleware.clone();
                 let service_auth_middleware = service_auth_middleware.clone();
 
-                let signaling_modules = Data::from(signaling_modules.upgrade().unwrap());
                 let swagger_service_enabled = !settings_provider.get().endpoints.disable_openapi;
 
                 App::new()
@@ -477,23 +435,13 @@ impl Controller {
                     .app_data(oidc_ctx.clone())
                     .app_data(user_search_client.clone())
                     .app_data(authz.clone())
-                    .app_data(volatile)
                     .app_data(Data::new(shutdown.clone()))
-                    .app_data(exchange_handle.clone())
-                    .app_data(signaling_modules)
-                    .app_data(SignalingProtocols::data())
                     .app_data(signaling_metrics.clone())
                     .app_data(metrics.clone())
                     .app_data(http_client.clone())
                     .service(well_known::opentalk::api::get)
-                    .service(api::signaling::ws_service)
                     .service(metrics::metrics)
                     .with_swagger_service_if(swagger_service_enabled)
-                    .service(
-                        web::scope("livekit")
-                            .service(api::livekit_proxy::proxy_validate)
-                            .service(api::livekit_proxy::proxy_signaling),
-                    )
                     .service(internal_service_scope(service_auth_middleware))
                     .service(v1_scope(
                         settings_provider.clone(),
@@ -574,9 +522,6 @@ impl Controller {
             }
         }
 
-        // Drop signaling modules to drop any data contained in the module builders.
-        drop(signaling_modules);
-
         if let Some(rabbitmq_pool) = self.rabbitmq_pool.as_ref() {
             // Close all rabbitmq connections
             // TODO what code and text to use here
@@ -592,35 +537,6 @@ impl Controller {
             log::error!("Not all tasks stopped. Exiting anyway");
         } else {
             log::info!("All tasks stopped, goodbye!");
-        }
-
-        Ok(())
-    }
-}
-
-impl ModulesRegistrar for Controller {
-    type Error = Whatever;
-
-    fn register<M: SignalingModule>(&mut self) -> Result<()> {
-        let init = SignalingModuleInitData {
-            startup_settings: self.startup_settings.clone(),
-            settings_provider: self.settings_provider.clone(),
-            rabbitmq_pool: self.rabbitmq_pool.clone(),
-            shutdown: self.shutdown.clone(),
-            reload: self.reload.clone(),
-            volatile: self.volatile.clone(),
-        };
-
-        let params = M::build_params(init)
-            .with_whatever_context(|_| format!("Failed to initialize module '{}'", M::NAMESPACE))?;
-
-        if let Some(params) = params {
-            self.signaling_modules.add_module::<M>(params);
-        } else {
-            log::info!(
-                "Skipping module '{}' due to missing configuration",
-                M::NAMESPACE
-            );
         }
 
         Ok(())
@@ -700,7 +616,6 @@ impl ModulesRegistrar for Controller {
         ),
     ),
     paths(
-        api::signaling::ws_service,
         v1::rooms::by_id::assets::by_id::get,
         v1::rooms::by_id::assets::by_id::download::get,
         v1::rooms::by_id::assets::get,
@@ -745,8 +660,6 @@ impl ModulesRegistrar for Controller {
         v1::rooms::by_id::tariff::get,
         v1::rooms::post,
         v1::rooms::by_id::patch,
-        v1::rooms::by_id::start::post,
-        v1::rooms::by_id::start_invited::post,
         v1::services::call_in::start::post,
         api::v1::services::recording::get_recording_upload,
         api::v1::services::recording::post_recording_start,
@@ -949,7 +862,6 @@ fn v1_scope(
         .service(v1::auth::login::post)
         .service(v1::auth::login::get)
         .service(v1::auth::logout::post)
-        .service(v1::rooms::by_id::start_invited::post)
         .service(v1::rooms::by_id::roomserver::start_invited::post)
         .service(v1::invite::verify::post)
         .service(v1::turn::get)
@@ -985,7 +897,6 @@ fn v1_scope(
                 .service(v1::rooms::by_id::get)
                 .service(v1::rooms::by_id::event::get)
                 .service(v1::rooms::by_id::tariff::get)
-                .service(v1::rooms::by_id::start::post)
                 .service(v1::rooms::by_id::roomserver::start::post)
                 .service(v1::rooms::by_id::delete)
                 .service(v1::events::post)
@@ -1125,31 +1036,6 @@ fn setup_rustls(tls: &HttpTls) -> Result<rustls::ServerConfig> {
         .whatever_context("Invalid DER-encoded key ")?;
 
     Ok(config)
-}
-
-struct ModuleInitializer {
-    init_data: SignalingModuleInitData,
-    signaling_modules: SignalingModules,
-}
-
-impl ModulesRegistrar for ModuleInitializer {
-    type Error = Whatever;
-
-    fn register<M: SignalingModule>(&mut self) -> Result<()> {
-        let params = M::build_params(self.init_data.clone())
-            .with_whatever_context(|_| format!("Failed to initialize module '{}'", M::NAMESPACE))?;
-
-        if let Some(params) = params {
-            self.signaling_modules.add_module::<M>(params);
-        } else {
-            log::info!(
-                "Skipping module '{}' due to missing configuration",
-                M::NAMESPACE
-            );
-        }
-
-        Ok(())
-    }
 }
 
 fn is_ipv6_available() -> bool {

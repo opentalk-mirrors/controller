@@ -25,7 +25,6 @@ humansize.workspace = true
 itertools.workspace = true
 jsonwebtoken = { workspace = true, features = ["aws_lc_rs"] }
 kustos.workspace = true
-lapin-pool.workspace = true
 log.workspace = true
 nix = { version = "0.31", features = ["signal"] }
 opentalk-controller-core.workspace = true
@@ -37,8 +36,7 @@ opentalk-inventory.workspace = true
 opentalk-inventory-database.workspace = true
 opentalk-jobs.workspace = true
 opentalk-kustos-inventory.workspace = true
-opentalk-signaling-core.workspace = true
-opentalk-signaling-modules.workspace = true
+opentalk-roomserver-modules.workspace = true
 opentalk-types-common.workspace = true
 opentalk-version.workspace = true
 parse-size.workspace = true

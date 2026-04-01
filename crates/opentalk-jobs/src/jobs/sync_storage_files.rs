@@ -9,7 +9,7 @@ use kustos::Authz;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{Inventory, InventoryProvider, UpdateAsset};
 use opentalk_log::{debug, info, warn};
-use opentalk_signaling_core::{ExchangeHandle, ObjectStorage, assets::asset_key};
+use opentalk_signaling_core::{ObjectStorage, assets::asset_key};
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 
@@ -54,7 +54,6 @@ impl Job for SyncStorageFiles {
         logger: &dyn log::Log,
         inventory_provider: Arc<dyn InventoryProvider>,
         _authz: Authz,
-        _exchange_handle: ExchangeHandle,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {
