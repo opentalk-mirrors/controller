@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! Extensible core library of the *OpentTalk Controller*
+//! Extensible core library of the *OpenTalk Controller*
 
 use std::{
     fs::File,
