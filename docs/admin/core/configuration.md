@@ -392,6 +392,10 @@ bucket = "controller"
 access_key = "minioadmin"
 # Secret key for the MinIO bucket
 secret_key = "minioadmin"
+# Enables force path style path
+# force_path_style = false
+# AWS region
+# region = "unknown"
 
 # Etcd configuration
 #[etcd]

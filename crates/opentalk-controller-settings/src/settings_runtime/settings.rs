@@ -269,6 +269,8 @@ pub(crate) fn minimal_example() -> Settings {
             bucket: "controller".to_string(),
             access_key: "minioadmin".to_string(),
             secret_key: "minioadmin".to_string(),
+            region: None,
+            force_path_style: None,
         },
         monitoring: None,
         call_in: None,
