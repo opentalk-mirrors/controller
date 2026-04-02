@@ -157,6 +157,8 @@ pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
             bucket: "controller".to_string(),
             access_key: "minioadmin".to_string(),
             secret_key: "minioadmin".to_string(),
+            region: None,
+            force_path_style: None,
         },
         monitoring: None,
         tenants: None,

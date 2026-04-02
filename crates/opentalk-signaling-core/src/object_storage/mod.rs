@@ -204,12 +204,15 @@ impl ObjectStorage {
             }
         }
 
+        let region = Region::new(minio.region.clone().unwrap_or("unknown".to_string()));
+
         let conf = Builder::new()
             .endpoint_resolver(Resolver {
                 minio_url: base_url.clone(),
             })
+            .force_path_style(minio.force_path_style.unwrap_or(false))
             .credentials_provider(credentials)
-            .region(Region::new("unknown"))
+            .region(region)
             .build();
 
         let client = Client::from_conf(conf);

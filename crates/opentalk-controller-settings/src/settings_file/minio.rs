@@ -8,6 +8,8 @@ use serde::Deserialize;
 pub(crate) struct MinIO {
     pub uri: String,
     pub bucket: String,
+    pub region: Option<String>,
+    pub force_path_style: Option<bool>,
     pub access_key: String,
     pub secret_key: String,
 }

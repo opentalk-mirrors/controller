@@ -242,6 +242,8 @@ mod tests {
             bucket: "controller".into(),
             access_key: "minioadmin".into(),
             secret_key: "minioadmin".into(),
+            region: None,
+            force_path_style: None,
         };
 
         let object_storage = ObjectStorage::new(&minio).await.unwrap();
@@ -274,6 +276,8 @@ mod tests {
             bucket: "controller".into(),
             access_key: "minioadmin".into(),
             secret_key: "minioadmin".into(),
+            region: None,
+            force_path_style: None,
         };
 
         let object_storage = ObjectStorage::new(&minio).await.unwrap();
