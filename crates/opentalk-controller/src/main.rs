@@ -13,7 +13,7 @@ type Result<T, E = Whatever> = std::result::Result<T, E>;
 #[actix_web::main]
 async fn main() {
     // We explicitly opt in to using 'aws-lc-rs', otherwise a conflict
-    // between the 'aws-lc-rs' cypto provider and other available crypto
+    // between the 'aws-lc-rs' crypto provider and other available crypto
     // providers (activated by non-changeable features of transitive
     // dependencies) can cause runtime errors.
     //
