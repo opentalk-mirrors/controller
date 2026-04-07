@@ -29,7 +29,7 @@ pub enum ElectionTaskError {
     ElectionTaskExitedError { source: SendError<()> },
 
     /// The etcd API returned an error
-    #[snafu(transparent, context(false))]
+    #[snafu(transparent)]
     EtcdError {
         #[snafu(source(from(EtcdError, Box::new)))]
         source: Box<EtcdError>,
