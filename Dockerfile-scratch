@@ -22,7 +22,7 @@ WORKDIR /controller
 
 ENV LIBPQ_LIB_DIR=/usr/lib
 ENV LIBPQ_INCLUDE_DIR=/usr/include
-RUN cargo auditable build --release --locked --target=x86_64-unknown-linux-musl
+RUN cargo auditable build --release --locked --target=x86_64-unknown-linux-musl --package opentalk-controller
 
 RUN chmod +x /controller/target/x86_64-unknown-linux-musl/release/opentalk-controller
 
