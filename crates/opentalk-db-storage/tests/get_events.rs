@@ -20,6 +20,7 @@ use opentalk_types_common::{
         EventDescription, EventId, EventTitle,
         invites::{EventInviteStatus, InviteRole},
     },
+    rooms::GuestAccess,
     time::TimeZone,
     users::UserId,
     utils::ExampleData,
@@ -49,6 +50,7 @@ async fn make_event(
             created_by: user.id,
             password: None,
             waiting_room: false,
+            guest_access: GuestAccess::default(),
             e2e_encryption: false,
             tenant_id: user.tenant_id,
         };
@@ -825,6 +827,7 @@ async fn serial_test_get_event_min_max_time() {
             created_by: user.id,
             password: None,
             waiting_room: false,
+            guest_access: GuestAccess::default(),
             e2e_encryption: false,
             tenant_id: user.tenant_id,
         };
@@ -857,6 +860,7 @@ async fn serial_test_get_event_min_max_time() {
             created_by: user.id,
             password: None,
             waiting_room: false,
+            guest_access: GuestAccess::default(),
             e2e_encryption: false,
             tenant_id: user.tenant_id,
         };

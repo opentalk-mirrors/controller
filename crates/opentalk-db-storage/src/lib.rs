@@ -37,6 +37,7 @@ pub mod sql_types {
             EmailInviteRoleType as EmailInviteRole, EventInviteStatusType as EventInviteStatus,
             InviteRoleType as InviteRole,
         },
+        rooms::GuestAccessType as GuestAccess,
         streaming::StreamingKindType as StreamingKind,
         tariffs::TariffStatusType as TariffStatus,
         users::ThemeType as Theme,

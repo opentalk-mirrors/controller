@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_inventory as inventory;
-use opentalk_types_common::rooms::RoomPassword;
+use opentalk_types_common::rooms::{GuestAccess, RoomPassword};
 
 use crate::schema::rooms;
 
@@ -15,6 +15,7 @@ use crate::schema::rooms;
 pub struct UpdateRoom {
     pub password: Option<Option<RoomPassword>>,
     pub waiting_room: Option<bool>,
+    pub guest_access: Option<GuestAccess>,
     pub e2e_encryption: Option<bool>,
 }
 
@@ -23,12 +24,14 @@ impl From<inventory::UpdateRoom> for UpdateRoom {
         inventory::UpdateRoom {
             password,
             waiting_room,
+            guest_access,
             e2e_encryption,
         }: inventory::UpdateRoom,
     ) -> Self {
         Self {
             password,
             waiting_room,
+            guest_access,
             e2e_encryption,
         }
     }

@@ -10,7 +10,7 @@ use opentalk_db_storage::migrations::migrate_from_url;
 use opentalk_inventory::{InventoryProvider, NewRoom, NewUser, Room, User};
 use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_types_common::{
-    rooms::RoomId,
+    rooms::{GuestAccess, RoomId},
     tariffs::TariffStatus,
     tenants::TenantId,
     users::{GroupId, GroupName, UserId, UserTitle},
@@ -152,6 +152,7 @@ impl DatabaseContext {
             created_by,
             password: None,
             waiting_room,
+            guest_access: GuestAccess::default(),
             e2e_encryption: false,
             tenant_id: tenant.id,
         };

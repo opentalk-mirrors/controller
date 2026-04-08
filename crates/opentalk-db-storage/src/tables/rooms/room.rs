@@ -5,7 +5,7 @@
 use chrono::{DateTime, Utc};
 use opentalk_inventory as inventory;
 use opentalk_types_common::{
-    rooms::{RoomId, RoomPassword},
+    rooms::{GuestAccess, RoomId, RoomPassword},
     tenants::TenantId,
     users::UserId,
 };
@@ -26,6 +26,7 @@ pub struct Room {
     pub waiting_room: bool,
     pub tenant_id: TenantId,
     pub e2e_encryption: bool,
+    pub guest_access: GuestAccess,
 }
 
 impl From<Room> for inventory::Room {
@@ -37,6 +38,7 @@ impl From<Room> for inventory::Room {
             created_at,
             password,
             waiting_room,
+            guest_access,
             tenant_id,
             e2e_encryption,
         }: Room,
@@ -48,6 +50,7 @@ impl From<Room> for inventory::Room {
             created_at: created_at.into(),
             password,
             waiting_room,
+            guest_access,
             tenant_id,
             e2e_encryption,
         }
@@ -63,6 +66,7 @@ impl From<inventory::Room> for Room {
             created_at,
             password,
             waiting_room,
+            guest_access,
             tenant_id,
             e2e_encryption,
         }: inventory::Room,
@@ -74,6 +78,7 @@ impl From<inventory::Room> for Room {
             created_at: created_at.into(),
             password,
             waiting_room,
+            guest_access,
             tenant_id,
             e2e_encryption,
         }

@@ -248,6 +248,9 @@ exceptions = [
   ], name = "opentalk-roomserver-common" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-livekit-proxy" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-module-automod" },
   { allow = [
     "EUPL-1.2",
