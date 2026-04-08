@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_types_common::{
-    assets::{AssetId, AssetSorting},
+    assets::{AssetId, AssetSorting, FileSize},
     events::EventId,
     order::Ordering,
     pagination::{ItemCount, Page, PageSize},
@@ -21,7 +21,11 @@ pub trait AssetInventory {
     async fn create_asset_for_room(&mut self, room_id: RoomId, asset: NewAsset) -> Result<Asset>;
 
     /// Delete an asset from a room.
-    async fn delete_asset_from_room(&mut self, room_id: RoomId, asset_id: AssetId) -> Result<()>;
+    async fn delete_asset_from_room(
+        &mut self,
+        room_id: RoomId,
+        asset_id: AssetId,
+    ) -> Result<FileSize>;
 
     /// Get an asset for a room.
     async fn get_asset_for_room(&mut self, room_id: RoomId, asset_id: AssetId) -> Result<Asset>;

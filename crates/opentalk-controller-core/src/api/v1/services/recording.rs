@@ -14,7 +14,7 @@ use bytes::Bytes;
 use opentalk_controller_service_facade::OpenTalkControllerService;
 use opentalk_inventory::InventoryProvider;
 use opentalk_signaling_core::{
-    ChunkFormat, ObjectStorage, ObjectStorageError,
+    ChunkFormat, ObjectStorage, ObjectStorageError, StorageNotifier,
     assets::{NewAssetFileName, save_asset},
 };
 use opentalk_types_api_v1::{
@@ -130,6 +130,7 @@ pub(crate) struct RecordingUploadWebSocketHeaders {
 pub(crate) async fn get_recording_upload(
     storage_connection_provider: Data<dyn InventoryProvider>,
     storage: Data<ObjectStorage>,
+    notifier: Data<dyn StorageNotifier>,
     request: HttpRequest,
     Query(GetRecordingUploadQuery {
         room_id,
@@ -158,6 +159,7 @@ pub(crate) async fn get_recording_upload(
             let result = save_asset(
                 &storage,
                 storage_connection_provider.as_ref(),
+                notifier.as_ref(),
                 room_id,
                 Some(opentalk_types_signaling_recording::MODULE_ID),
                 filename,

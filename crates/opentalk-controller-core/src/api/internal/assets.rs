@@ -7,7 +7,7 @@ use actix_web::{
 };
 use futures::TryStreamExt as _;
 use opentalk_controller_service_facade::OpenTalkControllerService;
-use opentalk_signaling_core::{ObjectStorageError, assets::NewAssetFileName};
+use opentalk_signaling_core::{ObjectStorageError, StorageNotifier, assets::NewAssetFileName};
 use opentalk_types_api_v1::{
     error::ApiError, rooms::by_room_id::assets::PostAssetQuery,
     services::roomserver::PostAssetResponseBody,
@@ -63,6 +63,7 @@ use crate::api::{
 #[post("/room/{room_id}/asset")]
 pub async fn post_asset(
     service: Data<dyn OpenTalkControllerService>,
+    notifier: Data<dyn StorageNotifier>,
     path: Path<RoomId>,
     query: Query<PostAssetQuery>,
     data: Payload,
@@ -83,7 +84,13 @@ pub async fn post_asset(
     });
 
     let (asset_resource, asset_saved) = service
-        .create_room_asset(room_id, filename, query.namespace, Box::new(data))
+        .create_room_asset(
+            notifier.as_ref(),
+            room_id,
+            filename,
+            query.namespace,
+            Box::new(data),
+        )
         .await?;
 
     Ok(ApiResponse::new(PostAssetResponseBody {

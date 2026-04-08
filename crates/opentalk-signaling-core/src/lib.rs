@@ -11,6 +11,7 @@ mod object_storage;
 mod participant;
 mod redis_wrapper;
 mod signaling_room_id;
+mod storage_notifier;
 
 pub mod assets;
 
@@ -23,3 +24,4 @@ pub use object_storage::{ChunkFormat, ObjectStorage, ObjectStorageError};
 pub use participant::Participant;
 pub use redis_wrapper::{RedisConnection, RedisMetrics};
 pub use signaling_room_id::SignalingRoomId;
+pub use storage_notifier::{NoOpStorageNotifier, RoomServerStorageNotifier, StorageNotifier};

@@ -24,7 +24,7 @@ use opentalk_types_common::{
 };
 use snafu::{IntoError, ResultExt, Snafu};
 
-use crate::{ObjectStorage, ObjectStorageError, object_storage::ChunkFormat};
+use crate::{ObjectStorage, ObjectStorageError, StorageNotifier, object_storage::ChunkFormat};
 
 #[derive(Debug, Snafu)]
 pub enum AssetError {
@@ -142,9 +142,11 @@ pub struct AssetSaved {
 /// stay empty.
 ///
 /// Returns a tuple containing the asset id and the filename on success.
+#[allow(clippy::too_many_arguments)]
 pub async fn save_asset<E>(
     storage: &ObjectStorage,
     inventory_provider: &dyn InventoryProvider,
+    storage_notifier: &dyn StorageNotifier,
     room_id: RoomId,
     namespace: Option<ModuleId>,
     mut filename: NewAssetFileName,
@@ -154,14 +156,11 @@ pub async fn save_asset<E>(
 where
     ObjectStorageError: From<E>,
 {
-    let (room, storage_quota) = {
-        let mut inventory = inventory_provider
-            .get_inventory()
-            .await
-            .context(InventoryConnectionSnafu)?;
-
-        prepare_storage(room_id, inventory.as_mut()).await
-    }?;
+    let mut inventory = inventory_provider
+        .get_inventory()
+        .await
+        .context(InventoryConnectionSnafu)?;
+    let (room, storage_quota) = prepare_storage(room_id, inventory.as_mut()).await?;
 
     let asset_id = AssetId::generate();
 
@@ -228,6 +227,18 @@ where
                 .with_context(|_| RollbackSnafu::<AssetError> { rollback_reason: e }),
         };
     }
+
+    // Update the room parameters of all roomserver rooms with the same owner
+    let creator = inventory
+        .get_room(room_id)
+        .await
+        .context(InventoryQuerySnafu)?
+        .created_by;
+    let new_quota = get_storage_quota(inventory.as_mut(), creator).await?;
+    storage_notifier
+        .notify(creator, storage_quota, new_quota)
+        .await;
+
     result
 }
 
@@ -304,6 +315,7 @@ pub async fn get_asset(
 pub async fn delete_asset(
     storage: &ObjectStorage,
     inventory_provider: &dyn InventoryProvider,
+    storage_notifier: &dyn StorageNotifier,
     room_id: RoomId,
     asset_id: AssetId,
 ) -> Result<()> {
@@ -311,19 +323,51 @@ pub async fn delete_asset(
         .get_inventory()
         .await
         .context(InventoryConnectionSnafu)?;
-    inventory
+
+    let creator = inventory
+        .get_room(room_id)
+        .await
+        .context(InventoryQuerySnafu)?
+        .created_by;
+    let old_quota = get_storage_quota(inventory.as_mut(), creator).await?;
+
+    let size: i64 = inventory
         .delete_asset_from_room(room_id, asset_id)
         .await
-        .context(InventoryQuerySnafu)?;
+        .context(InventoryQuerySnafu)?
+        .into();
 
     storage
         .delete(asset_key(&asset_id))
         .await
-        .context(ObjectStorageSnafu)
+        .context(ObjectStorageSnafu)?;
+
+    let new_quota = Quota {
+        total: old_quota.total,
+        used: old_quota.used.saturating_sub(size.unsigned_abs()),
+    };
+    storage_notifier.notify(creator, old_quota, new_quota).await;
+
+    Ok(())
 }
 
 pub fn asset_key(asset_id: &AssetId) -> String {
     format!("assets/{asset_id}")
+}
+
+async fn get_storage_quota(inventory: &mut dyn Inventory, user_id: UserId) -> Result<Quota> {
+    let total = inventory
+        .get_tariff_for_user(user_id)
+        .await
+        .context(InventoryQuerySnafu)?
+        .quota(&QuotaType::MaxStorage);
+
+    let used = inventory
+        .get_user_storage_used_size_u64(user_id)
+        .await
+        .context(InventoryQuerySnafu)?;
+
+    Ok(Quota { total, used })
 }
 
 /// Verify that the storage quota wasn't exhausted. Files don't need to fit into the remaining quota,
@@ -334,26 +378,13 @@ pub fn asset_key(asset_id: &AssetId) -> String {
 /// If the storage usage is limited for a user by a storage quota, the current remaining quota is
 /// returned. Otherwise `None` is returned.
 pub async fn verify_storage_usage(inventory: &mut dyn Inventory, user_id: UserId) -> Result<Quota> {
-    let used_storage = inventory
-        .get_user_storage_used_size_u64(user_id)
-        .await
-        .context(InventoryQuerySnafu)?;
-    let user_tariff = inventory
-        .get_tariff_for_user(user_id)
-        .await
-        .context(InventoryQuerySnafu)?;
+    let quota = get_storage_quota(inventory, user_id).await?;
 
-    let storage_quota = user_tariff.quota(&QuotaType::MaxStorage);
-    if let Some(max_storage) = storage_quota
-        && used_storage > max_storage
-    {
-        return AssetStorageExceededSnafu.fail();
+    if quota.is_exceeded() {
+        AssetStorageExceededSnafu.fail()
+    } else {
+        Ok(quota)
     }
-
-    Ok(Quota {
-        total: storage_quota,
-        used: used_storage,
-    })
 }
 
 #[cfg(test)]

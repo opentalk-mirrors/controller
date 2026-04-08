@@ -36,6 +36,7 @@ log.workspace = true
 opentalk-controller-settings.workspace = true
 opentalk-inventory.workspace = true
 opentalk-r3dlock.workspace = true
+opentalk-roomserver-client.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["backend"] }
 opentalk-types-common = { workspace = true, features = ["backend"] }
 opentalk-types-signaling = { workspace = true, features = ["backend"] }

@@ -9,7 +9,7 @@ use actix_web::{
     http::StatusCode,
     web::{Data, Path},
 };
-use opentalk_controller_service_facade::OpenTalkControllerService;
+use opentalk_controller_service_facade::{OpenTalkControllerService, StorageNotifier};
 use opentalk_types_api_v1::error::ApiError;
 use opentalk_types_common::{assets::AssetId, rooms::RoomId};
 
@@ -109,11 +109,14 @@ pub async fn get(
 #[delete("/rooms/{room_id}/assets/{asset_id}")]
 pub async fn delete(
     service: Data<dyn OpenTalkControllerService>,
+    storage_notifier: Data<dyn StorageNotifier>,
     path: Path<(RoomId, AssetId)>,
 ) -> Result<NoContent, ApiError> {
     let (room_id, asset_id) = path.into_inner();
 
-    service.delete_room_asset(room_id, asset_id).await?;
+    service
+        .delete_room_asset(storage_notifier.as_ref(), room_id, asset_id)
+        .await?;
 
     Ok(NoContent)
 }

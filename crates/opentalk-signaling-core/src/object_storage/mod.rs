@@ -302,6 +302,12 @@ impl ObjectStorage {
             }
         }
 
+        if let Err(err) = res.as_ref() {
+            log::debug!("Failed to upload object to s3: {err}");
+        } else {
+            log::debug!("Uploaded object to s3");
+        }
+
         res
     }
 
