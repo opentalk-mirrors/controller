@@ -404,8 +404,7 @@ impl EventInventory for DatabaseConnection {
         event_exception: NewEventException,
     ) -> Result<EventException> {
         Ok(
-            db::tables::event_exceptions::NewEventException::from(event_exception)
-                .insert(&mut self.inner)
+            db::queries::events::create_event_exception(&mut self.inner, event_exception.into())
                 .await
                 .context(DatabaseSnafu)?
                 .into(),
@@ -451,13 +450,14 @@ impl EventInventory for DatabaseConnection {
         event_exception_id: EventExceptionId,
         event_exception: UpdateEventException,
     ) -> Result<EventException> {
-        Ok(
-            db::tables::event_exceptions::UpdateEventException::from(event_exception)
-                .apply(&mut self.inner, event_exception_id.into())
-                .await
-                .context(DatabaseSnafu)?
-                .into(),
+        Ok(db::queries::events::update_event_exception(
+            &mut self.inner,
+            event_exception.into(),
+            event_exception_id.into(),
         )
+        .await
+        .context(DatabaseSnafu)?
+        .into())
     }
 
     #[tracing::instrument(err, skip_all)]
