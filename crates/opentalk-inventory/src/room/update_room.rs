@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_types_common::rooms::RoomPassword;
+use opentalk_types_common::rooms::{GuestAccess, RoomPassword};
 
 /// Representation of an update to a room in the inventory.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -12,6 +12,9 @@ pub struct UpdateRoom {
 
     /// A flag indicating that the wating room is enabled for this room.
     pub waiting_room: Option<bool>,
+
+    /// Guest access mode for the room
+    pub guest_access: Option<GuestAccess>,
 
     /// A flag indicating that e2e encryption is enabled for this room.
     pub e2e_encryption: Option<bool>,
