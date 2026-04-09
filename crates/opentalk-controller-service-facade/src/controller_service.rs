@@ -68,7 +68,7 @@ use opentalk_types_common::{
     events::EventId,
     modules::ModuleId,
     pagination::{ItemCount, Page, PageSize},
-    rooms::{RoomId, RoomPassword, invite_codes::InviteCode},
+    rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
     shared_folders::SharedFolder,
     streaming::StreamingTarget,
     tariffs::TariffResource,
@@ -107,6 +107,7 @@ pub trait OpenTalkControllerService: Send + Sync {
         password: Option<RoomPassword>,
         enable_sip: bool,
         waiting_room: bool,
+        guest_access: Option<GuestAccess>,
         e2e_encryption: bool,
     ) -> Result<RoomResource, ApiError>;
 
@@ -117,6 +118,7 @@ pub trait OpenTalkControllerService: Send + Sync {
         room_id: RoomId,
         password: Option<Option<RoomPassword>>,
         waiting_room: Option<bool>,
+        guest_access: Option<GuestAccess>,
         e2e_encryption: Option<bool>,
     ) -> Result<RoomResource, ApiError>;
 

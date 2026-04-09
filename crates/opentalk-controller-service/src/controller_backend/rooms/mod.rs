@@ -22,7 +22,7 @@ use opentalk_types_common::{
     features::{self, GUESTS_ALLOWED_FEATURE_ID},
     modules::CORE_MODULE_ID,
     pagination::ItemCount,
-    rooms::{RoomId, RoomPassword, invite_codes::InviteCode},
+    rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
     tariffs::TariffResource,
     users::UserId,
 };
@@ -56,6 +56,7 @@ impl ControllerBackend {
                 created_at: room.created_at,
                 password: room.password,
                 waiting_room: room.waiting_room,
+                guest_access: room.guest_access,
             })
             .collect::<Vec<RoomResource>>();
 
@@ -68,6 +69,7 @@ impl ControllerBackend {
         password: Option<RoomPassword>,
         enable_sip: bool,
         waiting_room: bool,
+        guest_access: Option<GuestAccess>,
         e2e_encryption: bool,
     ) -> Result<RoomResource, CaptureApiError> {
         let settings = self.settings_provider.get();
@@ -79,11 +81,14 @@ impl ControllerBackend {
             tariff.require_feature(&features::CALL_IN_MODULE_FEATURE_ID)?;
         }
 
+        let guest_access = guest_access.unwrap_or_default();
+
         let room = inventory
             .create_room(NewRoom {
                 created_by: current_user.id,
                 password,
                 waiting_room,
+                guest_access,
                 e2e_encryption,
                 tenant_id: current_user.tenant_id,
             })
@@ -103,6 +108,7 @@ impl ControllerBackend {
             created_at: room.created_at,
             password: room.password,
             waiting_room: room.waiting_room,
+            guest_access: room.guest_access,
         };
 
         self.authorizer
@@ -125,6 +131,7 @@ impl ControllerBackend {
         room_id: RoomId,
         password: Option<Option<RoomPassword>>,
         waiting_room: Option<bool>,
+        guest_access: Option<GuestAccess>,
         e2e_encryption: Option<bool>,
     ) -> Result<RoomResource, CaptureApiError> {
         let settings = self.settings_provider.get();
@@ -136,6 +143,7 @@ impl ControllerBackend {
                 UpdateRoom {
                     password,
                     waiting_room,
+                    guest_access,
                     e2e_encryption,
                 },
             )
@@ -147,6 +155,7 @@ impl ControllerBackend {
             created_at: room.created_at,
             password: room.password,
             waiting_room: room.waiting_room,
+            guest_access: room.guest_access,
         };
 
         Ok(room_resource)
@@ -189,6 +198,7 @@ impl ControllerBackend {
             created_at: room.created_at,
             password: room.password,
             waiting_room: room.waiting_room,
+            guest_access: room.guest_access,
         };
 
         Ok(room_resource)

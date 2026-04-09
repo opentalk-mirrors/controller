@@ -46,7 +46,7 @@ use opentalk_types_common::{
     features::CALL_IN_FEATURE_ID,
     modules::DEFAULT_MODULE_ID,
     pagination::{ItemCount, Page, PageSize},
-    rooms::RoomPassword,
+    rooms::{GuestAccess, RoomPassword},
     shared_folders::SharedFolder,
     streaming::{RoomStreamingTarget, StreamingTarget},
     tariffs::TariffResource,
@@ -123,6 +123,7 @@ impl ControllerBackend {
                         description,
                         password,
                         waiting_room,
+                        guest_access,
                         e2e_encryption,
                         is_adhoc,
                         streaming_targets,
@@ -143,6 +144,7 @@ impl ControllerBackend {
                             description,
                             password,
                             waiting_room,
+                            guest_access,
                             e2e_encryption,
                             is_adhoc,
                             streaming_targets,
@@ -157,6 +159,7 @@ impl ControllerBackend {
                         description,
                         password,
                         waiting_room,
+                        guest_access,
                         e2e_encryption,
                         is_adhoc,
                         streaming_targets,
@@ -184,6 +187,7 @@ impl ControllerBackend {
                             description,
                             password,
                             waiting_room,
+                            guest_access,
                             e2e_encryption,
                             is_all_day,
                             starts_at,
@@ -781,6 +785,7 @@ impl ControllerBackend {
                     UpdateRoom {
                         password: patch.password.clone(),
                         waiting_room: patch.waiting_room,
+                        guest_access: patch.guest_access,
                         e2e_encryption: patch.e2e_encryption,
                     },
                 )
@@ -1371,6 +1376,7 @@ impl EventRoomInfoExt for EventRoomInfo {
             id: room.id,
             password: room.password.clone(),
             waiting_room: room.waiting_room,
+            guest_access: room.guest_access,
             e2e_encryption: room.e2e_encryption,
             call_in,
         }
@@ -1435,6 +1441,7 @@ async fn create_time_independent_event(
     description: EventDescription,
     password: Option<RoomPassword>,
     waiting_room: bool,
+    guest_access: Option<GuestAccess>,
     e2e_encryption: bool,
     is_adhoc: bool,
     streaming_targets: Vec<StreamingTarget>,
@@ -1442,11 +1449,14 @@ async fn create_time_independent_event(
     query: EventOptionsQuery,
     training_participation_report: Option<TrainingParticipationReportParameterSet>,
 ) -> Result<(EventResource, Option<MailResource>), CaptureApiError> {
+    let guest_access = guest_access.unwrap_or_default();
+
     let room = inventory
         .create_room(NewRoom {
             created_by: current_user.id,
             password,
             waiting_room,
+            guest_access,
             tenant_id: current_user.tenant_id,
             e2e_encryption,
         })
@@ -1524,6 +1534,7 @@ async fn create_time_dependent_event(
     description: EventDescription,
     password: Option<RoomPassword>,
     waiting_room: bool,
+    guest_access: Option<GuestAccess>,
     e2e_encryption: bool,
     is_all_day: bool,
     starts_at: DateTimeTz,
@@ -1540,11 +1551,14 @@ async fn create_time_dependent_event(
     let (duration_secs, ends_at_dt, ends_at_tz) =
         parse_event_dt_params(is_all_day, starts_at, ends_at, &recurrence_pattern)?;
 
+    let guest_access = guest_access.unwrap_or_default();
+
     let room = inventory
         .create_room(NewRoom {
             created_by: current_user.id,
             password,
             waiting_room,
+            guest_access,
             tenant_id: current_user.tenant_id,
             e2e_encryption,
         })
@@ -2036,6 +2050,7 @@ mod tests {
                 id: RoomId::nil(),
                 password: None,
                 waiting_room: false,
+                guest_access: GuestAccess::default(),
                 e2e_encryption: false,
                 call_in: None,
             },
@@ -2110,6 +2125,7 @@ mod tests {
                     "room": {
                         "id": "00000000-0000-0000-0000-000000000000",
                         "waiting_room": false,
+                        "guest_access": "direct_access",
                         "e2e_encryption": false
                     },
                     "invitees_truncated": false,
@@ -2190,6 +2206,7 @@ mod tests {
                 id: RoomId::nil(),
                 password: None,
                 waiting_room: false,
+                guest_access: GuestAccess::default(),
                 e2e_encryption: false,
                 call_in: Some(CallInInfo {
                     tel: "030123456".into(),
@@ -2255,6 +2272,7 @@ mod tests {
                     "room": {
                         "id": "00000000-0000-0000-0000-000000000000",
                         "waiting_room": false,
+                        "guest_access": "direct_access",
                         "e2e_encryption": false,
                         "call_in": {
                             "tel": "030123456",
