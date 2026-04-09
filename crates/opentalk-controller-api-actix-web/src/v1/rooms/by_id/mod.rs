@@ -122,6 +122,7 @@ pub async fn patch(
             room_id,
             body.password,
             body.waiting_room,
+            body.guest_access,
             body.e2e_encryption,
         )
         .await?;

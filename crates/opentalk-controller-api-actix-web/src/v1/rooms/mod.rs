@@ -119,6 +119,7 @@ pub async fn post(
             body.password,
             body.enable_sip,
             body.waiting_room,
+            body.guest_access,
             body.e2e_encryption,
         )
         .await?;
