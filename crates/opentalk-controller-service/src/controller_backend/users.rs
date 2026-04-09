@@ -295,7 +295,7 @@ impl ControllerBackend {
     }
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 async fn get_all_assets_for_room_owner_paginated_ordered(
     inventory: &mut dyn Inventory,
     user_id: UserId,

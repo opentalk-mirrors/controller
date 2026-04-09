@@ -19,7 +19,7 @@ use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl AssetInventory for DatabaseConnection {
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn create_asset_for_room(&mut self, room_id: RoomId, asset: NewAsset) -> Result<Asset> {
         Ok(
             db::queries::assets::create_asset_for_room(&mut self.inner, asset.into(), room_id)
@@ -29,7 +29,7 @@ impl AssetInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_asset_from_room(
         &mut self,
         room_id: RoomId,
@@ -42,7 +42,7 @@ impl AssetInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_asset_for_room(&mut self, room_id: RoomId, asset_id: AssetId) -> Result<Asset> {
         Ok(
             db::queries::assets::get_asset_for_room(&mut self.inner, room_id, asset_id)
@@ -52,7 +52,7 @@ impl AssetInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_assets_with_size(&mut self) -> Result<Vec<(AssetId, i64)>> {
         Ok(
             db::queries::assets::get_all_assets_with_size(&mut self.inner)
@@ -61,7 +61,7 @@ impl AssetInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_assets_for_room_paginated(
         &mut self,
         room_id: RoomId,
@@ -79,7 +79,7 @@ impl AssetInventory for DatabaseConnection {
         Ok((assets.into_iter().map(Into::into).collect(), overall))
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_asset_ids_for_room(&mut self, room_id: RoomId) -> Result<Vec<AssetId>> {
         Ok(
             db::queries::assets::get_all_asset_ids_for_room(&mut self.inner, room_id)
@@ -88,7 +88,7 @@ impl AssetInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_assets_for_room_owner_paginated_ordered(
         &mut self,
         user_id: UserId,
@@ -117,7 +117,7 @@ impl AssetInventory for DatabaseConnection {
         ))
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn update_asset(
         &mut self,
         asset_id: AssetId,
@@ -130,7 +130,7 @@ impl AssetInventory for DatabaseConnection {
         }
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_asset_by_id_internal(&mut self, asset_id: AssetId) -> Result<()> {
         Ok(
             db::queries::assets::delete_asset_by_id_internal(&mut self.inner, &asset_id)
@@ -139,7 +139,7 @@ impl AssetInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_assets_by_ids(&mut self, asset_ids: &[AssetId]) -> Result<()> {
         Ok(
             db::queries::assets::delete_assets_by_ids(&mut self.inner, asset_ids)

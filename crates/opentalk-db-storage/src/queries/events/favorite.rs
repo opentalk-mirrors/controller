@@ -15,7 +15,7 @@ use crate::{
 /// Deletes a EventFavorite entry by user_id and event_id.
 ///
 /// Returns true if something was deleted.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_event_favorite_for_user(
     conn: &mut DbConnection,
     user_id: UserId,
@@ -36,7 +36,7 @@ pub async fn delete_event_favorite_for_user(
 /// Tries to insert the NewEventFavorite into the database.
 ///
 /// When yielding a unique key violation, None is returned.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn try_create_event_favorite_for_user(
     conn: &mut DbConnection,
     new_event_favorite: NewEventFavorite,

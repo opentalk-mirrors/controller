@@ -24,7 +24,7 @@ use crate::{
 };
 
 /// Select a room using the given id
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_room(conn: &mut DbConnection, id: RoomId) -> Result<Room> {
     rooms::table
         .filter(rooms::id.eq(id))
@@ -34,7 +34,7 @@ pub async fn get_room(conn: &mut DbConnection, id: RoomId) -> Result<Room> {
 }
 
 /// Select a room and the creator using the given room id
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_room_with_creator(conn: &mut DbConnection, id: RoomId) -> Result<(Room, User)> {
     rooms::table
         .filter(rooms::id.eq(id))
@@ -45,7 +45,7 @@ pub async fn get_room_with_creator(conn: &mut DbConnection, id: RoomId) -> Resul
 }
 
 /// Select all rooms joined with their creator
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_rooms_with_creator(conn: &mut DbConnection) -> Result<Vec<(Room, User)>> {
     rooms::table
         .order_by(rooms::id.desc())
@@ -56,7 +56,7 @@ pub async fn get_all_rooms_with_creator(conn: &mut DbConnection) -> Result<Vec<(
 }
 
 /// Select all rooms paginated
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_rooms_paginated_with_creator(
     conn: &mut DbConnection,
     limit: PageSize,
@@ -73,7 +73,7 @@ pub async fn get_all_rooms_paginated_with_creator(
 }
 
 /// Select all rooms filtered by ids
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_by_ids_with_creator_paginated(
     conn: &mut DbConnection,
     ids: &[RoomId],
@@ -92,7 +92,7 @@ pub async fn get_by_ids_with_creator_paginated(
 }
 
 /// Select all rooms that have no event associated with them
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_orphaned_room_ids(conn: &mut DbConnection) -> Result<Vec<RoomId>> {
     rooms::table
         .select(rooms::id)
@@ -104,7 +104,7 @@ pub async fn get_all_orphaned_room_ids(conn: &mut DbConnection) -> Result<Vec<Ro
 }
 
 /// Get the room's tariff
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_tariff(conn: &mut DbConnection, room: Room) -> Result<Tariff> {
     let user = db::queries::users::get_user(conn, room.created_by).await?;
 
@@ -112,7 +112,7 @@ pub async fn get_tariff(conn: &mut DbConnection, room: Room) -> Result<Tariff> {
 }
 
 /// Delete a room using the given id
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_room(conn: &mut DbConnection, room_id: RoomId) -> Result<()> {
     _ = diesel::delete(rooms::table.filter(rooms::id.eq(room_id)))
         .execute(conn)
@@ -122,7 +122,7 @@ pub async fn delete_room(conn: &mut DbConnection, room_id: RoomId) -> Result<()>
 }
 
 /// Create new room
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn create_room(conn: &mut DbConnection, new_room: NewRoom) -> Result<Room> {
     diesel::insert_into(rooms::table)
         .values(new_room)
@@ -132,7 +132,7 @@ pub async fn create_room(conn: &mut DbConnection, new_room: NewRoom) -> Result<R
 }
 
 /// Create room
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn update_room(
     conn: &mut DbConnection,
     update_room: UpdateRoom,

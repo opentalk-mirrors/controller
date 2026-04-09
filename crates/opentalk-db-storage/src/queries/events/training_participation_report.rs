@@ -15,7 +15,7 @@ use crate::{
     },
 };
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_event_training_participation_report_parameter_set(
     conn: &mut DbConnection,
     event_id: EventId,
@@ -31,7 +31,7 @@ pub async fn get_event_training_participation_report_parameter_set(
 /// Tries to insert the EventTrainingParticipationParameterSet into the database
 ///
 /// When yielding a unique key violation, None is returned.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn try_create_event_training_participation_report_parameter_set(
     conn: &mut DbConnection,
     new_event_training_participation_report_parameter_set: EventTrainingParticipationReportParameterSet,
@@ -51,7 +51,7 @@ pub async fn try_create_event_training_participation_report_parameter_set(
     }
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_event_training_participation_report_set(
     conn: &mut DbConnection,
     event_id: EventId,
@@ -67,7 +67,7 @@ pub async fn delete_event_training_participation_report_set(
 }
 
 /// Apply the update to the invite where `user_id` is the invitee.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn update_event_training_participation_report_parameter_set(
     conn: &mut DbConnection,
     event_id: EventId,

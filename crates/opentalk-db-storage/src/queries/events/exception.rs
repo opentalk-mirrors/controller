@@ -15,7 +15,7 @@ use crate::{
     },
 };
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_event_exception(
     conn: &mut DbConnection,
     event_id: EventId,
@@ -34,7 +34,7 @@ pub async fn get_event_exception(
     Ok(result)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_event_exceptions(
     conn: &mut DbConnection,
     event_id: EventId,
@@ -54,7 +54,7 @@ pub async fn get_event_exceptions(
     Ok(result)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_event_exceptions_for_event(
     conn: &mut DbConnection,
     event_id: EventId,
@@ -67,7 +67,7 @@ pub async fn delete_event_exceptions_for_event(
     Ok(())
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn update_event_exception(
     conn: &mut DbConnection,
     update_event_exception: UpdateEventException,
@@ -82,7 +82,7 @@ pub async fn update_event_exception(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn create_event_exception(
     conn: &mut DbConnection,
     new_event_exception: NewEventException,

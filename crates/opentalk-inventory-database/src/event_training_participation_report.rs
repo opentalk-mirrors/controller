@@ -14,7 +14,7 @@ use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl EventTrainingParticipationReportInventory for DatabaseConnection {
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_training_participation_report_parameter_set(
         &mut self,
         event_id: EventId,
@@ -30,7 +30,7 @@ impl EventTrainingParticipationReportInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn update_training_participation_report_parameter_set(
         &mut self,
         event_id: EventId,
@@ -48,7 +48,7 @@ impl EventTrainingParticipationReportInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn try_create_event_training_participation_report_parameter_set(
         &mut self,
         parameter_set: EventTrainingParticipationReportParameterSet,
@@ -64,7 +64,7 @@ impl EventTrainingParticipationReportInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_event_training_participation_report_parameter_set(
         &mut self,
         event_id: EventId,

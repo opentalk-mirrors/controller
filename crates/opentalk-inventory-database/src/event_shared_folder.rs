@@ -11,7 +11,7 @@ use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl EventSharedFolderInventory for DatabaseConnection {
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn try_create_event_shared_folder(
         &mut self,
         new_shared_folder: NewEventSharedFolder,
@@ -25,7 +25,7 @@ impl EventSharedFolderInventory for DatabaseConnection {
         .map(Into::into))
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_shared_folder(
         &mut self,
         event_id: EventId,
@@ -38,7 +38,7 @@ impl EventSharedFolderInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_shared_folders_for_room(
         &mut self,
         room_id: RoomId,
@@ -53,7 +53,7 @@ impl EventSharedFolderInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_shared_folder_by_event_id(&mut self, event_id: EventId) -> Result<()> {
         Ok(
             db::queries::events::delete_shared_folder_by_event_id(&mut self.inner, event_id)
@@ -62,7 +62,7 @@ impl EventSharedFolderInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_shared_folders_by_event_ids(&mut self, event_ids: &[EventId]) -> Result<()> {
         Ok(
             db::queries::events::delete_shared_folders_by_event_ids(&mut self.inner, event_ids)

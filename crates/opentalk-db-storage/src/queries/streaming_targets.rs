@@ -84,7 +84,7 @@ pub async fn replace_room_streaming_targets(
 }
 
 /// Retrieve a single streaming target
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_room_streaming_target(
     conn: &mut DbConnection,
     streaming_target_id: StreamingTargetId,
@@ -99,7 +99,7 @@ pub async fn get_room_streaming_target(
 }
 
 /// Retrieve all streaming targets
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_room_streaming_targets(
     conn: &mut DbConnection,
     room_id: RoomId,
@@ -112,7 +112,7 @@ pub async fn get_room_streaming_targets(
 }
 
 /// Delete a streaming target using the given room & streaming target id
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_room_streaming_target(
     conn: &mut DbConnection,
     room_id: RoomId,
@@ -130,7 +130,7 @@ pub async fn delete_room_streaming_target(
 }
 
 /// Delete all streaming targets that are associated with a specific room
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_by_room_id(conn: &mut DbConnection, room_id: RoomId) -> Result<()> {
     _ = diesel::delete(
         room_streaming_targets::table.filter(room_streaming_targets::room_id.eq(room_id)),
@@ -141,7 +141,7 @@ pub async fn delete_by_room_id(conn: &mut DbConnection, room_id: RoomId) -> Resu
     Ok(())
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn insert(
     conn: &mut DbConnection,
     new_room_streaming_target: NewRoomStreamingTarget,
@@ -153,7 +153,7 @@ pub async fn insert(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn update_room_streaming_target(
     conn: &mut DbConnection,
     update_room_streaming_target: UpdateRoomStreamingTarget,

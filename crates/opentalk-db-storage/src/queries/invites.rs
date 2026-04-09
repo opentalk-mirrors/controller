@@ -28,7 +28,7 @@ use crate::{
 pub type InviteWithUsers = (Invite, User, User);
 
 /// Query for an invite with the given id
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_room_invite(
     conn: &mut DbConnection,
     invite_code_id: InviteCode,
@@ -42,13 +42,13 @@ pub async fn get_room_invite(
 }
 
 /// Retrieve all invites
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_invites(conn: &mut DbConnection) -> Result<Vec<Invite>> {
     invites::table.load(conn).await.map_err(DatabaseError::from)
 }
 
 /// Returns a invites with user metadata for id
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_room_invite_with_creator_and_updater(
     conn: &mut DbConnection,
     invite_code_id: InviteCode,
@@ -71,7 +71,7 @@ pub async fn get_room_invite_with_creator_and_updater(
 /// Returns:
 /// Vec<(Invite, CreatedByUser, UpdatedByUser)> - A Vec of invites along with the users that created
 /// and updated the invite
-#[tracing::instrument(err, skip_all, fields(%limit, %page))]
+#[tracing::instrument(err(level = "debug"), skip_all, fields(%limit, %page))]
 pub async fn get_all_for_room_paginated(
     conn: &mut DbConnection,
     room_id: RoomId,
@@ -88,7 +88,7 @@ pub async fn get_all_for_room_paginated(
 }
 
 /// Returns a valid invite for a given room, if there is any.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_valid_invite_for_room(
     conn: &mut DbConnection,
     room_id: RoomId,
@@ -114,7 +114,7 @@ pub async fn get_valid_invite_for_room(
 /// Returns:
 /// Vec<(Invite, CreatedByUser, UpdatedByUser)> - A Vec of invites along with the users that created
 /// and updated the invite
-#[tracing::instrument(err, skip_all, fields(%limit, %page))]
+#[tracing::instrument(err(level = "debug"), skip_all, fields(%limit, %page))]
 pub async fn get_room_invites_paginated_with_creator_and_updater(
     conn: &mut DbConnection,
     room_id: RoomId,
@@ -204,7 +204,7 @@ pub async fn get_or_create_valid_invite_for_room(
 /// Vec<(Invite, CreatedByUser, UpdatedByUser)> - A Vec of invites along with the users that created
 /// and updated the invite
 // FIXME(r.floren): When diesel 2.0 gets release this can be reworked to use proper aliases
-#[tracing::instrument(err, skip_all, fields(%limit, %page))]
+#[tracing::instrument(err(level = "debug"), skip_all, fields(%limit, %page))]
 pub async fn get_all_invites_for_room_with_users_by_ids_paginated(
     conn: &mut DbConnection,
     room_id: RoomId,
@@ -257,7 +257,7 @@ pub async fn get_all_invites_for_room_with_users_by_ids_paginated(
     ))
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_inactive_or_expired_before_invite(
     conn: &mut DbConnection,
     expiration_date: DateTime<Utc>,
@@ -275,7 +275,7 @@ pub async fn get_inactive_or_expired_before_invite(
 }
 
 /// Query all invites that where updated by the specified user.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_room_invites_updated_by(
     conn: &mut DbConnection,
     user_id: UserId,
@@ -287,7 +287,7 @@ pub async fn get_room_invites_updated_by(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn create_room_invite(conn: &mut DbConnection, new_invite: NewInvite) -> Result<Invite> {
     diesel::insert_into(invites::table)
         .values(new_invite)
@@ -296,7 +296,7 @@ pub async fn create_room_invite(conn: &mut DbConnection, new_invite: NewInvite) 
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn update_room_invite(
     conn: &mut DbConnection,
     update_invite: UpdateInvite,

@@ -23,7 +23,7 @@ define_sql_function! {
     fn ot_patch_json(target: Jsonb, changeset: Jsonb) -> Jsonb;
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_module_resource(
     conn: &mut DbConnection,
     filter: Filter,
@@ -41,7 +41,7 @@ pub async fn get_module_resource(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_module_ids_for_room(
     conn: &mut DbConnection,
     room_id: RoomId,
@@ -54,7 +54,7 @@ pub async fn get_all_module_ids_for_room(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_module_resources(
     conn: &mut DbConnection,
 ) -> Result<Vec<(ModuleResourceId, UserId, UserId)>> {
@@ -70,7 +70,7 @@ pub async fn get_all_module_resources(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_module_resources(
     conn: &mut DbConnection,
     filter: Filter,
@@ -88,7 +88,7 @@ pub async fn delete_module_resources(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_all_module_resources_for_room(
     conn: &mut DbConnection,
     room_id: RoomId,
@@ -103,7 +103,7 @@ pub async fn delete_all_module_resources_for_room(
 
 /// Update the targeted json data by a set of json patch
 /// [ModuleResourceOperations](inventory::ModuleResourceOperation).
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn patch_module_resources(
     conn: &mut DbConnection,
     filter: Filter,
@@ -128,7 +128,7 @@ pub async fn patch_module_resources(
         .map_err(JsonOperationError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn create_module_resource(
     conn: &mut DbConnection,
     new_module_resource: NewModuleResource,

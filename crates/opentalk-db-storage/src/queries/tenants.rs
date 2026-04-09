@@ -13,7 +13,7 @@ use crate::{
     tables::tenants::{NewTenant, OidcTenantId, Tenant, UpdateTenant},
 };
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_tenant(conn: &mut DbConnection, id: TenantId) -> Result<Tenant> {
     tenants::table
         .filter(tenants::id.eq(id))

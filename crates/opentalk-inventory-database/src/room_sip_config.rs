@@ -14,7 +14,7 @@ use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl RoomSipConfigInventory for DatabaseConnection {
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_room_sip_config(&mut self, room_id: RoomId) -> Result<Option<RoomSipConfig>> {
         match db::queries::sip_configs::get_room_sip_config(&mut self.inner, room_id).await {
             Ok(sip_config) => Ok(Some(sip_config.into())),
@@ -23,7 +23,7 @@ impl RoomSipConfigInventory for DatabaseConnection {
         }
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_room_sip_config_with_room(
         &mut self,
         call_in_id: CallInId,
@@ -36,7 +36,7 @@ impl RoomSipConfigInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_room_sip_config_with_room_and_creator(
         &mut self,
         call_in_id: CallInId,
@@ -52,7 +52,7 @@ impl RoomSipConfigInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn create_room_sip_config(
         &mut self,
         sip_config: NewRoomSipConfig,
@@ -65,7 +65,7 @@ impl RoomSipConfigInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn update_room_sip_config(
         &mut self,
         room_id: RoomId,
@@ -81,7 +81,7 @@ impl RoomSipConfigInventory for DatabaseConnection {
         .map(Into::into))
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_room_sip_config(&mut self, room_id: RoomId) -> Result<()> {
         Ok(
             db::queries::sip_configs::delete_room_sip_config(&mut self.inner, room_id)

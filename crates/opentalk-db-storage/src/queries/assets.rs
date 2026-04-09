@@ -25,7 +25,7 @@ use crate::{
     tables::assets::RoomAsset,
 };
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_asset_for_room(
     conn: &mut DbConnection,
     room_id: RoomId,
@@ -46,7 +46,7 @@ pub async fn get_asset_for_room(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_asset_ids_for_room(
     conn: &mut DbConnection,
     room_id: RoomId,
@@ -59,7 +59,7 @@ pub async fn get_all_asset_ids_for_room(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn count_all_assets(conn: &mut DbConnection) -> Result<i64> {
     assets::table
         .count()
@@ -68,7 +68,7 @@ pub async fn count_all_assets(conn: &mut DbConnection) -> Result<i64> {
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_assets_for_room_paginated(
     conn: &mut DbConnection,
     room_id: RoomId,
@@ -85,7 +85,7 @@ pub async fn get_all_assets_for_room_paginated(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_assets_for_rooms_paginated(
     conn: &mut DbConnection,
     room_ids: &[RoomId],
@@ -102,7 +102,7 @@ pub async fn get_all_assets_for_rooms_paginated(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_assets_with_size(conn: &mut DbConnection) -> Result<Vec<(AssetId, i64)>> {
     assets::table
         .select((assets::id, assets::size))
@@ -112,7 +112,7 @@ pub async fn get_all_assets_with_size(conn: &mut DbConnection) -> Result<Vec<(As
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_asset_from_room(
     conn: &mut DbConnection,
     room_id: RoomId,
@@ -149,7 +149,7 @@ pub async fn delete_asset_from_room(
 /// Used for the internal deletion of assets
 ///
 /// When the request originates from a client, the [`delete_assets_by_ids`] method should be used.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_asset_by_id_internal(
     conn: &mut DbConnection,
     asset_id: &AssetId,
@@ -161,7 +161,7 @@ pub async fn delete_asset_by_id_internal(
     Ok(())
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_assets_by_ids(conn: &mut DbConnection, asset_ids: &[AssetId]) -> Result<()> {
     let _ = diesel::delete(assets::table.filter(assets::id.eq_any(asset_ids)))
         .execute(conn)
@@ -170,7 +170,7 @@ pub async fn delete_assets_by_ids(conn: &mut DbConnection, asset_ids: &[AssetId]
     Ok(())
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn create_asset_for_room(
     conn: &mut DbConnection,
     new_asset: NewAsset,
@@ -202,7 +202,7 @@ pub async fn create_asset_for_room(
     .await
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn update_asset(
     conn: &mut DbConnection,
     update_asset: UpdateAsset,
@@ -219,7 +219,7 @@ pub async fn update_asset(
 
 pub type AssetRoomIdEventIdTuple = (Asset, RoomId, Option<EventId>);
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_assets_for_room_owner_paginated_ordered(
     conn: &mut DbConnection,
     user_id: UserId,

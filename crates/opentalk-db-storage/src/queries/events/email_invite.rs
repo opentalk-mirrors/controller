@@ -84,7 +84,7 @@ pub async fn migrate_event_email_invites_to_user_invites(
     .await
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_event_email_invites_for_events(
     conn: &mut DbConnection,
     events: &[&Event],
@@ -94,7 +94,7 @@ pub async fn get_event_email_invites_for_events(
     Ok(invites_by_event)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_event_email_invite_by_email(
     conn: &mut DbConnection,
     event_id: &EventId,
@@ -112,7 +112,7 @@ pub async fn delete_event_email_invite_by_email(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_event_email_invites_paginated(
     conn: &mut DbConnection,
     event_id: EventId,
@@ -134,7 +134,7 @@ pub async fn get_event_email_invites_paginated(
 /// Tries to insert the EventEmailInvite into the database
 ///
 /// When yielding a unique key violation, None is returned.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn try_create_event_email_invite(
     conn: &mut DbConnection,
     new_email_invite: NewEventEmailInvite,
@@ -155,7 +155,7 @@ pub async fn try_create_event_email_invite(
 }
 
 /// Apply the update to the invite where `email` is the invitee's email address.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn update_event_email_invite(
     conn: &mut DbConnection,
     email: &str,

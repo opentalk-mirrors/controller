@@ -17,7 +17,7 @@ use crate::{
     },
 };
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_job(conn: &mut DbConnection, id: SerialJobId) -> Result<Job> {
     jobs::table
         .filter(jobs::id.eq(id))
@@ -26,12 +26,12 @@ pub async fn get_job(conn: &mut DbConnection, id: SerialJobId) -> Result<Job> {
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_jobs(conn: &mut DbConnection) -> Result<Vec<Job>> {
     jobs::table.load(conn).await.map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn create_job_execution(
     conn: &mut DbConnection,
     new_job_execution: NewJobExecution,
@@ -43,7 +43,7 @@ pub async fn create_job_execution(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn update_job_execution(
     conn: &mut DbConnection,
     update_job_execution: UpdateJobExecution,
@@ -58,7 +58,7 @@ pub async fn update_job_execution(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn create_job_execution_logs(
     conn: &mut DbConnection,
     batch: &[NewJobExecutionLog],

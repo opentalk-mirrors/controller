@@ -18,7 +18,7 @@ use crate::{
     },
 };
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_room_sip_config_with_room(
     conn: &mut DbConnection,
     sip_id: &CallInId,
@@ -32,7 +32,7 @@ pub async fn get_room_sip_config_with_room(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_room_sip_config_with_room_and_creator(
     conn: &mut DbConnection,
     sip_id: &CallInId,
@@ -46,7 +46,7 @@ pub async fn get_room_sip_config_with_room_and_creator(
 }
 
 /// Get the sip config for the specified room
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_room_sip_config(conn: &mut DbConnection, room_id: RoomId) -> Result<SipConfig> {
     sip_configs::table
         .filter(sip_configs::room.eq(&room_id))
@@ -56,7 +56,7 @@ pub async fn get_room_sip_config(conn: &mut DbConnection, room_id: RoomId) -> Re
 }
 
 /// Delete the sip config for the specified room
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_room_sip_config(conn: &mut DbConnection, room_id: RoomId) -> Result<()> {
     _ = diesel::delete(sip_configs::table.filter(sip_configs::room.eq(&room_id)))
         .execute(conn)
@@ -78,7 +78,7 @@ pub async fn update_room_sip_config(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn create_room_sip_config(
     conn: &mut DbConnection,
     mut new_sip_config: NewSipConfig,

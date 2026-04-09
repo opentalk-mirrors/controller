@@ -14,7 +14,7 @@ use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl TariffInventory for DatabaseConnection {
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_tariffs(&mut self) -> Result<Vec<Tariff>> {
         Ok(db::queries::tariffs::get_all_tariffs(&mut self.inner)
             .await
@@ -24,7 +24,7 @@ impl TariffInventory for DatabaseConnection {
             .collect())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_tariff(&mut self, tariff_id: TariffId) -> Result<Tariff> {
         Ok(db::queries::tariffs::get_tariff(&mut self.inner, tariff_id)
             .await
@@ -32,7 +32,7 @@ impl TariffInventory for DatabaseConnection {
             .into())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_tariff_by_name(&mut self, tariff_name: &str) -> Result<Tariff> {
         Ok(
             db::queries::tariffs::get_tariff_by_name(&mut self.inner, tariff_name)
@@ -42,7 +42,7 @@ impl TariffInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_tariff_for_user(&mut self, user_id: UserId) -> Result<Tariff> {
         Ok(
             db::queries::tariffs::get_tariff_for_user(&mut self.inner, &user_id)
@@ -52,7 +52,7 @@ impl TariffInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_tariff_by_external_tariff_id(
         &mut self,
         external_tariff_id: ExternalTariffId,
@@ -67,7 +67,7 @@ impl TariffInventory for DatabaseConnection {
         .map(Into::into))
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_external_tariff_ids_for_tariff(
         &mut self,
         tariff_id: TariffId,
@@ -82,7 +82,7 @@ impl TariffInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn create_tariff(&mut self, tariff: NewTariff) -> Result<Tariff> {
         Ok(
             db::queries::tariffs::create_tariff(&mut self.inner, tariff.into())
@@ -92,7 +92,7 @@ impl TariffInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn update_tariff(&mut self, tariff: Tariff, changeset: UpdateTariff) -> Result<Tariff> {
         Ok(
             db::queries::tariffs::update_tariff(&mut self.inner, changeset.into(), tariff.id)
@@ -102,7 +102,7 @@ impl TariffInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_tariff(&mut self, tariff_id: TariffId) -> Result<()> {
         Ok(
             db::queries::tariffs::delete_tariff(&mut self.inner, tariff_id)
@@ -125,7 +125,7 @@ impl TariffInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_external_tariff_mappings_for_tariff_by_external_id(
         &mut self,
         tariff_id: TariffId,
@@ -146,7 +146,7 @@ impl TariffInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn create_external_tariff_mapping(
         &mut self,
         external_tariff_id: ExternalTariffId,

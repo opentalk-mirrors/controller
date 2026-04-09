@@ -12,7 +12,7 @@ use crate::{
     tables::event_shared_folders::{EventSharedFolder, NewEventSharedFolder},
 };
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_event_shared_folder(
     conn: &mut DbConnection,
     event_id: EventId,
@@ -26,7 +26,7 @@ pub async fn get_event_shared_folder(
 }
 
 /// Returns all [`EventSharedFolder`]s in the given [`RoomId`].
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_event_shared_folders_for_room(
     conn: &mut DbConnection,
     room_id: RoomId,
@@ -41,7 +41,7 @@ pub async fn get_event_shared_folders_for_room(
 }
 
 /// Delete a shared folder using the given event id.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_shared_folder_by_event_id(
     conn: &mut DbConnection,
     event_id: EventId,
@@ -54,7 +54,7 @@ pub async fn delete_shared_folder_by_event_id(
 }
 
 /// Delete shared folders using the given event ids
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_shared_folders_by_event_ids(
     conn: &mut DbConnection,
     event_ids: &[EventId],
@@ -71,7 +71,7 @@ pub async fn delete_shared_folders_by_event_ids(
 /// Tries to insert the EventSharedFolder into the database.
 ///
 /// When yielding a unique constraint violation, None is returned.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn try_create_event_shared_folder(
     conn: &mut DbConnection,
     new_shared_folder: NewEventSharedFolder,

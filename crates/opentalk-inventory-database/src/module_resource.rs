@@ -17,7 +17,7 @@ use crate::{
 
 #[async_trait::async_trait]
 impl ModuleResourceInventory for DatabaseConnection {
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn create_module_resource(
         &mut self,
         resource: NewModuleResource,
@@ -30,7 +30,7 @@ impl ModuleResourceInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_module_resources(
         &mut self,
         resource_filter: ModuleResourceFilter,
@@ -46,7 +46,7 @@ impl ModuleResourceInventory for DatabaseConnection {
         .collect())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_module_resources(
         &mut self,
     ) -> Result<Vec<(ModuleResourceId, UserId, UserId)>> {
@@ -57,7 +57,7 @@ impl ModuleResourceInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn patch_module_resources(
         &mut self,
         resource_filter: ModuleResourceFilter,
@@ -75,7 +75,7 @@ impl ModuleResourceInventory for DatabaseConnection {
         .collect())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_module_ids_for_room(
         &mut self,
         room_id: RoomId,
@@ -87,7 +87,7 @@ impl ModuleResourceInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_module_resources(
         &mut self,
         resource_filter: ModuleResourceFilter,
@@ -103,7 +103,7 @@ impl ModuleResourceInventory for DatabaseConnection {
         .collect())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_all_module_resources_for_room(&mut self, room_id: RoomId) -> Result<()> {
         Ok(
             db::queries::module_resources::delete_all_module_resources_for_room(

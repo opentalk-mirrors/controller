@@ -14,7 +14,7 @@ use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl GroupInventory for DatabaseConnection {
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_or_create_groups_by_name(
         &mut self,
         groups: &[(TenantId, GroupName)],
@@ -29,7 +29,7 @@ impl GroupInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_groups_for_user(&mut self, user_id: UserId) -> Result<Vec<Group>> {
         Ok(
             db::queries::groups::get_groups_for_user(&mut self.inner, user_id)
