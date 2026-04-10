@@ -212,7 +212,7 @@ impl ControllerBackend {
 
     async fn build_room_parameters(
         &self,
-        room: RoomResource,
+        room_resource: RoomResource,
     ) -> Result<RoomParameters, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
@@ -221,9 +221,11 @@ impl ControllerBackend {
             ApiError::internal().with_message("roomserver settings are not configured")
         })?;
 
-        let call_in = Self::get_call_in_info(inventory.as_mut(), &settings, room.id).await?;
+        let call_in =
+            Self::get_call_in_info(inventory.as_mut(), &settings, room_resource.id).await?;
+        let room = inventory.get_room(room_resource.id).await?;
 
-        let db_event = inventory.get_event_for_room(room.id).await?;
+        let db_event = inventory.get_event_for_room(room_resource.id).await?;
         let show_meeting_details = db_event
             .as_ref()
             .map(|event| event.show_meeting_details)
@@ -233,17 +235,22 @@ impl ControllerBackend {
             None => None,
         };
 
-        let streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
+        let streaming_targets = inventory
+            .get_room_streaming_targets(room_resource.id)
+            .await?;
 
         let invite_code = inventory
-            .get_valid_invite_for_room(room.id)
+            .get_valid_invite_for_room(room_resource.id)
             .await?
             .map(|invite| invite.invite_code);
 
-        let tariff = inventory.get_tariff_for_user(room.created_by.id).await?;
+        let tariff = inventory
+            .get_tariff_for_user(room_resource.created_by.id)
+            .await?;
 
         let mut module_settings = room_server_settings.modules.clone();
-        Self::override_module_settings(inventory.as_mut(), room.id, &mut module_settings).await?;
+        Self::override_module_settings(inventory.as_mut(), room_resource.id, &mut module_settings)
+            .await?;
 
         let disabled_modules = tariff.disabled_modules();
         module_settings.retain(|module_id, _| !disabled_modules.contains(module_id));
@@ -253,7 +260,7 @@ impl ControllerBackend {
             let used = match quota_type {
                 QuotaType::RoomParticipantLimit | QuotaType::RoomTimeLimitSecs => 0,
                 QuotaType::MaxStorage => inventory
-                    .get_user_storage_used_size_u64(room.created_by.id)
+                    .get_user_storage_used_size_u64(room_resource.created_by.id)
                     .await
                     .unwrap_or(0),
             };
@@ -274,12 +281,12 @@ impl ControllerBackend {
             disabled_features,
         };
 
-        let user_id = room.created_by.id;
+        let user_id = room_resource.created_by.id;
         let timezone = get_user_timezone(user_id, inventory.as_mut(), &settings).await;
         let created_by = PublicUserProfile {
-            id: room.created_by.id,
-            email: room.created_by.email,
-            user_info: room.created_by.user_info,
+            id: room_resource.created_by.id,
+            email: room_resource.created_by.email,
+            user_info: room_resource.created_by.user_info,
             timezone,
         };
         let preferred_language = inventory
@@ -314,15 +321,15 @@ impl ControllerBackend {
 
         let parameters = RoomParameters {
             created_by,
-            password: room.password,
-            waiting_room: room.waiting_room,
+            password: room_resource.password,
+            waiting_room: room_resource.waiting_room,
             call_in,
             event,
             invite_code,
             tariff,
             streaming_targets,
             show_meeting_details,
-            e2e_encryption: false,
+            e2e_encryption: room.e2e_encryption,
             module_settings,
             preferred_language,
             fallback_language: settings.defaults.user_language.clone(),
