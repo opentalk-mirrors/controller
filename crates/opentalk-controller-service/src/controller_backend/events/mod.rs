@@ -536,9 +536,12 @@ impl ControllerBackend {
                             datetime: date.starts_at.into(),
                             timezone: date.starts_at_tz,
                         },
-                        ends_at: DateTimeTz {
-                            datetime: date.ends_at.into(),
-                            timezone: date.ends_at_tz,
+                        ends_at: {
+                            let raw_ends_at = date.ends_at_of_first_occurrence();
+                            DateTimeTz {
+                                datetime: raw_ends_at.0.into(),
+                                timezone: raw_ends_at.1,
+                            }
                         },
                         recurrence_pattern,
                     })
@@ -674,9 +677,12 @@ impl ControllerBackend {
                             datetime: date.starts_at.into(),
                             timezone: date.starts_at_tz,
                         },
-                        ends_at: DateTimeTz {
-                            datetime: date.ends_at.into(),
-                            timezone: date.ends_at_tz,
+                        ends_at: {
+                            let raw_ends_at = date.ends_at_of_first_occurrence();
+                            DateTimeTz {
+                                datetime: raw_ends_at.0.into(),
+                                timezone: raw_ends_at.1,
+                            }
                         },
                         recurrence_pattern,
                     })
@@ -1032,9 +1038,12 @@ impl ControllerBackend {
                             datetime: date.starts_at.into(),
                             timezone: date.starts_at_tz,
                         },
-                        ends_at: DateTimeTz {
-                            datetime: date.ends_at.into(),
-                            timezone: date.ends_at_tz,
+                        ends_at: {
+                            let raw_ends_at = date.ends_at_of_first_occurrence();
+                            DateTimeTz {
+                                datetime: raw_ends_at.0.into(),
+                                timezone: raw_ends_at.1,
+                            }
                         },
                         recurrence_pattern,
                     })
@@ -1594,9 +1603,12 @@ async fn create_time_dependent_event(
                         datetime: date.starts_at.into(),
                         timezone: date.starts_at_tz,
                     },
-                    ends_at: DateTimeTz {
-                        datetime: date.ends_at.into(),
-                        timezone: date.ends_at_tz,
+                    ends_at: {
+                        let raw_ends_at = date.ends_at_of_first_occurrence();
+                        DateTimeTz {
+                            datetime: raw_ends_at.0.into(),
+                            timezone: raw_ends_at.1,
+                        }
                     },
                     recurrence_pattern,
                 })
