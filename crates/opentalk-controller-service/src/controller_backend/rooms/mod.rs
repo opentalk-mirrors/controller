@@ -82,6 +82,9 @@ impl ControllerBackend {
         }
 
         let guest_access = guest_access.unwrap_or_default();
+        if guest_access != GuestAccess::Disabled {
+            tariff.require_feature(&features::GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
+        }
 
         let room = inventory
             .create_room(NewRoom {
@@ -136,6 +139,12 @@ impl ControllerBackend {
     ) -> Result<RoomResource, CaptureApiError> {
         let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
+
+        let tariff = self.get_tariff_for_user(current_user.id).await?;
+
+        if guest_access != Some(GuestAccess::Disabled) {
+            tariff.require_feature(&features::GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
+        }
 
         let room = inventory
             .update_room(

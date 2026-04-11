@@ -15,7 +15,7 @@ use opentalk_controller_api_authorization::authorization::AuthorizationChange;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::{
-    CaptureApiError,
+    CaptureApiError, TariffResourceExt,
     deletion::{Deleter, EventDeleter},
 };
 use opentalk_inventory::{
@@ -43,7 +43,7 @@ use opentalk_types_api_v1::{
 };
 use opentalk_types_common::{
     events::{EventDescription, EventId, EventTitle, invites::EventInviteStatus},
-    features::CALL_IN_FEATURE_ID,
+    features::{CALL_IN_FEATURE_ID, GUESTS_ALLOWED_MODULE_FEATURE_ID},
     modules::DEFAULT_MODULE_ID,
     pagination::{ItemCount, Page, PageSize},
     rooms::{GuestAccess, RoomPassword},
@@ -777,7 +777,16 @@ impl ControllerBackend {
             .get_event_with_related_items(current_user.id, event_id)
             .await?;
 
-        let room = if patch.password.is_some() || patch.waiting_room.is_some() {
+        let tariff = self.build_tariff_resource(&tariff)?;
+
+        let room = if patch.password.is_some()
+            || patch.waiting_room.is_some()
+            || patch.guest_access.is_some()
+            || patch.e2e_encryption.is_some()
+        {
+            if patch.guest_access != Some(GuestAccess::Disabled) {
+                tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
+            }
             // Update the event's room if at least one of the fields is set
             inventory
                 .update_room(
@@ -1028,8 +1037,6 @@ impl ControllerBackend {
 
         let shared_folder =
             shared_folder_for_user(shared_folder, event.created_by, current_user.id);
-
-        let tariff = self.build_tariff_resource(&tariff)?;
 
         let date = event
             .date()
@@ -1450,6 +1457,9 @@ async fn create_time_independent_event(
     training_participation_report: Option<TrainingParticipationReportParameterSet>,
 ) -> Result<(EventResource, Option<MailResource>), CaptureApiError> {
     let guest_access = guest_access.unwrap_or_default();
+    if guest_access != GuestAccess::Disabled {
+        user_tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
+    }
 
     let room = inventory
         .create_room(NewRoom {
@@ -1552,6 +1562,9 @@ async fn create_time_dependent_event(
         parse_event_dt_params(is_all_day, starts_at, ends_at, &recurrence_pattern)?;
 
     let guest_access = guest_access.unwrap_or_default();
+    if guest_access != GuestAccess::Disabled {
+        user_tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
+    }
 
     let room = inventory
         .create_room(NewRoom {
