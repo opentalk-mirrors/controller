@@ -5,6 +5,7 @@
 //! Contains table structs
 
 pub mod assets;
+pub mod event_dates;
 pub mod event_email_invites;
 pub mod event_exceptions;
 pub mod event_favorites;
