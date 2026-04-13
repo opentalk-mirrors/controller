@@ -10,18 +10,19 @@ use opentalk_db_storage::{
     queries::events::types::GetEventsCursor,
     tables::{
         event_invites::{NewEventInvite, UpdateEventInvite},
-        events::{Event, NewEvent},
         rooms::NewRoom,
         users::User,
     },
 };
+use opentalk_inventory as inventory;
 use opentalk_types_common::{
     events::{
-        EventId,
+        EventDescription, EventId, EventTitle,
         invites::{EventInviteStatus, InviteRole},
     },
     time::TimeZone,
     users::UserId,
+    utils::ExampleData,
 };
 use pretty_assertions::assert_eq;
 use serial_test::serial;
@@ -35,7 +36,7 @@ async fn make_event(
     user: &User,
     hour: Option<u32>,
     is_adhoc: bool,
-) -> Event {
+) -> db::queries::events::types::EventRecord {
     let tenant = db::queries::tenants::get_or_create_tenant_by_oidc_id(
         conn,
         &db::tables::tenants::OidcTenantId::from("default".to_string()),
@@ -55,25 +56,28 @@ async fn make_event(
         db::queries::rooms::create_room(conn, room).await.unwrap()
     };
 
-    let new_event = NewEvent {
-        title: "Test Event".parse().expect("valid event title"),
-        description: "Test Event".parse().expect("valid event description"),
+    let date = hour.map(|h| inventory::NewEventDate {
+        is_all_day: false,
+        starts_at: Tz::UTC.with_ymd_and_hms(2020, 1, 1, h, 0, 0).unwrap(),
+        starts_at_tz: TimeZone::from(Tz::UTC),
+        ends_at: Tz::UTC.with_ymd_and_hms(2020, 1, 1, h, 0, 0).unwrap(),
+        ends_at_tz: TimeZone::from(Tz::UTC),
+        recurrence: None,
+    });
+
+    let new_event = inventory::NewEvent {
+        title: EventTitle::example_data(),
+        description: EventDescription::example_data(),
         room: room.id,
         created_by: user.id,
         updated_by: user.id,
-        is_all_day: Some(false),
-        starts_at: hour.map(|h| Tz::UTC.with_ymd_and_hms(2020, 1, 1, h, 0, 0).unwrap()),
-        starts_at_tz: hour.map(|_| TimeZone::from(Tz::UTC)),
-        ends_at: hour.map(|h| Tz::UTC.with_ymd_and_hms(2020, 1, 1, h, 0, 0).unwrap()),
-        ends_at_tz: hour.map(|_| TimeZone::from(Tz::UTC)),
-        duration_secs: hour.map(|_| 0),
-        recurrence_pattern: None,
         is_adhoc,
         tenant_id: tenant.id,
         show_meeting_details: false,
+        date,
     };
 
-    db::queries::events::create_event(conn, new_event)
+    db::queries::events::create_event(conn, new_event.into())
         .await
         .unwrap()
 }
@@ -337,22 +341,22 @@ async fn serial_test_get_events_invite_filter() {
     assert!(
         all_events
             .iter()
-            .any(|(event, ..)| event.id == accept_event.id)
+            .any(|(event, ..)| event.id() == accept_event.id())
     );
     assert!(
         all_events
             .iter()
-            .any(|(event, ..)| event.id == decline_event.id)
+            .any(|(event, ..)| event.id() == decline_event.id())
     );
     assert!(
         all_events
             .iter()
-            .any(|(event, ..)| event.id == tentative_event.id)
+            .any(|(event, ..)| event.id() == tentative_event.id())
     );
     assert!(
         all_events
             .iter()
-            .any(|(event, ..)| event.id == pending_event.id)
+            .any(|(event, ..)| event.id() == pending_event.id())
     );
 
     // Check that no events are returned when filtering for `Declined`
@@ -385,7 +389,7 @@ async fn serial_test_get_events_invite_filter() {
     // invite the invitee to all events
     for event in events {
         let new_event_invite = NewEventInvite {
-            event_id: event.id,
+            event_id: event.id(),
             invitee: invitee.id,
             created_by: inviter.id,
             created_at: None,
@@ -400,7 +404,7 @@ async fn serial_test_get_events_invite_filter() {
     update_invite_status(
         &mut conn,
         invitee.id,
-        accept_event.id,
+        accept_event.id(),
         EventInviteStatus::Accepted,
     )
     .await;
@@ -408,7 +412,7 @@ async fn serial_test_get_events_invite_filter() {
     update_invite_status(
         &mut conn,
         invitee.id,
-        decline_event.id,
+        decline_event.id(),
         EventInviteStatus::Declined,
     )
     .await;
@@ -416,7 +420,7 @@ async fn serial_test_get_events_invite_filter() {
     update_invite_status(
         &mut conn,
         invitee.id,
-        tentative_event.id,
+        tentative_event.id(),
         EventInviteStatus::Tentative,
     )
     .await;
@@ -443,7 +447,7 @@ async fn serial_test_get_events_invite_filter() {
     assert!(
         accepted_events
             .iter()
-            .any(|(event, ..)| event.id == accept_event.id)
+            .any(|(event, ..)| event.id() == accept_event.id())
     );
 
     // check `declined` invites
@@ -468,7 +472,7 @@ async fn serial_test_get_events_invite_filter() {
     assert!(
         declined_events
             .iter()
-            .any(|(event, ..)| event.id == decline_event.id)
+            .any(|(event, ..)| event.id() == decline_event.id())
     );
 
     // check `tentative` invites
@@ -493,7 +497,7 @@ async fn serial_test_get_events_invite_filter() {
     assert!(
         tentative_events
             .iter()
-            .any(|(event, ..)| event.id == tentative_event.id)
+            .any(|(event, ..)| event.id() == tentative_event.id())
     );
 
     // check `pending` invites
@@ -518,7 +522,7 @@ async fn serial_test_get_events_invite_filter() {
     assert!(
         pending_events
             .iter()
-            .any(|(event, ..)| event.id == pending_event.id)
+            .any(|(event, ..)| event.id() == pending_event.id())
     );
 
     // expect all events when no invite_status_filter is set
@@ -543,22 +547,22 @@ async fn serial_test_get_events_invite_filter() {
     assert!(
         all_events
             .iter()
-            .any(|(event, ..)| event.id == accept_event.id)
+            .any(|(event, ..)| event.id() == accept_event.id())
     );
     assert!(
         all_events
             .iter()
-            .any(|(event, ..)| event.id == decline_event.id)
+            .any(|(event, ..)| event.id() == decline_event.id())
     );
     assert!(
         all_events
             .iter()
-            .any(|(event, ..)| event.id == tentative_event.id)
+            .any(|(event, ..)| event.id() == tentative_event.id())
     );
     assert!(
         all_events
             .iter()
-            .any(|(event, ..)| event.id == pending_event.id)
+            .any(|(event, ..)| event.id() == pending_event.id())
     );
 }
 
@@ -577,7 +581,7 @@ async fn serial_test_get_event_invites() {
     let event1 = make_event(&mut conn, &ferdinand, Some(1), true).await;
 
     let new_event_invite = NewEventInvite {
-        event_id: event1.id,
+        event_id: event1.id(),
         invitee: louise.id,
         created_by: ferdinand.id,
         created_at: None,
@@ -588,7 +592,7 @@ async fn serial_test_get_event_invites() {
         .unwrap();
 
     let new_event_invite = NewEventInvite {
-        event_id: event1.id,
+        event_id: event1.id(),
         invitee: gerhard.id,
         created_by: ferdinand.id,
         created_at: None,
@@ -602,7 +606,7 @@ async fn serial_test_get_event_invites() {
     let event2 = make_event(&mut conn, &gerhard, Some(1), true).await;
 
     let new_event_invite = NewEventInvite {
-        event_id: event2.id,
+        event_id: event2.id(),
         invitee: louise.id,
         created_by: ferdinand.id,
         created_at: None,
@@ -613,7 +617,7 @@ async fn serial_test_get_event_invites() {
         .unwrap();
 
     let new_event_invite = NewEventInvite {
-        event_id: event2.id,
+        event_id: event2.id(),
         invitee: ferdinand.id,
         created_by: ferdinand.id,
         created_at: None,
@@ -623,7 +627,8 @@ async fn serial_test_get_event_invites() {
         .await
         .unwrap();
 
-    let events = &[&event1, &event2][..];
+    let events = &[event1.event(), event2.event()][..];
+
     let invites_with_invitees =
         db::queries::events::get_event_user_invites_for_events(&mut conn, events)
             .await
@@ -830,25 +835,19 @@ async fn serial_test_get_event_min_max_time() {
     };
 
     let event1 = {
-        let event = NewEvent {
+        let event = inventory::NewEvent {
             title: "Test Event".parse().expect("valid event title"),
             description: "Test Event".parse().expect("valid event description"),
             room: room1.id,
             created_by: user.id,
             updated_by: user.id,
-            is_all_day: Some(false),
-            starts_at: None,
-            starts_at_tz: None,
-            ends_at: None,
-            ends_at_tz: None,
-            duration_secs: None,
-            recurrence_pattern: None,
             is_adhoc: false,
             tenant_id: user.tenant_id,
             show_meeting_details: false,
+            date: None,
         };
 
-        db::queries::events::create_event(&mut conn, event)
+        db::queries::events::create_event(&mut conn, event.into())
             .await
             .unwrap()
     };
@@ -868,25 +867,26 @@ async fn serial_test_get_event_min_max_time() {
     };
 
     let event2 = {
-        let event = NewEvent {
+        let event = inventory::NewEvent {
             title: "Test Event".parse().expect("valid event title"),
             description: "Test Event".parse().expect("valid event description"),
             room: room2.id,
             created_by: user.id,
             updated_by: user.id,
-            is_all_day: Some(false),
-            starts_at: Some(Tz::UTC.with_ymd_and_hms(2020, 1, 1, 10, 0, 0).unwrap()),
-            starts_at_tz: Some(TimeZone::from(Tz::UTC)),
-            ends_at: Some(Tz::UTC.with_ymd_and_hms(2020, 1, 1, 11, 0, 0).unwrap()),
-            ends_at_tz: Some(TimeZone::from(Tz::UTC)),
-            duration_secs: Some(3600),
-            recurrence_pattern: None,
             is_adhoc: false,
             tenant_id: user.tenant_id,
             show_meeting_details: false,
+            date: Some(inventory::NewEventDate {
+                is_all_day: false,
+                starts_at: Tz::UTC.with_ymd_and_hms(2020, 1, 1, 10, 0, 0).unwrap(),
+                starts_at_tz: TimeZone::from(Tz::UTC),
+                ends_at: Tz::UTC.with_ymd_and_hms(2020, 1, 1, 11, 0, 0).unwrap(),
+                ends_at_tz: TimeZone::from(Tz::UTC),
+                recurrence: None,
+            }),
         };
 
-        db::queries::events::create_event(&mut conn, event)
+        db::queries::events::create_event(&mut conn, event.into())
             .await
             .unwrap()
     };
