@@ -4,7 +4,7 @@
 
 use opentalk_db_storage as db;
 use opentalk_inventory::{
-    Event, EventEmailInvite, EventInvite, EventInviteInventory, NewEventEmailInvite,
+    self as inventory, EventEmailInvite, EventInvite, EventInviteInventory, NewEventEmailInvite,
     NewEventInvite, UpdateEventEmailInvite, UpdateEventInvite, User,
 };
 use opentalk_types_common::{
@@ -108,14 +108,16 @@ impl EventInviteInventory for DatabaseConnection {
     #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_user_invites_for_events(
         &mut self,
-        events: &[&Event],
+        events: &[&inventory::Event],
     ) -> Result<Vec<Vec<(EventInvite, User)>>> {
         let events = events
             .iter()
             .cloned()
-            .map(db::tables::events::Event::from)
+            .map(Into::into)
             .collect::<Vec<db::tables::events::Event>>();
+
         let events = events.iter().collect::<Vec<&db::tables::events::Event>>();
+
         let invites =
             db::queries::events::get_event_user_invites_for_events(&mut self.inner, &events)
                 .await
@@ -134,7 +136,7 @@ impl EventInviteInventory for DatabaseConnection {
     #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_email_invites_for_events(
         &mut self,
-        events: &[&Event],
+        events: &[&inventory::Event],
     ) -> Result<Vec<Vec<EventEmailInvite>>> {
         let events = events
             .iter()

@@ -20,7 +20,7 @@ use diesel::{
     prelude::*,
     sql_types::{Nullable, Record, Timestamptz, Uuid},
 };
-use diesel_async::RunQueryDsl;
+use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
 pub use email_invite::*;
 pub use exception::*;
 pub use favorite::*;
@@ -37,37 +37,34 @@ pub use shared_folder::*;
 pub use training_participation_report::*;
 
 use crate::{
-    queries::events::types::{GetEventExceptionsCursor, GetEventsCursor},
+    queries::events::types::{
+        EventRecord, GetEventExceptionsCursor, GetEventsCursor, NewEventRecord, UpdateEventRecord,
+    },
     schema::{
-        event_exceptions, event_favorites, event_invites, event_shared_folders,
+        event_dates, event_exceptions, event_favorites, event_invites, event_shared_folders,
         event_training_participation_report_parameter_sets, events, rooms, sip_configs, tariffs,
         users,
     },
     tables::{
-        event_exceptions::EventException,
-        event_invites::EventInvite,
+        event_exceptions::EventException, event_invites::EventInvite,
         event_shared_folders::EventSharedFolder,
         event_training_participation_report_parameter_sets::EventTrainingParticipationReportParameterSet,
-        events::{Event, NewEvent, UpdateEvent},
-        rooms::Room,
-        sip_configs::SipConfig,
-        tariffs::Tariff,
-        users::User,
+        events::Event, rooms::Room, sip_configs::SipConfig, tariffs::Tariff, users::User,
     },
     utils::convert_diesel_query_results,
 };
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_event(conn: &mut DbConnection, event_id: EventId) -> Result<Event> {
-    let query = events::table
+pub async fn get_event(conn: &mut DbConnection, event_id: EventId) -> Result<EventRecord> {
+    events::table
+        .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
         .inner_join(users::table.on(users::id.eq(events::created_by)))
-        .select(events::all_columns)
+        .select((events::all_columns, event_dates::all_columns.nullable()))
         .filter(events::id.eq(event_id))
-        .filter(users::disabled_since.is_null());
-
-    let event = query.first(conn).await?;
-
-    Ok(event)
+        .filter(users::disabled_since.is_null())
+        .first(conn)
+        .await
+        .map_err(DatabaseError::from)
 }
 
 pub async fn get_all_events_with_creator(
@@ -89,14 +86,15 @@ pub async fn get_all_events_that_ended_before_including_rooms(
     date: DateTime<Utc>,
 ) -> Result<Vec<(EventId, RoomId)>> {
     events::table
+        .inner_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
         .inner_join(users::table.on(users::id.eq(events::created_by)))
         .select((events::id, events::room))
-        .filter(events::ends_at.le(date))
-        .filter(events::recurrence_pattern.is_null())
+        .filter(event_dates::ends_at.le(date))
+        .filter(event_dates::recurrence_pattern.is_null())
         .filter(users::disabled_since.is_null())
         .load(conn)
         .await
-        .map_err(Into::into)
+        .map_err(DatabaseError::from)
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
@@ -131,29 +129,31 @@ pub async fn get_all_events_for_creator_including_rooms(
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_all_events_finite_recurring(conn: &mut DbConnection) -> Result<Vec<Event>> {
+pub async fn get_all_events_finite_recurring(conn: &mut DbConnection) -> Result<Vec<EventRecord>> {
     events::table
+        .inner_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
         .inner_join(users::table.on(users::id.eq(events::created_by)))
-        .select(events::all_columns)
+        .select((events::all_columns, event_dates::all_columns.nullable()))
         .filter(
-            events::recurrence_pattern
+            event_dates::recurrence_pattern
                 .ilike("%UNTIL%")
-                .or(events::recurrence_pattern.ilike("%COUNT%")),
+                .or(event_dates::recurrence_pattern.ilike("%COUNT%")),
         )
         .filter(users::disabled_since.is_null())
         .load(conn)
         .await
-        .map_err(Into::into)
+        .map_err(DatabaseError::from)
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_events_updated_by_user(
     conn: &mut DbConnection,
     updated_by: UserId,
-) -> Result<Vec<Event>> {
+) -> Result<Vec<EventRecord>> {
     events::table
+        .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
         .inner_join(users::table.on(users::id.eq(events::created_by)))
-        .select(events::all_columns)
+        .select((events::all_columns, event_dates::all_columns.nullable()))
         .filter(events::updated_by.eq(updated_by))
         .filter(users::disabled_since.is_null())
         .load(conn)
@@ -164,15 +164,14 @@ pub async fn get_all_events_updated_by_user(
 pub async fn get_all_events_with_invitee(
     conn: &mut DbConnection,
 ) -> Result<Vec<(EventId, RoomId, UserId)>> {
-    let events = events::table
+    events::table
         .inner_join(users::table.on(users::id.eq(events::created_by)))
         .inner_join(event_invites::table.on(event_invites::event_id.eq(events::id)))
         .select((events::id, events::room, event_invites::invitee))
         .filter(users::disabled_since.is_null())
         .load(conn)
-        .await?;
-
-    Ok(events)
+        .await
+        .map_err(DatabaseError::from)
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
@@ -182,7 +181,7 @@ pub async fn get_with_related_items(
     user_id: UserId,
     event_id: EventId,
 ) -> Result<(
-    Event,
+    EventRecord,
     Option<EventInvite>,
     Room,
     Option<SipConfig>,
@@ -191,7 +190,8 @@ pub async fn get_with_related_items(
     Tariff,
     Option<EventTrainingParticipationReportParameterSet>,
 )> {
-    let query = events::table
+    events::table
+        .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
         .left_join(
             event_invites::table.on(event_invites::event_id
                 .eq(events::id)
@@ -212,7 +212,7 @@ pub async fn get_with_related_items(
                 .on(event_training_participation_report_parameter_sets::event_id.eq(events::id)),
         )
         .select((
-            events::all_columns,
+            (events::all_columns, event_dates::all_columns.nullable()),
             event_invites::all_columns.nullable(),
             rooms::all_columns,
             sip_configs::all_columns.nullable(),
@@ -222,8 +222,10 @@ pub async fn get_with_related_items(
             event_training_participation_report_parameter_sets::all_columns.nullable(),
         ))
         .filter(users::disabled_since.is_null())
-        .filter(events::id.eq(event_id));
-    Ok(query.first(conn).await?)
+        .filter(events::id.eq(event_id))
+        .first(conn)
+        .await
+        .map_err(DatabaseError::from)
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
@@ -231,22 +233,22 @@ pub async fn get_with_related_items(
 pub async fn get_with_room(
     conn: &mut DbConnection,
     event_id: EventId,
-) -> Result<(Event, Room, Option<SipConfig>)> {
-    let query = events::table
+) -> Result<(EventRecord, Room, Option<SipConfig>)> {
+    events::table
+        .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
         .inner_join(users::table.on(users::id.eq(events::created_by)))
         .inner_join(rooms::table.on(events::room.eq(rooms::id)))
         .left_join(sip_configs::table.on(rooms::id.eq(sip_configs::room)))
         .select((
-            events::all_columns,
+            (events::all_columns, event_dates::all_columns.nullable()),
             rooms::all_columns,
             sip_configs::all_columns.nullable(),
         ))
         .filter(events::id.eq(event_id))
-        .filter(users::disabled_since.is_null());
-
-    let (event, room, sip_config) = query.first(conn).await?;
-
-    Ok((event, room, sip_config))
+        .filter(users::disabled_since.is_null())
+        .first(conn)
+        .await
+        .map_err(DatabaseError::from)
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
@@ -266,7 +268,7 @@ pub async fn get_all_events_for_user_paginated_as_stream(
 ) -> Result<
     impl Stream<
         Item = Result<(
-            Event,
+            EventRecord,
             Option<EventInvite>,
             Room,
             Option<SipConfig>,
@@ -284,6 +286,7 @@ pub async fn get_all_events_for_user_paginated_as_stream(
 
     // Create query which select events and joins into the room of the event
     let mut query = events::table
+        .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
         .left_join(
             event_invites::table.on(event_invites::event_id
                 .eq(events::id)
@@ -300,7 +303,7 @@ pub async fn get_all_events_for_user_paginated_as_stream(
         .inner_join(users::table.on(users::id.eq(events::created_by)))
         .inner_join(tariffs::table.on(tariffs::id.eq(users::tariff_id)))
         .select((
-            events::all_columns,
+            (events::all_columns, event_dates::all_columns.nullable()),
             event_invites::all_columns.nullable(),
             rooms::all_columns,
             sip_configs::all_columns.nullable(),
@@ -311,7 +314,7 @@ pub async fn get_all_events_for_user_paginated_as_stream(
         .filter(events::tenant_id.eq(user.tenant_id))
         .filter(event_related_to_user_id)
         .filter(users::disabled_since.is_null())
-        .order_by(events::starts_at.nullable().asc().nulls_first())
+        .order_by(event_dates::starts_at.nullable().asc().nulls_first())
         .then_order_by(events::created_at.asc())
         .then_order_by(events::id.asc())
         .into_boxed::<Pg>();
@@ -319,10 +322,11 @@ pub async fn get_all_events_for_user_paginated_as_stream(
     // Consider the start position as specified by the cursor
     if let Some(cursor) = cursor {
         if let Some(from_starts_at) = cursor.from_starts_at {
-            let expr =
-                AsExpression::<Record<(Nullable<Timestamptz>, Timestamptz, Uuid)>>::as_expression(
-                    (events::starts_at, events::created_at, events::id),
-                );
+            let expr = AsExpression::<Record<(Timestamptz, Timestamptz, Uuid)>>::as_expression((
+                event_dates::starts_at,
+                events::created_at,
+                events::id,
+            ));
 
             // Get all records that are behind the cursor position.
             // Records with no start date are considered to be less than the cursor specifies because
@@ -339,9 +343,11 @@ pub async fn get_all_events_for_user_paginated_as_stream(
             // specifies (which has no start date here).
             // For records without a start date the decision is based on the remaining values.
             query = query.filter(
-                events::starts_at.is_not_null().or(events::starts_at
-                    .is_null()
-                    .and(expr.gt((cursor.from_created_at, cursor.from_id)))),
+                event_dates::starts_at
+                    .is_not_null()
+                    .or(event_dates::starts_at
+                        .is_null()
+                        .and(expr.gt((cursor.from_created_at, cursor.from_id)))),
             );
         }
     }
@@ -355,22 +361,22 @@ pub async fn get_all_events_for_user_paginated_as_stream(
             // - time_min is between starts_at and ends_at
             // - time_max is between starts_at and ends_at
             query = query.filter(
-                events::starts_at
+                event_dates::starts_at
                     .between(time_min, time_max)
-                    .or(events::ends_at.between(time_min, time_max))
+                    .or(event_dates::ends_at.between(time_min, time_max))
                     .or(time_min
-                        .into_sql::<Nullable<Timestamptz>>()
-                        .between(events::starts_at, events::ends_at))
+                        .into_sql::<Timestamptz>()
+                        .between(event_dates::starts_at, event_dates::ends_at))
                     .or(time_max
-                        .into_sql::<Nullable<Timestamptz>>()
-                        .between(events::starts_at, events::ends_at)),
+                        .into_sql::<Timestamptz>()
+                        .between(event_dates::starts_at, event_dates::ends_at)),
             );
         }
         (Some(time_min), None) => {
-            query = query.filter(events::ends_at.ge(time_min));
+            query = query.filter(event_dates::ends_at.ge(time_min));
         }
         (None, Some(time_max)) => {
-            query = query.filter(events::starts_at.le(time_max));
+            query = query.filter(event_dates::starts_at.le(time_max));
         }
         (None, None) => {
             // no filters to apply
@@ -395,9 +401,9 @@ pub async fn get_all_events_for_user_paginated_as_stream(
 
     if let Some(is_time_independent) = time_independent {
         if is_time_independent {
-            query = query.filter(events::starts_at.is_null());
+            query = query.filter(event_dates::starts_at.is_null());
         } else {
-            query = query.filter(events::starts_at.is_not_null());
+            query = query.filter(event_dates::starts_at.is_not_null());
         }
     }
 
@@ -416,7 +422,7 @@ pub async fn get_all_events_for_user_paginated_as_stream(
 
     let stream = query
         .load_stream::<(
-            Event,
+            EventRecord,
             Option<EventInvite>,
             Room,
             Option<SipConfig>,
@@ -443,7 +449,7 @@ pub async fn get_all_events_exceptions_for_user_paginated_as_stream(
     adhoc: Option<bool>,
     time_independent: Option<bool>,
     cursor: Option<GetEventExceptionsCursor>,
-) -> Result<impl Stream<Item = Result<(EventException, Event)>>> {
+) -> Result<impl Stream<Item = Result<(EventException, EventRecord)>>> {
     // Validate that the event is either created by the given user or an invite to the event
     // exists for the user
     let event_related_to_user_id = events::created_by
@@ -452,6 +458,7 @@ pub async fn get_all_events_exceptions_for_user_paginated_as_stream(
 
     let mut query = event_exceptions::table
         .inner_join(events::table.on(event_exceptions::event_id.eq(events::id)))
+        .inner_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
         .left_join(
             event_invites::table.on(event_invites::event_id
                 .eq(events::id)
@@ -465,7 +472,10 @@ pub async fn get_all_events_exceptions_for_user_paginated_as_stream(
         .left_join(event_shared_folders::table.on(event_shared_folders::event_id.eq(events::id)))
         .inner_join(rooms::table.on(events::room.eq(rooms::id)))
         .inner_join(users::table.on(users::id.eq(events::created_by)))
-        .select((event_exceptions::all_columns, events::all_columns))
+        .select((
+            event_exceptions::all_columns,
+            (events::all_columns, event_dates::all_columns.nullable()),
+        ))
         .filter(events::tenant_id.eq(user.tenant_id))
         .filter(event_related_to_user_id)
         .filter(users::disabled_since.is_null())
@@ -526,22 +536,22 @@ pub async fn get_all_events_exceptions_for_user_paginated_as_stream(
             // - time_min is between starts_at and ends_at
             // - time_max is between starts_at and ends_at
             query = query.filter(
-                events::starts_at
+                event_dates::starts_at
                     .between(time_min, time_max)
-                    .or(events::ends_at.between(time_min, time_max))
+                    .or(event_dates::ends_at.between(time_min, time_max))
                     .or(time_min
-                        .into_sql::<Nullable<Timestamptz>>()
-                        .between(events::starts_at, events::ends_at))
+                        .into_sql::<Timestamptz>()
+                        .between(event_dates::starts_at, event_dates::ends_at))
                     .or(time_max
-                        .into_sql::<Nullable<Timestamptz>>()
-                        .between(events::starts_at, events::ends_at)),
+                        .into_sql::<Timestamptz>()
+                        .between(event_dates::starts_at, event_dates::ends_at)),
             );
         }
         (Some(time_min), None) => {
-            query = query.filter(events::ends_at.ge(time_min));
+            query = query.filter(event_dates::ends_at.ge(time_min));
         }
         (None, Some(time_max)) => {
-            query = query.filter(events::starts_at.le(time_max));
+            query = query.filter(event_dates::starts_at.le(time_max));
         }
         (None, None) => {
             // no filters to apply
@@ -566,9 +576,9 @@ pub async fn get_all_events_exceptions_for_user_paginated_as_stream(
 
     if let Some(is_time_independent) = time_independent {
         if is_time_independent {
-            query = query.filter(events::starts_at.is_null());
+            query = query.filter(event_dates::starts_at.is_null());
         } else {
-            query = query.filter(events::starts_at.is_not_null());
+            query = query.filter(event_dates::starts_at.is_not_null());
         }
     }
 
@@ -585,7 +595,9 @@ pub async fn get_all_events_exceptions_for_user_paginated_as_stream(
         }
     }
 
-    let stream = query.load_stream::<(EventException, Event)>(conn).await?;
+    let stream = query
+        .load_stream::<(EventException, EventRecord)>(conn)
+        .await?;
 
     Ok(convert_diesel_query_results(stream))
 }
@@ -595,7 +607,7 @@ pub async fn get_all_events_for_user(
     conn: &mut DbConnection,
     user: User,
     only_recurring: bool,
-) -> Result<Vec<Event>> {
+) -> Result<Vec<EventRecord>> {
     // Filter applied to all events which validates that the event is either created by
     // the given user or an invite to the event exists for the user
     let event_related_to_user_id = events::created_by
@@ -604,28 +616,27 @@ pub async fn get_all_events_for_user(
 
     // Create query which select events and joins into the room of the event
     let mut query = events::table
+        .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
         .left_join(
             event_invites::table.on(event_invites::event_id
                 .eq(events::id)
                 .and(event_invites::invitee.eq(user.id))),
         )
         .inner_join(users::table.on(users::id.eq(events::created_by)))
-        .select(events::all_columns)
+        .select((events::all_columns, event_dates::all_columns.nullable()))
         .filter(events::tenant_id.eq(user.tenant_id))
         .filter(event_related_to_user_id)
         .filter(users::disabled_since.is_null())
-        .order_by(events::starts_at.nullable().asc().nulls_first())
+        .order_by(event_dates::starts_at.nullable().asc().nulls_first())
         .then_order_by(events::created_at.asc())
         .then_order_by(events::id.asc())
         .into_boxed::<Pg>();
 
     if only_recurring {
-        query = query.filter(events::recurrence_pattern.is_not_null());
+        query = query.filter(event_dates::recurrence_pattern.is_not_null());
     }
 
-    let events: Vec<Event> = query.load(conn).await?;
-
-    Ok(events)
+    query.load(conn).await.map_err(DatabaseError::from)
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
@@ -645,7 +656,7 @@ pub async fn get_all_events_for_user_paginated(
     limit: i64,
 ) -> Result<
     Vec<(
-        Event,
+        EventRecord,
         Option<EventInvite>,
         Room,
         Option<SipConfig>,
@@ -664,6 +675,7 @@ pub async fn get_all_events_for_user_paginated(
 
     // Create query which select events and joins into the room of the event
     let mut query = events::table
+        .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
         .left_join(
             event_invites::table.on(event_invites::event_id
                 .eq(events::id)
@@ -680,7 +692,7 @@ pub async fn get_all_events_for_user_paginated(
         .inner_join(users::table.on(users::id.eq(events::created_by)))
         .inner_join(tariffs::table.on(tariffs::id.eq(users::tariff_id)))
         .select((
-            events::all_columns,
+            (events::all_columns, event_dates::all_columns.nullable()),
             event_invites::all_columns.nullable(),
             rooms::all_columns,
             sip_configs::all_columns.nullable(),
@@ -691,7 +703,7 @@ pub async fn get_all_events_for_user_paginated(
         .filter(events::tenant_id.eq(user.tenant_id))
         .filter(event_related_to_user_id)
         .filter(users::disabled_since.is_null())
-        .order_by(events::starts_at.nullable().asc().nulls_first())
+        .order_by(event_dates::starts_at.nullable().asc().nulls_first())
         .then_order_by(events::created_at.asc())
         .then_order_by(events::id)
         .limit(limit)
@@ -700,10 +712,11 @@ pub async fn get_all_events_for_user_paginated(
     // Tuples/Composite types are ordered by lexical ordering
     if let Some(cursor) = cursor {
         if let Some(from_starts_at) = cursor.from_starts_at {
-            let expr =
-                AsExpression::<Record<(Nullable<Timestamptz>, Timestamptz, Uuid)>>::as_expression(
-                    (events::starts_at, events::created_at, events::id),
-                );
+            let expr = AsExpression::<Record<(Timestamptz, Timestamptz, Uuid)>>::as_expression((
+                event_dates::starts_at,
+                events::created_at,
+                events::id,
+            ));
 
             query = query.filter(expr.gt((from_starts_at, cursor.from_created_at, cursor.from_id)));
         } else {
@@ -726,22 +739,22 @@ pub async fn get_all_events_for_user_paginated(
             // - time_min is between starts_at and ends_at
             // - time_max is between starts_at and ends_at
             query = query.filter(
-                events::starts_at
+                event_dates::starts_at
                     .between(time_min, time_max)
-                    .or(events::ends_at.between(time_min, time_max))
+                    .or(event_dates::ends_at.between(time_min, time_max))
                     .or(time_min
-                        .into_sql::<Nullable<Timestamptz>>()
-                        .between(events::starts_at, events::ends_at))
+                        .into_sql::<Timestamptz>()
+                        .between(event_dates::starts_at, event_dates::ends_at))
                     .or(time_max
-                        .into_sql::<Nullable<Timestamptz>>()
-                        .between(events::starts_at, events::ends_at)),
+                        .into_sql::<Timestamptz>()
+                        .between(event_dates::starts_at, event_dates::ends_at)),
             );
         }
         (Some(time_min), None) => {
-            query = query.filter(events::ends_at.ge(time_min));
+            query = query.filter(event_dates::ends_at.ge(time_min));
         }
         (None, Some(time_max)) => {
-            query = query.filter(events::starts_at.le(time_max));
+            query = query.filter(event_dates::starts_at.le(time_max));
         }
         (None, None) => {
             // no filters to apply
@@ -766,9 +779,9 @@ pub async fn get_all_events_for_user_paginated(
 
     if let Some(is_time_independent) = time_independent {
         if is_time_independent {
-            query = query.filter(events::starts_at.is_null());
+            query = query.filter(event_dates::starts_at.is_null());
         } else {
-            query = query.filter(events::starts_at.is_not_null());
+            query = query.filter(event_dates::starts_at.is_not_null());
         }
     }
 
@@ -786,7 +799,7 @@ pub async fn get_all_events_for_user_paginated(
     }
 
     let events_with_invite_and_room: Vec<(
-        Event,
+        EventRecord,
         Option<EventInvite>,
         Room,
         Option<SipConfig>,
@@ -798,12 +811,15 @@ pub async fn get_all_events_for_user_paginated(
     let mut events_with_invite_room_and_exceptions =
         Vec::with_capacity(events_with_invite_and_room.len());
 
-    for (event, invite, room, sip_config, is_favorite, shared_folders, tariff) in
+    for (event_record, invite, room, sip_config, is_favorite, shared_folders, tariff) in
         events_with_invite_and_room
     {
-        let exceptions = if event.recurrence_pattern.is_some() {
+        let exceptions = if event_record
+            .date()
+            .is_some_and(|date| date.recurrence_pattern().is_some())
+        {
             event_exceptions::table
-                .filter(event_exceptions::event_id.eq(event.id))
+                .filter(event_exceptions::event_id.eq(event_record.id()))
                 .load(conn)
                 .await?
         } else {
@@ -813,7 +829,7 @@ pub async fn get_all_events_for_user_paginated(
         let training_participation_report_parameter_set = None;
 
         events_with_invite_room_and_exceptions.push((
-            event,
+            event_record,
             invite,
             room,
             sip_config,
@@ -830,7 +846,7 @@ pub async fn get_all_events_for_user_paginated(
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_by_id(conn: &mut DbConnection, event_id: EventId) -> Result<()> {
-    diesel::delete(events::table)
+    let _ = diesel::delete(events::table)
         .filter(events::id.eq(event_id))
         .execute(conn)
         .await?;
@@ -840,16 +856,20 @@ pub async fn delete_by_id(conn: &mut DbConnection, event_id: EventId) -> Result<
 
 /// Returns the [`Event`] in the given [`RoomId`].
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_event_for_room(conn: &mut DbConnection, room_id: RoomId) -> Result<Option<Event>> {
-    let event = events::table
+pub async fn get_event_for_room(
+    conn: &mut DbConnection,
+    room_id: RoomId,
+) -> Result<Option<EventRecord>> {
+    events::table
+        .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
         .inner_join(users::table.on(users::id.eq(events::created_by)))
-        .select(events::all_columns)
+        .select((events::all_columns, event_dates::all_columns.nullable()))
         .filter(events::room.eq(room_id))
         .filter(users::disabled_since.is_null())
-        .first::<Event>(conn)
+        .first(conn)
         .await
-        .optional()?;
-    Ok(event)
+        .optional()
+        .map_err(DatabaseError::from)
 }
 
 /// Returns a [`EventId`] for the given [`RoomId`].
@@ -858,15 +878,15 @@ pub async fn get_event_id_for_room(
     conn: &mut DbConnection,
     room_id: RoomId,
 ) -> Result<Option<EventId>> {
-    let query = events::table
+    events::table
         .inner_join(users::table.on(users::id.eq(events::created_by)))
         .select(events::id)
         .filter(events::room.eq(room_id))
-        .filter(users::disabled_since.is_null());
-
-    let events = query.first(conn).await.optional()?;
-
-    Ok(events)
+        .filter(users::disabled_since.is_null())
+        .first(conn)
+        .await
+        .optional()
+        .map_err(DatabaseError::from)
 }
 
 /// Deletes all [`Event`]s in a given [`RoomId`]
@@ -884,12 +904,31 @@ pub async fn delete_event_for_room(conn: &mut DbConnection, room_id: RoomId) -> 
 
 /// Creates a new event.
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn create_event(conn: &mut DbConnection, new_event: NewEvent) -> Result<Event> {
-    diesel::insert_into(events::table)
-        .values(new_event)
-        .get_result(conn)
-        .await
-        .map_err(DatabaseError::from)
+pub async fn create_event(
+    conn: &mut DbConnection,
+    new_event_record: NewEventRecord,
+) -> Result<EventRecord> {
+    conn.transaction(|conn| {
+        async move {
+            let event: Event = diesel::insert_into(events::table)
+                .values(new_event_record.event())
+                .get_result(conn)
+                .await?;
+
+            let Some(new_date) = new_event_record.build_date(event.id) else {
+                return Ok(EventRecord::new(event, None));
+            };
+
+            let date = diesel::insert_into(event_dates::table)
+                .values(new_date)
+                .get_result(conn)
+                .await?;
+
+            Ok(EventRecord::new(event, Some(date)))
+        }
+        .scope_boxed()
+    })
+    .await
 }
 
 /// Update an event.
@@ -897,12 +936,32 @@ pub async fn create_event(conn: &mut DbConnection, new_event: NewEvent) -> Resul
 pub async fn update_event(
     conn: &mut DbConnection,
     event_id: EventId,
-    updated_event: UpdateEvent,
-) -> Result<Event> {
-    diesel::update(events::table)
-        .filter(events::id.eq(event_id))
-        .set((updated_event, events::revision.eq(events::revision + 1)))
-        .get_result(conn)
-        .await
-        .map_err(DatabaseError::from)
+    update_event_record: UpdateEventRecord,
+) -> Result<EventRecord> {
+    conn.transaction(|conn| {
+        async move {
+            let event = diesel::update(events::table)
+                .filter(events::id.eq(event_id))
+                .set((
+                    update_event_record.event(),
+                    events::revision.eq(events::revision + 1),
+                ))
+                .get_result(conn)
+                .await?;
+
+            let Some(update_date) = update_event_record.date() else {
+                return Ok(EventRecord::new(event, None));
+            };
+
+            let date = diesel::update(event_dates::table)
+                .filter(event_dates::event_id.eq(event_id))
+                .set(update_date)
+                .get_result(conn)
+                .await?;
+
+            Ok(EventRecord::new(event, Some(date)))
+        }
+        .scope_boxed()
+    })
+    .await
 }
