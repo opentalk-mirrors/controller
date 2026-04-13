@@ -28,6 +28,16 @@ casbin_rule {
     character_varying v4
     character_varying v5
 }
+event_dates {
+    uuid event_id PK,FK
+    integer duration_secs
+    timestamp_with_time_zone ends_at
+    character_varying ends_at_tz
+    boolean is_all_day
+    character_varying recurrence_pattern
+    timestamp_with_time_zone starts_at
+    character_varying starts_at_tz
+}
 event_email_invites {
     character_varying email PK
     uuid event_id PK,FK
@@ -91,17 +101,10 @@ events {
     uuid updated_by FK
     timestamp_with_time_zone created_at
     character_varying description
-    integer duration_secs
-    timestamp_with_time_zone ends_at
-    character_varying ends_at_tz
     bigint id_serial
     boolean is_adhoc
-    boolean is_all_day
-    character_varying recurrence_pattern
     integer revision
     boolean show_meeting_details
-    timestamp_with_time_zone starts_at
-    character_varying starts_at_tz
     character_varying title
     timestamp_with_time_zone updated_at
 }
@@ -240,6 +243,7 @@ users {
 
 
 assets }o--|| tenants: ""
+event_dates |o--|| events: ""
 event_email_invites }o--|| events: ""
 event_email_invites }o--|| users: ""
 event_exceptions }o--|| events: ""
