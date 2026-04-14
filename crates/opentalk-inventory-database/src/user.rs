@@ -18,7 +18,7 @@ use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl UserInventory for DatabaseConnection {
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn create_user(&mut self, new_user: NewUser) -> Result<User> {
         Ok(
             db::queries::users::create_user(&mut self.inner, new_user.into())
@@ -28,7 +28,7 @@ impl UserInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_user(&mut self, user_id: UserId) -> Result<User> {
         Ok(db::queries::users::get_user(&mut self.inner, user_id)
             .await
@@ -36,7 +36,7 @@ impl UserInventory for DatabaseConnection {
             .into())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn update_user<'a>(&mut self, user_id: UserId, user: UpdateUser<'a>) -> Result<User> {
         Ok(
             db::queries::users::update_user(&mut self.inner, user.into(), user_id)
@@ -46,14 +46,14 @@ impl UserInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_user(&mut self, user_id: UserId) -> Result<()> {
         Ok(db::queries::users::delete_user(&mut self.inner, user_id)
             .await
             .context(DatabaseSnafu)?)
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn set_last_authenticated_at_to_now(&mut self, user_id: UserId) -> Result<()> {
         Ok(
             db::queries::users::set_last_authenticated_at_to_now(&mut self.inner, user_id)
@@ -62,7 +62,7 @@ impl UserInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_users(&mut self) -> Result<Vec<User>> {
         Ok(db::queries::users::get_all_users(&mut self.inner)
             .await
@@ -72,7 +72,7 @@ impl UserInventory for DatabaseConnection {
             .collect())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_users_with_groups(&mut self) -> Result<Vec<(User, Vec<Group>)>> {
         Ok(
             db::queries::users::get_all_users_with_groups(&mut self.inner)
@@ -84,7 +84,7 @@ impl UserInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_users_by_ids(&mut self, user_ids: &[UserId]) -> Result<Vec<User>> {
         Ok(
             db::queries::users::get_users_by_ids(&mut self.inner, user_ids)
@@ -96,7 +96,7 @@ impl UserInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_user_ids_disabled_before(&mut self, timestamp: Timestamp) -> Result<Vec<UserId>> {
         Ok(
             db::queries::users::get_user_ids_disabled_before(&mut self.inner, timestamp.into())
@@ -105,7 +105,7 @@ impl UserInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_user_by_email(
         &mut self,
         tenant_id: TenantId,
@@ -119,7 +119,7 @@ impl UserInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_users_by_phone_number(
         &mut self,
         tenant_id: TenantId,
@@ -137,7 +137,7 @@ impl UserInventory for DatabaseConnection {
         .collect())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn create_or_update_user_by_oidc_sub(
         &mut self,
         user: NewUser,
@@ -157,7 +157,7 @@ impl UserInventory for DatabaseConnection {
         }
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_users_by_odic_subs(
         &mut self,
         tenant_id: TenantId,
@@ -173,7 +173,7 @@ impl UserInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_user_for_tenant(&mut self, tenant_id: TenantId, user_id: UserId) -> Result<User> {
         Ok(
             db::queries::users::get_user_by_tenant(&mut self.inner, tenant_id, user_id)
@@ -183,7 +183,7 @@ impl UserInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn add_user_to_groups(
         &mut self,
         user_id: UserId,
@@ -196,7 +196,7 @@ impl UserInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn remove_user_from_all_groups_except(
         &mut self,
         user_id: UserId,
@@ -211,7 +211,7 @@ impl UserInventory for DatabaseConnection {
         .context(DatabaseSnafu)?)
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn remove_user_from_all_groups(&mut self, user_id: UserId) -> Result<()> {
         Ok(
             db::queries::groups::remove_user_from_all_groups(&mut self.inner, user_id)
@@ -220,7 +220,7 @@ impl UserInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_user_storage_used_size(&mut self, user_id: UserId) -> Result<BigDecimal> {
         Ok(
             db::queries::users::get_user_storage_used_size(&mut self.inner, &user_id)
@@ -229,7 +229,7 @@ impl UserInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_user_storage_used_size_u64(&mut self, user_id: UserId) -> Result<u64> {
         Ok(
             db::queries::users::get_used_storage_used_size_u64(&mut self.inner, &user_id)
@@ -238,7 +238,7 @@ impl UserInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn find_users(
         &mut self,
         tenant_id: TenantId,

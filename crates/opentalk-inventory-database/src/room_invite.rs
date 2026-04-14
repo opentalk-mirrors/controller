@@ -20,7 +20,7 @@ use crate::{DatabaseConnection, Error, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl RoomInviteInventory for DatabaseConnection {
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn create_room_invite(&mut self, invite: NewRoomInvite) -> Result<RoomInvite> {
         Ok(
             db::queries::invites::create_room_invite(&mut self.inner, invite.into())
@@ -30,7 +30,7 @@ impl RoomInviteInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_room_invite(&mut self, invite_code: InviteCode) -> Result<RoomInvite> {
         match db::queries::invites::get_room_invite(&mut self.inner, invite_code).await {
             Ok(invite) => Ok(invite.into()),
@@ -48,7 +48,7 @@ impl RoomInviteInventory for DatabaseConnection {
             .collect())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_valid_invite_for_room(&mut self, room_id: RoomId) -> Result<Option<RoomInvite>> {
         Ok(
             db::queries::invites::get_valid_invite_for_room(&mut self.inner, room_id, Utc::now())
@@ -58,7 +58,7 @@ impl RoomInviteInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_or_create_valid_invite_for_room(
         &mut self,
         room_id: RoomId,
@@ -74,7 +74,7 @@ impl RoomInviteInventory for DatabaseConnection {
         .into())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_room_invites_updated_by(&mut self, user_id: UserId) -> Result<Vec<RoomInvite>> {
         Ok(
             db::queries::invites::get_room_invites_updated_by(&mut self.inner, user_id)
@@ -86,7 +86,7 @@ impl RoomInviteInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_room_invites_paginated_with_creator_and_updater(
         &mut self,
         room_id: RoomId,
@@ -113,7 +113,7 @@ impl RoomInviteInventory for DatabaseConnection {
         ))
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_room_invite_with_creator_and_updater(
         &mut self,
         invite_code: InviteCode,
@@ -132,7 +132,7 @@ impl RoomInviteInventory for DatabaseConnection {
         ))
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn update_room_invite(
         &mut self,
         room_id: RoomId,
@@ -150,7 +150,7 @@ impl RoomInviteInventory for DatabaseConnection {
         .into())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_room_invites_with_room_inactive_or_expired_before(
         &mut self,
         expired_before: Timestamp,

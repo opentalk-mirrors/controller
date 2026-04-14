@@ -39,7 +39,7 @@ fn active_users_query() -> users::BoxedQuery<'static, Pg> {
 /// Get an active user with the given `id`. If the user has a `disabled_since` entry, a NotFound error is returned.
 ///
 /// If no user exists with `user_id` this returns an Error
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_user(conn: &mut DbConnection, user_id: UserId) -> Result<User> {
     active_users_query()
         .filter(users::id.eq(user_id))
@@ -51,7 +51,7 @@ pub async fn get_user(conn: &mut DbConnection, user_id: UserId) -> Result<User> 
 /// Get a user with the given `id` inside a tenant
 ///
 /// If no user exists with `user_id` this returns an Error
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_user_by_tenant(
     conn: &mut DbConnection,
     tenant_id: TenantId,
@@ -68,7 +68,7 @@ pub async fn get_user_by_tenant(
 /// Get a user with the given id
 ///
 /// Returns None if no user matches `email`
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_user_by_email(
     conn: &mut DbConnection,
     tenant_id: TenantId,
@@ -84,7 +84,7 @@ pub async fn get_user_by_email(
 }
 
 /// Get one or more users with the given phone number
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_users_by_phone_number(
     conn: &mut DbConnection,
     tenant_id: TenantId,
@@ -99,7 +99,7 @@ pub async fn get_users_by_phone_number(
 }
 
 /// Get all users alongside their current groups
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_users_with_groups(conn: &mut DbConnection) -> Result<Vec<(User, Vec<Group>)>> {
     let users_query = active_users_query().order_by(users::id.desc());
     let users = users_query.load(conn).await?;
@@ -120,7 +120,7 @@ pub async fn get_all_users_with_groups(conn: &mut DbConnection) -> Result<Vec<(U
 }
 
 /// Get all users paginated
-#[tracing::instrument(err, skip_all, fields(%limit, %page))]
+#[tracing::instrument(err(level = "debug"), skip_all, fields(%limit, %page))]
 pub async fn get_all_paginated(
     conn: &mut DbConnection,
     limit: PageSize,
@@ -135,7 +135,7 @@ pub async fn get_all_paginated(
 }
 
 /// Get all users
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_users(conn: &mut DbConnection) -> Result<Vec<User>> {
     users::table
         .get_results(conn)
@@ -144,7 +144,7 @@ pub async fn get_all_users(conn: &mut DbConnection) -> Result<Vec<User>> {
 }
 
 /// Get Users paginated and filtered by ids
-#[tracing::instrument(err, skip_all, fields(%limit, %page))]
+#[tracing::instrument(err(level = "debug"), skip_all, fields(%limit, %page))]
 pub async fn get_by_ids_paginated(
     conn: &mut DbConnection,
     ids: &[UserId],
@@ -161,7 +161,7 @@ pub async fn get_by_ids_paginated(
 }
 
 /// Returns all `User`s filtered by id
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_users_by_ids(conn: &mut DbConnection, ids: &[UserId]) -> Result<Vec<User>> {
     active_users_query()
         .filter(users::id.eq_any(ids))
@@ -171,7 +171,7 @@ pub async fn get_users_by_ids(conn: &mut DbConnection, ids: &[UserId]) -> Result
 }
 
 /// Get all users filtered by the given subs
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_by_oidc_subs(
     conn: &mut DbConnection,
     tenant_id: TenantId,
@@ -188,7 +188,7 @@ pub async fn get_all_by_oidc_subs(
 /// Find users by search string
 ///
 /// This looks for similarities of the search_str in the display_name, first+lastname and email
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn find_users(
     conn: &mut DbConnection,
     tenant_id: TenantId,
@@ -268,7 +268,7 @@ pub async fn get_used_storage_used_size_u64(
     }))
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_user_ids_disabled_before(
     conn: &mut DbConnection,
     date: DateTime<Utc>,
@@ -282,7 +282,7 @@ pub async fn get_user_ids_disabled_before(
 }
 
 /// Delete a user using the given id
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_user(conn: &mut DbConnection, user_id: UserId) -> Result<()> {
     let _ = diesel::delete(users::table.filter(users::id.eq(user_id)))
         .execute(conn)
@@ -292,7 +292,7 @@ pub async fn delete_user(conn: &mut DbConnection, user_id: UserId) -> Result<()>
 }
 
 /// Updates the last_authenticated_ab flag using the given id
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn set_last_authenticated_at_to_now(
     conn: &mut DbConnection,
     user_id: UserId,

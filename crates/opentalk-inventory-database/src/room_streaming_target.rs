@@ -16,7 +16,7 @@ use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl RoomStreamingTargetInventory for DatabaseConnection {
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_room_streaming_targets(
         &mut self,
         room_id: RoomId,
@@ -32,7 +32,7 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_room_streaming_target_records(
         &mut self,
         room_id: RoomId,
@@ -47,7 +47,7 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_room_streaming_target_record(
         &mut self,
         room_id: RoomId,
@@ -63,7 +63,7 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
         .into())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn create_room_streaming_target(
         &mut self,
         room_id: RoomId,

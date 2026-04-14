@@ -57,7 +57,7 @@ use crate::{
     utils::convert_diesel_query_results,
 };
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_event(conn: &mut DbConnection, event_id: EventId) -> Result<Event> {
     let query = events::table
         .inner_join(users::table.on(users::id.eq(events::created_by)))
@@ -83,7 +83,7 @@ pub async fn get_all_events_with_creator(
     Ok(events)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_events_that_ended_before_including_rooms(
     conn: &mut DbConnection,
     date: DateTime<Utc>,
@@ -99,7 +99,7 @@ pub async fn get_all_events_that_ended_before_including_rooms(
         .map_err(Into::into)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_events_adhoc_created_before_including_rooms(
     conn: &mut DbConnection,
     date: DateTime<Utc>,
@@ -115,7 +115,7 @@ pub async fn get_all_events_adhoc_created_before_including_rooms(
         .map_err(Into::into)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_events_for_creator_including_rooms(
     conn: &mut DbConnection,
     created_by: UserId,
@@ -130,7 +130,7 @@ pub async fn get_all_events_for_creator_including_rooms(
         .map_err(Into::into)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_events_finite_recurring(conn: &mut DbConnection) -> Result<Vec<Event>> {
     events::table
         .inner_join(users::table.on(users::id.eq(events::created_by)))
@@ -146,7 +146,7 @@ pub async fn get_all_events_finite_recurring(conn: &mut DbConnection) -> Result<
         .map_err(Into::into)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_events_updated_by_user(
     conn: &mut DbConnection,
     updated_by: UserId,
@@ -175,7 +175,7 @@ pub async fn get_all_events_with_invitee(
     Ok(events)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 #[allow(clippy::type_complexity)]
 pub async fn get_with_related_items(
     conn: &mut DbConnection,
@@ -226,7 +226,7 @@ pub async fn get_with_related_items(
     Ok(query.first(conn).await?)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 #[allow(clippy::type_complexity)]
 pub async fn get_with_room(
     conn: &mut DbConnection,
@@ -249,7 +249,7 @@ pub async fn get_with_room(
     Ok((event, room, sip_config))
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 pub async fn get_all_events_for_user_paginated_as_stream(
     conn: &mut DbConnection,
@@ -429,7 +429,7 @@ pub async fn get_all_events_for_user_paginated_as_stream(
     Ok(convert_diesel_query_results(stream))
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 pub async fn get_all_events_exceptions_for_user_paginated_as_stream(
     conn: &mut DbConnection,
@@ -590,7 +590,7 @@ pub async fn get_all_events_exceptions_for_user_paginated_as_stream(
     Ok(convert_diesel_query_results(stream))
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_events_for_user(
     conn: &mut DbConnection,
     user: User,
@@ -628,7 +628,7 @@ pub async fn get_all_events_for_user(
     Ok(events)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 pub async fn get_all_events_for_user_paginated(
     conn: &mut DbConnection,
@@ -828,7 +828,7 @@ pub async fn get_all_events_for_user_paginated(
     Ok(events_with_invite_room_and_exceptions)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_by_id(conn: &mut DbConnection, event_id: EventId) -> Result<()> {
     diesel::delete(events::table)
         .filter(events::id.eq(event_id))
@@ -839,7 +839,7 @@ pub async fn delete_by_id(conn: &mut DbConnection, event_id: EventId) -> Result<
 }
 
 /// Returns the [`Event`] in the given [`RoomId`].
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_event_for_room(conn: &mut DbConnection, room_id: RoomId) -> Result<Option<Event>> {
     let event = events::table
         .inner_join(users::table.on(users::id.eq(events::created_by)))
@@ -853,7 +853,7 @@ pub async fn get_event_for_room(conn: &mut DbConnection, room_id: RoomId) -> Res
 }
 
 /// Returns a [`EventId`] for the given [`RoomId`].
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_event_id_for_room(
     conn: &mut DbConnection,
     room_id: RoomId,
@@ -872,7 +872,7 @@ pub async fn get_event_id_for_room(
 /// Deletes all [`Event`]s in a given [`RoomId`]
 ///
 /// Fastpath for deleting multiple events in room
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_event_for_room(conn: &mut DbConnection, room_id: RoomId) -> Result<()> {
     diesel::delete(events::table)
         .filter(events::room.eq(room_id))
@@ -883,7 +883,7 @@ pub async fn delete_event_for_room(conn: &mut DbConnection, room_id: RoomId) -> 
 }
 
 /// Creates a new event.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn create_event(conn: &mut DbConnection, new_event: NewEvent) -> Result<Event> {
     diesel::insert_into(events::table)
         .values(new_event)
@@ -893,7 +893,7 @@ pub async fn create_event(conn: &mut DbConnection, new_event: NewEvent) -> Resul
 }
 
 /// Update an event.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn update_event(
     conn: &mut DbConnection,
     event_id: EventId,

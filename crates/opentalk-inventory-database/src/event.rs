@@ -27,7 +27,7 @@ use crate::{
 
 #[async_trait::async_trait]
 impl EventInventory for DatabaseConnection {
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn create_event(&mut self, new_event: NewEvent) -> Result<Event> {
         Ok(
             db::queries::events::create_event(&mut self.inner, new_event.into())
@@ -37,7 +37,7 @@ impl EventInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn update_event(&mut self, event_id: EventId, event: UpdateEvent) -> Result<Event> {
         Ok(
             db::queries::events::update_event(&mut self.inner, event_id, event.into())
@@ -47,7 +47,7 @@ impl EventInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event(&mut self, event_id: EventId) -> Result<Event> {
         Ok(db::queries::events::get_event(&mut self.inner, event_id)
             .await
@@ -55,7 +55,7 @@ impl EventInventory for DatabaseConnection {
             .into())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_for_room(&mut self, room_id: RoomId) -> Result<Option<Event>> {
         Ok(
             db::queries::events::get_event_for_room(&mut self.inner, room_id)
@@ -65,7 +65,7 @@ impl EventInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_id_for_room(&mut self, room_id: RoomId) -> Result<Option<EventId>> {
         Ok(
             db::queries::events::get_event_id_for_room(&mut self.inner, room_id)
@@ -74,7 +74,7 @@ impl EventInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_with_room_and_sip_config(
         &mut self,
         event_id: EventId,
@@ -86,7 +86,7 @@ impl EventInventory for DatabaseConnection {
         Ok((event.into(), room.into(), sip_config.map(Into::into)))
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_with_related_items(
         &mut self,
         user_id: UserId,
@@ -125,7 +125,7 @@ impl EventInventory for DatabaseConnection {
         ))
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_events_updated_by_user(&mut self, user_id: UserId) -> Result<Vec<Event>> {
         Ok(
             db::queries::events::get_all_events_updated_by_user(&mut self.inner, user_id)
@@ -137,7 +137,7 @@ impl EventInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_adhoc_event_ids_with_room_ids_created_before(
         &mut self,
         created_before: Timestamp,
@@ -152,7 +152,7 @@ impl EventInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_scheduled_event_ids_with_room_ids_ended_before(
         &mut self,
         ended_before: Timestamp,
@@ -167,7 +167,7 @@ impl EventInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_event_ids_with_room_ids_created_by_user(
         &mut self,
         user_id: UserId,
@@ -182,7 +182,7 @@ impl EventInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_finite_recurring_events(&mut self) -> Result<Vec<Event>> {
         Ok(
             db::queries::events::get_all_events_finite_recurring(&mut self.inner)
@@ -194,7 +194,7 @@ impl EventInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_events_for_user_paginated(
         &mut self,
         user: User,
@@ -267,7 +267,7 @@ impl EventInventory for DatabaseConnection {
             )
             .collect())
     }
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_events_for_user(
         &mut self,
         user: User,
@@ -378,7 +378,7 @@ impl EventInventory for DatabaseConnection {
         Ok(stream)
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_event_ids_with_creator_id(&mut self) -> Result<Vec<(EventId, UserId)>> {
         Ok(
             db::queries::events::get_all_events_with_creator(&mut self.inner)
@@ -387,7 +387,7 @@ impl EventInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_event_ids_with_room_ids_and_invitee_ids(
         &mut self,
     ) -> Result<Vec<(EventId, RoomId, UserId)>> {
@@ -398,7 +398,7 @@ impl EventInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn create_event_exception(
         &mut self,
         event_exception: NewEventException,
@@ -411,7 +411,7 @@ impl EventInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_exceptions(
         &mut self,
         event_id: EventId,
@@ -428,7 +428,7 @@ impl EventInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_exception(
         &mut self,
         event_id: EventId,
@@ -444,7 +444,7 @@ impl EventInventory for DatabaseConnection {
         .map(Into::into))
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn update_event_exception(
         &mut self,
         event_exception_id: EventExceptionId,
@@ -460,7 +460,7 @@ impl EventInventory for DatabaseConnection {
         .into())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_event_exceptions_for_event(&mut self, event_id: EventId) -> Result<()> {
         Ok(
             db::queries::events::delete_event_exceptions_for_event(&mut self.inner, event_id)
@@ -469,7 +469,7 @@ impl EventInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_event_for_room(&mut self, room_id: RoomId) -> Result<()> {
         Ok(
             db::queries::events::delete_event_for_room(&mut self.inner, room_id)
@@ -478,7 +478,7 @@ impl EventInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn create_event_favorite_for_user(
         &mut self,
         event_id: EventId,
@@ -496,7 +496,7 @@ impl EventInventory for DatabaseConnection {
         .is_some())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_event_favorite_for_user(
         &mut self,
         event_id: EventId,

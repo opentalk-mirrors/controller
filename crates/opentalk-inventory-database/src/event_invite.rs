@@ -19,7 +19,7 @@ use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl EventInviteInventory for DatabaseConnection {
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn try_create_event_email_invite(
         &mut self,
         invite: NewEventEmailInvite,
@@ -32,7 +32,7 @@ impl EventInviteInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn try_create_event_invite(
         &mut self,
         invite: NewEventInvite,
@@ -45,7 +45,7 @@ impl EventInviteInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_invites_paginated(
         &mut self,
         event_id: EventId,
@@ -71,7 +71,7 @@ impl EventInviteInventory for DatabaseConnection {
         ))
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_email_invites_paginated(
         &mut self,
         event_id: EventId,
@@ -89,7 +89,7 @@ impl EventInviteInventory for DatabaseConnection {
         Ok((invites.into_iter().map(Into::into).collect(), overall))
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_invite_for_user_and_room(
         &mut self,
         user_id: UserId,
@@ -105,7 +105,7 @@ impl EventInviteInventory for DatabaseConnection {
         .map(Into::into))
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_user_invites_for_events(
         &mut self,
         events: &[&Event],
@@ -131,7 +131,7 @@ impl EventInviteInventory for DatabaseConnection {
             .collect())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_email_invites_for_events(
         &mut self,
         events: &[&Event],
@@ -152,7 +152,7 @@ impl EventInviteInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_invites_pending_for_user(&mut self, user_id: UserId) -> Result<Vec<EventInvite>> {
         Ok(
             db::queries::events::get_invites_pending_for_user(&mut self.inner, user_id)
@@ -164,7 +164,7 @@ impl EventInviteInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_event_invite_by_invitee(
         &mut self,
         event_id: EventId,
@@ -178,7 +178,7 @@ impl EventInviteInventory for DatabaseConnection {
         )
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn delete_event_invite_by_email(
         &mut self,
         event_id: EventId,
@@ -194,7 +194,7 @@ impl EventInviteInventory for DatabaseConnection {
         .into())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn update_event_user_invite(
         &mut self,
         event_id: EventId,
@@ -212,7 +212,7 @@ impl EventInviteInventory for DatabaseConnection {
         .into())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn update_event_email_invite(
         &mut self,
         event_id: EventId,
@@ -230,7 +230,7 @@ impl EventInviteInventory for DatabaseConnection {
         .into())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn migrate_event_email_invites_to_user_invites(
         &mut self,
         user: User,

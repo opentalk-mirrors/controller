@@ -13,7 +13,7 @@ use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl KustosInventory for DatabaseConnection {
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn load_casbin_policy(&mut self) -> Result<Vec<CasbinRule>> {
         let rules = load_policy(&mut self.inner).await.context(DatabaseSnafu)?;
         Ok(rules
@@ -42,13 +42,13 @@ impl KustosInventory for DatabaseConnection {
             .collect())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn clear_casbin_policy(&mut self) -> Result<()> {
         clear_policy(&mut self.inner).await.context(DatabaseSnafu)?;
         Ok(())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn save_casbin_policy(&mut self, rules: Vec<NewCasbinRule>) -> Result<()> {
         let rules = rules
             .into_iter()
@@ -78,7 +78,7 @@ impl KustosInventory for DatabaseConnection {
         Ok(())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn add_casbin_policies(&mut self, rules: Vec<NewCasbinRule>) -> Result<()> {
         let rules = rules
             .into_iter()
@@ -108,7 +108,7 @@ impl KustosInventory for DatabaseConnection {
         Ok(())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn add_casbin_policy(
         &mut self,
         NewCasbinRule {

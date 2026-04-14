@@ -167,7 +167,7 @@ impl Controller {
         Ok(controller)
     }
 
-    #[tracing::instrument(err, skip(settings_provider))]
+    #[tracing::instrument(err(level = "debug"), skip(settings_provider))]
     async fn init(
         settings_provider: SettingsProvider,
         optional_config_path: Option<PathBuf>,

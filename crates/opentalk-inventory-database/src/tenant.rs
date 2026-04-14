@@ -11,7 +11,7 @@ use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl TenantInventory for DatabaseConnection {
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_tenant(&mut self, tenant_id: TenantId) -> Result<Tenant> {
         Ok(db::queries::tenants::get_tenant(&mut self.inner, tenant_id)
             .await
@@ -19,7 +19,7 @@ impl TenantInventory for DatabaseConnection {
             .into())
     }
 
-    #[tracing::instrument(err, skip_all)]
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_or_create_tenant_by_oidc_id(
         &mut self,
         oidc_tenant_id: &OidcTenantId,

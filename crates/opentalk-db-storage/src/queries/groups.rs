@@ -22,7 +22,7 @@ use crate::{
     },
 };
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_groups_for_user(conn: &mut DbConnection, user_id: UserId) -> Result<Vec<Group>> {
     user_groups::table
         .inner_join(groups::table)
@@ -36,7 +36,7 @@ pub async fn get_groups_for_user(conn: &mut DbConnection, user_id: UserId) -> Re
 
 /// Insert the new group. If the group already exists for the OIDC issuer the group will be
 /// returned instead
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn insert_or_get_group(conn: &mut DbConnection, group: Group) -> Result<Group> {
     conn.transaction(|conn| {
         async move {
@@ -100,7 +100,7 @@ pub async fn get_or_create_groups_by_name(
 /// The result will contain the set of ids for the groups to which the user was effectively added.
 /// Any groups passed into the `groups` parameters where the user was already a member anyway will
 /// be missing from the returned set.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn insert_user_into_groups(
     conn: &mut DbConnection,
     user_id: UserId,
@@ -126,7 +126,7 @@ pub async fn insert_user_into_groups(
 /// The result will contain the set of ids for the groups from which the user
 /// was effectively removed. Any groups in which the user remained will not be
 /// contained in the returned value.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn remove_user_from_all_groups_except(
     conn: &mut DbConnection,
     user_id: UserId,
@@ -145,7 +145,7 @@ pub async fn remove_user_from_all_groups_except(
     Ok(BTreeSet::from_iter(removed_groups))
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn remove_user_from_all_groups(conn: &mut DbConnection, user_id: UserId) -> Result<()> {
     diesel::delete(user_groups::table)
         .filter(user_groups::user_id.eq(user_id))

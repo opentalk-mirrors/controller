@@ -241,7 +241,7 @@ impl OidcContext {
     }
 
     /// Call the OIDC's userinfo endpoint to fetch the user data associated with the access token
-    #[tracing::instrument(err, name = "oidc_user_info", skip_all)]
+    #[tracing::instrument(err(level = "debug"), name = "oidc_user_info", skip_all)]
     async fn user_info(
         &self,
         access_token: AccessToken,

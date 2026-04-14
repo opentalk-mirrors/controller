@@ -36,7 +36,7 @@ pub struct NewCasbinRule {
     pub v5: String,
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn remove_policy(conn: &mut DbConnection, pt: &str, rule: Vec<String>) -> Result<bool> {
     let rule = normalize_casbin_rule(rule, 0);
 
@@ -56,7 +56,7 @@ pub async fn remove_policy(conn: &mut DbConnection, pt: &str, rule: Vec<String>)
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn remove_policies(
     conn: &mut DbConnection,
     pt: &str,
@@ -92,7 +92,7 @@ pub async fn remove_policies(
     .await
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn remove_filtered_policy(
     conn: &mut DbConnection,
     pt: &str,
@@ -173,7 +173,7 @@ pub async fn remove_filtered_policy(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn clear_policy(conn: &mut DbConnection) -> Result<()> {
     diesel::delete(casbin_rule)
         .execute(conn)
@@ -182,7 +182,7 @@ pub async fn clear_policy(conn: &mut DbConnection) -> Result<()> {
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn save_policy(conn: &mut DbConnection, rules: Vec<NewCasbinRule>) -> Result<()> {
     conn.transaction::<_, DatabaseError, _>(|conn| {
         async move {
@@ -200,7 +200,7 @@ pub async fn save_policy(conn: &mut DbConnection, rules: Vec<NewCasbinRule>) -> 
     .await
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn load_policy(conn: &mut DbConnection) -> Result<Vec<CasbinRule>> {
     casbin_rule
         .load::<CasbinRule>(conn)
@@ -208,7 +208,7 @@ pub async fn load_policy(conn: &mut DbConnection) -> Result<Vec<CasbinRule>> {
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn add_policy(conn: &mut DbConnection, new_rule: NewCasbinRule) -> Result<()> {
     diesel::insert_into(casbin_rule)
         .values(&new_rule)
@@ -221,7 +221,7 @@ pub async fn add_policy(conn: &mut DbConnection, new_rule: NewCasbinRule) -> Res
     Ok(())
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn add_policies(conn: &mut DbConnection, new_rules: Vec<NewCasbinRule>) -> Result<()> {
     diesel::insert_into(casbin_rule)
         .values(&new_rules)

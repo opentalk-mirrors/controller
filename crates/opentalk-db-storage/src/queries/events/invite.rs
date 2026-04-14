@@ -25,7 +25,7 @@ use crate::{
     },
 };
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_event_user_invites_for_events(
     conn: &mut DbConnection,
     events: &[&Event],
@@ -67,7 +67,7 @@ pub async fn get_event_user_invites_for_events(
     .await
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_event_invites_paginated(
     conn: &mut DbConnection,
     event_id: EventId,
@@ -95,7 +95,7 @@ pub async fn get_event_invites_paginated(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_invites_pending_for_user(
     conn: &mut DbConnection,
     user_id: UserId,
@@ -111,7 +111,7 @@ pub async fn get_invites_pending_for_user(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_event_invite_for_user_and_room(
     conn: &mut DbConnection,
     user_id: UserId,
@@ -131,7 +131,7 @@ pub async fn get_event_invite_for_user_and_room(
         .map_err(DatabaseError::from)
 }
 
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_event_invite_by_invitee(
     conn: &mut DbConnection,
     event_id: EventId,
@@ -152,7 +152,7 @@ pub async fn delete_event_invite_by_invitee(
 /// Tries to insert the EventInvite into the database.
 ///
 /// When yielding a unique key violation, None is returned.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn try_create_event_invite(
     conn: &mut DbConnection,
     new_invite: NewEventInvite,
@@ -173,7 +173,7 @@ pub async fn try_create_event_invite(
 }
 
 /// Apply the update to the invite where `user_id` is the invitee.
-#[tracing::instrument(err, skip_all)]
+#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn update_event_invite(
     conn: &mut DbConnection,
     event_id: EventId,
