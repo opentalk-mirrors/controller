@@ -37,6 +37,24 @@ diesel::table! {
 diesel::table! {
     use crate::sql_types::*;
 
+    event_dates (event_id) {
+        event_id -> Uuid,
+        starts_at -> Timestamptz,
+        #[max_length = 255]
+        starts_at_tz -> Varchar,
+        ends_at -> Timestamptz,
+        #[max_length = 255]
+        ends_at_tz -> Varchar,
+        is_all_day -> Bool,
+        duration_secs -> Nullable<Int4>,
+        #[max_length = 4092]
+        recurrence_pattern -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    use crate::sql_types::*;
+
     event_email_invites (event_id, email) {
         event_id -> Uuid,
         #[max_length = 255]
@@ -140,16 +158,6 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_by -> Uuid,
         updated_at -> Timestamptz,
-        is_all_day -> Nullable<Bool>,
-        starts_at -> Nullable<Timestamptz>,
-        #[max_length = 255]
-        starts_at_tz -> Nullable<Varchar>,
-        ends_at -> Nullable<Timestamptz>,
-        #[max_length = 255]
-        ends_at_tz -> Nullable<Varchar>,
-        duration_secs -> Nullable<Int4>,
-        #[max_length = 4094]
-        recurrence_pattern -> Nullable<Varchar>,
         is_adhoc -> Bool,
         tenant_id -> Uuid,
         revision -> Int4,
@@ -388,6 +396,7 @@ diesel::table! {
 }
 
 diesel::joinable!(assets -> tenants (tenant_id));
+diesel::joinable!(event_dates -> events (event_id));
 diesel::joinable!(event_email_invites -> events (event_id));
 diesel::joinable!(event_email_invites -> users (created_by));
 diesel::joinable!(event_exceptions -> events (event_id));
@@ -421,6 +430,7 @@ diesel::joinable!(users -> tenants (tenant_id));
 diesel::allow_tables_to_appear_in_same_query!(
     assets,
     casbin_rule,
+    event_dates,
     event_email_invites,
     event_exceptions,
     event_favorites,

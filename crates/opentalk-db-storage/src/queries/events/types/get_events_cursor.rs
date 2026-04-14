@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use opentalk_inventory as inventory;
 use opentalk_types_common::events::EventId;
 
-use crate::tables::events::Event;
+use crate::queries::events::types::EventRecord;
 
 pub struct GetEventsCursor {
     pub from_id: EventId,
@@ -42,11 +42,11 @@ impl From<inventory::GetEventsCursor> for GetEventsCursor {
 }
 
 impl GetEventsCursor {
-    pub fn from_last_event_in_query(event: &Event) -> Self {
+    pub fn from_last_event_in_query(event_record: &EventRecord) -> Self {
         Self {
-            from_id: event.id,
-            from_created_at: event.created_at,
-            from_starts_at: event.starts_at,
+            from_id: event_record.event().id,
+            from_created_at: event_record.event().created_at,
+            from_starts_at: event_record.date().map(|d| d.starts_at()),
         }
     }
 }
