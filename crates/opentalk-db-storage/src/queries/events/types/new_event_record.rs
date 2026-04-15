@@ -5,7 +5,9 @@
 use opentalk_inventory as inventory;
 use opentalk_types_common::events::EventId;
 
-use crate::tables::{event_dates::NewEventDate, events::NewEvent};
+use crate::tables::{
+    event_dates::NewEventDate, event_recurrences::NewEventRecurrence, events::NewEvent,
+};
 
 #[derive(Debug, Clone)]
 pub struct NewEventRecord {
@@ -16,16 +18,59 @@ pub struct NewEventRecord {
 }
 
 impl NewEventRecord {
-    /// Construct the [NewEventDate] with [EventId]; returns [None] if `raw_date` is
-    /// [None].
-    pub fn build_date(self, event_id: EventId) -> Option<NewEventDate> {
-        self.raw_date
-            .map(|raw_date| NewEventDate::new(raw_date, event_id))
+    pub fn build_date(self, event_id: EventId) -> Option<NewEventDateRecord> {
+        let inventory::NewEventDate {
+            is_all_day,
+            starts_at,
+            starts_at_tz,
+            ends_at,
+            ends_at_tz,
+            recurrence,
+        } = self.raw_date?;
+
+        Some(NewEventDateRecord {
+            date: NewEventDate {
+                event_id,
+                starts_at,
+                starts_at_tz,
+                ends_at,
+                ends_at_tz,
+                is_all_day,
+            },
+            raw_recurrence: recurrence,
+        })
     }
 
     /// Returns a reference to the event of this [`NewEventRecord`].
     pub fn event(&self) -> &NewEvent {
         &self.event
+    }
+}
+
+pub struct NewEventDateRecord {
+    /// New event to be inserted into the db.
+    date: NewEventDate,
+    /// Raw event date without event id.
+    raw_recurrence: Option<inventory::NewEventRecurrence>,
+}
+
+impl NewEventDateRecord {
+    pub fn build_recurrence(self) -> Option<NewEventRecurrence> {
+        let inventory::NewEventRecurrence {
+            duration_secs,
+            recurrence_pattern,
+        } = self.raw_recurrence?;
+
+        Some(NewEventRecurrence {
+            event_id: self.date.event_id,
+            duration_secs,
+            recurrence_pattern,
+        })
+    }
+
+    /// Returns a reference to the date of this [`NewEventDateRecord`].
+    pub fn date(&self) -> &NewEventDate {
+        &self.date
     }
 }
 

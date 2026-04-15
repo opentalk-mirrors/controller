@@ -5,22 +5,28 @@
 use opentalk_inventory as inventory;
 use opentalk_types_common::events::EventId;
 
-use crate::tables::{event_dates::EventDate, events::Event};
+use crate::tables::{event_dates::EventDate, event_recurrences::EventRecurrence, events::Event};
 
-/// Composite type that combines both [`Event`] and an optional [`EventDate`]. This is used for the
-/// translation into [`opentalk_inventory::Event`].
+/// Composite type that combines both [`Event`], an optional [`EventDate`] and an optional
+/// [`EventRecurrence`]. This is used for the translation into [`opentalk_inventory::Event`].
 #[derive(Debug, Clone, PartialEq, Queryable)]
 pub struct EventRecord {
     /// Core event related fields.
-    event: Event,
+    pub event: Event,
     /// Event date related fields.
-    date: Option<EventDate>,
+    pub date: Option<EventDate>,
+    /// Event recurrence related fields.
+    pub recurrence: Option<EventRecurrence>,
 }
 
 impl EventRecord {
     /// Creates a new [`EventRecord`].
-    pub fn new(event: Event, date: Option<EventDate>) -> Self {
-        Self { event, date }
+    pub fn new(event: Event, date: Option<EventDate>, recurrence: Option<EventRecurrence>) -> Self {
+        Self {
+            event,
+            date,
+            recurrence,
+        }
     }
 
     /// Returns a reference to the event of this [`EventRecord`].
@@ -36,6 +42,11 @@ impl EventRecord {
     /// Returns the date of this [`EventRecord`].
     pub fn date(&self) -> Option<&EventDate> {
         self.date.as_ref()
+    }
+
+    /// Returns the recurrence of this [`EventRecord`].
+    pub fn recurrence(&self) -> Option<&EventRecurrence> {
+        self.recurrence.as_ref()
     }
 }
 
@@ -58,44 +69,58 @@ impl From<inventory::Event> for EventRecord {
             date,
         }: inventory::Event,
     ) -> Self {
-        let date = date.map(
-            |inventory::EventDate {
-                 is_all_day,
-                 starts_at,
-                 starts_at_tz,
-                 ends_at,
-                 ends_at_tz,
-                 recurrence,
-             }| EventDate {
-                event_id: id,
-                starts_at: starts_at.into(),
-                starts_at_tz,
-                ends_at: ends_at.into(),
-                ends_at_tz,
-                is_all_day,
-                duration_secs: recurrence.as_ref().map(|r| r.duration_secs),
-                recurrence_pattern: recurrence.map(|r| r.recurrence_pattern),
-            },
-        );
+        let event = Event {
+            id,
+            id_serial: id_serial.into(),
+            title,
+            description,
+            room,
+            created_by,
+            created_at: created_at.into(),
+            updated_by,
+            updated_at: updated_at.into(),
+            is_adhoc,
+            tenant_id,
+            revision,
+            show_meeting_details,
+        };
 
-        Self {
-            event: Event {
-                id,
-                id_serial: id_serial.into(),
-                title,
-                description,
-                room,
-                created_by,
-                created_at: created_at.into(),
-                updated_by,
-                updated_at: updated_at.into(),
-                is_adhoc,
-                tenant_id,
-                revision,
-                show_meeting_details,
-            },
-            date,
-        }
+        let Some(inventory::EventDate {
+            is_all_day,
+            starts_at,
+            starts_at_tz,
+            ends_at,
+            ends_at_tz,
+            recurrence,
+        }) = date
+        else {
+            return Self::new(event, None, None);
+        };
+
+        let date = Some(EventDate {
+            event_id: id,
+            starts_at: starts_at.into(),
+            starts_at_tz,
+            ends_at: ends_at.into(),
+            ends_at_tz,
+            is_all_day,
+        });
+
+        let Some(inventory::EventRecurrence {
+            duration_secs,
+            recurrence_pattern,
+        }) = recurrence
+        else {
+            return Self::new(event, date, None);
+        };
+
+        let recurrence = Some(EventRecurrence {
+            event_id: id,
+            duration_secs,
+            recurrence_pattern,
+        });
+
+        Self::new(event, date, recurrence)
     }
 }
 
@@ -119,9 +144,43 @@ impl From<EventRecord> for inventory::Event {
                     show_meeting_details,
                 },
             date,
+            recurrence,
         }: EventRecord,
     ) -> inventory::Event {
-        Self {
+        let recurrence = recurrence.map(
+            |EventRecurrence {
+                 event_id: _,
+                 duration_secs,
+                 recurrence_pattern,
+             }| {
+                inventory::EventRecurrence {
+                    duration_secs,
+                    recurrence_pattern,
+                }
+            },
+        );
+
+        let date = date.map(
+            |EventDate {
+                 event_id: _,
+                 starts_at,
+                 starts_at_tz,
+                 ends_at,
+                 ends_at_tz,
+                 is_all_day,
+             }| {
+                inventory::EventDate {
+                    is_all_day,
+                    starts_at: starts_at.into(),
+                    starts_at_tz,
+                    ends_at: ends_at.into(),
+                    ends_at_tz,
+                    recurrence,
+                }
+            },
+        );
+
+        inventory::Event {
             id,
             id_serial: id_serial.into(),
             title,
@@ -135,7 +194,7 @@ impl From<EventRecord> for inventory::Event {
             tenant_id,
             revision,
             show_meeting_details,
-            date: date.map(Into::into),
+            date,
         }
     }
 }

@@ -41,9 +41,9 @@ use crate::{
         EventRecord, GetEventExceptionsCursor, GetEventsCursor, NewEventRecord, UpdateEventRecord,
     },
     schema::{
-        event_dates, event_exceptions, event_favorites, event_invites, event_shared_folders,
-        event_training_participation_report_parameter_sets, events, rooms, sip_configs, tariffs,
-        users,
+        event_dates, event_exceptions, event_favorites, event_invites, event_recurrences,
+        event_shared_folders, event_training_participation_report_parameter_sets, events, rooms,
+        sip_configs, tariffs, users,
     },
     tables::{
         event_exceptions::EventException, event_invites::EventInvite,
@@ -58,8 +58,15 @@ use crate::{
 pub async fn get_event(conn: &mut DbConnection, event_id: EventId) -> Result<EventRecord> {
     events::table
         .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
+        .left_join(
+            event_recurrences::table.on(event_recurrences::event_id.eq(event_dates::event_id)),
+        )
         .inner_join(users::table.on(users::id.eq(events::created_by)))
-        .select((events::all_columns, event_dates::all_columns.nullable()))
+        .select((
+            events::all_columns,
+            event_dates::all_columns.nullable(),
+            event_recurrences::all_columns.nullable(),
+        ))
         .filter(events::id.eq(event_id))
         .filter(users::disabled_since.is_null())
         .first(conn)
@@ -87,10 +94,12 @@ pub async fn get_all_events_that_ended_before_including_rooms(
 ) -> Result<Vec<(EventId, RoomId)>> {
     events::table
         .inner_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
+        .inner_join(
+            event_recurrences::table.on(event_recurrences::event_id.eq(event_dates::event_id)),
+        )
         .inner_join(users::table.on(users::id.eq(events::created_by)))
         .select((events::id, events::room))
         .filter(event_dates::ends_at.le(date))
-        .filter(event_dates::recurrence_pattern.is_null())
         .filter(users::disabled_since.is_null())
         .load(conn)
         .await
@@ -132,12 +141,19 @@ pub async fn get_all_events_for_creator_including_rooms(
 pub async fn get_all_events_finite_recurring(conn: &mut DbConnection) -> Result<Vec<EventRecord>> {
     events::table
         .inner_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
+        .inner_join(
+            event_recurrences::table.on(event_recurrences::event_id.eq(event_dates::event_id)),
+        )
         .inner_join(users::table.on(users::id.eq(events::created_by)))
-        .select((events::all_columns, event_dates::all_columns.nullable()))
+        .select((
+            events::all_columns,
+            event_dates::all_columns.nullable(),
+            event_recurrences::all_columns.nullable(),
+        ))
         .filter(
-            event_dates::recurrence_pattern
+            event_recurrences::recurrence_pattern
                 .ilike("%UNTIL%")
-                .or(event_dates::recurrence_pattern.ilike("%COUNT%")),
+                .or(event_recurrences::recurrence_pattern.ilike("%COUNT%")),
         )
         .filter(users::disabled_since.is_null())
         .load(conn)
@@ -152,8 +168,15 @@ pub async fn get_all_events_updated_by_user(
 ) -> Result<Vec<EventRecord>> {
     events::table
         .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
+        .left_join(
+            event_recurrences::table.on(event_recurrences::event_id.eq(event_dates::event_id)),
+        )
         .inner_join(users::table.on(users::id.eq(events::created_by)))
-        .select((events::all_columns, event_dates::all_columns.nullable()))
+        .select((
+            events::all_columns,
+            event_dates::all_columns.nullable(),
+            event_recurrences::all_columns.nullable(),
+        ))
         .filter(events::updated_by.eq(updated_by))
         .filter(users::disabled_since.is_null())
         .load(conn)
@@ -193,6 +216,9 @@ pub async fn get_with_related_items(
     events::table
         .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
         .left_join(
+            event_recurrences::table.on(event_recurrences::event_id.eq(event_dates::event_id)),
+        )
+        .left_join(
             event_invites::table.on(event_invites::event_id
                 .eq(events::id)
                 .and(event_invites::invitee.eq(user_id))),
@@ -212,7 +238,11 @@ pub async fn get_with_related_items(
                 .on(event_training_participation_report_parameter_sets::event_id.eq(events::id)),
         )
         .select((
-            (events::all_columns, event_dates::all_columns.nullable()),
+            (
+                events::all_columns,
+                event_dates::all_columns.nullable(),
+                event_recurrences::all_columns.nullable(),
+            ),
             event_invites::all_columns.nullable(),
             rooms::all_columns,
             sip_configs::all_columns.nullable(),
@@ -236,11 +266,18 @@ pub async fn get_with_room(
 ) -> Result<(EventRecord, Room, Option<SipConfig>)> {
     events::table
         .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
+        .left_join(
+            event_recurrences::table.on(event_recurrences::event_id.eq(event_dates::event_id)),
+        )
         .inner_join(users::table.on(users::id.eq(events::created_by)))
         .inner_join(rooms::table.on(events::room.eq(rooms::id)))
         .left_join(sip_configs::table.on(rooms::id.eq(sip_configs::room)))
         .select((
-            (events::all_columns, event_dates::all_columns.nullable()),
+            (
+                events::all_columns,
+                event_dates::all_columns.nullable(),
+                event_recurrences::all_columns.nullable(),
+            ),
             rooms::all_columns,
             sip_configs::all_columns.nullable(),
         ))
@@ -288,6 +325,9 @@ pub async fn get_all_events_for_user_paginated_as_stream(
     let mut query = events::table
         .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
         .left_join(
+            event_recurrences::table.on(event_recurrences::event_id.eq(event_dates::event_id)),
+        )
+        .left_join(
             event_invites::table.on(event_invites::event_id
                 .eq(events::id)
                 .and(event_invites::invitee.eq(user.id))),
@@ -303,7 +343,11 @@ pub async fn get_all_events_for_user_paginated_as_stream(
         .inner_join(users::table.on(users::id.eq(events::created_by)))
         .inner_join(tariffs::table.on(tariffs::id.eq(users::tariff_id)))
         .select((
-            (events::all_columns, event_dates::all_columns.nullable()),
+            (
+                events::all_columns,
+                event_dates::all_columns.nullable(),
+                event_recurrences::all_columns.nullable(),
+            ),
             event_invites::all_columns.nullable(),
             rooms::all_columns,
             sip_configs::all_columns.nullable(),
@@ -459,6 +503,9 @@ pub async fn get_all_events_exceptions_for_user_paginated_as_stream(
     let mut query = event_exceptions::table
         .inner_join(events::table.on(event_exceptions::event_id.eq(events::id)))
         .inner_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
+        .inner_join(
+            event_recurrences::table.on(event_recurrences::event_id.eq(event_dates::event_id)),
+        )
         .left_join(
             event_invites::table.on(event_invites::event_id
                 .eq(events::id)
@@ -474,7 +521,11 @@ pub async fn get_all_events_exceptions_for_user_paginated_as_stream(
         .inner_join(users::table.on(users::id.eq(events::created_by)))
         .select((
             event_exceptions::all_columns,
-            (events::all_columns, event_dates::all_columns.nullable()),
+            (
+                events::all_columns,
+                event_dates::all_columns.nullable(),
+                event_recurrences::all_columns.nullable(),
+            ),
         ))
         .filter(events::tenant_id.eq(user.tenant_id))
         .filter(event_related_to_user_id)
@@ -618,12 +669,19 @@ pub async fn get_all_events_for_user(
     let mut query = events::table
         .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
         .left_join(
+            event_recurrences::table.on(event_recurrences::event_id.eq(event_dates::event_id)),
+        )
+        .left_join(
             event_invites::table.on(event_invites::event_id
                 .eq(events::id)
                 .and(event_invites::invitee.eq(user.id))),
         )
         .inner_join(users::table.on(users::id.eq(events::created_by)))
-        .select((events::all_columns, event_dates::all_columns.nullable()))
+        .select((
+            events::all_columns,
+            event_dates::all_columns.nullable(),
+            event_recurrences::all_columns.nullable(),
+        ))
         .filter(events::tenant_id.eq(user.tenant_id))
         .filter(event_related_to_user_id)
         .filter(users::disabled_since.is_null())
@@ -633,7 +691,7 @@ pub async fn get_all_events_for_user(
         .into_boxed::<Pg>();
 
     if only_recurring {
-        query = query.filter(event_dates::recurrence_pattern.is_not_null());
+        query = query.filter(event_recurrences::recurrence_pattern.is_not_null());
     }
 
     query.load(conn).await.map_err(DatabaseError::from)
@@ -677,6 +735,9 @@ pub async fn get_all_events_for_user_paginated(
     let mut query = events::table
         .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
         .left_join(
+            event_recurrences::table.on(event_recurrences::event_id.eq(event_dates::event_id)),
+        )
+        .left_join(
             event_invites::table.on(event_invites::event_id
                 .eq(events::id)
                 .and(event_invites::invitee.eq(user.id))),
@@ -692,7 +753,11 @@ pub async fn get_all_events_for_user_paginated(
         .inner_join(users::table.on(users::id.eq(events::created_by)))
         .inner_join(tariffs::table.on(tariffs::id.eq(users::tariff_id)))
         .select((
-            (events::all_columns, event_dates::all_columns.nullable()),
+            (
+                events::all_columns,
+                event_dates::all_columns.nullable(),
+                event_recurrences::all_columns.nullable(),
+            ),
             event_invites::all_columns.nullable(),
             rooms::all_columns,
             sip_configs::all_columns.nullable(),
@@ -814,10 +879,7 @@ pub async fn get_all_events_for_user_paginated(
     for (event_record, invite, room, sip_config, is_favorite, shared_folders, tariff) in
         events_with_invite_and_room
     {
-        let exceptions = if event_record
-            .date()
-            .is_some_and(|date| date.recurrence_pattern().is_some())
-        {
+        let exceptions = if event_record.recurrence().is_some() {
             event_exceptions::table
                 .filter(event_exceptions::event_id.eq(event_record.id()))
                 .load(conn)
@@ -874,8 +936,15 @@ pub async fn get_event_for_room(
 ) -> Result<Option<EventRecord>> {
     events::table
         .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
+        .left_join(
+            event_recurrences::table.on(event_recurrences::event_id.eq(event_dates::event_id)),
+        )
         .inner_join(users::table.on(users::id.eq(events::created_by)))
-        .select((events::all_columns, event_dates::all_columns.nullable()))
+        .select((
+            events::all_columns,
+            event_dates::all_columns.nullable(),
+            event_recurrences::all_columns.nullable(),
+        ))
         .filter(events::room.eq(room_id))
         .filter(users::disabled_since.is_null())
         .first(conn)
@@ -927,16 +996,29 @@ pub async fn create_event(
                 .get_result(conn)
                 .await?;
 
-            let Some(new_date) = new_event_record.build_date(event.id) else {
-                return Ok(EventRecord::new(event, None));
+            let Some(new_event_date_record) = new_event_record.build_date(event.id) else {
+                return Ok(EventRecord::new(event, None, None));
             };
 
-            let date = diesel::insert_into(event_dates::table)
-                .values(new_date)
-                .get_result(conn)
-                .await?;
+            let date = Some(
+                diesel::insert_into(event_dates::table)
+                    .values(new_event_date_record.date())
+                    .get_result(conn)
+                    .await?,
+            );
 
-            Ok(EventRecord::new(event, Some(date)))
+            let Some(new_recurrence) = new_event_date_record.build_recurrence() else {
+                return Ok(EventRecord::new(event, date, None));
+            };
+
+            let recurrence = Some(
+                diesel::insert_into(event_recurrences::table)
+                    .values(new_recurrence)
+                    .get_result(conn)
+                    .await?,
+            );
+
+            Ok(EventRecord::new(event, date, recurrence))
         }
         .scope_boxed()
     })
@@ -962,16 +1044,30 @@ pub async fn update_event(
                 .await?;
 
             let Some(update_date) = update_event_record.date() else {
-                return Ok(EventRecord::new(event, None));
+                return Ok(EventRecord::new(event, None, None));
             };
 
-            let date = diesel::update(event_dates::table)
-                .filter(event_dates::event_id.eq(event_id))
-                .set(update_date)
-                .get_result(conn)
-                .await?;
+            let date = Some(
+                diesel::update(event_dates::table)
+                    .filter(event_dates::event_id.eq(event_id))
+                    .set(update_date)
+                    .get_result(conn)
+                    .await?,
+            );
 
-            Ok(EventRecord::new(event, Some(date)))
+            let Some(update_recurrence) = update_event_record.recurrence() else {
+                return Ok(EventRecord::new(event, date, None));
+            };
+
+            let recurrence = Some(
+                diesel::update(event_recurrences::table)
+                    .filter(event_recurrences::event_id.eq(event_id))
+                    .set(update_recurrence)
+                    .get_result(conn)
+                    .await?,
+            );
+
+            Ok(EventRecord::new(event, date, recurrence))
         }
         .scope_boxed()
     })
