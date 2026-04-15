@@ -406,12 +406,6 @@ secret_key = "minioadmin"
 # A list urls of a etcd cluster
 #urls = ["localhost:2379"]
 
-# The etherpad configuration for the meeting-notes module
-#[etherpad]
-#url = "http://localhost:9001"
-# Etherpads api key
-#api_key = "secret"
-
 # Spacedeck configuration
 #[spacedeck]
 #url = "http://localhost:9666"

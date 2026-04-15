@@ -5,8 +5,8 @@
 use serde::Deserialize;
 
 use super::{
-    Authorization, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Etherpad, Extensions,
-    Frontend, Http, Keycloak, LiveKitSettings, Logging, Metrics, MinIO, MonitoringSettings, Oidc,
+    Authorization, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Extensions, Frontend, Http,
+    Keycloak, LiveKitSettings, Logging, Metrics, MinIO, MonitoringSettings, Oidc,
     OperatorInformation, RabbitMqConfig, RedisConfig, Reports, RoomServer, SharedFolder, Spacedeck,
     SubroomAudio, Tariffs, Tenants, UserSearch, WebSocketRateLimit,
 };
@@ -49,9 +49,6 @@ pub struct SettingsRaw {
 
     #[serde(default)]
     pub(crate) etcd: Option<Etcd>,
-
-    #[serde(default)]
-    pub(crate) etherpad: Option<Etherpad>,
 
     #[serde(default)]
     pub(crate) spacedeck: Option<Spacedeck>,
@@ -143,7 +140,6 @@ pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
         avatar: None,
         metrics: None,
         etcd: None,
-        etherpad: None,
         spacedeck: None,
         subroom_audio: None,
         reports: None,
