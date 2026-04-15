@@ -320,11 +320,6 @@ secret_key = "minioadmin"
 # A list urls of a etcd cluster
 #urls = ["localhost:2379"]
 
-# Spacedeck configuration
-#[spacedeck]
-#url = "http://localhost:9666"
-#api_key = "secret"
-
 # Subroom audio whisper configuration
 #[subroom_audio]
 #enable_whisper = false
