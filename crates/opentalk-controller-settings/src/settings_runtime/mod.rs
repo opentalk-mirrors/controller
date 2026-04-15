@@ -57,7 +57,6 @@ mod tenant_assignment;
 mod tenants;
 mod user_search_backend;
 mod user_search_backend_keycloak;
-mod ws_rate_limit;
 
 pub use authorization::Authorization;
 pub use avatar::{Avatar, DEFAULT_LIBRAVATAR_URL};
@@ -99,4 +98,3 @@ pub use tenant_assignment::{
 pub use tenants::Tenants;
 pub use user_search_backend::UserSearchBackend;
 pub use user_search_backend_keycloak::UserSearchBackendKeycloak;
-pub use ws_rate_limit::WebSocketRateLimit;

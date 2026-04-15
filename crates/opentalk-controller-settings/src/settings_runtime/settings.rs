@@ -8,9 +8,8 @@ use super::{
     Tenants, UserSearchBackend, oidc_and_user_search_builder::OidcAndUserSearchBuilder,
 };
 use crate::{
-    Result, SettingsError, SettingsRaw,
-    settings_file::UsersFindBehavior,
-    settings_runtime::{RoomServer, WebSocketRateLimit},
+    Result, SettingsError, SettingsRaw, settings_file::UsersFindBehavior,
+    settings_runtime::RoomServer,
 };
 
 /// The settings used for the OpenTalk controller at runtime
@@ -79,9 +78,6 @@ pub struct Settings {
     /// The defaults configuration.
     pub defaults: Defaults,
 
-    /// The websocket rate limiting configuration.
-    pub ws_rate_limit: Option<WebSocketRateLimit>,
-
     /// Information about the operator.
     pub operator_information: Option<OperatorInformation>,
 
@@ -115,8 +111,6 @@ impl TryFrom<SettingsRaw> for Settings {
             user_search_backend,
             users_find_behavior,
         } = OidcAndUserSearchBuilder::load_from_settings_raw(&raw)?;
-
-        let ws_rate_limit = WebSocketRateLimit::from_settings_file(raw.websocket_rate_limit)?;
 
         let frontend = raw.frontend.clone().into();
         let http = Http::from(raw.http.clone());
@@ -166,7 +160,6 @@ impl TryFrom<SettingsRaw> for Settings {
             tenants,
             tariffs,
             defaults,
-            ws_rate_limit,
             operator_information,
             roomserver,
         })
@@ -275,7 +268,6 @@ pub(crate) fn minimal_example() -> Settings {
             screen_share_requires_permission: false,
             disabled_features: BTreeSet::new(),
         },
-        ws_rate_limit: Some(WebSocketRateLimit::default()),
         operator_information: None,
         roomserver: RoomServer {
             url: "http://localhost:11333"

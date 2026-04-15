@@ -48,8 +48,7 @@ pub use settings_runtime::{
     LoggingOltpTracing, Metrics, MinIO, Monitoring, Oidc, OidcController, OidcFrontend,
     OperatorInformation, Reports, ReportsTypst, RoomServer, Settings, SharedFolder, Spacedeck,
     SubroomAudio, TariffAssignment, TariffStatusMapping, Tariffs, TenantAssignment, Tenants,
-    UserSearchBackend, UserSearchBackendKeycloak, WebSocketRateLimit,
-    reports_typst_default_packages_path,
+    UserSearchBackend, UserSearchBackendKeycloak, reports_typst_default_packages_path,
 };
 
 type Result<T, E = SettingsError> = std::result::Result<T, E>;
