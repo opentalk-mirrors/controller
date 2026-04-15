@@ -6,9 +6,9 @@ use serde::Deserialize;
 
 use super::{
     Authorization, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Extensions, Frontend, Http,
-    Keycloak, LiveKitSettings, Logging, Metrics, MinIO, MonitoringSettings, Oidc,
-    OperatorInformation, RabbitMqConfig, RedisConfig, Reports, RoomServer, SharedFolder,
-    SubroomAudio, Tariffs, Tenants, UserSearch, WebSocketRateLimit,
+    Keycloak, Logging, Metrics, MinIO, MonitoringSettings, Oidc, OperatorInformation,
+    RabbitMqConfig, RedisConfig, Reports, RoomServer, SharedFolder, SubroomAudio, Tariffs, Tenants,
+    UserSearch, WebSocketRateLimit,
 };
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -78,8 +78,6 @@ pub struct SettingsRaw {
 
     #[serde(default)]
     pub(crate) tariffs: Option<Tariffs>,
-
-    pub(crate) livekit: Option<LiveKitSettings>,
 
     #[serde(default)]
     pub(crate) websocket_rate_limit: Option<WebSocketRateLimit>,
@@ -156,12 +154,6 @@ pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
         monitoring: None,
         tenants: None,
         tariffs: None,
-        livekit: Some(LiveKitSettings {
-            public_url: "ws://localhost:7880".to_string(),
-            service_url: "http://localhost:7880".to_string(),
-            api_key: "devkey".to_string(),
-            api_secret: "secret".to_string(),
-        }),
         websocket_rate_limit: None,
         roomserver: RoomServer {
             url: "http://localhost:11333"

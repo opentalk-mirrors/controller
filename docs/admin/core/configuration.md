@@ -264,14 +264,6 @@ client_secret = "v3rys3cr3t"
 # Possible values are "disabled", "from_database" and "from_user_search_backend".
 users_find_behavior = "from_user_search_backend"
 
-# LiveKit WebRTC SFU
-[livekit]
-public_url = "wss://url.to.your.livekit.server"
-service_url = "https://localhost:7880"
-
-api_key = "your-livekit-api-key"
-api_secret = "your-livekit-api-secret"
-
 #[rabbit_mq]
 # The URL to use to connect to the rabbit mq broker
 #url = "amqp://guest:guest@localhost:5672"
