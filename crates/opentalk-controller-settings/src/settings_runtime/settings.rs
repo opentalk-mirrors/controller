@@ -265,7 +265,6 @@ pub(crate) fn minimal_example() -> Settings {
         defaults: Defaults {
             user_language: default_user_language(),
             timezone: TimeZone::default(),
-            screen_share_requires_permission: false,
             disabled_features: BTreeSet::new(),
         },
         operator_information: None,

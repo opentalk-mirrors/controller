@@ -18,9 +18,6 @@ pub struct Defaults {
     /// The timezone used by the system and as the users' default.
     pub timezone: TimeZone,
 
-    /// Flag indicating whether the screen share requires an explicit permission.
-    pub screen_share_requires_permission: bool,
-
     /// A list of disabled features.
     pub disabled_features: BTreeSet<ModuleFeatureId>,
 }
@@ -30,14 +27,12 @@ impl From<settings_file::Defaults> for Defaults {
         settings_file::Defaults {
             user_language,
             timezone,
-            screen_share_requires_permission,
             disabled_features,
         }: settings_file::Defaults,
     ) -> Self {
         Self {
             user_language: user_language.unwrap_or_else(default_user_language),
             timezone: timezone.unwrap_or_else(global_timezone),
-            screen_share_requires_permission: screen_share_requires_permission.unwrap_or_default(),
             disabled_features,
         }
     }
@@ -48,7 +43,6 @@ impl Default for Defaults {
         Self {
             user_language: default_user_language(),
             timezone: TimeZone::default(),
-            screen_share_requires_permission: false,
             disabled_features: BTreeSet::default(),
         }
     }
