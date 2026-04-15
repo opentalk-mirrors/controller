@@ -24,18 +24,3 @@ pub struct NewEvent {
     pub tenant_id: TenantId,
     pub show_meeting_details: bool,
 }
-
-impl From<opentalk_inventory::NewEvent> for NewEvent {
-    fn from(new_event: opentalk_inventory::NewEvent) -> Self {
-        Self {
-            title: new_event.title,
-            description: new_event.description,
-            room: new_event.room,
-            created_by: new_event.created_by,
-            updated_by: new_event.updated_by,
-            is_adhoc: new_event.is_adhoc,
-            tenant_id: new_event.tenant_id,
-            show_meeting_details: new_event.show_meeting_details,
-        }
-    }
-}

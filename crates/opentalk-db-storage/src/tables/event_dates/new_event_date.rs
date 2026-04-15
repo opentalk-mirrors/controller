@@ -5,7 +5,6 @@
 use chrono::DateTime;
 use chrono_tz::Tz;
 use diesel::prelude::*;
-use opentalk_inventory as inventory;
 use opentalk_types_common::{events::EventId, time::TimeZone};
 
 use crate::schema::event_dates;
@@ -27,36 +26,4 @@ pub struct NewEventDate {
     /// Denotes whether an event is all day, meaning it starts at 00:00 and ends at 00:00 the
     /// following day.
     pub is_all_day: bool,
-    /// Only for recurring events, since ends_at contains the information about the last occurrence
-    /// of the recurring series this duration value.
-    ///
-    /// MUST be used to calculate the event instances length.
-    pub duration_secs: Option<i32>,
-    /// Recurrence pattern of the event.
-    pub recurrence_pattern: Option<String>,
-}
-
-impl NewEventDate {
-    pub fn new(
-        inventory::NewEventDate {
-            is_all_day,
-            starts_at,
-            starts_at_tz,
-            ends_at,
-            ends_at_tz,
-            recurrence,
-        }: inventory::NewEventDate,
-        event_id: EventId,
-    ) -> Self {
-        Self {
-            event_id,
-            starts_at,
-            starts_at_tz,
-            ends_at,
-            ends_at_tz,
-            is_all_day,
-            duration_secs: recurrence.as_ref().map(|r| r.duration_secs),
-            recurrence_pattern: recurrence.map(|r| r.recurrence_pattern),
-        }
-    }
 }
