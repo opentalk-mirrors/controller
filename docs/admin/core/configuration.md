@@ -140,7 +140,7 @@ url = "postgres://postgres:password123@localhost:5432/opentalk"
 #addr = "0.0.0.0"
 #port = 11411
 
-#[http]
+[http]
 # An optional address to which to bind.
 # Can be either a hostname, or an IP address.
 #
@@ -172,7 +172,7 @@ url = "postgres://postgres:password123@localhost:5432/opentalk"
 #
 # These APIs are currently exclusively used by the roomserver.
 # When a roomserver is configured, this setting is mandatory.
-#service_api_keys = [{ "id" = "controller", "secret" = "secret" }]
+service_api_keys = [{ "id" = "controller", "secret" = "secret" }]
 
 # Settings for the CORS headers.
 #[http.cors]
@@ -312,7 +312,7 @@ api_secret = "your-livekit-api-secret"
 # Redis URL used to connect the redis server
 #url = "redis://localhost:6379/"
 
-#[roomserver]
+[roomserver]
 # Configure a roomserver for this controller.
 #
 # When enabled, the controllers built in signaling endpoints (`rooms/<room-id>/start` & `rooms/<room-id>/start_invited`)
@@ -322,10 +322,10 @@ api_secret = "your-livekit-api-secret"
 # The deployed frontend client has to be compatible with the roomservers signaling implementation.
 #
 # The URL of the roomserver. Needs to be reachable by clients
-#url = "http://localhost:11333"
+url = "http://localhost:11333"
 #
 # The roomservers API key id and secret
-#api_key = {id = "roomserver", secret = "secret" }
+api_key = { id = "roomserver", secret = "secret" }
 
 # RoomServer websocket rate limiting configuration
 #
@@ -349,6 +349,7 @@ api_secret = "your-livekit-api-secret"
 #token_bucket_size = 30
 
 #The Modules that are enabled in the roomserver
+[roomserver.modules]
 #[roomserver.modules.chat]
 #[roomserver.modules.chat.rate_limit]
 #tokens_per_second = 3

@@ -37,22 +37,16 @@ use crate::utoipa::responses::InternalServerError;
             status = StatusCode::BAD_REQUEST,
             description = r"The provided ID token is malformed or contains
                 invalid claims,  no breakout rooms were found for this room, the
-                breakout room id is invalid, the room doesn't exist, the guest
-                does not have a valid invite for this room or when calling this
-                endpoint on a controller where no roomserver is configured. Guests
-                shall not be able to distinguish between existing rooms and rooms
-                they don't have permission to enter, therefore the response is the
-                same in these cases.",
+                breakout room id is invalid, the room doesn't exist or the guest
+                does not have a valid invite for this room. Guests shall not be
+                able to distinguish between existing rooms and rooms they don't
+                have permission to enter, therefore the response is the same in
+                these cases.",
             body = ErrorBody,
             examples(
                 (
                     "RoomIdMismatch" = (
                         summary = "Room id mismatch", value = json!(ErrorBody::new("bad_request", "Room id mismatch"))
-                    )
-                ),
-                (
-                    "RoomserverSignalingDisabled" = (
-                        summary = "Roomserver signaling is disabled", value = json!(ApiError::from(StartRoomError::RoomserverSignalingDisabled).body)
                     )
                 ),
             ),

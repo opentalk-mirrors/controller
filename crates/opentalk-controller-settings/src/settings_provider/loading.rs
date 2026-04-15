@@ -79,6 +79,7 @@ impl SettingsProvider {
 mod tests {
     use std::env;
 
+    use opentalk_service_auth::{ApiKey, service::ApiKeys};
     use pretty_assertions::assert_eq;
     use serial_test::serial;
 
@@ -125,7 +126,10 @@ mod tests {
             settings.database.url,
             "postgres://postgres:password123@localhost:5432/opentalk"
         );
-        assert!(settings.http.is_none());
+        assert_eq!(
+            settings.http.unwrap().service_api_keys,
+            Some(ApiKeys::new(vec![ApiKey::new("controller", "secret")]))
+        );
         if let Some(defaults) = settings.defaults {
             assert!(defaults.screen_share_requires_permission.is_none())
         }

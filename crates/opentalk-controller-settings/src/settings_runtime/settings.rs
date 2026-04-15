@@ -10,7 +10,7 @@ use super::{
 use crate::{
     Result, SettingsError, SettingsRaw,
     settings_file::UsersFindBehavior,
-    settings_runtime::{RoomServer, WebSocketRateLimit, signaling::Signaling},
+    settings_runtime::{RoomServer, WebSocketRateLimit},
 };
 
 /// The settings used for the OpenTalk controller at runtime
@@ -55,9 +55,6 @@ pub struct Settings {
     /// The etcd settings.
     pub etcd: Option<Etcd>,
 
-    /// The signaling settings.
-    pub signaling: Signaling,
-
     /// The SharedFolder settings.
     pub shared_folder: Option<SharedFolder>,
 
@@ -89,7 +86,7 @@ pub struct Settings {
     pub operator_information: Option<OperatorInformation>,
 
     /// The roomserver configuration
-    pub roomserver: Option<RoomServer>,
+    pub roomserver: RoomServer,
 }
 
 impl Settings {
@@ -119,7 +116,6 @@ impl TryFrom<SettingsRaw> for Settings {
             users_find_behavior,
         } = OidcAndUserSearchBuilder::load_from_settings_raw(&raw)?;
 
-        let signaling = Signaling::try_from(&raw)?;
         let ws_rate_limit = WebSocketRateLimit::from_settings_file(raw.websocket_rate_limit)?;
 
         let frontend = raw.frontend.clone().into();
@@ -141,11 +137,10 @@ impl TryFrom<SettingsRaw> for Settings {
         let tenants = raw.tenants.clone().map(Into::into).unwrap_or_default();
         let tariffs = raw.tariffs.clone().map(Into::into).unwrap_or_default();
         let defaults = raw.defaults.clone().map(Into::into).unwrap_or_default();
-
         let operator_information = raw.operator_information.clone().map(Into::into);
-        let roomserver = raw.roomserver.clone().map(Into::into);
+        let roomserver = raw.roomserver.clone().into();
 
-        if matches!(signaling, Signaling::RoomServer(..)) && http.service_api_keys.is_none() {
+        if http.service_api_keys.is_none() {
             return Err(SettingsError::HttpServiceApiKeysMissing);
         }
 
@@ -163,7 +158,6 @@ impl TryFrom<SettingsRaw> for Settings {
             avatar,
             metrics,
             etcd,
-            signaling,
             shared_folder,
             endpoints,
             minio,
@@ -184,16 +178,20 @@ pub(crate) fn minimal_example() -> Settings {
     use std::collections::BTreeSet;
 
     use openidconnect::{ClientId, ClientSecret};
+    use opentalk_roomserver_types::{
+        module_settings::ModuleSettings, rate_limit::RateLimitSettings,
+    };
+    use opentalk_service_auth::{ApiKey, service::ApiKeys};
     use opentalk_types_common::time::TimeZone;
     use url::Url;
 
     use super::OidcController;
     use crate::{
         DEFAULT_LIBRAVATAR_URL, DEFAULT_STATIC_TARIFF_NAME, DEFAULT_STATIC_TENANT_ID, Frontend,
-        LiveKit, OidcFrontend, Reports, SubroomAudio, TariffAssignment, TenantAssignment,
+        OidcFrontend, TariffAssignment, TenantAssignment,
         settings_runtime::{
             HttpCors, database::DEFAULT_DATABASE_MAX_CONNECTIONS, defaults::default_user_language,
-            http::DEFAULT_HTTP_PORT, signaling::ControllerSignaling,
+            http::DEFAULT_HTTP_PORT,
         },
     };
 
@@ -223,7 +221,7 @@ pub(crate) fn minimal_example() -> Settings {
             port: DEFAULT_HTTP_PORT,
             tls: None,
             cors: HttpCors::default(),
-            service_api_keys: None,
+            service_api_keys: Some(ApiKeys::new(vec![ApiKey::new("controller", "secret")])),
         },
         database: Database {
             url: "postgres://postgres:password123@localhost:5432/opentalk".to_string(),
@@ -243,20 +241,6 @@ pub(crate) fn minimal_example() -> Settings {
         },
         metrics: Metrics { allowlist: vec![] },
         etcd: None,
-        signaling: Signaling::Controller(ControllerSignaling {
-            subroom_audio: SubroomAudio {
-                enable_whisper: false,
-            },
-            etherpad: None,
-            spacedeck: None,
-            reports: Reports::default(),
-            livekit: LiveKit {
-                public_url: "ws://localhost:7880".to_string(),
-                service_url: "http://localhost:7880".to_string(),
-                api_key: "devkey".to_string(),
-                api_secret: "secret".to_string(),
-            },
-        }),
         shared_folder: None,
         endpoints: Endpoints {
             event_invite_external_email_address: false,
@@ -293,6 +277,16 @@ pub(crate) fn minimal_example() -> Settings {
         },
         ws_rate_limit: Some(WebSocketRateLimit::default()),
         operator_information: None,
-        roomserver: None,
+        roomserver: RoomServer {
+            url: "http://localhost:11333"
+                .parse()
+                .expect("must be a valid url"),
+            api_key: ApiKey::new("roomserver", "secret"),
+            modules: ModuleSettings::new(),
+            websocket_rate_limit: Some(RateLimitSettings {
+                tokens_per_second: 10,
+                token_bucket_size: 30,
+            }),
+        },
     }
 }
