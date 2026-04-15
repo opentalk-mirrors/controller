@@ -107,6 +107,24 @@ ignore = [
   # This is a transitive dependency, so we can't just switch, but must instead wait for
   # our dependencies to do so.
   "RUSTSEC-2024-0436",
+
+  # rustls-webpki
+  # 
+  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0098
+  # |
+  # | Name constraints for URI names were ignored and therefore accepted.
+  # |
+  # | Note this library does not provide an API for asserting URI names, and URI name constraints are otherwise not implemented.  URI name constraints are now rejected unconditionally.
+  # |
+  # | Since name constraints are restrictions on otherwise properly-issued certificates, this bug is reachable only after signature verification and requires misissuance to exploit.
+  # |
+  # | This vulnerability is identified as [GHSA-965h-392x-2mh5](https://github.com/rustls/webpki/security/advisories/GHSA-965h-392x-2mh5). Thank you to @1seal for the report.
+  # | Solution: Upgrade to >=0.103.12, <0.104.0-alpha.1 OR >=0.104.0-alpha.6 (try `cargo update -p rustls-webpki`)
+  #
+  # This version of the rustls-webpki crate is pulled in as a transitive dependency of actix-web, and so far
+  # no updated version which matches the compatible range is available, so we have to wait until the dependency
+  # tree of actix-web becomes compatible / updated.
+  "RUSTSEC-2026-0098",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -413,9 +431,12 @@ skip = [
   { name = "base16ct", version = "0.1" },
   { name = "base64", version = "0.21" },
   { name = "bitflags", version = "1" },
+  { name = "block-buffer", version = "0.10" },
+  { name = "const-oid", version = "0.9" },
   { name = "cookie", version = "0.16" },
   { name = "cpufeatures", version = "0.2" },
   { name = "crypto-bigint", version = "0.4" },
+  { name = "crypto-common", version = "0.1" },
   { name = "darling", version = "0.20" },
   { name = "darling", version = "0.21" },
   { name = "darling_core", version = "0.20" },
@@ -423,6 +444,7 @@ skip = [
   { name = "darling_macro", version = "0.20" },
   { name = "darling_macro", version = "0.21" },
   { name = "der", version = "0.6" },
+  { name = "digest", version = "0.10" },
   { name = "ecdsa", version = "0.14" },
   { name = "elliptic-curve", version = "0.12" },
   { name = "event-listener", version = "2" },
@@ -440,7 +462,9 @@ skip = [
   { name = "hashbrown", version = "0.11" },
   { name = "hashbrown", version = "0.12" },
   { name = "hashbrown", version = "0.15" },
+  { name = "hashbrown", version = "0.16" },
   { name = "heck", version = "0.4" },
+  { name = "hmac", version = "0.12" },
   { name = "http", version = "0.2" },
   { name = "http-body", version = "0.4" },
   { name = "hyper", version = "0.14" },
@@ -457,7 +481,9 @@ skip = [
   { name = "kurbo", version = "0.11" },
   { name = "linux-raw-sys", version = "0.3" },
   { name = "litemap", version = "0.7" },
+  { name = "md-5", version = "0.10" },
   { name = "moxcms", version = "0.7" },
+  { name = "nix", version = "0.30" },
   { name = "openssl-probe", version = "0.1" },
   { name = "openssl-probe", version = "0.2" },
   { name = "p256", version = "0.11" },
@@ -489,6 +515,7 @@ skip = [
   { name = "rustls-webpki", version = "0.101" },
   { name = "sec1", version = "0.3" },
   { name = "serde_spanned", version = "0.6" },
+  { name = "sha2", version = "0.10" },
   { name = "signature", version = "1.6" },
   { name = "snafu", version = "0.8" },
   { name = "snafu-derive", version = "0.8" },
