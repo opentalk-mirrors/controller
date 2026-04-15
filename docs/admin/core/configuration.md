@@ -398,10 +398,6 @@ secret_key = "minioadmin"
 # A list urls of a etcd cluster
 #urls = ["localhost:2379"]
 
-# Subroom audio whisper configuration
-#[subroom_audio]
-#enable_whisper = false
-
 # Shared folder configuration
 #[shared_folder]
 #provider = "nextcloud"

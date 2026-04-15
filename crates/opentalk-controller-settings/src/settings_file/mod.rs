@@ -30,7 +30,6 @@ mod reports_typst;
 mod roomserver;
 mod settings_raw;
 mod shared_folder;
-mod subroom_audio;
 mod tariff_assignment;
 mod tariff_status_mapping;
 mod tariffs;
@@ -71,7 +70,6 @@ pub use settings_raw::SettingsRaw;
 #[cfg(test)]
 pub(crate) use settings_raw::{SETTINGS_RAW_MINIMAL_CONFIG_TOML, settings_raw_minimal_example};
 pub(crate) use shared_folder::SharedFolder;
-pub(crate) use subroom_audio::SubroomAudio;
 pub(crate) use tariff_assignment::TariffAssignment;
 pub(crate) use tariff_status_mapping::TariffStatusMapping;
 pub(crate) use tariffs::Tariffs;
