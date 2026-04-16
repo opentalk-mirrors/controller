@@ -39,7 +39,7 @@ use opentalk_types_common::{
     users::UserInfo,
 };
 
-use crate::{ControllerBackend, helpers::get_user_timezone};
+use crate::{ControllerBackend, email_to_libravatar_url, helpers::get_user_timezone};
 
 impl ControllerBackend {
     #[tracing::instrument(level = "debug", skip(self, user, request), fields(user_id = %user.id))]
@@ -65,6 +65,9 @@ impl ControllerBackend {
         };
 
         let timezone = get_user_timezone(room.created_by.id, inventory.as_mut(), &settings).await;
+        let avatar_url = user.avatar_url.unwrap_or_else(|| {
+            email_to_libravatar_url(&settings.avatar.libravatar_url, &user.email)
+        });
 
         let client_parameters = ClientParameters {
             device_secret: request.device_secret,
@@ -77,9 +80,7 @@ impl ControllerBackend {
                         firstname: user.firstname,
                         lastname: user.lastname,
                         display_name: request.display_name.unwrap_or(user.display_name),
-                        avatar_url: user
-                            .avatar_url
-                            .unwrap_or(settings.avatar.libravatar_url.clone()),
+                        avatar_url,
                     },
                     timezone,
                 },
