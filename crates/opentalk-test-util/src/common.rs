@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::sync::Arc;
-
-use kustos::Authz;
+use opentalk_controller_api_authorization::authorization::Authorizer;
+use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
 use opentalk_inventory::User;
-use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_types_common::{rooms::RoomId, users::DisplayName};
 use opentalk_types_signaling::ParticipantId;
 use snafu::{ResultExt, Whatever};
@@ -46,7 +44,7 @@ pub const USERS: [TestUser; 2] = [USER_1, USER_2];
 /// The [`TestContext`] provides access to redis & postgres for tests
 pub struct TestContext {
     pub db_ctx: DatabaseContext,
-    pub authz: Arc<Authz>,
+    pub authorizer: Authorizer,
     pub shutdown: Sender<()>,
 }
 
@@ -56,15 +54,14 @@ impl TestContext {
         let _ = setup_logging();
 
         let db_ctx = DatabaseContext::new(true).await;
-        let inventory_provider = Arc::new(DatabaseConnectionPool::new(db_ctx.db.clone()));
 
         let (shutdown, _) = tokio::sync::broadcast::channel(10);
 
-        let enforcer = kustos::Authz::new(inventory_provider).await.unwrap();
+        let authorizer = Authorizer::new(OpenTalkAuthorizerBackend::new());
 
         TestContext {
             db_ctx,
-            authz: Arc::new(enforcer),
+            authorizer,
             shutdown,
         }
     }

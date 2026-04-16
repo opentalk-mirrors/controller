@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use super::{
-    Authz, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Frontend, Http, Logging, Metrics,
-    MinIO, Monitoring, Oidc, OperatorInformation, RabbitMq, Redis, SharedFolder, Tariffs, Tenants,
-    UserSearchBackend, oidc_and_user_search_builder::OidcAndUserSearchBuilder,
+    Authorization, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Frontend, Http, Logging,
+    Metrics, MinIO, Monitoring, Oidc, OperatorInformation, RabbitMq, Redis, SharedFolder, Tariffs,
+    Tenants, UserSearchBackend, oidc_and_user_search_builder::OidcAndUserSearchBuilder,
 };
 use crate::{
     Result, SettingsError, SettingsRaw,
@@ -40,8 +40,8 @@ pub struct Settings {
     /// The RabbitMQ connection settings.
     pub rabbit_mq: Option<RabbitMq>,
 
-    /// The Authz settings.
-    pub authz: Authz,
+    /// The Authorization settings.
+    pub authorization: Authorization,
 
     /// The logging settings.
     pub logging: Logging,
@@ -127,7 +127,8 @@ impl TryFrom<SettingsRaw> for Settings {
         let database = raw.database.clone().into();
         let redis = raw.redis.clone().map(Into::into);
         let rabbit_mq = raw.rabbit_mq.clone().map(Into::into);
-        let authz = Authz::from_settings_file(raw.authz.clone(), rabbit_mq.is_some());
+        let authorization =
+            Authorization::from_settings_file(raw.authorization.clone(), rabbit_mq.is_some());
         let logging = raw.logging.clone().map(Into::into).unwrap_or_default();
         let avatar = raw.avatar.clone().map(Into::into).unwrap_or_default();
         let metrics = raw.metrics.clone().map(Into::into).unwrap_or_default();
@@ -157,7 +158,7 @@ impl TryFrom<SettingsRaw> for Settings {
             database,
             redis,
             rabbit_mq,
-            authz,
+            authorization,
             logging,
             avatar,
             metrics,
@@ -230,7 +231,7 @@ pub(crate) fn minimal_example() -> Settings {
         },
         redis: None,
         rabbit_mq: None,
-        authz: Authz {
+        authorization: Authorization {
             synchronize_controllers: false,
         },
         logging: Logging {

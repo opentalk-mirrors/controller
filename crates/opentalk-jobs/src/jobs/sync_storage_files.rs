@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use kustos::Authz;
+use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{Inventory, InventoryProvider, UpdateAsset};
 use opentalk_log::{debug, info, warn};
@@ -53,7 +53,7 @@ impl Job for SyncStorageFiles {
     async fn execute(
         logger: &dyn log::Log,
         inventory_provider: Arc<dyn InventoryProvider>,
-        _authz: Authz,
+        _authorizer: Authorizer,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {

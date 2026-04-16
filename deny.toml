@@ -188,13 +188,19 @@ confidence-threshold = 0.8
 exceptions = [
   { allow = [
     "EUPL-1.2",
-  ], name = "kustos-shared" },
-  { allow = [
-    "EUPL-1.2",
   ], name = "lapin-pool" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-cache" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-controller-api-authorization" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-controller-api-authorization-database" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-controller-api-authorization-synchronization" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-controller-service" },
@@ -219,12 +225,6 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-keycloak-admin" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-kustos-prefix" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-kustos-prefix-impl" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-mail-worker-protocol" },
@@ -445,7 +445,6 @@ highlight = "all"
 allow = []
 # List of crates to deny
 skip = [
-  { name = "ahash", version = "0.7" },
   { name = "async-io", version = "1" },
   { name = "async-lock", version = "2" },
   { name = "base16ct", version = "0.1" },
@@ -479,7 +478,6 @@ skip = [
   { name = "gif", version = "0.13" },
   { name = "group", version = "0.12" },
   { name = "h2", version = "0.3" },
-  { name = "hashbrown", version = "0.11" },
   { name = "hashbrown", version = "0.12" },
   { name = "hashbrown", version = "0.15" },
   { name = "hashbrown", version = "0.16" },
@@ -494,7 +492,7 @@ skip = [
   { name = "icu_properties_data", version = "1" },
   { name = "icu_provider", version = "1" },
   { name = "imagesize", version = "0.13" },
-  { name = "indexmap", version = "1.9" },
+  { name = "indexmap", version = "1" },
   { name = "itertools", version = "0.10" },
   { name = "itertools", version = "0.11" },
   { name = "itertools", version = "0.12" },
@@ -591,7 +589,7 @@ allow-git = []
 
 [sources.allow-org]
 # 1 or more github.com organizations to allow git sources for
-github = ["kbalt"]
+github = []
 # 1 or more gitlab.com organizations to allow git sources for
 gitlab = []
 # 1 or more bitbucket.org organizations to allow git sources for

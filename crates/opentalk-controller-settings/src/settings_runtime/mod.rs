@@ -18,7 +18,7 @@
     unused_results
 )]
 
-mod authz;
+mod authorization;
 mod avatar;
 mod call_in;
 mod database;
@@ -60,7 +60,7 @@ mod user_search_backend;
 mod user_search_backend_keycloak;
 mod ws_rate_limit;
 
-pub use authz::Authz;
+pub use authorization::Authorization;
 pub use avatar::{Avatar, DEFAULT_LIBRAVATAR_URL};
 pub use call_in::CallIn;
 pub use database::Database;
@@ -82,7 +82,7 @@ pub use oidc::Oidc;
 pub use oidc_controller::OidcController;
 pub use oidc_frontend::OidcFrontend;
 pub use operator_information::OperatorInformation;
-pub use rabbitmq::{DEFAULT_RABBITMQ_MESSAGE_TTL_SECONDS, RabbitMq};
+pub use rabbitmq::RabbitMq;
 pub use redis::Redis;
 pub use reports::Reports;
 pub use reports_typst::{ReportsTypst, reports_typst_default_packages_path};

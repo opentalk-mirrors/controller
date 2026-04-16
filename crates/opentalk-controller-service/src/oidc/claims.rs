@@ -14,7 +14,7 @@ use super::jwt;
 ///
 // A note to devs:
 // Please also update fields in `docs/admin/keycloak.md`.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(super) struct OpenTalkAdditionalClaims {
     /// The tenant id
     pub tenant_id: Option<String>,
@@ -143,7 +143,7 @@ pub struct RealmAccess {
 }
 
 #[cfg(test)]
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 pub(super) struct TestClaims {
     pub(super) sub: String,
     #[serde(with = "time")]

@@ -20,6 +20,7 @@ use actix_web::{
 };
 use actix_web_httpauth::headers::authorization::Authorization;
 use openidconnect::AccessToken;
+use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_service::oidc::{Cache, OidcTokenHandler};
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::SettingsProvider;
@@ -28,7 +29,6 @@ use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use opentalk_types_common::rooms::invite_codes::InviteCode;
 use snafu::Report;
 use tracing_futures::Instrument;
-use uuid::Uuid;
 
 use crate::api::v1::middleware::user_auth::bearer_or_invite_code::BearerOrInviteCode;
 
@@ -42,7 +42,7 @@ mod provisioning;
 pub struct OidcAuth {
     pub settings_provider: SettingsProvider,
     pub inventory_provider: Data<dyn InventoryProvider>,
-    pub authz: Data<kustos::Authz>,
+    pub authorizer: Data<Authorizer>,
     pub oidc_ctx: Data<dyn OidcTokenHandler>,
 }
 
@@ -61,7 +61,7 @@ where
         ready(Ok(OidcAuthMiddleware {
             service: Rc::new(service),
             settings_provider: self.settings_provider.clone(),
-            authz: self.authz.clone(),
+            authorizer: self.authorizer.clone(),
             inventory_provider: self.inventory_provider.clone(),
             oidc_ctx: self.oidc_ctx.clone(),
         }))
@@ -75,7 +75,7 @@ where
 pub struct OidcAuthMiddleware<S> {
     service: Rc<S>,
     settings_provider: SettingsProvider,
-    authz: Data<kustos::Authz>,
+    authorizer: Data<Authorizer>,
     inventory_provider: Data<dyn InventoryProvider>,
     oidc_ctx: Data<dyn OidcTokenHandler>,
 }
@@ -98,7 +98,7 @@ where
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let service = self.service.clone();
         let settings_provider = self.settings_provider.clone();
-        let authz = self.authz.clone();
+        let authorizer = self.authorizer.clone();
         let inventory_provider = self.inventory_provider.clone();
         let oidc_ctx = self.oidc_ctx.clone();
         let oidc_cache = req
@@ -150,7 +150,7 @@ where
                     AccessTokenOrInviteCode::AccessToken(access_token) => {
                         match access_token::authenticate_user(
                             &settings,
-                            &authz,
+                            &authorizer,
                             inventory_provider.as_ref(),
                             oidc_ctx.as_ref(),
                             oidc_cache.as_ref(),
@@ -159,9 +159,6 @@ where
                         .await
                         {
                             Ok((current_tenant, current_user)) => {
-                                req.extensions_mut().insert(kustos::actix_web::User::from(
-                                    Uuid::from(current_user.id),
-                                ));
                                 req.extensions_mut().insert(current_tenant);
                                 req.extensions_mut().insert(current_user.clone());
                                 req.extensions_mut()
@@ -174,10 +171,6 @@ where
                         }
                     }
                     AccessTokenOrInviteCode::InviteCode(current_invite_code) => {
-                        req.extensions_mut()
-                            .insert(kustos::actix_web::Invite::from(Uuid::from(
-                                current_invite_code,
-                            )));
                         req.extensions_mut().insert(current_invite_code);
                         req.extensions_mut().insert(Some(current_invite_code));
                         service.call(req).await

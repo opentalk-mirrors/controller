@@ -4,6 +4,9 @@
 
 use std::fmt::Display;
 
+use opentalk_controller_api_authorization::authorization::{
+    AuthorizationChangeError, AuthorizationError,
+};
 use opentalk_controller_service_facade::StartRoomError;
 use opentalk_database::DatabaseError;
 use opentalk_signaling_core::{ObjectStorageError, assets::AssetError};
@@ -68,9 +71,16 @@ impl From<diesel::result::Error> for CaptureApiError {
     }
 }
 
-impl From<kustos::Error> for CaptureApiError {
-    fn from(value: kustos::Error) -> Self {
-        log::error!("REST API threw internal error from kustos error: {value}");
+impl From<AuthorizationError> for CaptureApiError {
+    fn from(value: AuthorizationError) -> Self {
+        log::error!("REST API threw internal error from authorization error: {value}");
+        CaptureApiError(ApiError::internal())
+    }
+}
+
+impl From<AuthorizationChangeError> for CaptureApiError {
+    fn from(value: AuthorizationChangeError) -> Self {
+        log::error!("REST API threw internal error from authorization change error: {value}");
         CaptureApiError(ApiError::internal())
     }
 }

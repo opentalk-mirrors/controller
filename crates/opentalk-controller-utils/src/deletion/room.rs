@@ -5,9 +5,11 @@
 //! Functionality to delete rooms including all associated resources
 
 use diesel_async::scoped_futures::ScopedFutureExt;
-use kustos::{Authz, Resource as _, ResourceId};
-use kustos_shared::access::AccessMethod;
 use log::Log;
+use opentalk_controller_api_authorization::authorization::{
+    AccessMethod, AuthorizationChange, AuthorizationTarget, Authorizer, Resource, Subject,
+    SubjectCollection,
+};
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{EventSharedFolder, Inventory, transaction};
 use opentalk_log::debug;
@@ -18,7 +20,7 @@ use opentalk_types_common::{
 };
 use snafu::{ResultExt, ensure};
 
-use super::{Deleter, Error};
+use super::{Deleter, Error, error::AuthorizationSnafu};
 use crate::deletion::{
     error::{ObjectDeletionSnafu, RaceConditionSnafu},
     shared_folders::delete_shared_folders,
@@ -50,7 +52,6 @@ impl RoomDeleter {
 /// commit preparation.
 #[derive(Debug)]
 pub struct RoomDeleterPreparedCommit {
-    resources: Vec<ResourceId>,
     linked_module_resources: Vec<ModuleResourceId>,
     linked_shared_folders: Vec<EventSharedFolder>,
 }
@@ -85,7 +86,6 @@ impl RoomDeleterPreparedCommit {
 #[derive(Debug)]
 pub struct RoomDeleterCommitOutput {
     assets: Vec<AssetId>,
-    resources: Vec<ResourceId>,
 }
 
 #[async_trait::async_trait]
@@ -121,19 +121,7 @@ impl Deleter for RoomDeleter {
         linked_module_resources.sort();
         linked_shared_folders.sort_by(|a, b| a.event_id.cmp(&b.event_id));
 
-        let resources = linked_module_resources
-            .iter()
-            .map(|e| e.resource_id())
-            .chain(
-                linked_shared_folders
-                    .iter()
-                    .map(|f| f.event_id.resource_id().with_suffix("/shared_folder")),
-            )
-            .chain(associated_resource_ids(self.room_id))
-            .collect::<Vec<_>>();
-
         Ok(RoomDeleterPreparedCommit {
-            resources,
             linked_module_resources,
             linked_shared_folders,
         })
@@ -143,18 +131,24 @@ impl Deleter for RoomDeleter {
         &self,
         _prepared_commit: &Self::PreparedCommit,
         _logger: &dyn Log,
-        authz: &Authz,
+        authorizer: Authorizer,
         user_id: Option<UserId>,
     ) -> Result<(), Error> {
         let Some(user_id) = user_id else {
             return Ok(());
         };
 
-        let checked = authz
-            .check_user(user_id, self.room_id.resource_id(), AccessMethod::DELETE)
-            .await?;
-
-        if !checked {
+        let target = AuthorizationTarget {
+            authenticated_subjects: SubjectCollection::from_iter([Subject::User(user_id)]),
+            resource: Resource::Room(self.room_id),
+            access_method: AccessMethod::Delete,
+        };
+        if authorizer
+            .authorize(target)
+            .await
+            .with_context(|_| AuthorizationSnafu)?
+            .is_denied()
+        {
             return Err(Error::Forbidden);
         }
 
@@ -191,40 +185,39 @@ impl Deleter for RoomDeleter {
 
         let room_id = self.room_id;
 
-        let transaction_result: Result<(Vec<AssetId>, Vec<ResourceId>), Error> =
-            transaction(inventory, |inventory| {
-                async move {
-                    prepared_commit
-                        .detect_race_condition(inventory, room_id)
-                        .await?;
-
-                    let shared_folder_event_ids = prepared_commit
-                        .linked_shared_folders
-                        .iter()
-                        .map(|e| e.event_id)
-                        .collect::<Vec<EventId>>();
-
-                    let mut current_assets = inventory.get_all_asset_ids_for_room(room_id).await?;
-                    current_assets.sort();
-
-                    delete_rows_associated_with_room(
-                        logger,
-                        inventory,
-                        room_id,
-                        &current_assets,
-                        &shared_folder_event_ids,
-                    )
+        let transaction_result: Result<Vec<AssetId>, Error> = transaction(inventory, |inventory| {
+            async move {
+                prepared_commit
+                    .detect_race_condition(inventory, room_id)
                     .await?;
 
-                    Ok((current_assets, prepared_commit.resources))
-                }
-                .scope_boxed()
-            })
-            .await;
+                let shared_folder_event_ids = prepared_commit
+                    .linked_shared_folders
+                    .iter()
+                    .map(|e| e.event_id)
+                    .collect::<Vec<EventId>>();
 
-        let (assets, resources) = transaction_result?;
+                let mut current_assets = inventory.get_all_asset_ids_for_room(room_id).await?;
+                current_assets.sort();
 
-        Ok(RoomDeleterCommitOutput { assets, resources })
+                delete_rows_associated_with_room(
+                    logger,
+                    inventory,
+                    room_id,
+                    &current_assets,
+                    &shared_folder_event_ids,
+                )
+                .await?;
+
+                Ok(current_assets)
+            }
+            .scope_boxed()
+        })
+        .await;
+
+        let assets = transaction_result?;
+
+        Ok(RoomDeleterCommitOutput { assets })
     }
 
     async fn post_commit(
@@ -232,7 +225,7 @@ impl Deleter for RoomDeleter {
         commit_output: RoomDeleterCommitOutput,
         logger: &dyn Log,
         _settings: &Settings,
-        authz: &Authz,
+        _authorizer: Authorizer,
         storage: &ObjectStorage,
     ) -> Result<(), Error> {
         debug!(
@@ -248,12 +241,14 @@ impl Deleter for RoomDeleter {
                 .context(ObjectDeletionSnafu)?;
         }
 
-        debug!(log: logger, "Deleting auth information");
-        let _removed_count = authz
-            .remove_explicit_resources(commit_output.resources)
-            .await?;
-
         Ok(())
+    }
+
+    fn authorization_changes(
+        &self,
+        _commit_output: &Self::CommitOutput,
+    ) -> Vec<AuthorizationChange> {
+        vec![AuthorizationChange::DeleteRoom { room: self.room_id }]
     }
 }
 
@@ -287,29 +282,4 @@ pub(crate) async fn delete_rows_associated_with_room(
     inventory.delete_room(room_id).await?;
 
     Ok(())
-}
-
-fn associated_resource_ids(room_id: RoomId) -> impl IntoIterator<Item = ResourceId> {
-    [
-        room_id.resource_id(),
-        room_id.resource_id().with_suffix("/invites"),
-        room_id.resource_id().with_suffix("/invites/*"),
-        room_id.resource_id().with_suffix("/streaming_targets"),
-        room_id.resource_id().with_suffix("/streaming_targets/*"),
-        room_id.resource_id().with_suffix("/start"),
-        room_id.resource_id().with_suffix("/tariff"),
-        room_id.resource_id().with_suffix("/event"),
-        room_id.resource_id().with_suffix("/assets"),
-        room_id.resource_id().with_suffix("/assets/*"),
-    ]
-}
-
-/// Get the list of room resources for deletion of an invite code
-pub fn associated_resource_ids_for_invite(
-    room_id: RoomId,
-) -> impl IntoIterator<Item = ResourceId> + Send {
-    [
-        room_id.resource_id().with_suffix("/tariff"),
-        room_id.resource_id().with_suffix("/event"),
-    ]
 }

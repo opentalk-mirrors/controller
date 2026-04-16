@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use opentalk_database::Db;
 use opentalk_inventory::{Inventory, InventoryProvider};
-use opentalk_kustos_inventory::{KustosInventory, KustosInventoryProvider};
 use snafu::ResultExt as _;
 
 use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
@@ -23,16 +22,6 @@ impl InventoryProvider for DatabaseConnectionPool {
     async fn get_inventory(&self) -> Result<Box<dyn Inventory>> {
         let connection = self.get_connection().await?;
         Ok(Box::new(connection))
-    }
-}
-
-#[async_trait::async_trait]
-impl KustosInventoryProvider for DatabaseConnectionPool {
-    #[tracing::instrument(skip_all)]
-    async fn get_inventory(&self) -> Result<Box<dyn KustosInventory>> {
-        let inventory: Box<dyn Inventory> = InventoryProvider::get_inventory(self).await?;
-        let kustos_inventory: Box<dyn KustosInventory> = inventory;
-        Ok(kustos_inventory)
     }
 }
 

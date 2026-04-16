@@ -5,7 +5,6 @@
 //! API endpoints under `v1/auth/login`
 
 #![allow(deprecated)]
-
 use actix_web::{
     get, post,
     web::{Data, Json},

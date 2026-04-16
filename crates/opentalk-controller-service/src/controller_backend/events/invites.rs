@@ -4,9 +4,11 @@
 
 //! Handles event invites
 
+use std::collections::BTreeSet;
+
 use chrono::Utc;
 use diesel_async::scoped_futures::ScopedFutureExt;
-use kustos::{Authz, policies_builder::PoliciesBuilder};
+use opentalk_controller_api_authorization::authorization::{AuthorizationChange, Authorizer};
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
@@ -30,7 +32,7 @@ use opentalk_types_common::{
     email::EmailAddress,
     events::{
         EventId,
-        invites::{EmailInviteRole, EventInviteStatus},
+        invites::{EmailInviteRole, EventInviteStatus, InviteRole},
     },
     features::GUESTS_ALLOWED_FEATURE_ID,
     modules::CORE_MODULE_ID,
@@ -45,11 +47,7 @@ use snafu::Report;
 
 use crate::{
     ControllerBackend,
-    controller_backend::{
-        RoomsPoliciesBuilderExt,
-        events::{EventInviteeExt, EventPoliciesBuilderExt},
-        utils::verify_invite_write,
-    },
+    controller_backend::{events::EventInviteeExt, utils::verify_invite_write},
     events::{
         enrich_from_optional_user_search, enrich_invitees_from_optional_user_search,
         get_invited_mail_recipients_for_event, get_tenant_filter,
@@ -147,7 +145,7 @@ impl ControllerBackend {
                 create_user_event_invite(
                     &settings,
                     inventory,
-                    &self.authz,
+                    self.authorizer.clone(),
                     current_user,
                     event_id,
                     &room_tariff,
@@ -160,7 +158,7 @@ impl ControllerBackend {
                 create_email_event_invite(
                     &settings,
                     self.inventory_provider.as_ref(),
-                    &self.authz,
+                    self.authorizer.clone(),
                     &self.user_search_client,
                     &current_tenant,
                     &current_user,
@@ -331,7 +329,8 @@ impl ControllerBackend {
             .await;
         }
 
-        remove_invitee_permissions(&self.authz, event_id, room_id, invite.invitee).await?;
+        remove_invitee_permissions(self.authorizer.clone(), event_id, room_id, invite.invitee)
+            .await?;
 
         Ok(())
     }
@@ -406,7 +405,7 @@ impl ControllerBackend {
             })
             .await?;
 
-            remove_invitee_permissions(&self.authz, event_id, room.id, user_id).await?;
+            remove_invitee_permissions(self.authorizer.clone(), event_id, room.id, user_id).await?;
 
             MailRecipient::Registered(RegisteredMailRecipient {
                 email,
@@ -523,7 +522,7 @@ impl ControllerBackend {
 async fn create_user_event_invite(
     settings: &Settings,
     mut inventory: Box<dyn Inventory>,
-    authz: &Authz,
+    authorizer: Authorizer,
     inviter: User,
     event_id: EventId,
     room_tariff: &TariffResource,
@@ -560,15 +559,24 @@ async fn create_user_event_invite(
 
     match res {
         Some(_invite) => {
-            let policies = PoliciesBuilder::new()
-                // Grant invitee access
-                .grant_user_access(invitee.id)
-                .event_read_access(event_id)
-                .room_read_access(event.room)
-                .event_invite_invitee_access(event_id)
-                .finish();
-
-            authz.add_policies(policies).await?;
+            authorizer
+                .apply_changes(&[
+                    AuthorizationChange::AddUserToEvents {
+                        user: invitee.id,
+                        role: InviteRole::User,
+                        events: BTreeSet::from_iter([event.id]),
+                    },
+                    AuthorizationChange::AddUserToRooms {
+                        user: invitee.id,
+                        role: InviteRole::User,
+                        rooms: BTreeSet::from_iter([event.room]),
+                    },
+                ])
+                .await
+                .map_err(|e| {
+                    log::error!("Could not apply changes in the authorization database: {e:?}");
+                    ApiError::internal()
+                })?;
 
             if let Some(mail_service) = mail_service {
                 mail_service
@@ -605,7 +613,7 @@ async fn create_user_event_invite(
 async fn create_email_event_invite(
     settings: &Settings,
     inventory_provider: &dyn InventoryProvider,
-    authz: &Authz,
+    authorizer: Authorizer,
     user_search_client: &Option<KeycloakAdminClient>,
     current_tenant: &Tenant,
     current_user: &User,
@@ -702,15 +710,24 @@ async fn create_email_event_invite(
             shared_folder,
             streaming_targets,
         } => {
-            let policies = PoliciesBuilder::new()
-                // Grant invitee access
-                .grant_user_access(invite.invitee)
-                .event_read_access(event_id)
-                .room_read_access(room.id)
-                .event_invite_invitee_access(event_id)
-                .finish();
-
-            authz.add_policies(policies).await?;
+            authorizer
+                .apply_changes(&[
+                    AuthorizationChange::AddUserToRooms {
+                        user: invite.invitee,
+                        role: InviteRole::User,
+                        rooms: BTreeSet::from_iter([room.id]),
+                    },
+                    AuthorizationChange::AddUserToEvents {
+                        user: invite.invitee,
+                        role: InviteRole::User,
+                        events: BTreeSet::from_iter([event_id]),
+                    },
+                ])
+                .await
+                .map_err(|e| {
+                    log::error!("Could not apply changes in the authorization database: {e:?}");
+                    ApiError::internal()
+                })?;
 
             if let Some(mail_service) = mail_service {
                 mail_service
@@ -745,7 +762,7 @@ async fn create_email_event_invite(
             create_invite_to_non_matching_email(
                 settings,
                 inventory_provider,
-                authz,
+                authorizer,
                 user_search_client,
                 mail_service,
                 current_tenant,
@@ -771,7 +788,7 @@ async fn create_email_event_invite(
 async fn create_invite_to_non_matching_email(
     settings: &Settings,
     inventory_provider: &dyn InventoryProvider,
-    authz: &Authz,
+    authorizer: Authorizer,
     user_search_client: &Option<KeycloakAdminClient>,
     mail_service: &Option<MailService>,
     current_tenant: &Tenant,
@@ -867,13 +884,18 @@ async fn create_invite_to_non_matching_email(
                         })
                         .await?;
 
-                    let policies = PoliciesBuilder::new()
-                        // Grant invitee access
-                        .grant_invite_access(invite.invite_code)
-                        .room_guest_read_access(room.id)
-                        .finish();
-
-                    authz.add_policies(policies).await?;
+                    authorizer
+                        .apply_change(&AuthorizationChange::AddInviteCodeToRoom {
+                            room: room.id,
+                            invite_code: invite.invite_code,
+                        })
+                        .await
+                        .map_err(|e| {
+                            log::error!(
+                                "Could not apply changes in the authorization database: {e:?}"
+                            );
+                            ApiError::internal()
+                        })?;
 
                     if let Some(mail_service) = mail_service {
                         mail_service
@@ -924,33 +946,27 @@ struct UninviteNotificationValues {
 }
 
 async fn remove_invitee_permissions(
-    authz: &Authz,
-    event_id: EventId,
-    room_id: RoomId,
-    user_id: UserId,
-) -> Result<(), CaptureApiError> {
-    let resources = vec![
-        format!("/events/{event_id}"),
-        format!("/events/{event_id}/instances"),
-        format!("/events/{event_id}/instances/*"),
-        format!("/events/{event_id}/invites"),
-        format!("/users/me/event_favorites/{event_id}"),
-        format!("/events/{event_id}/invite"),
-        format!("/events/{event_id}/shared_folder"),
-        format!("/rooms/{room_id}"),
-        format!("/rooms/{room_id}/invites"),
-        format!("/rooms/{room_id}/start"),
-        format!("/rooms/{room_id}/tariff"),
-        format!("/rooms/{room_id}/event"),
-        format!("/rooms/{room_id}/assets"),
-        format!("/rooms/{room_id}/assets/*"),
-        format!("/rooms/{room_id}/streaming_targets"),
-        format!("/rooms/{room_id}/roomserver/start"),
-    ];
-
-    _ = authz
-        .remove_all_user_permission_for_resources(user_id, resources)
-        .await?;
+    authorizer: Authorizer,
+    event: EventId,
+    room: RoomId,
+    user: UserId,
+) -> Result<(), ApiError> {
+    authorizer
+        .apply_changes(&[
+            AuthorizationChange::RemoveUserFromRooms {
+                user,
+                rooms: BTreeSet::from_iter([room]),
+            },
+            AuthorizationChange::RemoveUserFromEvents {
+                user,
+                events: BTreeSet::from_iter([event]),
+            },
+        ])
+        .await
+        .map_err(|e| {
+            log::error!("Could not apply changes in the authorization database: {e:?}");
+            ApiError::internal()
+        })?;
 
     Ok(())
 }

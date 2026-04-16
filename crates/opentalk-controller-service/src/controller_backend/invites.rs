@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use kustos::policies_builder::PoliciesBuilder;
+use opentalk_controller_api_authorization::authorization::AuthorizationChange;
 use opentalk_controller_service_facade::RequestUser;
-use opentalk_controller_utils::{
-    CaptureApiError, deletion::room::associated_resource_ids_for_invite,
-};
+use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{NewRoomInvite, RoomInvite, RoomInviteWithUsers, UpdateRoomInvite};
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -26,7 +24,7 @@ use opentalk_types_common::{
 };
 
 use super::{verify_invite_read, verify_invite_write};
-use crate::{ControllerBackend, ToUserProfile, controller_backend::RoomsPoliciesBuilderExt};
+use crate::{ControllerBackend, ToUserProfile};
 
 impl ControllerBackend {
     pub(crate) async fn create_invite(
@@ -53,13 +51,16 @@ impl ControllerBackend {
             })
             .await?;
 
-        let policies = PoliciesBuilder::new()
-            // Grant invitee access
-            .grant_invite_access(invite.invite_code)
-            .room_guest_read_access(room_id)
-            .finish();
-
-        self.authz.add_policies(policies).await?;
+        self.authorizer
+            .apply_change(&AuthorizationChange::AddInviteCodeToRoom {
+                room: room_id,
+                invite_code: invite.invite_code,
+            })
+            .await
+            .map_err(|e| {
+                log::error!("Could not apply changes in the authorization database: {e:?}");
+                ApiError::internal()
+            })?;
 
         let created_by = current_user.to_public_user_profile(&settings);
         let updated_by = current_user.to_public_user_profile(&settings);
@@ -214,11 +215,16 @@ impl ControllerBackend {
             )
             .await?;
 
-        let associated_resources = Vec::from_iter(associated_resource_ids_for_invite(room_id));
-        let _ = self
-            .authz
-            .remove_all_invite_permission_for_resources(invite_code, associated_resources)
-            .await?;
+        self.authorizer
+            .apply_change(&AuthorizationChange::RemoveInviteCodeFromRoom {
+                room: room_id,
+                invite_code,
+            })
+            .await
+            .map_err(|e| {
+                log::error!("Could not apply changes in the authorization database: {e:?}");
+                ApiError::internal()
+            })?;
 
         Ok(())
     }

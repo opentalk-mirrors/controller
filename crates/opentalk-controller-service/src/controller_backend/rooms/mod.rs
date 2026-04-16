@@ -6,11 +6,7 @@
 
 use std::str::FromStr;
 
-use kustos::{
-    AccessMethod, Resource,
-    policies_builder::{GrantingAccess, PoliciesBuilder},
-    prelude::IsSubject,
-};
+use opentalk_controller_api_authorization::authorization::AuthorizationChange;
 use opentalk_controller_service_facade::{RequestUser, StartRoomError};
 use opentalk_controller_utils::{
     CaptureApiError, TariffResourceExt as _,
@@ -44,27 +40,13 @@ impl ControllerBackend {
         let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let accessible_rooms: kustos::AccessibleResources<RoomId> = self
-            .authz
-            .get_accessible_resources_for_user(current_user_id, AccessMethod::Get)
+        let (rooms, room_count) = inventory
+            .get_rooms_accessible_to_user_with_creator_paginated(
+                current_user_id,
+                pagination.per_page,
+                pagination.page,
+            )
             .await?;
-
-        let (rooms, room_count) = match accessible_rooms {
-            kustos::AccessibleResources::All => {
-                inventory
-                    .get_all_rooms_paginated_with_creator(pagination.per_page, pagination.page)
-                    .await?
-            }
-            kustos::AccessibleResources::List(list) => {
-                inventory
-                    .get_rooms_paginated_by_id_with_creator(
-                        &list,
-                        pagination.per_page,
-                        pagination.page,
-                    )
-                    .await?
-            }
-        };
 
         let rooms = rooms
             .into_iter()
@@ -123,13 +105,16 @@ impl ControllerBackend {
             waiting_room: room.waiting_room,
         };
 
-        let policies = PoliciesBuilder::new()
-            .grant_user_access(current_user.id)
-            .room_read_access(room_resource.id)
-            .room_write_access(room_resource.id)
-            .finish();
-
-        self.authz.add_policies(policies).await?;
+        self.authorizer
+            .apply_change(&AuthorizationChange::CreateRoom {
+                room: room_resource.id,
+                creator: current_user.id,
+            })
+            .await
+            .map_err(|e| {
+                log::error!("Could not apply changes in the authorization database: {e:?}");
+                ApiError::internal()
+            })?;
 
         Ok(room_resource)
     }
@@ -182,7 +167,7 @@ impl ControllerBackend {
             .perform(
                 log::logger(),
                 inventory.as_mut(),
-                &self.authz,
+                self.authorizer.clone(),
                 Some(current_user.id),
                 &settings,
                 &self.storage,
@@ -315,107 +300,5 @@ impl ControllerBackend {
             }
             _ => Ok(room),
         }
-    }
-}
-
-/// Provides functionality to grant room privileges
-pub trait RoomsPoliciesBuilderExt {
-    /// Set the room privileges needed to grant read access to guests
-    #[allow(unused)]
-    fn room_guest_read_access(self, room_id: RoomId) -> Self;
-    /// Set the room privileges needed to grant read access
-    fn room_read_access(self, room_id: RoomId) -> Self;
-    /// Set the room privileges needed to grant write access
-    fn room_write_access(self, room_id: RoomId) -> Self;
-}
-
-impl<T> RoomsPoliciesBuilderExt for PoliciesBuilder<GrantingAccess<T>>
-where
-    T: IsSubject + Clone,
-{
-    fn room_guest_read_access(self, room_id: RoomId) -> Self {
-        self.add_resource(
-            room_id.resource_id().with_suffix("/tariff"),
-            [AccessMethod::Get],
-        )
-        .add_resource(
-            room_id.resource_id().with_suffix("/event"),
-            [AccessMethod::Get],
-        )
-    }
-
-    fn room_read_access(self, room_id: RoomId) -> Self {
-        self.add_resource(room_id.resource_id(), [AccessMethod::Get])
-            .add_resource(
-                room_id.resource_id().with_suffix("/invites"),
-                [AccessMethod::Get],
-            )
-            .add_resource(
-                room_id.resource_id().with_suffix("/streaming_targets"),
-                [AccessMethod::Get],
-            )
-            .add_resource(
-                room_id.resource_id().with_suffix("/start"),
-                [AccessMethod::Post],
-            )
-            .add_resource(
-                room_id.resource_id().with_suffix("/tariff"),
-                [AccessMethod::Get],
-            )
-            .add_resource(
-                room_id.resource_id().with_suffix("/event"),
-                [AccessMethod::Get],
-            )
-            .add_resource(
-                room_id.resource_id().with_suffix("/assets"),
-                [AccessMethod::Get],
-            )
-            .add_resource(
-                room_id.resource_id().with_suffix("/assets/*"),
-                [AccessMethod::Get],
-            )
-            .add_resource(
-                room_id.resource_id().with_suffix("/assets/*/download"),
-                [AccessMethod::Get],
-            )
-            .add_resource(
-                room_id.resource_id().with_suffix("/roomserver/start"),
-                [AccessMethod::Post],
-            )
-    }
-
-    fn room_write_access(self, room_id: RoomId) -> Self {
-        self.add_resource(
-            room_id.resource_id(),
-            [AccessMethod::Patch, AccessMethod::Delete],
-        )
-        .add_resource(
-            room_id.resource_id().with_suffix("/invites"),
-            [AccessMethod::Post],
-        )
-        .add_resource(
-            room_id.resource_id().with_suffix("/streaming_targets"),
-            [AccessMethod::Post],
-        )
-        .add_resource(
-            room_id.resource_id().with_suffix("/invites/*"),
-            [AccessMethod::Get, AccessMethod::Put, AccessMethod::Delete],
-        )
-        .add_resource(
-            room_id.resource_id().with_suffix("/streaming_targets/*"),
-            [AccessMethod::Get, AccessMethod::Patch, AccessMethod::Delete],
-        )
-        .add_resource(
-            room_id.resource_id().with_suffix("/assets"),
-            [AccessMethod::Post, AccessMethod::Delete],
-        )
-        .add_resource(
-            room_id.resource_id().with_suffix("/assets/*"),
-            [AccessMethod::Delete],
-        )
-        .add_resource(
-            room_id.resource_id().with_suffix("/roomserver/*"),
-            [AccessMethod::Post],
-        )
     }
 }

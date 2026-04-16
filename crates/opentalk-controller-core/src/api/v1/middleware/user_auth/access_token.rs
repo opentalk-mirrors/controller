@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use openidconnect::AccessToken;
+use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_service::oidc::{Cache, OidcTokenHandler};
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
@@ -16,7 +17,7 @@ use super::provisioning;
 #[tracing::instrument(skip_all)]
 pub(super) async fn authenticate_user(
     settings: &Settings,
-    authz: &kustos::Authz,
+    authorizer: &Authorizer,
     inventory_provider: &dyn InventoryProvider,
     oidc_ctx: &dyn OidcTokenHandler,
     oidc_cache: &Cache,
@@ -36,7 +37,7 @@ pub(super) async fn authenticate_user(
             // Cache retreival errors which are relevant for the authentication result
             let user_profile_result = provisioning::provision_user(
                 settings,
-                authz,
+                authorizer,
                 inventory_provider,
                 oidc_ctx,
                 access_token,

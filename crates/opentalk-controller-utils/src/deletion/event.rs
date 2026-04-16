@@ -5,17 +5,19 @@
 //! Functionality to delete events including all associated resources
 
 use diesel_async::scoped_futures::ScopedFutureExt;
-use kustos::{Authz, Resource as _, ResourceId};
-use kustos_shared::access::AccessMethod;
 use log::Log;
+use opentalk_controller_api_authorization::authorization::{
+    AccessMethod, AuthorizationChange, AuthorizationTarget, Authorizer, Resource, Subject,
+    SubjectCollection,
+};
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{EventSharedFolder, Inventory, transaction};
 use opentalk_log::debug;
 use opentalk_signaling_core::{ObjectStorage, assets::asset_key};
-use opentalk_types_common::{assets::AssetId, events::EventId, users::UserId};
+use opentalk_types_common::{assets::AssetId, events::EventId, rooms::RoomId, users::UserId};
 use snafu::{ResultExt, ensure};
 
-use super::{Deleter, Error, shared_folders::delete_shared_folders};
+use super::{Deleter, Error, error::AuthorizationSnafu, shared_folders::delete_shared_folders};
 use crate::deletion::{
     error::{ObjectDeletionSnafu, RaceConditionSnafu},
     room::delete_rows_associated_with_room,
@@ -48,7 +50,6 @@ impl EventDeleter {
 /// commit preparation.
 #[derive(Debug)]
 pub struct EventDeleterPreparedCommit {
-    resources: Vec<ResourceId>,
     linked_shared_folder: Option<EventSharedFolder>,
 }
 
@@ -71,8 +72,8 @@ impl EventDeleterPreparedCommit {
 /// A struct holding the information that was collected during database commit.
 #[derive(Debug)]
 pub struct EventDeleterCommitOutput {
+    room_id: RoomId,
     assets: Vec<AssetId>,
-    resources: Vec<ResourceId>,
 }
 
 #[async_trait::async_trait]
@@ -87,17 +88,7 @@ impl Deleter for EventDeleter {
     ) -> Result<Self::PreparedCommit, Error> {
         let linked_shared_folder = inventory.get_event_shared_folder(self.event_id).await?;
 
-        let resources = associated_resource_ids(self.event_id)
-            .into_iter()
-            .chain(
-                linked_shared_folder
-                    .iter()
-                    .map(|f| f.event_id.resource_id().with_suffix("/shared_folder")),
-            )
-            .collect::<Vec<_>>();
-
         Ok(EventDeleterPreparedCommit {
-            resources,
             linked_shared_folder,
         })
     }
@@ -106,7 +97,7 @@ impl Deleter for EventDeleter {
         &self,
         _prepared_commit: &Self::PreparedCommit,
         _logger: &dyn Log,
-        authz: &Authz,
+        authorizer: Authorizer,
         user_id: Option<UserId>,
     ) -> Result<(), Error> {
         let user_id = match user_id {
@@ -114,12 +105,17 @@ impl Deleter for EventDeleter {
             None => return Ok(()),
         };
 
-        let event_id = self.event_id;
-        let checked = authz
-            .check_user(user_id, event_id.resource_id(), AccessMethod::DELETE)
-            .await?;
-
-        if !checked {
+        let target = AuthorizationTarget {
+            authenticated_subjects: SubjectCollection::from_iter([Subject::User(user_id)]),
+            resource: Resource::Event(self.event_id),
+            access_method: AccessMethod::Delete,
+        };
+        if authorizer
+            .authorize(target)
+            .await
+            .with_context(|_| AuthorizationSnafu)?
+            .is_denied()
+        {
             return Err(Error::Forbidden);
         }
 
@@ -161,34 +157,33 @@ impl Deleter for EventDeleter {
         let event = inventory.get_event(event_id).await?;
         let room_id = event.room;
 
-        let transaction_result: Result<(Vec<AssetId>, Vec<ResourceId>), Error> =
-            transaction(inventory, |inventory| {
-                async move {
-                    prepared_commit
-                        .detect_race_condition(inventory, event_id)
-                        .await?;
-
-                    let mut current_assets = inventory.get_all_asset_ids_for_room(room_id).await?;
-                    current_assets.sort();
-
-                    delete_rows_associated_with_room(
-                        &logger,
-                        inventory,
-                        room_id,
-                        &current_assets,
-                        &[event_id],
-                    )
+        let transaction_result: Result<Vec<AssetId>, Error> = transaction(inventory, |inventory| {
+            async move {
+                prepared_commit
+                    .detect_race_condition(inventory, event_id)
                     .await?;
 
-                    Ok((current_assets, prepared_commit.resources))
-                }
-                .scope_boxed()
-            })
-            .await;
+                let mut current_assets = inventory.get_all_asset_ids_for_room(room_id).await?;
+                current_assets.sort();
 
-        let (assets, resources) = transaction_result?;
+                delete_rows_associated_with_room(
+                    &logger,
+                    inventory,
+                    room_id,
+                    &current_assets,
+                    &[event_id],
+                )
+                .await?;
 
-        Ok(EventDeleterCommitOutput { assets, resources })
+                Ok(current_assets)
+            }
+            .scope_boxed()
+        })
+        .await;
+
+        let assets = transaction_result?;
+
+        Ok(EventDeleterCommitOutput { room_id, assets })
     }
 
     async fn post_commit(
@@ -196,7 +191,7 @@ impl Deleter for EventDeleter {
         commit_output: EventDeleterCommitOutput,
         logger: &dyn Log,
         _settings: &Settings,
-        authz: &Authz,
+        authorizer: Authorizer,
         storage: &ObjectStorage,
     ) -> Result<(), Error> {
         debug!(
@@ -204,6 +199,14 @@ impl Deleter for EventDeleter {
             "Deleting {} asset(s) from the storage",
             commit_output.assets.len()
         );
+        if let Err(e) = authorizer
+            .apply_change(&AuthorizationChange::DeleteEvent {
+                event: self.event_id,
+            })
+            .await
+        {
+            log::warn!("Couldn't apply event deletion authorization change: {e:?}");
+        };
         for asset_id in commit_output.assets {
             debug!(log: logger, "Deleting asset {asset_id} from the storage");
             storage
@@ -212,25 +215,20 @@ impl Deleter for EventDeleter {
                 .context(ObjectDeletionSnafu)?;
         }
 
-        debug!(log: logger, "Deleting auth information");
-        let _removed_count = authz
-            .remove_explicit_resources(commit_output.resources)
-            .await?;
-
         Ok(())
     }
-}
 
-pub fn associated_resource_ids(event_id: EventId) -> impl IntoIterator<Item = ResourceId> {
-    [
-        event_id.resource_id(),
-        event_id.resource_id().with_suffix("/instances"),
-        event_id.resource_id().with_suffix("/instances/*"),
-        event_id.resource_id().with_suffix("/invites"),
-        event_id.resource_id().with_suffix("/invites/*"),
-        event_id.resource_id().with_suffix("/invite"),
-        event_id.resource_id().with_suffix("/reschedule"),
-        event_id.resource_id().with_suffix("/shared_folder"),
-        ResourceId::from(format!("/users/me/event_favorites/{event_id}")),
-    ]
+    fn authorization_changes(
+        &self,
+        commit_output: &Self::CommitOutput,
+    ) -> Vec<AuthorizationChange> {
+        vec![
+            AuthorizationChange::DeleteEvent {
+                event: self.event_id,
+            },
+            AuthorizationChange::DeleteRoom {
+                room: commit_output.room_id,
+            },
+        ]
+    }
 }

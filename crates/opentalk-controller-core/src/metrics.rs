@@ -7,7 +7,6 @@ use std::sync::Arc;
 use actix_http::{StatusCode, body::BoxBody};
 use actix_web::{HttpResponse, HttpResponseBuilder, dev::PeerAddr, get, web::Data};
 use itertools::Itertools as _;
-use kustos::metrics::KustosMetrics;
 use opentalk_controller_service::metrics::EndpointMetrics;
 use opentalk_controller_settings::SettingsProvider;
 use opentalk_database::DatabaseMetrics;
@@ -31,7 +30,6 @@ pub struct CombinedMetrics {
     pub(super) endpoint: Arc<EndpointMetrics>,
     pub(super) signaling: Arc<SignalingMetrics>,
     pub(super) database: Arc<DatabaseMetrics>,
-    pub(super) kustos: Arc<KustosMetrics>,
     pub(super) redis: Arc<RedisMetrics>,
 }
 
@@ -46,7 +44,6 @@ impl CombinedMetrics {
         let provider_builder = EndpointMetrics::append_views(provider_builder)?;
         let provider_builder = SignalingMetrics::append_views(provider_builder)?;
         let provider_builder = DatabaseMetrics::append_views(provider_builder)?;
-        let provider_builder = KustosMetrics::append_views(provider_builder)?;
         let provider_builder = RedisMetrics::append_views(provider_builder)?;
 
         global::set_meter_provider(provider_builder.build());
@@ -55,7 +52,6 @@ impl CombinedMetrics {
         let endpoint = Arc::new(EndpointMetrics::new(&meter));
         let signaling = Arc::new(SignalingMetrics::new(&meter));
         let database = Arc::new(DatabaseMetrics::new(&meter));
-        let kustos = Arc::new(KustosMetrics::new(&meter));
         let redis = Arc::new(RedisMetrics::new(&meter));
 
         Ok(Self {
@@ -63,7 +59,6 @@ impl CombinedMetrics {
             endpoint,
             signaling,
             database,
-            kustos,
             redis,
         })
     }

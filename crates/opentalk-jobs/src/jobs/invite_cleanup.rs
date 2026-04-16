@@ -5,10 +5,9 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use kustos::Authz;
 use log::Log;
+use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
-use opentalk_controller_utils::deletion::room::associated_resource_ids_for_invite;
 use opentalk_inventory::InventoryProvider;
 use opentalk_log::{debug, info};
 use opentalk_types_common::time::Timestamp;
@@ -46,7 +45,7 @@ impl Job for InviteCleanup {
     async fn execute(
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
-        authz: Authz,
+        _authorizer: Authorizer,
         _settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {
@@ -63,22 +62,11 @@ impl Job for InviteCleanup {
 
         info!(log: logger, "Clearing permissions for invites that are inactive or expired before {expired_before:?}.");
 
-        let inactive_invites = inventory
+        // TODO: romve inactive or expired invites from authorizer
+        let _inactive_invites = inventory
             .get_room_invites_with_room_inactive_or_expired_before(expired_before)
             .await?;
-        let mut count = 0;
-
-        for (invite_code, room_id) in inactive_invites {
-            let associated_resources = Vec::from_iter(associated_resource_ids_for_invite(room_id));
-            let deleted = authz
-                .remove_all_invite_permission_for_resources(invite_code, associated_resources)
-                .await?;
-            if deleted != 0 {
-                count += 1;
-            }
-        }
-
-        info!(log: logger, "Number of cleared invites: {count}");
+        // these must be removed…
 
         Ok(())
     }

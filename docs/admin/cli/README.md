@@ -35,8 +35,6 @@ Help output looks like this:
 Usage: opentalk-controller [OPTIONS] [COMMAND]
 
 Commands:
-  fix-acl     Recreate all ACL entries from the current database content. Existing entries will not be touched unless the command is told to delete them all beforehand
-  acl         Modify the ACLs
   migrate-db  Migrate the db. This is done automatically during start of the controller, but can be done without starting the controller using this command
   tenants     Manage existing tenants
   tariffs     Manage tariffs

@@ -36,8 +36,8 @@ use std::{
 use async_trait::async_trait;
 pub use distributed::job_runner;
 pub use error::Error;
-use kustos::Authz;
 use log::Log;
+use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::InventoryProvider;
 use opentalk_log::{error, info};
@@ -49,7 +49,7 @@ use snafu::Report;
 pub async fn execute<J: Job>(
     logger: &dyn Log,
     inventory_provider: Arc<dyn InventoryProvider>,
-    authz: Authz,
+    authorizer: Authorizer,
     settings: &Settings,
     parameters: serde_json::Value,
     timeout: Duration,
@@ -70,7 +70,7 @@ pub async fn execute<J: Job>(
 
     match tokio::time::timeout(
         timeout,
-        J::execute(logger, inventory_provider, authz, settings, parameters),
+        J::execute(logger, inventory_provider, authorizer, settings, parameters),
     )
     .await
     {
@@ -133,7 +133,7 @@ pub trait Job {
     async fn execute(
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
-        authz: Authz,
+        authorizer: Authorizer,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error>;

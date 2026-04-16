@@ -4,7 +4,7 @@
 
 use std::{sync::Arc, time::Duration};
 
-use kustos::Authz;
+use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{Inventory, InventoryProvider};
 use snafu::{ResultExt, Snafu};
@@ -71,7 +71,7 @@ impl JobRunner {
     /// Start the JobRunner
     pub async fn start(
         inventory_provider: Arc<dyn InventoryProvider>,
-        authz: Authz,
+        authorizer: Authorizer,
         shutdown: broadcast::Receiver<()>,
         settings: Arc<Settings>,
     ) -> Result<(), JobRunnerError> {
@@ -103,7 +103,7 @@ impl JobRunner {
         let job_executor_handle = JobExecutorHandle::new(
             etcd_urls.clone(),
             inventory_provider.clone(),
-            authz.clone(),
+            authorizer.clone(),
             settings.clone(),
         )
         .await;

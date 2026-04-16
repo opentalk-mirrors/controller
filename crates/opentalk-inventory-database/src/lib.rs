@@ -30,7 +30,6 @@ mod event_shared_folder;
 mod event_training_participation_report;
 mod group;
 mod job_execution;
-mod kustos;
 mod module_resource;
 mod room;
 mod room_invite;
