@@ -11,14 +11,19 @@ use url::Url;
 
 use crate::settings_file::{self, WebSocketRateLimit};
 
+/// RoomServer settings
 #[derive(Debug, Clone, PartialEq)]
 pub struct RoomServer {
+    /// The service URL the RoomServer
     pub url: Url,
 
+    /// The API key to access the RoomServer
     pub api_key: ApiKey,
 
+    /// Settings regarding the RoomServer modules
     pub modules: ModuleSettings,
 
+    /// Rate limit settings for RoomServer WebSocket connections. If `None`, the WebSocket rate limit is disabled.
     pub websocket_rate_limit: Option<RateLimitSettings>,
 }
 

@@ -79,6 +79,7 @@ impl SettingsProvider {
 mod tests {
     use std::env;
 
+    use opentalk_service_auth::{ApiKey, service::ApiKeys};
     use pretty_assertions::assert_eq;
     use serial_test::serial;
 
@@ -125,38 +126,24 @@ mod tests {
             settings.database.url,
             "postgres://postgres:password123@localhost:5432/opentalk"
         );
-        assert!(settings.http.is_none());
-        if let Some(defaults) = settings.defaults {
-            assert!(defaults.screen_share_requires_permission.is_none())
-        }
+        assert_eq!(
+            settings.http.unwrap().service_api_keys,
+            Some(ApiKeys::new(vec![ApiKey::new("controller", "secret")]))
+        );
 
         // Set environment variables to overwrite default config file
         let env_db_url = "postgres://envtest:password@localhost:5432/opentalk".to_string();
         let env_http_port: u16 = 8000;
-        let env_screen_share_requires_permission = true;
 
         unsafe {
             env::set_var("OPENTALK_CTRL_DATABASE__URL", &env_db_url);
             env::set_var("OPENTALK_CTRL_HTTP__PORT", env_http_port.to_string());
-            env::set_var(
-                "OPENTALK_CTRL_DEFAULTS__SCREEN_SHARE_REQUIRES_PERMISSION",
-                env_screen_share_requires_permission.to_string(),
-            );
         }
 
         let settings = SettingsProvider::load_raw(Path::new("../../example/controller.toml"))?;
 
         assert_eq!(settings.database.url, env_db_url);
         assert_eq!(settings.http.as_ref().unwrap().port, Some(env_http_port));
-        assert_eq!(
-            settings
-                .defaults
-                .as_ref()
-                .unwrap()
-                .screen_share_requires_permission
-                .unwrap(),
-            env_screen_share_requires_permission
-        );
 
         Ok(())
     }

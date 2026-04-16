@@ -28,7 +28,8 @@ use opentalk_controller_service::{
 };
 use opentalk_controller_service_facade::OpenTalkControllerService;
 use opentalk_controller_settings::{
-    HttpTls, Monitoring, Settings, SettingsProvider, UserSearchBackend, UserSearchBackendKeycloak,
+    HttpTls, Monitoring, RoomServer, Settings, SettingsProvider, UserSearchBackend,
+    UserSearchBackendKeycloak,
     common::{HttpCorsAllowedOrigin, HttpCorsAllowedOrigins},
 };
 use opentalk_database::Db;
@@ -39,8 +40,7 @@ use opentalk_keycloak_admin::{AuthorizedClient, KeycloakAdminClient};
 use opentalk_roomserver_client::Client as RoomServerClient;
 use opentalk_service_auth::service::ApiKeyAuthorization;
 use opentalk_signaling_core::{
-    ExchangeHandle, ExchangeTask, NoOpStorageNotifier, ObjectStorage, RedisConnection,
-    RoomServerStorageNotifier, StorageNotifier,
+    ExchangeHandle, ExchangeTask, ObjectStorage, RedisConnection, RoomServerStorageNotifier,
 };
 use opentalk_types_api_v1::{auth::OidcProvider, error::ApiError};
 use rustls_pki_types::{CertificateDer, PrivatePkcs8KeyDer};
@@ -310,12 +310,10 @@ impl Controller {
             None => None,
         });
 
-        let roomserver_client = settings.roomserver.as_ref().map(|roomserver_config| {
-            RoomServerClient::new(
-                roomserver_config.url.clone(),
-                roomserver_config.api_key.clone(),
-            )
-        });
+        let roomserver_client = RoomServerClient::new(
+            settings.roomserver.url.clone(),
+            settings.roomserver.api_key.clone(),
+        );
 
         let registry = opentalk_roomserver_modules::setup_registry();
 
@@ -426,15 +424,10 @@ impl Controller {
 
                 let swagger_service_enabled = !settings_provider.get().endpoints.disable_openapi;
 
-                let storage_notifier: Arc<dyn StorageNotifier> =
-                    if let Some(room_server_settings) = &settings_provider.get().roomserver {
-                        Arc::new(RoomServerStorageNotifier::new(RoomServerClient::new(
-                            room_server_settings.url.clone(),
-                            room_server_settings.api_key.clone(),
-                        )))
-                    } else {
-                        Arc::new(NoOpStorageNotifier)
-                    };
+                let RoomServer { url, api_key, .. } = &settings_provider.get().roomserver;
+                let storage_notifier = Arc::new(RoomServerStorageNotifier::new(
+                    RoomServerClient::new(url.clone(), api_key.clone()),
+                ));
 
                 App::new()
                     .wrap(RequestMetrics::new(metrics.endpoint.clone()))

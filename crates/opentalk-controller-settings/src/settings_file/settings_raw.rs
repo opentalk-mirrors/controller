@@ -5,10 +5,10 @@
 use serde::Deserialize;
 
 use super::{
-    Authorization, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Etherpad, Extensions,
-    Frontend, Http, Keycloak, LiveKitSettings, Logging, Metrics, MinIO, MonitoringSettings, Oidc,
-    OperatorInformation, RabbitMqConfig, RedisConfig, Reports, RoomServer, SharedFolder, Spacedeck,
-    SubroomAudio, Tariffs, Tenants, UserSearch, WebSocketRateLimit,
+    Authorization, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Extensions, Frontend, Http,
+    Keycloak, Logging, Metrics, MinIO, MonitoringSettings, Oidc, OperatorInformation,
+    RabbitMqConfig, RedisConfig, Reports, RoomServer, SharedFolder, Tariffs, Tenants, UserSearch,
+    WebSocketRateLimit,
 };
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -51,15 +51,6 @@ pub struct SettingsRaw {
     pub(crate) etcd: Option<Etcd>,
 
     #[serde(default)]
-    pub(crate) etherpad: Option<Etherpad>,
-
-    #[serde(default)]
-    pub(crate) spacedeck: Option<Spacedeck>,
-
-    #[serde(default)]
-    pub(crate) subroom_audio: Option<SubroomAudio>,
-
-    #[serde(default)]
     pub(crate) reports: Option<Reports>,
 
     #[serde(default)]
@@ -85,13 +76,10 @@ pub struct SettingsRaw {
     #[serde(default)]
     pub(crate) tariffs: Option<Tariffs>,
 
-    pub(crate) livekit: Option<LiveKitSettings>,
-
     #[serde(default)]
     pub(crate) websocket_rate_limit: Option<WebSocketRateLimit>,
 
-    #[serde(default)]
-    pub(crate) roomserver: Option<RoomServer>,
+    pub(crate) roomserver: RoomServer,
 
     #[serde(flatten)]
     pub(crate) extensions: Extensions,
@@ -103,6 +91,8 @@ pub struct SettingsRaw {
 #[cfg(test)]
 pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
     use openidconnect::{ClientId, ClientSecret};
+    use opentalk_roomserver_types::module_settings::ModuleSettings;
+    use opentalk_service_auth::ApiKey;
     use url::Url;
 
     use super::{OidcController, OidcFrontend};
@@ -142,9 +132,6 @@ pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
         avatar: None,
         metrics: None,
         etcd: None,
-        etherpad: None,
-        spacedeck: None,
-        subroom_audio: None,
         reports: None,
         shared_folder: None,
         call_in: None,
@@ -163,14 +150,15 @@ pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
         monitoring: None,
         tenants: None,
         tariffs: None,
-        livekit: Some(LiveKitSettings {
-            public_url: "ws://localhost:7880".to_string(),
-            service_url: "http://localhost:7880".to_string(),
-            api_key: "devkey".to_string(),
-            api_secret: "secret".to_string(),
-        }),
         websocket_rate_limit: None,
-        roomserver: None,
+        roomserver: RoomServer {
+            url: "http://localhost:11333"
+                .parse()
+                .expect("must be a valid url"),
+            api_key: ApiKey::new("roomserver", "secret"),
+            modules: ModuleSettings::new(),
+            websocket_rate_limit: None,
+        },
         extensions: Extensions::default(),
         operator_information: None,
     }
@@ -178,6 +166,9 @@ pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
 
 #[cfg(test)]
 pub(crate) const SETTINGS_RAW_MINIMAL_CONFIG_TOML: &str = r#"
+        [http]
+        service_api_keys = [{ "id" = "controller", "secret" = "secret" }]
+
         [frontend]
         base_url = "https://example.com"
 
@@ -205,4 +196,9 @@ pub(crate) const SETTINGS_RAW_MINIMAL_CONFIG_TOML: &str = r#"
         [oidc.controller]
         client_id = "Controller"
         client_secret = "mysecret"
+
+        [roomserver]
+        url = "http://localhost:11333"
+        api_key = { id = "roomserver", secret = "secret" }
+        [roomserver.modules]
         "#;

@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use opentalk_controller_service_facade::{RequestUser, StartRoomError};
+use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::{Settings, common::HttpCorsAllowedOrigin};
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{Event, Inventory};
@@ -49,10 +49,6 @@ impl ControllerBackend {
         room_id: RoomId,
         request: PostRoomsRoomserverStartRequestBody,
     ) -> Result<RoomserverStartResponseBody, CaptureApiError> {
-        if self.roomserver_client.is_none() {
-            return Err(StartRoomError::RoomserverSignalingDisabled.into());
-        };
-
         let mut inventory = self.inventory_provider.get_inventory().await?;
         let settings = self.settings_provider.get();
 
@@ -104,10 +100,6 @@ impl ControllerBackend {
         room_id: RoomId,
         request: PostRoomsRoomserverStartInvitedRequestBody,
     ) -> Result<RoomserverStartResponseBody, CaptureApiError> {
-        if self.roomserver_client.is_none() {
-            return Err(StartRoomError::RoomserverSignalingDisabled.into());
-        };
-
         let _ = self
             .authenticate_guest(&room_id, &request.invite_code, &request.password)
             .await?;
@@ -142,12 +134,7 @@ impl ControllerBackend {
             return Ok(());
         }
 
-        let Some(client) = &self.roomserver_client else {
-            // When the roomserver is not configured, there is nothing to do.
-            return Ok(());
-        };
-
-        match client.patch_room(room_id, patch).await {
+        match self.roomserver_client.patch_room(room_id, patch).await {
             Ok(()) => Ok(()),
             // The roomserver returns a 404 NotFound when the room does not exist there yet.
             // In this case there is nothing to do and the room parameters will be applied when the room is created.
@@ -169,12 +156,8 @@ impl ControllerBackend {
     ) -> Result<RoomServerAccess, ApiError> {
         let room_id = room.id;
 
-        let Some(client) = &self.roomserver_client else {
-            return Err(ApiError::internal()
-                .with_message("roomserver is not configured on this controller"));
-        };
-
-        match client
+        match self
+            .roomserver_client
             .request_token(room_id, client_parameters.clone(), None)
             .await
         {
@@ -186,7 +169,8 @@ impl ControllerBackend {
                 // The room is unknown to the roomserver,- resubmit the token request but include the room parameter
                 let room_parameters = self.build_room_parameters(room).await?;
 
-                let access = client
+                let access = self
+                    .roomserver_client
                     .request_token(room_id, client_parameters, Some(room_parameters))
                     .await
                     .map_err(|e| {
@@ -218,10 +202,6 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let settings = self.settings_provider.get();
-        let room_server_settings = settings.roomserver.as_ref().ok_or_else(|| {
-            ApiError::internal().with_message("roomserver settings are not configured")
-        })?;
-
         let call_in =
             Self::get_call_in_info(inventory.as_mut(), &settings, room_resource.id).await?;
         let room = inventory.get_room(room_resource.id).await?;
@@ -249,7 +229,7 @@ impl ControllerBackend {
             .get_tariff_for_user(room_resource.created_by.id)
             .await?;
 
-        let mut module_settings = room_server_settings.modules.clone();
+        let mut module_settings = settings.roomserver.modules.clone();
         Self::override_module_settings(inventory.as_mut(), room_resource.id, &mut module_settings)
             .await?;
 
@@ -334,7 +314,7 @@ impl ControllerBackend {
             module_settings,
             preferred_language,
             fallback_language: settings.defaults.user_language.clone(),
-            ws_rate_limit: room_server_settings.websocket_rate_limit,
+            ws_rate_limit: settings.roomserver.websocket_rate_limit,
             allowed_origins,
         };
 

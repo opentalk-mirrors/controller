@@ -8,7 +8,7 @@ use actix_web::{
     post,
     web::{Data, Json, Path, ReqData},
 };
-use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser, StartRoomError};
+use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
     error::{ApiError, ErrorBody},
     rooms::by_room_id::{PostRoomsRoomserverStartRequestBody, RoomserverStartResponseBody},
@@ -33,18 +33,6 @@ use crate::utoipa::responses::InternalServerError;
             status = StatusCode::OK,
             description = "Returns the roomserver token and roomserver address",
             body = RoomserverStartResponseBody,
-        ),
-        (
-            status = StatusCode::BAD_REQUEST,
-            description = r"Returned when calling this endpoint on a controller where no roomserver is configured",
-            body = ErrorBody,
-            examples(
-                (
-                    "RoomserverSignalingDisabled" = (
-                        summary = "Roomserver signaling is disabled", value = json!(ApiError::from(StartRoomError::RoomserverSignalingDisabled).body)
-                    )
-                ),
-            ),
         ),
         (
             status = StatusCode::UNAUTHORIZED,

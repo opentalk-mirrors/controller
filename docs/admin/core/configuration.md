@@ -140,7 +140,7 @@ url = "postgres://postgres:password123@localhost:5432/opentalk"
 #addr = "0.0.0.0"
 #port = 11411
 
-#[http]
+[http]
 # An optional address to which to bind.
 # Can be either a hostname, or an IP address.
 #
@@ -172,7 +172,7 @@ url = "postgres://postgres:password123@localhost:5432/opentalk"
 #
 # These APIs are currently exclusively used by the roomserver.
 # When a roomserver is configured, this setting is mandatory.
-#service_api_keys = [{ "id" = "controller", "secret" = "secret" }]
+service_api_keys = [{ "id" = "controller", "secret" = "secret" }]
 
 # Settings for the CORS headers.
 #[http.cors]
@@ -264,14 +264,6 @@ client_secret = "v3rys3cr3t"
 # Possible values are "disabled", "from_database" and "from_user_search_backend".
 users_find_behavior = "from_user_search_backend"
 
-# LiveKit WebRTC SFU
-[livekit]
-public_url = "wss://url.to.your.livekit.server"
-service_url = "https://localhost:7880"
-
-api_key = "your-livekit-api-key"
-api_secret = "your-livekit-api-secret"
-
 #[rabbit_mq]
 # The URL to use to connect to the rabbit mq broker
 #url = "amqp://guest:guest@localhost:5672"
@@ -312,7 +304,7 @@ api_secret = "your-livekit-api-secret"
 # Redis URL used to connect the redis server
 #url = "redis://localhost:6379/"
 
-#[roomserver]
+[roomserver]
 # Configure a roomserver for this controller.
 #
 # When enabled, the controllers built in signaling endpoints (`rooms/<room-id>/start` & `rooms/<room-id>/start_invited`)
@@ -322,10 +314,10 @@ api_secret = "your-livekit-api-secret"
 # The deployed frontend client has to be compatible with the roomservers signaling implementation.
 #
 # The URL of the roomserver. Needs to be reachable by clients
-#url = "http://localhost:11333"
+url = "http://localhost:11333"
 #
 # The roomservers API key id and secret
-#api_key = {id = "roomserver", secret = "secret" }
+api_key = { id = "roomserver", secret = "secret" }
 
 # RoomServer websocket rate limiting configuration
 #
@@ -349,6 +341,7 @@ api_secret = "your-livekit-api-secret"
 #token_bucket_size = 30
 
 #The Modules that are enabled in the roomserver
+[roomserver.modules]
 #[roomserver.modules.chat]
 #[roomserver.modules.chat.rate_limit]
 #tokens_per_second = 3
@@ -405,21 +398,6 @@ secret_key = "minioadmin"
 # A list urls of a etcd cluster
 #urls = ["localhost:2379"]
 
-# The etherpad configuration for the meeting-notes module
-#[etherpad]
-#url = "http://localhost:9001"
-# Etherpads api key
-#api_key = "secret"
-
-# Spacedeck configuration
-#[spacedeck]
-#url = "http://localhost:9666"
-#api_key = "secret"
-
-# Subroom audio whisper configuration
-#[subroom_audio]
-#enable_whisper = false
-
 # Shared folder configuration
 #[shared_folder]
 #provider = "nextcloud"
@@ -468,27 +446,6 @@ secret_key = "minioadmin"
 # Disable the OpenAPI endpoint under `/v1/openapi.json` and the corresponding
 # swagger endpoint under `/swagger`.
 #disable_openapi = false
-
-# Configuration for the the websocket rate limiting
-#
-# Rate limiting is enabled by default, to disable it, you have to set the `disabled` flag to `true`. A missing
-# configuration will fall back to the default values.
-#
-# The implementation uses the token bucket algorithm. Each websocket message that is sent by a participant consumes
-# one token. A websocket connection has a maximum amount of tokens that can be available at a time (the token bucket).
-# Each second, the bucket is filled with a configured amount of tokens.
-#
-# The algorithm allows the configuration to have a reasonably small amount of messages per second, while still
-# allowing 'bursts' of messages until the tokens in the bucket are fully consumed.
-#
-# A participant gets kicked from the conference when no tokens remain.
-[websocket_rate_limit]
-# Whether rate limiting will be disabled
-disabled = false
-# The amount of messages that can be consistently sent by participants (defaults to 10)
-tokens_per_second = 10
-# The maximum amount of tokens that can be held per websocket connection (defaults to 30)
-token_bucket_size = 30
 
 # Configuration for the /metrics HTTP endpoint
 #[metrics]
