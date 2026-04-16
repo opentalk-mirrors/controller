@@ -161,6 +161,7 @@ where
                             Ok((current_tenant, current_user)) => {
                                 req.extensions_mut().insert(current_tenant);
                                 req.extensions_mut().insert(current_user.clone());
+                                req.extensions_mut().insert(current_user.id);
                                 req.extensions_mut()
                                     .insert(build_request_user(current_user));
                                 req.extensions_mut().insert(access_token);
