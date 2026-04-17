@@ -99,8 +99,6 @@ opentalk-types-api-internal = "0.2.0"
 opentalk-types-api-v1 = "0.58.0"
 opentalk-types-common = "0.43.1"
 opentalk-types-signaling = "0.45.0"
-opentalk-types-signaling-recording = "0.44.0"
-opentalk-types-signaling-recording-service = "0.44.0"
 opentalk-version = "0.4.0"
 opentelemetry = { version = "0.29.1", default-features = false, features = [
   "metrics",

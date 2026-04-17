@@ -56,9 +56,6 @@ opentalk-types-common = { workspace = true, features = [
   "backend",
   "clap",
 ] }
-opentalk-types-signaling-recording = { workspace = true, features = [
-  "backend",
-] }
 opentelemetry = { workspace = true, features = ["metrics", "trace"] }
 opentelemetry-otlp = { workspace = true, features = ["grpc-tonic"] }
 opentelemetry-prometheus.workspace = true
