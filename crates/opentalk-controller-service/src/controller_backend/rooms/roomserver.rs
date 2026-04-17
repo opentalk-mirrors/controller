@@ -33,10 +33,11 @@ use opentalk_types_api_v1::{
 };
 use opentalk_types_common::{
     call_in::CallInInfo,
+    events::invites::InviteRole,
     rooms::RoomId,
     shared_folders::{SharedFolder, SharedFolderAccess},
     tariffs::QuotaType,
-    users::UserInfo,
+    users::{UserId, UserInfo},
 };
 
 use crate::{ControllerBackend, email_to_libravatar_url, helpers::get_user_timezone};
@@ -53,13 +54,8 @@ impl ControllerBackend {
         let settings = self.settings_provider.get();
 
         let room = self.get_room(&room_id).await?;
-
-        let role = if room.created_by.id == user.id {
-            Role::Moderator
-        } else {
-            Role::User
-        };
-
+        let role =
+            Self::get_user_role(inventory.as_mut(), user.id, room_id, room.created_by.id).await?;
         let timezone = get_user_timezone(room.created_by.id, inventory.as_mut(), &settings).await;
         let avatar_url = user.avatar_url.unwrap_or_else(|| {
             email_to_libravatar_url(&settings.avatar.libravatar_url, &user.email)
@@ -397,5 +393,27 @@ impl ControllerBackend {
                 id: sip_config.sip_id,
                 password: sip_config.password,
             }))
+    }
+
+    async fn get_user_role(
+        inventory: &mut dyn Inventory,
+        user_id: UserId,
+        room_id: RoomId,
+        room_creator: UserId,
+    ) -> Result<Role, CaptureApiError> {
+        if user_id == room_creator {
+            return Ok(Role::Moderator);
+        }
+
+        let role = match inventory
+            .get_event_invite_for_user_and_room(user_id, room_id)
+            .await?
+            .map(|invite| invite.role)
+        {
+            Some(InviteRole::Moderator) => Role::Moderator,
+            None | Some(InviteRole::User) => Role::User,
+        };
+
+        Ok(role)
     }
 }
