@@ -62,9 +62,4 @@ pub enum SettingsError {
 
     #[snafu(display("Missing mandatory roomserver module(s): \"{}\".", modules.join("\", \"")))]
     MandatoryModulesMissing { modules: Vec<String> },
-
-    #[snafu(display(
-        "Missing configuation field `livekit`, this field is only optional when the `roomserver` is configured."
-    ))]
-    LiveKitMissing,
 }
