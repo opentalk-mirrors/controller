@@ -2,14 +2,21 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use opentalk_roomserver_modules::{ECHO_MODULE_ID, LIVEKIT_MODULE_ID};
 use opentalk_roomserver_types::{
     module_settings::ModuleSettings,
     rate_limit::{self, RateLimitSettings},
 };
 use opentalk_service_auth::ApiKey;
+use opentalk_types_common::modules::ModuleId;
 use url::Url;
 
-use crate::settings_file::{self, WebSocketRateLimit};
+use crate::{
+    SettingsError,
+    settings_file::{self, WebSocketRateLimit},
+};
+
+const MANDATORY_MODULES: [ModuleId; 2] = [ECHO_MODULE_ID, LIVEKIT_MODULE_ID];
 
 /// RoomServer settings
 #[derive(Debug, Clone, PartialEq)]
@@ -27,20 +34,35 @@ pub struct RoomServer {
     pub websocket_rate_limit: Option<RateLimitSettings>,
 }
 
-impl From<settings_file::RoomServer> for RoomServer {
-    fn from(
+impl TryFrom<settings_file::RoomServer> for RoomServer {
+    type Error = SettingsError;
+
+    fn try_from(
         settings_file::RoomServer {
             url,
             api_key,
             modules,
             websocket_rate_limit,
         }: settings_file::RoomServer,
-    ) -> Self {
-        Self {
-            url,
-            api_key,
-            modules,
-            websocket_rate_limit: rate_limit_from_settings_file(websocket_rate_limit),
+    ) -> Result<Self, Self::Error> {
+        let mut missing_modules = Vec::new();
+        for module_id in MANDATORY_MODULES {
+            if !modules.contains(module_id.clone()) {
+                missing_modules.push(module_id.to_string());
+            }
+        }
+
+        if missing_modules.is_empty() {
+            Ok(Self {
+                url,
+                api_key,
+                modules,
+                websocket_rate_limit: rate_limit_from_settings_file(websocket_rate_limit),
+            })
+        } else {
+            Err(SettingsError::MandatoryModulesMissing {
+                modules: missing_modules,
+            })
         }
     }
 }

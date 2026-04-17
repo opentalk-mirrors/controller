@@ -351,12 +351,12 @@ api_key = { id = "roomserver", secret = "secret" }
 #token_bucket_size = 10
 #slow_down_threshold = 0.8
 #[roomserver.modules.e2ee]
-#[roomserver.modules.livekit]
-#api_key = "devkey"
-#api_secret = "secret"
-#public_url = "http://localhost:7880"
-#service_url = "http://localhost:7880"
-#[roomserver.modules.echo]
+[roomserver.modules.livekit]
+api_key = "devkey"
+api_secret = "secret"
+public_url = "http://localhost:7880"
+service_url = "http://localhost:7880"
+[roomserver.modules.echo]
 #[roomserver.modules.polls]
 #[roomserver.modules.timer]
 
