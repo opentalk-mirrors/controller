@@ -10,55 +10,16 @@ use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
     room_kind::RoomKind,
 };
-use opentalk_signaling_core::{Participant, assets::verify_storage_usage};
+use opentalk_signaling_core::assets::verify_storage_usage;
 use opentalk_types_api_internal::recording::RecordingTarget;
-use opentalk_types_api_v1::{
-    error::ApiError,
-    rooms::{RoomResource, by_room_id::RoomserverStartResponseBody},
-    services::{PostServiceStartResponseBody, recording::PostRecordingStartRequestBody},
-};
+use opentalk_types_api_v1::rooms::{RoomResource, by_room_id::RoomserverStartResponseBody};
 use opentalk_types_common::roomserver::{DEVICE_SECRET_MIN_LENGTH, DeviceSecret};
 use rand::RngExt;
 
-use crate::{
-    ControllerBackend, ToUserProfile, signaling::ticket::start_or_continue_signaling_session,
-};
+use crate::{ControllerBackend, ToUserProfile};
 
 impl ControllerBackend {
-    pub(crate) async fn start_recording(
-        &self,
-        body: PostRecordingStartRequestBody,
-    ) -> Result<PostServiceStartResponseBody, CaptureApiError> {
-        let settings = self.settings_provider.get();
-        let mut inventory = self.inventory_provider.get_inventory().await?;
-        let mut volatile = self.volatile.clone();
-
-        if settings
-            .rabbit_mq
-            .as_ref()
-            .and_then(|c| c.recording_task_queue.as_ref())
-            .is_none()
-        {
-            return Err(ApiError::not_found().into());
-        }
-
-        let room = inventory.get_room(body.room_id).await?;
-
-        let _ = verify_storage_usage(inventory.as_mut(), room.created_by).await?;
-
-        let (ticket, resumption) = start_or_continue_signaling_session(
-            &mut volatile,
-            Participant::Recorder,
-            room.id,
-            body.breakout_room,
-            None,
-        )
-        .await?;
-
-        Ok(PostServiceStartResponseBody { ticket, resumption })
-    }
-
-    pub(crate) async fn start_recording_roomserver(
+    pub(crate) async fn start_recording_roomserver_impl(
         &self,
         body: RecordingTarget,
     ) -> Result<RoomserverStartResponseBody, CaptureApiError> {

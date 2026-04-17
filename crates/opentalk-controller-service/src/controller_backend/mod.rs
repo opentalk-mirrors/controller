@@ -10,6 +10,7 @@ mod invites;
 mod module_resources;
 pub mod rooms;
 
+mod services;
 mod sip_configs;
 mod streaming_targets;
 mod tariff;
@@ -79,10 +80,6 @@ use opentalk_types_api_v1::{
                 PostRoomStreamingTargetResponseBody, RoomAndStreamingTargetId,
             },
         },
-    },
-    services::{
-        PostServiceStartResponseBody, call_in::PostCallInStartRequestBody,
-        recording::PostRecordingStartRequestBody,
     },
     users::{
         GetEventInvitesPendingResponseBody, GetFindQuery, GetFindResponseBody,
@@ -282,32 +279,18 @@ impl OpenTalkControllerService for ControllerBackend {
         Ok(self.roomserver_start_room_invited(room_id, request).await?)
     }
 
-    async fn start_recording(
-        &self,
-        body: PostRecordingStartRequestBody,
-    ) -> Result<PostServiceStartResponseBody, ApiError> {
-        Ok(self.start_recording(body).await?)
-    }
-
     async fn start_recording_roomserver(
         &self,
         body: RecordingTarget,
     ) -> Result<RoomserverStartResponseBody, ApiError> {
-        Ok(self.start_recording_roomserver(body).await?)
-    }
-
-    async fn start_call_in(
-        &self,
-        request: PostCallInStartRequestBody,
-    ) -> Result<PostServiceStartResponseBody, ApiError> {
-        Ok(self.start_call_in(request).await?)
+        Ok(self.start_recording_roomserver_impl(body).await?)
     }
 
     async fn start_call_in_roomserver(
         &self,
         request: PostCallInStartRoomServerRequestBody,
     ) -> Result<RoomserverStartResponseBody, ApiError> {
-        Ok(self.start_call_in_roomserver(request).await?)
+        Ok(self.start_call_in_roomserver_impl(request).await?)
     }
 
     async fn get_room_assets(

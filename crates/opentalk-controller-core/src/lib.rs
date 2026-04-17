@@ -603,14 +603,6 @@ impl Controller {
             description = "Endpoints related to SIP configuration"
         ),
         (
-            name = "api::v1::services::call_in",
-            description = "Endpoints related to the meeting call-in service"
-        ),
-        (
-            name = "api::v1::services::recording",
-            description = "Endpoints related to the meeting recording service"
-        ),
-        (
             name = "api::v1::streaming_targets",
             description = "Endpoints related to streaming targets"
         ),
@@ -672,9 +664,6 @@ impl Controller {
         v1::rooms::by_id::tariff::get,
         v1::rooms::post,
         v1::rooms::by_id::patch,
-        v1::services::call_in::start::post,
-        api::v1::services::recording::get_recording_upload,
-        api::v1::services::recording::post_recording_start,
         api::internal::assets::post_asset,
         v1::rooms::by_id::sip::delete,
         v1::rooms::by_id::sip::get,
@@ -878,14 +867,6 @@ fn v1_scope(
         .service(v1::invite::verify::post)
         .service(v1::turn::get)
         .service(v1::rooms::by_id::assets::by_id::proxy::get)
-        .service(
-            web::scope("/services")
-                .wrap(api::v1::middleware::service_auth::ServiceAuth::new(
-                    oidc_ctx.clone(),
-                ))
-                .service(api::v1::services::call_in::services())
-                .service(api::v1::services::recording::services()),
-        )
         .service(
             // empty scope to differentiate between auth endpoints
             web::scope("")

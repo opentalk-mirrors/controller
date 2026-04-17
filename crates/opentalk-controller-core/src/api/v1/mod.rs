@@ -9,4 +9,3 @@ pub use response::{ApiResponse, DefaultApiResult};
 pub mod events;
 pub mod middleware;
 pub mod response;
-pub mod services;

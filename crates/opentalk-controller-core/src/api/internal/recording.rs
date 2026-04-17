@@ -27,9 +27,24 @@ use opentalk_types_api_v1::{
 use tokio::{sync::mpsc, task};
 
 use crate::api::{
+    headers::{ConnectionUpgrade, WebsocketUpgrade},
     upload::{MAXIMUM_WEBSOCKET_BUFFER_SIZE, UploadWebSocketActor},
-    v1::services::recording::RecordingUploadWebSocketHeaders,
 };
+
+/// This is a dummy type to define the structure of the headers required for
+/// upgrading a request to a recording upload websocket connection.
+#[derive(utoipa::IntoParams)]
+#[into_params(
+    parameter_in = Header,
+)]
+#[allow(dead_code)]
+pub(crate) struct RecordingUploadWebSocketHeaders {
+    #[param(inline, required = true)]
+    pub connection: ConnectionUpgrade,
+
+    #[param(inline, required = true)]
+    pub upgrade: WebsocketUpgrade,
+}
 
 /// Starts a signaling session for recording
 ///

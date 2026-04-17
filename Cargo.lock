@@ -5484,7 +5484,6 @@ dependencies = [
  "bytes",
  "chrono",
  "diesel-async",
- "either",
  "futures",
  "http 1.4.0",
  "itertools 0.14.0",
