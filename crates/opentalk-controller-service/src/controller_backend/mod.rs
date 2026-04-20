@@ -10,6 +10,7 @@ mod invites;
 mod module_resources;
 pub mod rooms;
 
+mod roomserver;
 mod services;
 mod sip_configs;
 mod streaming_targets;
