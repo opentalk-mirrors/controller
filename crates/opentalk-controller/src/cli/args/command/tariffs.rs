@@ -303,7 +303,7 @@ async fn edit_tariff(
             let mut disabled_modules = tariff.disabled_modules();
             disabled_modules
                 .retain(|disabled_module| !remove_disabled_modules.contains(disabled_module));
-            disabled_modules.extend(add_disabled_modules.into_iter());
+            disabled_modules.extend(add_disabled_modules);
 
             // Modify the `disabled_features` list
             let mut disabled_features = tariff.disabled_features();
