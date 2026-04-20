@@ -83,7 +83,7 @@ impl Job for RoomCleanup {
 async fn find_orphaned_rooms(inventory: &mut dyn Inventory) -> Result<HashSet<RoomId>, Error> {
     let rooms = inventory.get_all_orphaned_room_ids().await?;
 
-    Ok(HashSet::from_iter(rooms.into_iter()))
+    Ok(HashSet::from_iter(rooms))
 }
 
 #[cfg(test)]

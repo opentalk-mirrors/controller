@@ -72,7 +72,7 @@ impl RoomDeleterPreparedCommit {
 
         let mut current_shared_folders =
             inventory.get_event_shared_folders_for_room(room_id).await?;
-        current_shared_folders.sort_by(|a, b| a.event_id.cmp(&b.event_id));
+        current_shared_folders.sort_by_key(|a| a.event_id);
         ensure!(
             current_module_resources == self.linked_module_resources,
             RaceConditionSnafu
@@ -119,7 +119,7 @@ impl Deleter for RoomDeleter {
 
         // Sort for improved equality comparison later on, inside the transaction.
         linked_module_resources.sort();
-        linked_shared_folders.sort_by(|a, b| a.event_id.cmp(&b.event_id));
+        linked_shared_folders.sort_by_key(|a| a.event_id);
 
         Ok(RoomDeleterPreparedCommit {
             linked_module_resources,
