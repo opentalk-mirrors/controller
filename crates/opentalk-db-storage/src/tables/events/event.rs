@@ -53,7 +53,6 @@ pub struct Event {
     pub show_meeting_details: bool,
 }
 
-// Used for one weird scenario.
 impl From<inventory::Event> for Event {
     fn from(
         inventory::Event {
@@ -88,11 +87,5 @@ impl From<inventory::Event> for Event {
             revision,
             show_meeting_details,
         }
-    }
-}
-
-impl From<&inventory::Event> for Event {
-    fn from(value: &inventory::Event) -> Self {
-        Self::from(value.clone())
     }
 }

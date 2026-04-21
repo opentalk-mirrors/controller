@@ -30,11 +30,9 @@ casbin_rule {
 }
 event_dates {
     uuid event_id PK,FK
-    integer duration_secs
     timestamp_with_time_zone ends_at
     character_varying ends_at_tz
     boolean is_all_day
-    character_varying recurrence_pattern
     timestamp_with_time_zone starts_at
     character_varying starts_at_tz
 }
@@ -73,6 +71,11 @@ event_invites {
     timestamp_with_time_zone created_at
     invite_role role
     event_invite_status status
+}
+event_recurrences {
+    uuid event_id PK,FK
+    integer duration_secs
+    character_varying recurrence_pattern
 }
 event_shared_folders {
     uuid event_id PK,FK
@@ -253,6 +256,7 @@ event_favorites }o--|| events: ""
 event_invites }o--|| events: ""
 event_invites }o--|| users: ""
 event_invites }o--|| users: ""
+event_recurrences |o--|| event_dates: ""
 event_shared_folders |o--|| events: ""
 event_training_participation_report_parameter_sets |o--|| events: ""
 events }o--|| rooms: ""

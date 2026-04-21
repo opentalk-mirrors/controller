@@ -46,9 +46,6 @@ diesel::table! {
         #[max_length = 255]
         ends_at_tz -> Varchar,
         is_all_day -> Bool,
-        duration_secs -> Nullable<Int4>,
-        #[max_length = 4092]
-        recurrence_pattern -> Nullable<Varchar>,
     }
 }
 
@@ -111,6 +108,17 @@ diesel::table! {
         created_at -> Timestamptz,
         status -> EventInviteStatus,
         role -> InviteRole,
+    }
+}
+
+diesel::table! {
+    use crate::sql_types::*;
+
+    event_recurrences (event_id) {
+        event_id -> Uuid,
+        duration_secs -> Int4,
+        #[max_length = 4092]
+        recurrence_pattern -> Varchar,
     }
 }
 
@@ -404,6 +412,7 @@ diesel::joinable!(event_exceptions -> users (created_by));
 diesel::joinable!(event_favorites -> events (event_id));
 diesel::joinable!(event_favorites -> users (user_id));
 diesel::joinable!(event_invites -> events (event_id));
+diesel::joinable!(event_recurrences -> event_dates (event_id));
 diesel::joinable!(event_shared_folders -> events (event_id));
 diesel::joinable!(event_training_participation_report_parameter_sets -> events (event_id));
 diesel::joinable!(events -> rooms (room));
@@ -435,6 +444,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     event_exceptions,
     event_favorites,
     event_invites,
+    event_recurrences,
     event_shared_folders,
     event_training_participation_report_parameter_sets,
     events,

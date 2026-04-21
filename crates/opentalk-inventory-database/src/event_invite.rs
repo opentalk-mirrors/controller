@@ -113,7 +113,7 @@ impl EventInviteInventory for DatabaseConnection {
         let events = events
             .iter()
             .cloned()
-            .map(Into::into)
+            .map(|e| e.clone().into())
             .collect::<Vec<db::tables::events::Event>>();
 
         let events = events.iter().collect::<Vec<&db::tables::events::Event>>();
@@ -141,7 +141,7 @@ impl EventInviteInventory for DatabaseConnection {
         let events = events
             .iter()
             .cloned()
-            .map(Into::into)
+            .map(|e| e.clone().into())
             .collect::<Vec<db::tables::events::Event>>();
         let events = events.iter().collect::<Vec<&_>>();
         Ok(
