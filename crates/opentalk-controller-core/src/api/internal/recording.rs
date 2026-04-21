@@ -19,10 +19,7 @@ use opentalk_types_api_internal::recording::RecordingTarget;
 use opentalk_types_api_v1::{
     error::{ApiError, ErrorBody},
     rooms::by_room_id::RoomserverStartResponseBody,
-    services::{
-        PostServiceStartResponseBody,
-        recording::{GetRecordingUploadQuery, PostRecordingStartRequestBody},
-    },
+    services::recording::GetRecordingUploadQuery,
 };
 use tokio::{sync::mpsc, task};
 
@@ -53,7 +50,7 @@ pub(crate) struct RecordingUploadWebSocketHeaders {
 /// for creating a recording or livestream of the meeting.
 #[utoipa::path(
     context_path = "/recording",
-    request_body = PostRecordingStartRequestBody,
+    request_body = RecordingTarget,
     operation_id = "start_recording_roomserver",
     responses(
         (
@@ -61,7 +58,7 @@ pub(crate) struct RecordingUploadWebSocketHeaders {
             description = "The recording participant has successfully \
                 authenticated for the room. Information needed for connecting to the signaling \
                 is contained in the response",
-            body = PostServiceStartResponseBody,
+            body = RoomserverStartResponseBody,
         ),
         (
             status = StatusCode::UNAUTHORIZED,

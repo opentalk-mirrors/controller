@@ -99,6 +99,41 @@ paths:
         "400":
           description: Logout request invalid or logout failed
       security: []
+  /call_in/call_in/start:
+    post:
+      tags:
+        - "api::internal::call_in"
+      summary: Starts a signaling session for call-in on the roomserver
+      description: |-
+        This endpoint is provided for call-in gateways to start a roomserver connection
+        for call-in participants. The participant typically has to provide the
+        credentials (id and pin) via DTMF (the number pad).
+      operationId: post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostCallInStartRoomServerRequestBody"
+        required: true
+      responses:
+        "200":
+          description: The dial-in participant has successfully authenticated for the room. Information needed for connecting to the signaling is contained in the response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomserverStartResponseBody"
+        "400":
+          description: "`id` and `pin` are not valid for any room."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
   /events:
     get:
       tags:
@@ -1166,6 +1201,131 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
+  /internal/module_resources:
+    get:
+      tags:
+        - "api::internal::module_resources"
+      operationId: internal_get_module_resource
+      requestBody:
+        description: The filter that is applied to the module resource search
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModuleResourceFilter"
+        required: true
+      responses:
+        "200":
+          description: The module resources matching the provided filter
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ModuleResource"
+        "400":
+          description: The provided resource filter is empty or invalid
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+    post:
+      tags:
+        - "api::internal::module_resources"
+      operationId: internal_create_module_resource
+      requestBody:
+        description: The module resource to create
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewModuleResource"
+        required: true
+      responses:
+        "200":
+          description: The module resource has been created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModuleResource"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+    delete:
+      tags:
+        - "api::internal::module_resources"
+      operationId: internal_delete_module_resource
+      requestBody:
+        description: The module resource filter
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModuleResourceFilter"
+        required: true
+      responses:
+        "200":
+          description: The deleted module resources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ModuleResource"
+        "400":
+          description: The provided resource filter is empty or invalid
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+    patch:
+      tags:
+        - "api::internal::module_resources"
+      operationId: internal_patch_module_resource
+      requestBody:
+        description: The module resource filter and a list of patch operations
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchModuleResourceBody"
+        required: true
+      responses:
+        "200":
+          description: The patched module resources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ModuleResource"
+        "400":
+          description: The provided resource filter is empty or invalid
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
   "/internal/room/{room_id}/asset":
     post:
       tags:
@@ -1262,6 +1422,95 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
       security: []
+  /recording/recording/start:
+    post:
+      tags:
+        - "api::internal::recording"
+      summary: Starts a signaling session for recording
+      description: |-
+        This endpoint is provided for participation of recording and streaming clients
+        which will join incognito and receive all the information and media streams required
+        for creating a recording or livestream of the meeting.
+      operationId: start_recording_roomserver
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordingTarget"
+        required: true
+      responses:
+        "200":
+          description: The recording participant has successfully authenticated for the room. Information needed for connecting to the signaling is contained in the response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomserverStartResponseBody"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Recording has not been configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+              example:
+                code: not_found
+                message: A requested resource could not be found
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+  /recording/recording/upload:
+    get:
+      tags:
+        - "api::internal::recording"
+      summary: Streaming upload of a rendered recording
+      description: |-
+        This is a WebSocket endpoint, all the data that is sent in binary messages
+        is stored in the destination file.
+      operationId: get_upload
+      parameters:
+        - name: room_id
+          in: query
+          description: The room id
+          required: true
+          schema:
+            $ref: "#/components/schemas/RoomId"
+        - name: file_extension
+          in: query
+          description: The file extension
+          required: true
+          schema:
+            $ref: "#/components/schemas/FileExtension"
+        - name: timestamp
+          in: query
+          description: The recording creation timestamp
+          required: true
+          schema:
+            $ref: "#/components/schemas/Timestamp"
+        - name: connection
+          in: header
+          required: true
+          schema:
+            type: string
+            enum:
+              - Upgrade
+        - name: upgrade
+          in: header
+          required: true
+          schema:
+            type: string
+            enum:
+              - websocket
+      responses:
+        "200":
+          description: WebSocket connection successfully established
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
   /rooms:
     get:
       tags:
@@ -4069,6 +4318,206 @@ components:
           pattern: "^[_0-9a-z]*$"
       default: core
       example: mymodule
+    ModuleResource:
+      type: object
+      description: The representation of a module resource
+      required:
+        - id
+        - tenant_id
+        - room_id
+        - created_by
+        - created_at
+        - updated_at
+        - namespace
+        - data
+      properties:
+        created_at:
+          $ref: "#/components/schemas/Timestamp"
+          description: The creation timestamp.
+        created_by:
+          $ref: "#/components/schemas/UserId"
+          description: The id of the user who created the module resource.
+        data:
+          description: The module resource data.
+        id:
+          $ref: "#/components/schemas/ModuleResourceId"
+          description: The id of the module resource.
+        namespace:
+          $ref: "#/components/schemas/ModuleId"
+          description: The namespace of the module resource.
+        room_id:
+          $ref: "#/components/schemas/RoomId"
+          description: The id of the room to which the module resource belongs..
+        tag:
+          type:
+            - string
+            - "null"
+          description: "An optional tag for the module resource, may be used by the corresponding module."
+        tenant_id:
+          $ref: "#/components/schemas/TenantId"
+          description: The tenant to which this module resource is associated.
+        updated_at:
+          $ref: "#/components/schemas/Timestamp"
+          description: The id of the user who last updated the module resource.
+    ModuleResourceFilter:
+      type: object
+      description: |-
+        The filter for the internal module resource API
+
+        A blank filter will be declined by the module resource API
+      properties:
+        created_by:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/UserId"
+              description: Filter by creator of the resource
+        id:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/ModuleResourceId"
+              description: Filter by id
+        namespace:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/ModuleId"
+              description: Filter by namespace
+        room_id:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/RoomId"
+              description: Filter by the associated room id
+        tag:
+          type:
+            - string
+            - "null"
+          description: Filter by tag
+    ModuleResourceId:
+      type: string
+      format: uuid
+      description: The id of a module resource
+    ModuleResourceOperation:
+      oneOf:
+        - type: object
+          description: Json patch *add* operation.
+          required:
+            - path
+            - value
+            - op
+          properties:
+            op:
+              type: string
+              enum:
+                - add
+            path:
+              type: string
+              description: The path where the value is added.
+            value:
+              description: The value that is added.
+        - type: object
+          description: Json patch *remove* operation.
+          required:
+            - path
+            - op
+          properties:
+            op:
+              type: string
+              enum:
+                - remove
+            path:
+              type: string
+              description: The path from where the value is removed.
+        - type: object
+          description: Json patch *replace* operation.
+          required:
+            - path
+            - value
+            - op
+          properties:
+            op:
+              type: string
+              enum:
+                - replace
+            path:
+              type: string
+              description: The path where the value is replaced.
+            value:
+              description: The value by which the existing value is replaced.
+        - type: object
+          description: Json patch *move* operation.
+          required:
+            - from
+            - path
+            - op
+          properties:
+            from:
+              type: string
+              description: The location from which the value is moved.
+            op:
+              type: string
+              enum:
+                - move
+            path:
+              type: string
+              description: The location to which the value is moved.
+        - type: object
+          description: Json patch *copy* operation.
+          required:
+            - from
+            - path
+            - op
+          properties:
+            from:
+              type: string
+              description: The location from which the value is copied.
+            op:
+              type: string
+              enum:
+                - copy
+            path:
+              type: string
+              description: The location to which the value is copied.
+        - type: object
+          description: Json patch *test* operation.
+          required:
+            - path
+            - value
+            - op
+          properties:
+            op:
+              type: string
+              enum:
+                - test
+            path:
+              type: string
+              description: The path of the value that is compared.
+            value:
+              description: The value with which to compare the specified location.
+      description: "json patch operations based on [RFC6902](https://www.rfc-editor.org/rfc/rfc6902#section-4)"
+    NewModuleResource:
+      type: object
+      description: Type to create a new module resource
+      required:
+        - created_by
+        - room_id
+        - namespace
+        - data
+      properties:
+        created_by:
+          $ref: "#/components/schemas/UserId"
+          description: The id of the user who creates the module resource.
+        data:
+          description: The module resource data.
+        namespace:
+          $ref: "#/components/schemas/ModuleId"
+          description: The namespace of the module resource.
+        room_id:
+          $ref: "#/components/schemas/RoomId"
+          description: The room of the resource
+        tag:
+          type:
+            - string
+            - "null"
+          description: "An optional tag for the module resource, may be used by the corresponding module."
     NumericId:
       type: string
       description: A string containing number characters
@@ -4345,6 +4794,21 @@ components:
       example:
         display_name: Alice Adams
         language: en
+    PatchModuleResourceBody:
+      type: object
+      description: The json body for a patch request
+      required:
+        - filter
+        - patch_operations
+      properties:
+        filter:
+          $ref: "#/components/schemas/ModuleResourceFilter"
+          description: Filter affected resources
+        patch_operations:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModuleResourceOperation"
+          description: Json patch operations that will be applied to affected resources
     PatchRoomStreamingTargetRequestBody:
       allOf:
         - oneOf:
@@ -4400,13 +4864,17 @@ components:
         quota:
           $ref: "#/components/schemas/Quota"
           description: The total and used quota in bytes
-    PostCallInStartRequestBody:
+    PostCallInStartRoomServerRequestBody:
       type: object
       description: "Body for the `POST /services/call_in/start` endpoint"
       required:
         - id
         - pin
+        - display_name
       properties:
+        display_name:
+          $ref: "#/components/schemas/DisplayName"
+          description: "The caller's display name, as defined by the call-in service."
         id:
           $ref: "#/components/schemas/CallInId"
           description: The call-in ID
@@ -4556,20 +5024,6 @@ components:
         logout_token:
           $ref: "#/components/schemas/LogoutToken"
           description: Logout token identifying the end user to be logged out
-    PostRecordingStartRequestBody:
-      type: object
-      description: "Request for the `POST /services/recording/start` endpoint"
-      required:
-        - room_id
-      properties:
-        breakout_room:
-          oneOf:
-            - type: "null"
-            - $ref: "#/components/schemas/BreakoutRoomId"
-              description: The optional breakout room id
-        room_id:
-          $ref: "#/components/schemas/RoomId"
-          description: The room id
     PostRoomStreamingTargetRequestBody:
       $ref: "#/components/schemas/StreamingTarget"
       description: "The body of a *POST /rooms/{room_id}/streaming_targets* request"
@@ -4632,19 +5086,6 @@ components:
       example:
         breakout_room: 00000000-0000-0000-0000-00000badcafe
         resumption: 654321zyxwvutsrqponmlkjihgfedcba654321zyxwvutsrqponmlkjihgfedcba
-    PostServiceStartResponseBody:
-      type: object
-      description: "Response body for `POST /**/**/start` endpoints"
-      required:
-        - ticket
-        - resumption
-      properties:
-        resumption:
-          $ref: "#/components/schemas/ResumptionToken"
-          description: The resumption token
-        ticket:
-          $ref: "#/components/schemas/TicketToken"
-          description: The ticket token
     PrivateUserProfile:
       type: object
       description: |-
@@ -4802,6 +5243,29 @@ components:
           format: int64
           description: The used quota
           minimum: 0
+    RecordingTarget:
+      type: object
+      description: |-
+        Common Request Body used by
+
+        - controller for the `POST /internal/services/recording/start`
+        - recorder for the `POST /v1/init`
+      required:
+        - room_id
+      properties:
+        breakout_room:
+          type:
+            - integer
+            - "null"
+          format: int32
+          description: |-
+            The optional breakout room id in which the recording was requested
+
+            This is the internal equivalent to opentalk-roomserver-types's `BreakoutId`
+          minimum: 0
+        room_id:
+          $ref: "#/components/schemas/RoomId"
+          description: The room id which shall be recorded
     RecurrencePattern:
       type: array
       items:
@@ -4939,6 +5403,22 @@ components:
       example:
         resumption: 654321zyxwvutsrqponmlkjihgfedcba654321zyxwvutsrqponmlkjihgfedcba
         ticket: abcdefghijklmnopqrstuvwxyz123456abcdefghijklmnopqrstuvwxyz123456
+    RoomserverStartResponseBody:
+      type: object
+      description: The JSON body returned from the roomserver start endpoint
+      required:
+        - token
+        - roomserver_address
+      properties:
+        roomserver_address:
+          type: string
+          description: The address of the roomserver
+        token:
+          $ref: "#/components/schemas/Token"
+          description: The token to start a signaling session with the roomserver
+      example:
+        roomserver_address: "http://0.0.0.0:9000"
+        token: 00000000-0000-0000-0000-0000abadcafe
     SharedFolder:
       type: object
       description: |-
@@ -5214,6 +5694,10 @@ components:
         - default
         - paid
         - downgraded
+    TenantId:
+      type: string
+      format: uuid
+      description: The id of a tenant
     Theme:
       type: string
       enum:
@@ -5274,6 +5758,11 @@ components:
         A UTC DateTime wrapper that implements ToRedisArgs and FromRedisValue.
 
         The values are stores as unix timestamps in redis.
+    Token:
+      type: string
+      format: uuid
+      description: The token that is required to start a roomserver signaling session
+      example: 00000000-0000-0000-0000-0000abadcafe
     TrainingParticipationReportParameterSet:
       type: object
       description: The parameters for a training participant report checkpoint procedure.
@@ -5535,3 +6024,7 @@ tags:
     description: Endpoints related to user information and management
   - name: "api::signaling"
     description: Endpoints for signaling connections in a meeting
+  - name: "api::internal::recording"
+    description: Internal Endpoints for recording services
+  - name: "api::internal::call_in"
+    description: Internal Endpoints for call-in services

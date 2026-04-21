@@ -618,6 +618,14 @@ impl Controller {
             name = "api::signaling",
             description = "Endpoints for signaling connections in a meeting"
         ),
+        (
+            name = "api::internal::recording",
+            description = "Internal Endpoints for recording services"
+        ),
+        (
+            name = "api::internal::call_in",
+            description = "Internal Endpoints for call-in services"
+        ),
     ),
     paths(
         v1::rooms::by_id::assets::by_id::get,
@@ -664,7 +672,6 @@ impl Controller {
         v1::rooms::by_id::tariff::get,
         v1::rooms::post,
         v1::rooms::by_id::patch,
-        api::internal::assets::post_asset,
         v1::rooms::by_id::sip::delete,
         v1::rooms::by_id::sip::get,
         v1::rooms::by_id::sip::put,
@@ -680,6 +687,14 @@ impl Controller {
         v1::users::me::tariff::get,
         v1::users::by_id::get,
         v1::users::me::patch,
+        api::internal::assets::post_asset,
+        api::internal::recording::post_start,
+        api::internal::recording::get_upload,
+        api::internal::call_in::post,
+        api::internal::module_resources::create,
+        api::internal::module_resources::get,
+        api::internal::module_resources::patch,
+        api::internal::module_resources::delete,
     ),
     components(
         schemas(
@@ -745,9 +760,6 @@ impl Controller {
             opentalk_types_api_v1::rooms::by_room_id::streaming_targets::PostRoomStreamingTargetRequestBody,
             opentalk_types_api_v1::rooms::by_room_id::streaming_targets::PostRoomStreamingTargetResponseBody,
             opentalk_types_api_v1::rooms::streaming_targets::UpdateStreamingTargetKind,
-            opentalk_types_api_v1::services::PostServiceStartResponseBody,
-            opentalk_types_api_v1::services::call_in::PostCallInStartRequestBody,
-            opentalk_types_api_v1::services::recording::PostRecordingStartRequestBody,
             opentalk_types_api_v1::users::GetEventInvitesPendingResponseBody,
             opentalk_types_api_v1::users::GetFindResponseBody,
             opentalk_types_api_v1::users::GetFindResponseEntry,
@@ -811,6 +823,8 @@ impl Controller {
             opentalk_types_common::pagination::ItemCount,
             opentalk_types_common::pagination::PageSize,
             opentalk_types_common::pagination::Page,
+            opentalk_types_api_internal::recording::RecordingTarget,
+            opentalk_types_api_internal::call_in::PostCallInStartRoomServerRequestBody,
         ),
         responses(
             crate::api::responses::BadRequest,
