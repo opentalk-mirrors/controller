@@ -55,9 +55,7 @@ pub async fn post(
     service: Data<dyn OpenTalkControllerService>,
     request: Json<PostCallInStartRoomServerRequestBody>,
 ) -> Result<Json<RoomserverStartResponseBody>, ApiError> {
-    let response = service
-        .start_call_in_roomserver(request.into_inner())
-        .await?;
+    let response = service.start_call_in(request.into_inner()).await?;
 
     Ok(Json(response))
 }

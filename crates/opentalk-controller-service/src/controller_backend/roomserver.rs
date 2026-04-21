@@ -44,7 +44,7 @@ use crate::{ControllerBackend, email_to_libravatar_url, helpers::get_user_timezo
 
 impl ControllerBackend {
     #[tracing::instrument(level = "debug", skip(self, user, request), fields(user_id = %user.id))]
-    pub(crate) async fn roomserver_start_room(
+    pub(crate) async fn start_room(
         &self,
         user: RequestUser,
         room_id: RoomId,
@@ -80,9 +80,7 @@ impl ControllerBackend {
             role,
         };
 
-        let access = self
-            .request_roomserver_access(room, client_parameters)
-            .await?;
+        let access = self.request_access(room, client_parameters).await?;
 
         Ok(RoomserverStartResponseBody {
             token: access.token,
@@ -91,7 +89,7 @@ impl ControllerBackend {
     }
 
     #[tracing::instrument(level = "debug", skip(self, request))]
-    pub(crate) async fn roomserver_start_room_invited(
+    pub(crate) async fn start_room_invited(
         &self,
         room_id: RoomId,
         request: PostRoomsRoomserverStartInvitedRequestBody,
@@ -111,7 +109,7 @@ impl ControllerBackend {
         };
 
         let access = self
-            .request_roomserver_access(room_resource, client_parameters)
+            .request_access(room_resource, client_parameters)
             .await?;
 
         Ok(RoomserverStartResponseBody {
@@ -145,7 +143,7 @@ impl ControllerBackend {
         }
     }
 
-    pub(crate) async fn request_roomserver_access(
+    pub(crate) async fn request_access(
         &self,
         room: RoomResource,
         client_parameters: ClientParameters,

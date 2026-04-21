@@ -60,7 +60,7 @@ impl ControllerBackend {
         };
 
         let access = self
-            .request_roomserver_access(room_resource, client_parameters)
+            .request_access(room_resource, client_parameters)
             .await?;
 
         Ok(RoomserverStartResponseBody {

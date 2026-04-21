@@ -149,7 +149,7 @@ pub trait OpenTalkControllerService: Send + Sync {
     ) -> Result<GetRoomEventResponseBody, ApiError>;
 
     /// Start a roomserver signaling session as a registered user
-    async fn start_roomserver_room_session(
+    async fn start_room_session(
         &self,
         current_user: RequestUser,
         room_id: RoomId,
@@ -157,20 +157,20 @@ pub trait OpenTalkControllerService: Send + Sync {
     ) -> Result<RoomserverStartResponseBody, ApiError>;
 
     /// Start a roomserver signaling session for an invitation code
-    async fn start_invited_roomserver_room_session(
+    async fn start_invited_room_session(
         &self,
         room_id: RoomId,
         request: PostRoomsRoomserverStartInvitedRequestBody,
     ) -> Result<RoomserverStartResponseBody, ApiError>;
 
     /// Starts a signaling session for recording
-    async fn start_recording_roomserver(
+    async fn start_recording(
         &self,
         body: RecordingTarget,
     ) -> Result<RoomserverStartResponseBody, ApiError>;
 
     /// Starts a signaling session for call-in
-    async fn start_call_in_roomserver(
+    async fn start_call_in(
         &self,
         request: PostCallInStartRoomServerRequestBody,
     ) -> Result<RoomserverStartResponseBody, ApiError>;
