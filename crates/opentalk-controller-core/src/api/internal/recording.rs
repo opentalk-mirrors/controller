@@ -19,17 +19,29 @@ use opentalk_types_api_internal::recording::RecordingTarget;
 use opentalk_types_api_v1::{
     error::{ApiError, ErrorBody},
     rooms::by_room_id::RoomserverStartResponseBody,
-    services::{
-        PostServiceStartResponseBody,
-        recording::{GetRecordingUploadQuery, PostRecordingStartRequestBody},
-    },
+    services::recording::GetRecordingUploadQuery,
 };
 use tokio::{sync::mpsc, task};
 
 use crate::api::{
+    headers::{ConnectionUpgrade, WebsocketUpgrade},
     upload::{MAXIMUM_WEBSOCKET_BUFFER_SIZE, UploadWebSocketActor},
-    v1::services::recording::RecordingUploadWebSocketHeaders,
 };
+
+/// This is a dummy type to define the structure of the headers required for
+/// upgrading a request to a recording upload websocket connection.
+#[derive(utoipa::IntoParams)]
+#[into_params(
+    parameter_in = Header,
+)]
+#[allow(dead_code)]
+pub(crate) struct RecordingUploadWebSocketHeaders {
+    #[param(inline, required = true)]
+    pub connection: ConnectionUpgrade,
+
+    #[param(inline, required = true)]
+    pub upgrade: WebsocketUpgrade,
+}
 
 /// Starts a signaling session for recording
 ///
@@ -38,7 +50,7 @@ use crate::api::{
 /// for creating a recording or livestream of the meeting.
 #[utoipa::path(
     context_path = "/recording",
-    request_body = PostRecordingStartRequestBody,
+    request_body = RecordingTarget,
     operation_id = "start_recording_roomserver",
     responses(
         (
@@ -46,7 +58,7 @@ use crate::api::{
             description = "The recording participant has successfully \
                 authenticated for the room. Information needed for connecting to the signaling \
                 is contained in the response",
-            body = PostServiceStartResponseBody,
+            body = RoomserverStartResponseBody,
         ),
         (
             status = StatusCode::UNAUTHORIZED,

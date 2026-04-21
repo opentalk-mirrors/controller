@@ -14,7 +14,6 @@ use opentalk_types_api_internal::call_in::PostCallInStartRoomServerRequestBody;
 use opentalk_types_api_v1::{
     error::{ApiError, ErrorBody},
     rooms::by_room_id::RoomserverStartResponseBody,
-    services::call_in::PostCallInStartRequestBody,
 };
 
 /// Starts a signaling session for call-in on the roomserver
@@ -24,7 +23,7 @@ use opentalk_types_api_v1::{
 /// credentials (id and pin) via DTMF (the number pad).
 #[utoipa::path(
     context_path = "/call_in",
-    request_body = PostCallInStartRequestBody,
+    request_body = PostCallInStartRoomServerRequestBody,
     responses(
         (
             status = StatusCode::OK,

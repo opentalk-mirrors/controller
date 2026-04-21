@@ -57,10 +57,6 @@ use opentalk_types_api_v1::{
             },
         },
     },
-    services::{
-        PostServiceStartResponseBody, call_in::PostCallInStartRequestBody,
-        recording::PostRecordingStartRequestBody,
-    },
     users::{
         GetEventInvitesPendingResponseBody, GetFindQuery, GetFindResponseBody,
         GetUserAssetsResponseBody, PrivateUserProfile, PublicUserProfile, me::PatchMeRequestBody,
@@ -165,22 +161,10 @@ pub trait OpenTalkControllerService: Send + Sync {
     ) -> Result<RoomserverStartResponseBody, ApiError>;
 
     /// Starts a signaling session for recording
-    async fn start_recording(
-        &self,
-        body: PostRecordingStartRequestBody,
-    ) -> Result<PostServiceStartResponseBody, ApiError>;
-
-    /// Starts a signaling session for recording
     async fn start_recording_roomserver(
         &self,
         body: RecordingTarget,
     ) -> Result<RoomserverStartResponseBody, ApiError>;
-
-    /// Starts a signaling session for call-in
-    async fn start_call_in(
-        &self,
-        request: PostCallInStartRequestBody,
-    ) -> Result<PostServiceStartResponseBody, ApiError>;
 
     /// Starts a signaling session for call-in
     async fn start_call_in_roomserver(

@@ -7,12 +7,11 @@ use std::str::FromStr;
 use opentalk_controller_utils::{CaptureApiError, TariffResourceExt as _};
 use opentalk_inventory::{Room, User};
 use opentalk_roomserver_types::client_parameters::{ClientKind, ClientParameters, Role};
-use opentalk_signaling_core::Participant;
 use opentalk_types_api_internal::call_in::PostCallInStartRoomServerRequestBody;
 use opentalk_types_api_v1::{
     error::ApiError,
     rooms::{RoomResource, by_room_id::RoomserverStartResponseBody},
-    services::{PostServiceStartResponseBody, call_in::PostCallInStartRequestBody},
+    services::call_in::PostCallInStartRequestBody,
 };
 use opentalk_types_common::{
     features,
@@ -20,9 +19,7 @@ use opentalk_types_common::{
 };
 use rand::RngExt;
 
-use crate::{
-    ControllerBackend, ToUserProfile, signaling::ticket::start_or_continue_signaling_session,
-};
+use crate::{ControllerBackend, ToUserProfile};
 
 impl ControllerBackend {
     async fn check_call_in_request(
@@ -54,25 +51,7 @@ impl ControllerBackend {
         Ok((room, creator))
     }
 
-    pub(crate) async fn start_call_in(
-        &self,
-        request: PostCallInStartRequestBody,
-    ) -> Result<PostServiceStartResponseBody, CaptureApiError> {
-        let (room, _creator) = self.check_call_in_request(request).await?;
-
-        let (ticket, resumption) = start_or_continue_signaling_session(
-            &mut self.volatile.clone(),
-            Participant::Sip,
-            room.id,
-            None,
-            None,
-        )
-        .await?;
-
-        Ok(PostServiceStartResponseBody { ticket, resumption })
-    }
-
-    pub(crate) async fn start_call_in_roomserver(
+    pub(crate) async fn start_call_in_roomserver_impl(
         &self,
         request: PostCallInStartRoomServerRequestBody,
     ) -> Result<RoomserverStartResponseBody, CaptureApiError> {

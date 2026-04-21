@@ -2,6 +2,5 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! API endpoints under `v1/services`
-
-pub mod call_in;
+mod call_in;
+mod recording;
