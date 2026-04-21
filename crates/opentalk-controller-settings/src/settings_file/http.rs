@@ -23,4 +23,7 @@ pub struct Http {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub service_api_keys: Option<ApiKeys>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub upload_size_limit: Option<usize>,
 }

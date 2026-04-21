@@ -96,6 +96,8 @@ impl ControllerBackend {
         namespace: Option<ModuleId>,
         data: Box<dyn Stream<Item = Result<Bytes, ObjectStorageError>> + Unpin>,
     ) -> Result<(AssetResource, AssetSaved), CaptureApiError> {
+        let settings = self.settings_provider.get();
+
         let res = save_asset(
             &self.storage.clone(),
             self.inventory_provider.as_ref(),
@@ -105,6 +107,7 @@ impl ControllerBackend {
             filename,
             data,
             ChunkFormat::Data,
+            Some(settings.http.upload_size_limit),
         )
         .await;
 
