@@ -28,7 +28,10 @@ use futures_core::Stream;
 pub use invite::*;
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{
-    events::{EventId, invites::EventInviteStatus},
+    events::{
+        EventId,
+        invites::{EventInviteStatus, InviteRole},
+    },
     rooms::RoomId,
     training_participation_report::TrainingParticipationReportParameterSet,
     users::UserId,
@@ -186,11 +189,16 @@ pub async fn get_all_events_updated_by_user(
 
 pub async fn get_all_events_with_invitee(
     conn: &mut DbConnection,
-) -> Result<Vec<(EventId, RoomId, UserId)>> {
+) -> Result<Vec<(EventId, RoomId, UserId, InviteRole)>> {
     events::table
         .inner_join(users::table.on(users::id.eq(events::created_by)))
         .inner_join(event_invites::table.on(event_invites::event_id.eq(events::id)))
-        .select((events::id, events::room, event_invites::invitee))
+        .select((
+            events::id,
+            events::room,
+            event_invites::invitee,
+            event_invites::role,
+        ))
         .filter(users::disabled_since.is_null())
         .load(conn)
         .await
