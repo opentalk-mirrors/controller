@@ -26,6 +26,9 @@ pub enum Error {
     /// The requested entity was not found.
     NotFound,
 
+    /// A database constraint was violated.
+    ConstraintViolation,
+
     /// A custom error with just a message.
     #[snafu(whatever, display("{message}"))]
     Custom {
@@ -45,6 +48,14 @@ impl Error {
     #[must_use]
     pub fn is_not_found(&self) -> bool {
         matches!(self, Self::NotFound)
+    }
+
+    /// Returns `true` if the error is [`ConstraintViolation`].
+    ///
+    /// [`ConstraintViolation`]: Error::ConstraintViolation
+    #[must_use]
+    pub fn is_constraint_violation(&self) -> bool {
+        matches!(self, Self::ConstraintViolation)
     }
 }
 

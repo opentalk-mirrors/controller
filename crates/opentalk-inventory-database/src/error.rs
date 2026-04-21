@@ -27,6 +27,16 @@ impl Error {
             }
         )
     }
+
+    pub fn is_check_violation(&self) -> bool {
+        matches!(
+            self,
+            Error::Database {
+                source,
+                ..
+            } if source.is_check_violation()
+        )
+    }
 }
 
 impl From<Error> for InventoryBackendError {
@@ -40,6 +50,9 @@ impl From<Error> for opentalk_inventory::Error {
     fn from(e: Error) -> Self {
         if e.is_not_found() {
             return Self::NotFound;
+        }
+        if e.is_check_violation() {
+            return Self::ConstraintViolation;
         }
         Self::InventoryBackend {
             source: InventoryBackendError::from(e),

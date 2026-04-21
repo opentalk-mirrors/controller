@@ -53,6 +53,19 @@ impl DatabaseError {
     pub fn is_not_found(&self) -> bool {
         matches!(self, Self::NotFound)
     }
+    /// Returns `true` if a database check has been violated
+    #[must_use]
+    pub fn is_check_violation(&self) -> bool {
+        matches!(
+            self,
+            Self::DieselError {
+                source: diesel::result::Error::DatabaseError(
+                    diesel::result::DatabaseErrorKind::CheckViolation,
+                    _
+                )
+            }
+        )
+    }
 }
 
 impl From<diesel::result::Error> for DatabaseError {
