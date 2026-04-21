@@ -8,6 +8,8 @@ use clap::Subcommand;
 
 use crate::Result;
 
+mod acl;
+mod fix_acl;
 mod health;
 mod jobs;
 mod migrate_db;
@@ -51,6 +53,16 @@ pub enum Command {
     /// Triggers a reload of reloadable configuration options for already
     /// running opentalk-controller processes
     Reload(reload::Command),
+
+    /// The `fix-acl` is no longer in use, but we still want to tell the users
+    /// who were trained to use it that it is no longer necessary.
+    #[clap(hide = true)]
+    FixAcl(fix_acl::Command),
+
+    /// The `acl` is no longer in use, but we still want to tell the users
+    /// who are attempting to use it.
+    #[clap(hide = true)]
+    Acl(acl::Command),
 }
 
 impl Command {
@@ -79,6 +91,12 @@ impl Command {
             }
             Command::Reload(command) => {
                 command.exec()?;
+            }
+            Command::FixAcl(command) => {
+                command.exec();
+            }
+            Command::Acl(command) => {
+                command.exec();
             }
         }
         Ok(())
