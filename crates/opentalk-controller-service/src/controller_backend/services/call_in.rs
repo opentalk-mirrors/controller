@@ -89,8 +89,15 @@ impl ControllerBackend {
             role: Role::User,
         };
 
+        let mut inventory = self.inventory_provider.get_inventory().await?;
         let access = self
-            .request_access(room_resource, client_parameters)
+            .roomserver
+            .request_access(
+                inventory.as_mut(),
+                settings,
+                room_resource,
+                client_parameters,
+            )
             .await?;
 
         Ok(RoomserverStartResponseBody {

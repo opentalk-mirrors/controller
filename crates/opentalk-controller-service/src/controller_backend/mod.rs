@@ -10,7 +10,7 @@ mod invites;
 mod module_resources;
 pub mod rooms;
 
-mod roomserver;
+pub mod roomserver;
 mod services;
 mod sip_configs;
 mod streaming_targets;
@@ -34,7 +34,6 @@ use opentalk_controller_service_facade::{
 use opentalk_controller_settings::SettingsProvider;
 use opentalk_inventory::InventoryProvider;
 use opentalk_keycloak_admin::KeycloakAdminClient;
-use opentalk_roomserver_client::Client as RoomServerClient;
 use opentalk_signaling_core::{
     ObjectStorage, ObjectStorageError, StorageNotifier,
     assets::{AssetSaved, ByStreamExt, NewAssetFileName, asset_key},
@@ -107,6 +106,7 @@ pub use crate::controller_backend::events::shared_folder::{
     delete_shared_folders, put_shared_folder,
 };
 use crate::{
+    controller_backend::roomserver::RoomServerBackend,
     oidc::{Cache, OidcTokenHandler},
     services::MailService,
 };
@@ -123,7 +123,7 @@ pub struct ControllerBackend {
     mail_service: Arc<Option<MailService>>,
     user_search_client: Arc<Option<KeycloakAdminClient>>,
     module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
-    roomserver_client: RoomServerClient,
+    roomserver: Arc<dyn RoomServerBackend + Send + Sync>,
 }
 
 impl ControllerBackend {
@@ -140,7 +140,7 @@ impl ControllerBackend {
         mail_service: Arc<Option<MailService>>,
         user_search_client: Arc<Option<KeycloakAdminClient>>,
         module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
-        roomserver_client: RoomServerClient,
+        roomserver: Arc<dyn RoomServerBackend + Send + Sync>,
     ) -> Self {
         Self {
             settings_provider,
@@ -153,7 +153,7 @@ impl ControllerBackend {
             mail_service,
             user_search_client,
             module_features,
-            roomserver_client,
+            roomserver,
         }
     }
 }
