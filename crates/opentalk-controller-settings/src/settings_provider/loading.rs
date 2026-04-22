@@ -28,7 +28,7 @@ impl SettingsProvider {
             )
             .build()?;
 
-        let mut warn_unknown_key = Self::warn_unknown_key;
+        let mut warn_unknown_key = Self::warn_unused_key;
         let ignored_deserializer = serde_ignored::Deserializer::new(config, &mut warn_unknown_key);
         let settings_raw: SettingsRaw = serde_path_to_error::deserialize(ignored_deserializer)
             .context(DeserializeConfigSnafu {
@@ -39,41 +39,42 @@ impl SettingsProvider {
         Ok(settings_raw)
     }
 
-    fn warn_unknown_key(path: serde_ignored::Path) {
+    fn warn_unused_key(path: serde_ignored::Path) {
         use owo_colors::OwoColorize as _;
 
         let path = path.to_string();
-        if path == "reports" {
-            anstream::eprintln!(
-                "{}: Found an obsolete {reports} configuration section.\n\
+        match path.as_str() {
+            "reports" => {
+                anstream::eprintln!(
+                    "{}: Found an obsolete {reports} configuration section.\n\
                      {}: This section is deprecated and will be reintroduced in a different form in the future.",
-                "DEPRECATION WARNING".yellow().bold(),
-                "NOTE".green(),
-                reports = "reports".bold(),
-            );
-            return;
+                    "DEPRECATION WARNING".yellow().bold(),
+                    "NOTE".green(),
+                    reports = "reports".bold(),
+                );
+            }
+            "room_server" => {
+                anstream::eprintln!(
+                    "{}: Found an obsolete {room_server} (janus) configuration section.\n\
+                 {}: This section is no longer needed, please remove it and add a {livekit} section instead.",
+                    "DEPRECATION WARNING".yellow().bold(),
+                    "NOTE".green(),
+                    room_server = "room_server".bold(),
+                    livekit = "livekit".bold(),
+                );
+            }
+            _ => {
+                anstream::eprintln!(
+                    "{}: Unknown configuration key {}",
+                    "WARNING".yellow().bold(),
+                    path.bold(),
+                );
+            }
         }
-
-        anstream::eprintln!(
-            "{}: Unknown configuration key {}",
-            "WARNING".yellow().bold(),
-            path.bold(),
-        );
     }
 
     fn warn_about_deprecated_items(raw: &SettingsRaw) {
         use owo_colors::OwoColorize as _;
-
-        if raw.extensions.contains_key("room_server") {
-            anstream::eprintln!(
-                "{}: Found an obsolete {room_server} (janus) configuration section.\n\
-                 {}: This section is no longer needed, please remove it and add a {livekit} section instead.",
-                "DEPRECATION WARNING".yellow().bold(),
-                "NOTE".green(),
-                room_server = "room_server".bold(),
-                livekit = "livekit".bold(),
-            );
-        }
 
         if raw.keycloak.is_some() {
             anstream::eprintln!(
