@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_types_common::{
-    rooms::{RoomId, RoomPassword},
+    rooms::{GuestAccess, RoomId, RoomPassword},
     tenants::TenantId,
     time::Timestamp,
     users::UserId,
@@ -29,6 +29,9 @@ pub struct Room {
 
     /// A flag indicating that the wating room is enabled for this room.
     pub waiting_room: bool,
+
+    /// Guest access mode for the room
+    pub guest_access: GuestAccess,
 
     /// The id of the tenant to which the roombelongs.
     pub tenant_id: TenantId,

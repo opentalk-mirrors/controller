@@ -2,7 +2,11 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_types_common::{rooms::RoomPassword, tenants::TenantId, users::UserId};
+use opentalk_types_common::{
+    rooms::{GuestAccess, RoomPassword},
+    tenants::TenantId,
+    users::UserId,
+};
 
 /// The representation of a new room that is intended to be stored in the inventory.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,6 +19,9 @@ pub struct NewRoom {
 
     /// A flag indicating whether the waiting room is active.
     pub waiting_room: bool,
+
+    /// Guest access mode for the room
+    pub guest_access: GuestAccess,
 
     /// The id of the tenant to which the room belongs.
     pub tenant_id: TenantId,

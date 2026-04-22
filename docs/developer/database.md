@@ -190,6 +190,7 @@ rooms {
     uuid tenant_id FK
     timestamp_with_time_zone created_at
     boolean e2e_encryption
+    guest_access guest_access
     bigint id_serial
     character_varying password
     boolean waiting_room

@@ -93,7 +93,7 @@ use opentalk_types_common::{
     features::FeatureId,
     modules::ModuleId,
     pagination::{ItemCount, Page, PageSize},
-    rooms::{RoomId, RoomPassword, invite_codes::InviteCode},
+    rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
     shared_folders::SharedFolder,
     streaming::StreamingTarget,
     tariffs::TariffResource,
@@ -193,6 +193,7 @@ impl OpenTalkControllerService for ControllerBackend {
         password: Option<RoomPassword>,
         enable_sip: bool,
         waiting_room: bool,
+        guest_access: Option<GuestAccess>,
         e2e_encryption: bool,
     ) -> Result<RoomResource, ApiError> {
         Ok(self
@@ -201,6 +202,7 @@ impl OpenTalkControllerService for ControllerBackend {
                 password,
                 enable_sip,
                 waiting_room,
+                guest_access,
                 e2e_encryption,
             )
             .await?)
@@ -212,6 +214,7 @@ impl OpenTalkControllerService for ControllerBackend {
         room_id: RoomId,
         password: Option<Option<RoomPassword>>,
         waiting_room: Option<bool>,
+        guest_access: Option<GuestAccess>,
         e2e_encryption: Option<bool>,
     ) -> Result<RoomResource, ApiError> {
         Ok(self
@@ -220,6 +223,7 @@ impl OpenTalkControllerService for ControllerBackend {
                 room_id,
                 password,
                 waiting_room,
+                guest_access,
                 e2e_encryption,
             )
             .await?)

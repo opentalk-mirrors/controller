@@ -314,6 +314,7 @@ diesel::table! {
         waiting_room -> Bool,
         tenant_id -> Uuid,
         e2e_encryption -> Bool,
+        guest_access -> GuestAccess,
     }
 }
 

@@ -29,6 +29,7 @@ mod test_utils {
         RoomInvite, User,
     };
     use opentalk_test_util::database::DatabaseContext;
+    use opentalk_types_common::rooms::GuestAccess;
 
     pub(super) async fn create_events_and_independent_rooms(
         db_ctx: &DatabaseContext,
@@ -57,6 +58,7 @@ mod test_utils {
                 created_by: user.id,
                 password: None,
                 waiting_room: false,
+                guest_access: GuestAccess::default(),
                 e2e_encryption: false,
                 tenant_id: user.tenant_id,
             })

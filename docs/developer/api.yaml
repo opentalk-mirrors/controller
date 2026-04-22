@@ -3375,6 +3375,7 @@ components:
             password: "9876543210"
             tel: +555-12345-67890
           e2e_encryption: false
+          guest_access: direct_access
           id: 00000000-0000-0000-0000-0000abadcafe
           password: v3rys3cr3t
           waiting_room: false
@@ -3538,6 +3539,7 @@ components:
             password: "9876543210"
             tel: +555-12345-67890
           e2e_encryption: false
+          guest_access: direct_access
           id: 00000000-0000-0000-0000-0000abadcafe
           password: v3rys3cr3t
           waiting_room: false
@@ -3712,6 +3714,7 @@ components:
             password: "9876543210"
             tel: +555-12345-67890
           e2e_encryption: false
+          guest_access: direct_access
           id: 00000000-0000-0000-0000-0000abadcafe
           password: v3rys3cr3t
           waiting_room: false
@@ -3895,6 +3898,9 @@ components:
         e2e_encryption:
           type: boolean
           description: Flag to check if the room has e2e encryption enabled
+        guest_access:
+          $ref: "#/components/schemas/GuestAccess"
+          description: Guest access mode
         id:
           $ref: "#/components/schemas/RoomId"
           description: ID of the room
@@ -3910,6 +3916,7 @@ components:
           password: "9876543210"
           tel: +555-12345-67890
         e2e_encryption: false
+        guest_access: direct_access
         id: 00000000-0000-0000-0000-0000abadcafe
         password: v3rys3cr3t
         waiting_room: false
@@ -4019,6 +4026,7 @@ components:
               password: "9876543210"
               tel: +555-12345-67890
             e2e_encryption: false
+            guest_access: direct_access
             id: 00000000-0000-0000-0000-0000abadcafe
             password: v3rys3cr3t
             waiting_room: false
@@ -4181,6 +4189,13 @@ components:
             namespace: recording
             room_id: 00000000-0000-0000-0000-0000abadcafe
             size: 98765432
+    GuestAccess:
+      type: string
+      enum:
+        - disabled
+        - waiting_room
+        - direct_access
+      example: direct_access
     InstanceId:
       type: string
       description: An event instance id
@@ -4594,6 +4609,9 @@ components:
             e2e_encryption:
               type: boolean
               description: Patch whether the event is encrypted
+            guest_access:
+              $ref: "#/components/schemas/GuestAccess"
+              description: Guest access mode
             has_shared_folder:
               type: boolean
               description: "Either add a shared folder to the event, if none existed before or delete the shared folder"
@@ -4841,6 +4859,9 @@ components:
             - boolean
             - "null"
           description: If e2e encryption is enabled
+        guest_access:
+          $ref: "#/components/schemas/GuestAccess"
+          description: Guest access mode
         password:
           oneOf:
             - type: "null"
@@ -4906,6 +4927,9 @@ components:
             e2e_encryption:
               type: boolean
               description: Should the created event be encrypted?
+            guest_access:
+              $ref: "#/components/schemas/GuestAccess"
+              description: Guest access mode
             has_shared_folder:
               type: boolean
               description: Should the created event have a shared folder?
@@ -4943,6 +4967,7 @@ components:
         ends_at:
           datetime: "2002-04-01T11:41:35Z"
           timezone: Europe/Berlin
+        guest_access: direct_access
         has_shared_folder: false
         is_adhoc: false
         is_all_day: true
@@ -5040,6 +5065,9 @@ components:
         enable_sip:
           type: boolean
           description: Enable/Disable sip for this room; defaults to false when not set
+        guest_access:
+          $ref: "#/components/schemas/GuestAccess"
+          description: Guest access mode
         password:
           oneOf:
             - type: "null"
@@ -5315,6 +5343,9 @@ components:
         created_by:
           $ref: "#/components/schemas/PublicUserProfile"
           description: "The public user profile of the room's owner"
+        guest_access:
+          $ref: "#/components/schemas/GuestAccess"
+          description: Guest access mode
         id:
           $ref: "#/components/schemas/RoomId"
           description: The ID of the room
@@ -5334,6 +5365,7 @@ components:
           id: 00000000-0000-0000-0000-0000000a11c3
           lastname: Adams
           title: ""
+        guest_access: direct_access
         id: 00000000-0000-0000-0000-000000000000
         password: v3rys3cr3t
         waiting_room: false

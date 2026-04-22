@@ -3,7 +3,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_inventory as inventory;
-use opentalk_types_common::{rooms::RoomPassword, tenants::TenantId, users::UserId};
+use opentalk_types_common::{
+    rooms::{GuestAccess, RoomPassword},
+    tenants::TenantId,
+    users::UserId,
+};
 
 use crate::schema::rooms;
 
@@ -16,6 +20,7 @@ pub struct NewRoom {
     pub created_by: UserId,
     pub password: Option<RoomPassword>,
     pub waiting_room: bool,
+    pub guest_access: GuestAccess,
     pub tenant_id: TenantId,
     pub e2e_encryption: bool,
 }
@@ -26,6 +31,7 @@ impl From<inventory::NewRoom> for NewRoom {
             created_by,
             password,
             waiting_room,
+            guest_access,
             tenant_id,
             e2e_encryption,
         }: inventory::NewRoom,
@@ -34,6 +40,7 @@ impl From<inventory::NewRoom> for NewRoom {
             created_by,
             password,
             waiting_room,
+            guest_access,
             tenant_id,
             e2e_encryption,
         }

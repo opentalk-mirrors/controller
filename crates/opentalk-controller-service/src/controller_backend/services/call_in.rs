@@ -69,6 +69,7 @@ impl ControllerBackend {
             created_by: creator.to_public_user_profile(&settings),
             created_at: room.created_at,
             password: room.password,
+            guest_access: room.guest_access,
             waiting_room: room.waiting_room,
         };
 

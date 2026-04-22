@@ -998,7 +998,7 @@ mod tests {
     };
     use opentalk_types_common::{
         events::{EventId, invites::InviteRole},
-        rooms::RoomId,
+        rooms::{GuestAccess, RoomId},
         time::{TimeZone, Timestamp},
         users::{UserId, UserInfo},
     };
@@ -1039,6 +1039,7 @@ mod tests {
                 id: RoomId::nil(),
                 password: None,
                 waiting_room: false,
+                guest_access: GuestAccess::default(),
                 e2e_encryption: false,
                 call_in: None,
             },
@@ -1099,6 +1100,7 @@ mod tests {
                     "room": {
                         "id": "00000000-0000-0000-0000-000000000000",
                         "waiting_room": false,
+                        "guest_access": "direct_access",
                         "e2e_encryption": false
                     },
                     "invitees_truncated": false,
