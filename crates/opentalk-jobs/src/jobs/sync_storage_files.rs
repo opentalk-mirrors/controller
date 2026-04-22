@@ -348,6 +348,7 @@ mod tests {
                 filename,
                 data,
                 ChunkFormat::Data,
+                None,
             )
             .await
             .unwrap();

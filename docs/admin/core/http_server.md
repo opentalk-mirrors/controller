@@ -13,12 +13,13 @@ Services provided:
 
 The section in the [configuration file](./configuration.md) is called `http`.
 
-| Field  | Type                                      | Required | Default value | Description                                                                                    |
-| ------ | ----------------------------------------- | -------- | ------------- | ---------------------------------------------------------------------------------------------- |
-| `addr` | `string`                                  | no       | -             | IP address or hostname to which to listen for incoming connections                             |
-| `port` | `uint`                                    | no       | `11311`       | TCP port number where the HTTP server can be reached                                           |
-| `tls`  | [TLS configuration](#tls-configuration)   | no       | -             | When present, the HTTP server will use TLS, when absent it will serve under a plain connection |
-| `cors` | [CORS configuration](#cors-configuration) | no       | -             | Configure the CORS headers                                                                     |
+| Field               | Type                                      | Required | Default value | Description                                                                                    |
+| ------------------- | ----------------------------------------- | -------- | ------------- | ---------------------------------------------------------------------------------------------- |
+| `addr`              | `string`                                  | no       | -             | IP address or hostname to which to listen for incoming connections                             |
+| `port`              | `uint`                                    | no       | `11311`       | TCP port number where the HTTP server can be reached                                           |
+| `upload_size_limit` | `usize`                                   | no       | `100,000,000` | The maximum size for an uploaded asset, in bytes                                               |
+| `tls`               | [TLS configuration](#tls-configuration)   | no       | -             | When present, the HTTP server will use TLS, when absent it will serve under a plain connection |
+| `cors`              | [CORS configuration](#cors-configuration) | no       | -             | Configure the CORS headers                                                                     |
 
 ### Listening address
 

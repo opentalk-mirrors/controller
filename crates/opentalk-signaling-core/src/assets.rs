@@ -152,6 +152,7 @@ pub async fn save_asset<E>(
     mut filename: NewAssetFileName,
     data: impl Stream<Item = Result<Bytes, E>> + Unpin,
     chunk_format: ChunkFormat,
+    max_size: Option<usize>,
 ) -> Result<AssetSaved>
 where
     ObjectStorageError: From<E>,
@@ -166,7 +167,7 @@ where
 
     // Upload to s3 storage
     let size: Result<i64, _> = storage
-        .put(&asset_key(&asset_id), data, chunk_format)
+        .put(&asset_key(&asset_id), data, chunk_format, max_size)
         .await
         .context(ObjectStorageSnafu)
         .and_then(|size| size.try_into().context(FileSizeSnafu));

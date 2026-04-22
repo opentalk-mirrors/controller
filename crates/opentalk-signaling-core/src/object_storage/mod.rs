@@ -33,6 +33,10 @@ const CHUNK_SIZE: usize = 5_242_880; // 5 MebiByte (minimum for aws s3)
 
 #[derive(Debug, Snafu)]
 pub enum ObjectStorageError {
+    #[snafu(display("Object size exceeded configured maximum ({max_size} bytes)"))]
+    SizeLimitExceeded {
+        max_size: usize,
+    },
     #[snafu(display("{message}: {source}"))]
     InvalidSettings {
         message: String,
@@ -280,6 +284,7 @@ impl ObjectStorage {
         key: &str,
         data: impl Stream<Item = Result<Bytes, E>> + Unpin,
         chunk_format: ChunkFormat,
+        max_size: Option<usize>,
     ) -> Result<usize>
     where
         ObjectStorageError: From<E>,
@@ -287,7 +292,7 @@ impl ObjectStorage {
         let mut multipart_context = None;
 
         let res = self
-            .put_inner(key, data, &mut multipart_context, chunk_format)
+            .put_inner(key, data, &mut multipart_context, chunk_format, max_size)
             .await;
 
         // complete or abort the multipart upload if the context exists
@@ -358,6 +363,7 @@ impl ObjectStorage {
         mut data: impl Stream<Item = Result<Bytes, E>> + Unpin,
         multipart_context: &mut Option<MultipartUploadContext>,
         chunk_format: ChunkFormat,
+        max_size: Option<usize>,
     ) -> Result<usize>
     where
         ObjectStorageError: From<E>,
@@ -385,6 +391,12 @@ impl ObjectStorage {
             };
 
             file_size += buf.len();
+
+            if let Some(max_size) = max_size
+                && file_size > max_size
+            {
+                return Err(ObjectStorageError::SizeLimitExceeded { max_size });
+            }
 
             // Check if there is only one chunk to send
             // Skip multipart API and put object directly

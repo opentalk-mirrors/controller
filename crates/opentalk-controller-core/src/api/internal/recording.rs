@@ -158,6 +158,7 @@ pub(crate) async fn get_upload(
                 filename,
                 receiver_stream,
                 ChunkFormat::SequenceNumberAndData,
+                None,
             )
             .await;
 

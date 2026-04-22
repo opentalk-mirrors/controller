@@ -96,8 +96,17 @@ impl From<StartRoomError> for CaptureApiError {
 
 impl From<ObjectStorageError> for CaptureApiError {
     fn from(value: ObjectStorageError) -> Self {
-        log::error!("REST API threw internal error from object storage error: {value}");
-        CaptureApiError(ApiError::internal())
+        match value {
+            ObjectStorageError::SizeLimitExceeded { max_size } => {
+                CaptureApiError(ApiError::bad_request().with_message(format!(
+                    "Asset size exceeded the configured limit ({max_size} bytes)"
+                )))
+            }
+            other => {
+                log::error!("REST API threw internal error from object storage error: {other}");
+                CaptureApiError(ApiError::internal())
+            }
+        }
     }
 }
 

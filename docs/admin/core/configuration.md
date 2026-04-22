@@ -174,6 +174,9 @@ url = "postgres://postgres:password123@localhost:5432/opentalk"
 # When a roomserver is configured, this setting is mandatory.
 service_api_keys = [{ "id" = "controller", "secret" = "secret" }]
 
+# The maximum size for an uploaded asset, in bytes (defauls to 100,000,000)
+#upload_size_limit = 100_000_000
+
 # Settings for the CORS headers.
 #[http.cors]
 #
