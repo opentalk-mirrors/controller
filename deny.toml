@@ -145,6 +145,26 @@ ignore = [
   # no updated version which matches the compatible range is available, so we have to wait until the dependency
   # tree of actix-web becomes compatible / updated.
   "RUSTSEC-2026-0099",
+
+  # rustls-webpki
+  #
+  # | rustls-webpki 0.101.7 registry+https://github.com/rust-lang/crates.io-index
+  # |
+  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0099
+  # | Permitted subtree name constraints for DNS names were accepted for certificates asserting a wildcard name.
+  # |
+  # | This was incorrect because, given a name constraint of `accept.example.com`, `*.example.com` could feasibly allow a name of `reject.example.com` which is outside the constraint.
+  # | This is very similar to [CVE-2025-61727](https://go.dev/issue/76442).
+  # |
+  # | Since name constraints are restrictions on otherwise properly-issued certificates, this bug is reachable only after signature verification and requires misissuance to exploit.
+  # |
+  # | This vulnerability is identified as [GHSA-xgp8-3hg3-c2mh](https://github.com/rustls/webpki/security/advisories/GHSA-xgp8-3hg3-c2mh). Thank you to @1seal for the report.
+  # | Solution: Upgrade to >=0.103.12, <0.104.0-alpha.1 OR >=0.104.0-alpha.6 (try `cargo update -p rustls-webpki`)
+  #
+  # This version of the rustls-webpki crate is pulled in as a transitive dependency of actix-web, and so far
+  # no updated version which matches the compatible range is available, so we have to wait until the dependency
+  # tree of actix-web becomes compatible / updated.
+  "RUSTSEC-2026-0104",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
