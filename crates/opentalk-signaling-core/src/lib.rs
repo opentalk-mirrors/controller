@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-mod any_stream;
 mod exchange_task;
 mod expiring_data;
 mod expiring_data_hash_map;
@@ -13,7 +12,6 @@ mod storage_notifier;
 
 pub mod assets;
 
-pub use any_stream::{AnyStream, any_stream};
 pub use exchange_task::{Error as ExchangeError, ExchangeHandle, ExchangeTask, SubscriberHandle};
 pub use expiring_data::ExpiringData;
 pub use expiring_data_hash_map::ExpiringDataHashMap;
