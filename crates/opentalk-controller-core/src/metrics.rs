@@ -10,7 +10,7 @@ use itertools::Itertools as _;
 use opentalk_controller_service::metrics::EndpointMetrics;
 use opentalk_controller_settings::SettingsProvider;
 use opentalk_database::DatabaseMetrics;
-use opentalk_signaling_core::{RedisMetrics, SignalingMetrics};
+use opentalk_signaling_core::RedisMetrics;
 use opentelemetry::{global, otel_error};
 use opentelemetry_sdk::metrics::{MetricError, SdkMeterProvider};
 use prometheus::{Encoder, Registry, TextEncoder};
@@ -28,7 +28,6 @@ pub struct MetricViewError {
 pub struct CombinedMetrics {
     registry: Registry,
     pub(super) endpoint: Arc<EndpointMetrics>,
-    pub(super) signaling: Arc<SignalingMetrics>,
     pub(super) database: Arc<DatabaseMetrics>,
     pub(super) redis: Arc<RedisMetrics>,
 }
@@ -42,7 +41,6 @@ impl CombinedMetrics {
 
         let provider_builder = SdkMeterProvider::builder().with_reader(exporter);
         let provider_builder = EndpointMetrics::append_views(provider_builder)?;
-        let provider_builder = SignalingMetrics::append_views(provider_builder)?;
         let provider_builder = DatabaseMetrics::append_views(provider_builder)?;
         let provider_builder = RedisMetrics::append_views(provider_builder)?;
 
@@ -50,14 +48,12 @@ impl CombinedMetrics {
         let meter = global::meter("ot-controller");
 
         let endpoint = Arc::new(EndpointMetrics::new(&meter));
-        let signaling = Arc::new(SignalingMetrics::new(&meter));
         let database = Arc::new(DatabaseMetrics::new(&meter));
         let redis = Arc::new(RedisMetrics::new(&meter));
 
         Ok(Self {
             registry,
             endpoint,
-            signaling,
             database,
             redis,
         })

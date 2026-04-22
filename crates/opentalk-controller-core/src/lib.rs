@@ -385,7 +385,6 @@ impl Controller {
         // Start HTTP Server
         let http_server = {
             let settings_provider = self.settings_provider.clone();
-            let signaling_metrics = Data::from(self.metrics.signaling.clone());
             let storage = Arc::downgrade(&self.storage);
             let inventory_provider = Arc::downgrade(&self.inventory_provider);
             let http_client = Data::new(reqwest::Client::new());
@@ -447,7 +446,6 @@ impl Controller {
                     .app_data(user_search_client.clone())
                     .app_data(authorizer.clone())
                     .app_data(Data::new(shutdown.clone()))
-                    .app_data(signaling_metrics.clone())
                     .app_data(metrics.clone())
                     .app_data(http_client.clone())
                     .app_data(Data::from(storage_notifier))
