@@ -106,33 +106,68 @@ impl TryFrom<SettingsRaw> for Settings {
     type Error = SettingsError;
 
     fn try_from(raw: SettingsRaw) -> Result<Self, Self::Error> {
+        // Explicitly destructure SettingsRaw to detect unused fields
+        let SettingsRaw {
+            frontend,
+            database,
+            keycloak,
+            oidc: raw_oidc,
+            user_search,
+            http,
+            redis,
+            rabbit_mq,
+            logging,
+            authorization,
+            avatar,
+            metrics,
+            etcd,
+            reports: _,
+            shared_folder,
+            call_in,
+            defaults,
+            endpoints,
+            minio,
+            monitoring,
+            tenants,
+            tariffs,
+            websocket_rate_limit: _,
+            roomserver,
+            extensions: _,
+            operator_information,
+            // do not use the rest pattern (`..`) here!
+        } = raw;
+
         let OidcAndUserSearchBuilder {
             oidc,
             user_search_backend,
             users_find_behavior,
-        } = OidcAndUserSearchBuilder::load_from_settings_raw(&raw)?;
+        } = OidcAndUserSearchBuilder::load_from_settings_raw(
+            keycloak,
+            raw_oidc,
+            user_search,
+            endpoints.as_ref(),
+        )?;
 
-        let frontend = raw.frontend.clone().into();
-        let http = Http::from(raw.http.clone());
-        let database = raw.database.clone().into();
-        let redis = raw.redis.clone().map(Into::into);
-        let rabbit_mq = raw.rabbit_mq.clone().map(Into::into);
-        let authorization =
-            Authorization::from_settings_file(raw.authorization.clone(), rabbit_mq.is_some());
-        let logging = raw.logging.clone().map(Into::into).unwrap_or_default();
-        let avatar = raw.avatar.clone().map(Into::into).unwrap_or_default();
-        let metrics = raw.metrics.clone().map(Into::into).unwrap_or_default();
-        let etcd = raw.etcd.clone().map(Into::into);
-        let shared_folder = raw.shared_folder.clone().map(Into::into);
-        let endpoints = raw.endpoints.clone().map(Into::into).unwrap_or_default();
-        let minio = raw.minio.clone().into();
-        let monitoring = raw.monitoring.clone().map(Into::into);
-        let call_in = raw.call_in.clone().map(Into::into);
-        let tenants = raw.tenants.clone().map(Into::into).unwrap_or_default();
-        let tariffs = raw.tariffs.clone().map(Into::into).unwrap_or_default();
-        let defaults = raw.defaults.clone().map(Into::into).unwrap_or_default();
-        let operator_information = raw.operator_information.clone().map(Into::into);
-        let roomserver = raw.roomserver.clone().into();
+        let frontend = frontend.into();
+        let http = Http::from(http);
+        let database = database.into();
+        let redis = redis.map(Into::into);
+        let rabbit_mq = rabbit_mq.map(Into::into);
+        let authorization = Authorization::from_settings_file(authorization, rabbit_mq.is_some());
+        let logging = logging.map(Into::into).unwrap_or_default();
+        let avatar = avatar.map(Into::into).unwrap_or_default();
+        let metrics = metrics.map(Into::into).unwrap_or_default();
+        let etcd = etcd.map(Into::into);
+        let shared_folder = shared_folder.map(Into::into);
+        let endpoints = endpoints.map(Into::into).unwrap_or_default();
+        let minio = minio.into();
+        let monitoring = monitoring.map(Into::into);
+        let call_in = call_in.map(Into::into);
+        let tenants = tenants.map(Into::into).unwrap_or_default();
+        let tariffs = tariffs.map(Into::into).unwrap_or_default();
+        let defaults = defaults.map(Into::into).unwrap_or_default();
+        let operator_information = operator_information.map(Into::into);
+        let roomserver = roomserver.into();
 
         if http.service_api_keys.is_none() {
             return Err(SettingsError::HttpServiceApiKeysMissing);

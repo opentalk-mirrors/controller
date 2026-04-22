@@ -8,7 +8,7 @@ use url::Url;
 
 use super::{Oidc, OidcController, OidcFrontend};
 use crate::{
-    Result, SettingsError, SettingsRaw,
+    Result, SettingsError,
     settings_error::{
         OidcConfigurationMissingSnafu, OidcInvalidConfigurationSnafu,
         UsersFindBehaviorBackendMissingSnafu,
@@ -25,17 +25,14 @@ pub(super) struct OidcAndUserSearchBuilder {
 }
 
 impl OidcAndUserSearchBuilder {
-    pub(super) fn load_from_settings_raw(raw: &SettingsRaw) -> Result<Self> {
-        let SettingsRaw {
-            keycloak,
-            oidc,
-            user_search,
-            endpoints,
-            ..
-        } = raw;
-
-        let disable_users_find = endpoints.as_ref().and_then(|e| e.disable_users_find);
-        let users_find_use_kc = endpoints.as_ref().and_then(|e| e.users_find_use_kc);
+    pub(super) fn load_from_settings_raw(
+        keycloak: Option<settings_file::Keycloak>,
+        oidc: Option<settings_file::Oidc>,
+        user_search: Option<settings_file::UserSearch>,
+        endpoints: Option<&settings_file::Endpoints>,
+    ) -> Result<Self> {
+        let disable_users_find = endpoints.and_then(|e| e.disable_users_find);
+        let users_find_use_kc = endpoints.and_then(|e| e.users_find_use_kc);
 
         if let Some(oidc) = oidc {
             ensure!(
@@ -56,14 +53,14 @@ impl OidcAndUserSearchBuilder {
                     conflicting_field: "endpoints.users_find_use_kc"
                 }
             );
-            return Self::load_from_settings_raw_oidc(oidc.clone(), user_search.clone());
+            return Self::load_from_settings_raw_oidc(oidc, user_search);
         }
 
         let Some(keycloak) = keycloak else {
             return OidcConfigurationMissingSnafu.fail();
         };
 
-        Self::load_from_settings_raw_with_keycloak(keycloak, disable_users_find, users_find_use_kc)
+        Self::load_from_settings_raw_with_keycloak(&keycloak, disable_users_find, users_find_use_kc)
     }
 
     fn load_from_settings_raw_oidc(
@@ -218,9 +215,14 @@ mod tests {
 
     #[test]
     fn minimal_example() {
-        let builder =
-            OidcAndUserSearchBuilder::load_from_settings_raw(&settings_raw_minimal_example())
-                .expect("must be a valid configuration");
+        let raw = settings_raw_minimal_example();
+        let builder = OidcAndUserSearchBuilder::load_from_settings_raw(
+            raw.keycloak,
+            raw.oidc,
+            raw.user_search,
+            raw.endpoints.as_ref(),
+        )
+        .expect("must be a valid configuration");
 
         assert_eq!(
             builder,
@@ -250,8 +252,13 @@ mod tests {
     fn minimal_example_without_user_search() {
         let mut raw = settings_raw_minimal_example();
         raw.user_search = None;
-        let builder = OidcAndUserSearchBuilder::load_from_settings_raw(&raw)
-            .expect("must be a valid configuration");
+        let builder = OidcAndUserSearchBuilder::load_from_settings_raw(
+            raw.keycloak,
+            raw.oidc,
+            raw.user_search,
+            raw.endpoints.as_ref(),
+        )
+        .expect("must be a valid configuration");
 
         assert_eq!(
             builder,
@@ -292,8 +299,13 @@ mod tests {
             external_id_user_attribute_name: Some("TheExternalAttribute".to_string()),
         });
 
-        let builder = OidcAndUserSearchBuilder::load_from_settings_raw(&raw)
-            .expect("must be a valid configuration");
+        let builder = OidcAndUserSearchBuilder::load_from_settings_raw(
+            raw.keycloak,
+            raw.oidc,
+            raw.user_search,
+            raw.endpoints.as_ref(),
+        )
+        .expect("must be a valid configuration");
 
         assert_eq!(
             builder,
@@ -345,8 +357,13 @@ mod tests {
             ..Default::default()
         });
 
-        let builder = OidcAndUserSearchBuilder::load_from_settings_raw(&raw)
-            .expect("must be a valid configuration");
+        let builder = OidcAndUserSearchBuilder::load_from_settings_raw(
+            raw.keycloak,
+            raw.oidc,
+            raw.user_search,
+            raw.endpoints.as_ref(),
+        )
+        .expect("must be a valid configuration");
 
         assert_eq!(
             builder,
@@ -397,7 +414,12 @@ mod tests {
         });
 
         assert_matches!(
-            OidcAndUserSearchBuilder::load_from_settings_raw(&raw),
+            OidcAndUserSearchBuilder::load_from_settings_raw(
+                raw.keycloak,
+                raw.oidc,
+                raw.user_search,
+                raw.endpoints.as_ref()
+            ),
             Err(SettingsError::OidcInvalidConfiguration {
                 conflicting_field: "keycloak"
             })
@@ -411,7 +433,12 @@ mod tests {
         raw.oidc = None;
 
         assert_matches!(
-            OidcAndUserSearchBuilder::load_from_settings_raw(&raw),
+            OidcAndUserSearchBuilder::load_from_settings_raw(
+                raw.keycloak,
+                raw.oidc,
+                raw.user_search,
+                raw.endpoints.as_ref()
+            ),
             Err(SettingsError::OidcConfigurationMissing)
         );
     }
@@ -425,7 +452,12 @@ mod tests {
         });
 
         assert_matches!(
-            OidcAndUserSearchBuilder::load_from_settings_raw(&raw),
+            OidcAndUserSearchBuilder::load_from_settings_raw(
+                raw.keycloak,
+                raw.oidc,
+                raw.user_search,
+                raw.endpoints.as_ref()
+            ),
             Err(SettingsError::OidcInvalidConfiguration {
                 conflicting_field: "endpoints.disable_users_find"
             })
@@ -441,7 +473,12 @@ mod tests {
         });
 
         assert_matches!(
-            OidcAndUserSearchBuilder::load_from_settings_raw(&raw),
+            OidcAndUserSearchBuilder::load_from_settings_raw(
+                raw.keycloak,
+                raw.oidc,
+                raw.user_search,
+                raw.endpoints.as_ref()
+            ),
             Err(SettingsError::OidcInvalidConfiguration {
                 conflicting_field: "endpoints.users_find_use_kc"
             })
