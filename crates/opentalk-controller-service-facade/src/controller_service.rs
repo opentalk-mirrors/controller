@@ -17,13 +17,14 @@ use opentalk_signaling_core::{
 };
 use opentalk_types_api_internal::{
     call_in::PostCallInStartRoomServerRequestBody,
+    module_assets::AssetResource,
     module_resources::{
         ModuleResource, ModuleResourceFilter, ModuleResourceOperation, NewModuleResource,
     },
     recording::RecordingTarget,
 };
 use opentalk_types_api_v1::{
-    assets::{AssetResource, AssetSortingQuery},
+    assets::AssetSortingQuery,
     auth::{
         GetLoginResponseBody, LogoutToken, PostLoginResponseBody, login::AuthLoginPostRequestBody,
     },

@@ -3,7 +3,7 @@
 
 use async_trait::async_trait;
 use opentalk_roomserver_client::Client;
-use opentalk_types_api_v1::assets::Quota;
+use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::users::UserId;
 
 #[async_trait]

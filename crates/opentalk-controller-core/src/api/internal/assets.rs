@@ -8,10 +8,8 @@ use actix_web::{
 use futures::TryStreamExt as _;
 use opentalk_controller_service_facade::OpenTalkControllerService;
 use opentalk_signaling_core::{ObjectStorageError, StorageNotifier, assets::NewAssetFileName};
-use opentalk_types_api_v1::{
-    error::ApiError, rooms::by_room_id::assets::PostAssetQuery,
-    services::roomserver::PostAssetResponseBody,
-};
+use opentalk_types_api_internal::module_assets::PostAssetResponseBody;
+use opentalk_types_api_v1::{error::ApiError, rooms::by_room_id::assets::PostAssetQuery};
 use opentalk_types_common::{rooms::RoomId, time::Timestamp};
 
 use crate::api::{

@@ -705,7 +705,6 @@ impl Controller {
             opentalk_types_api_v1::pagination::Cursor::<opentalk_types_api_v1::events::GetEventInstancesCursorData>,
             opentalk_types_api_v1::pagination::Cursor::<opentalk_types_api_v1::events::GetEventsCursorData>,
             opentalk_types_api_v1::pagination::Cursor::<opentalk_types_api_v1::events::GetEventsAndInstancesCursorData>,
-            opentalk_types_api_v1::assets::AssetResource,
             opentalk_types_api_v1::assets::AssetSortingQuery,
             opentalk_types_api_v1::auth::GetLoginResponseBody,
             opentalk_types_api_v1::auth::OidcProvider,
@@ -825,6 +824,7 @@ impl Controller {
             opentalk_types_common::pagination::Page,
             opentalk_types_api_internal::recording::RecordingTarget,
             opentalk_types_api_internal::call_in::PostCallInStartRoomServerRequestBody,
+            opentalk_types_api_internal::module_assets::AssetResource,
         ),
         responses(
             crate::api::responses::BadRequest,
