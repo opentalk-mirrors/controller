@@ -121,7 +121,6 @@ impl TryFrom<SettingsRaw> for Settings {
             avatar,
             metrics,
             etcd,
-            reports: _,
             shared_folder,
             call_in,
             defaults,

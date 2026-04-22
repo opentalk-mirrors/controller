@@ -42,10 +42,22 @@ impl SettingsProvider {
     fn warn_unknown_key(path: serde_ignored::Path) {
         use owo_colors::OwoColorize as _;
 
+        let path = path.to_string();
+        if path == "reports" {
+            anstream::eprintln!(
+                "{}: Found an obsolete {reports} configuration section.\n\
+                     {}: This section is deprecated and will be reintroduced in a different form in the future.",
+                "DEPRECATION WARNING".yellow().bold(),
+                "NOTE".green(),
+                reports = "reports".bold(),
+            );
+            return;
+        }
+
         anstream::eprintln!(
             "{}: Unknown configuration key {}",
             "WARNING".yellow().bold(),
-            path.to_string().bold(),
+            path.bold(),
         );
     }
 
@@ -72,16 +84,6 @@ impl SettingsProvider {
                 keycloak = "keycloak".bold(),
                 oidc = "oidc".bold(),
                 user_search = "user_search".bold(),
-            );
-        }
-
-        if raw.reports.is_some() {
-            anstream::eprintln!(
-                "{}: Found an obsolete {reports} configuration section.\n\
-                 {}: This section is deprecated and will be reintroduced in a different form in the future.",
-                "DEPRECATION WARNING".yellow().bold(),
-                "NOTE".green(),
-                reports = "reports".bold(),
             );
         }
     }
