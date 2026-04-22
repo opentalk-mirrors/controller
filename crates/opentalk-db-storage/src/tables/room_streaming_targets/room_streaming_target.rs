@@ -12,7 +12,6 @@ use opentalk_types_common::{
         StreamingKey, StreamingKind, StreamingTarget, StreamingTargetId, StreamingTargetKind,
     },
 };
-use opentalk_types_signaling_recording::{StreamKindSecret, StreamStatus, StreamTargetSecret};
 use snafu::{Report, Snafu};
 use url::Url;
 
@@ -121,30 +120,4 @@ impl TryFrom<RoomStreamingTarget> for types::streaming::RoomStreamingTarget {
 pub enum StreamTargetConversionError {
     #[snafu(display("Parsing the url failed, because {target} is not a valid URL"))]
     WrongUrl { target: String },
-}
-
-impl TryFrom<RoomStreamingTarget> for StreamTargetSecret {
-    type Error = StreamTargetConversionError;
-
-    fn try_from(value: RoomStreamingTarget) -> Result<Self, Self::Error> {
-        Ok(Self {
-            name: value.name,
-            kind: StreamKindSecret::Livestream(match value.kind {
-                StreamingKind::Custom => StreamingTargetKind::Custom {
-                    streaming_endpoint: value.streaming_endpoint.parse().map_err(|_| {
-                        StreamTargetConversionError::WrongUrl {
-                            target: value.streaming_endpoint,
-                        }
-                    })?,
-                    streaming_key: value.streaming_key,
-                    public_url: value.public_url.parse().map_err(|_| {
-                        StreamTargetConversionError::WrongUrl {
-                            target: value.public_url,
-                        }
-                    })?,
-                },
-            }),
-            status: StreamStatus::Inactive,
-        })
-    }
 }

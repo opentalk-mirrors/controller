@@ -5522,7 +5522,6 @@ dependencies = [
  "opentalk-types-api-internal",
  "opentalk-types-api-v1",
  "opentalk-types-common",
- "opentalk-types-signaling-recording",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry-prometheus",
@@ -5725,7 +5724,6 @@ dependencies = [
  "opentalk-mail-worker-protocol",
  "opentalk-test-util",
  "opentalk-types-common",
- "opentalk-types-signaling-recording",
  "pretty_assertions",
  "redis-args",
  "refinery",
@@ -7024,20 +7022,6 @@ dependencies = [
  "strum 0.28.0",
  "utoipa",
  "uuid",
-]
-
-[[package]]
-name = "opentalk-types-signaling-recording"
-version = "0.44.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d93e74990363309759a4be81f2045910ffef858151c3a10f99759fc55d2342bd"
-dependencies = [
- "derive_more",
- "opentalk-types-common",
- "opentalk-types-signaling",
- "redis-args",
- "serde",
- "url",
 ]
 
 [[package]]

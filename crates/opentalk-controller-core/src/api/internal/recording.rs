@@ -12,6 +12,7 @@ use bytes::Bytes;
 use opentalk_controller_api_actix_web::utoipa::responses::{InternalServerError, Unauthorized};
 use opentalk_controller_service_facade::{NewAssetFileName, OpenTalkControllerService};
 use opentalk_inventory::InventoryProvider;
+use opentalk_roomserver_modules::RECORDING_MODULE_ID;
 use opentalk_signaling_core::{
     ChunkFormat, ObjectStorage, ObjectStorageError, StorageNotifier, assets::save_asset,
 };
@@ -154,7 +155,7 @@ pub(crate) async fn get_upload(
                 storage_connection_provider.as_ref(),
                 notifier.as_ref(),
                 room_id,
-                Some(opentalk_types_signaling_recording::MODULE_ID),
+                Some(RECORDING_MODULE_ID),
                 filename,
                 receiver_stream,
                 ChunkFormat::SequenceNumberAndData,
