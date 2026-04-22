@@ -20,7 +20,6 @@ aws-sdk-s3.workspace = true
 bytes.workspace = true
 bytestring.workspace = true
 config.workspace = true
-either.workspace = true
 futures.workspace = true
 http.workspace = true
 lapin.workspace = true
@@ -28,7 +27,6 @@ lapin-pool.workspace = true
 log.workspace = true
 opentalk-controller-settings.workspace = true
 opentalk-inventory.workspace = true
-opentalk-r3dlock.workspace = true
 opentalk-roomserver-client.workspace = true
 opentalk-types-api-internal.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["backend"] }
@@ -36,7 +34,6 @@ opentalk-types-common = { workspace = true, features = ["backend"] }
 opentalk-types-signaling = { workspace = true, features = ["backend"] }
 opentelemetry = { workspace = true, features = ["metrics", "trace"] }
 opentelemetry_sdk.workspace = true
-parking_lot.workspace = true
 redis = { workspace = true, features = ["connection-manager", "tokio-comp"] }
 reqwest = { workspace = true, features = ["stream"] }
 rustc-hash.workspace = true
