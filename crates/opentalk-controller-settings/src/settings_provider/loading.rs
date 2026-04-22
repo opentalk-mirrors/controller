@@ -28,13 +28,25 @@ impl SettingsProvider {
             )
             .build()?;
 
-        let settings_raw: SettingsRaw =
-            serde_path_to_error::deserialize(config).context(DeserializeConfigSnafu {
+        let mut warn_unknown_key = Self::warn_unknown_key;
+        let ignored_deserializer = serde_ignored::Deserializer::new(config, &mut warn_unknown_key);
+        let settings_raw: SettingsRaw = serde_path_to_error::deserialize(ignored_deserializer)
+            .context(DeserializeConfigSnafu {
                 file_path: file_path.to_owned(),
             })?;
         Self::warn_about_deprecated_items(&settings_raw);
 
         Ok(settings_raw)
+    }
+
+    fn warn_unknown_key(path: serde_ignored::Path) {
+        use owo_colors::OwoColorize as _;
+
+        anstream::eprintln!(
+            "{}: Unknown configuration key {}",
+            "WARNING".yellow().bold(),
+            path.to_string().bold(),
+        );
     }
 
     fn warn_about_deprecated_items(raw: &SettingsRaw) {
