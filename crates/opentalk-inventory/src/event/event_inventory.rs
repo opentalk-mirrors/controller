@@ -6,7 +6,10 @@ use std::{collections::BTreeSet, pin::Pin};
 
 use futures_util::Stream;
 use opentalk_types_common::{
-    events::{EventId, invites::EventInviteStatus},
+    events::{
+        EventId,
+        invites::{EventInviteStatus, InviteRole},
+    },
     rooms::RoomId,
     time::Timestamp,
     training_participation_report::TrainingParticipationReportParameterSet,
@@ -177,7 +180,7 @@ pub trait EventInventory {
     /// Get all event ids with room ids and their invitee ids.
     async fn get_all_event_ids_with_room_ids_and_invitee_ids(
         &mut self,
-    ) -> Result<Vec<(EventId, RoomId, UserId)>>;
+    ) -> Result<Vec<(EventId, RoomId, UserId, InviteRole)>>;
 
     /// Create an event exception.
     async fn create_event_exception(

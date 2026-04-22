@@ -13,7 +13,10 @@ use opentalk_inventory::{
     User,
 };
 use opentalk_types_common::{
-    events::{EventId, invites::EventInviteStatus},
+    events::{
+        EventId,
+        invites::{EventInviteStatus, InviteRole},
+    },
     rooms::RoomId,
     time::Timestamp,
     training_participation_report::TrainingParticipationReportParameterSet,
@@ -390,7 +393,7 @@ impl EventInventory for DatabaseConnection {
     #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_event_ids_with_room_ids_and_invitee_ids(
         &mut self,
-    ) -> Result<Vec<(EventId, RoomId, UserId)>> {
+    ) -> Result<Vec<(EventId, RoomId, UserId, InviteRole)>> {
         Ok(
             db::queries::events::get_all_events_with_invitee(&mut self.inner)
                 .await

@@ -88,6 +88,9 @@ impl AuthorizationData {
             Resource::RoomAsset(room_id, asset_id) => {
                 self.authorize_room_asset(authenticated_subjects, access_method, room_id, asset_id)
             }
+            Resource::RoomAssetDownload(room_id, asset_id) => {
+                self.authorize_room_asset(authenticated_subjects, access_method, room_id, asset_id)
+            }
             Resource::RoomStreamingTargets(room_id) => self.authorize_room_streaming_targets(
                 authenticated_subjects,
                 access_method,
@@ -116,6 +119,7 @@ impl AuthorizationData {
                 self.authorize_room_tariff(authenticated_subjects, access_method, room_id)
             }
             Resource::UserMe => self.authorize_user_me(authenticated_subjects),
+            Resource::UserMeAssets => self.authorize_user_me(authenticated_subjects),
             Resource::UserMeEventFavorite(event_id) => self.authorize_user_me_event_favorite(
                 authenticated_subjects,
                 access_method,

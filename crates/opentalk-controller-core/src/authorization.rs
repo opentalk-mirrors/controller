@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::collections::BTreeSet;
+
 use diesel_async::{AsyncConnection as _, scoped_futures::ScopedFutureExt as _};
 use opentalk_controller_api_authorization::authorization::AuthorizationChange;
 use opentalk_database::{DatabaseError, Db};
@@ -14,22 +16,64 @@ pub(super) async fn load_authorization_changes(
     let transaction_result: Result<Vec<AuthorizationChange>, DatabaseError> = conn
         .transaction(|conn| {
             async move {
+                let mut auth_changes = Vec::new();
+
                 let room_and_creator_ids =
                     opentalk_db_storage::queries::rooms::get_all_room_and_creator_ids(conn).await?;
 
-                let rooms = room_and_creator_ids
-                    .into_iter()
-                    .map(|(room, creator)| AuthorizationChange::CreateRoom { room, creator });
+                auth_changes.extend(
+                    room_and_creator_ids
+                        .into_iter()
+                        .map(|(room, creator)| AuthorizationChange::CreateRoom { room, creator }),
+                );
 
                 let event_and_creator_ids =
                     opentalk_db_storage::queries::events::get_all_event_and_creator_ids(conn)
                         .await?;
 
-                let events = event_and_creator_ids
-                    .into_iter()
-                    .map(|(event, creator)| AuthorizationChange::CreateEvent { event, creator });
+                auth_changes.extend(
+                    event_and_creator_ids.into_iter().map(|(event, creator)| {
+                        AuthorizationChange::CreateEvent { event, creator }
+                    }),
+                );
 
-                Ok(rooms.chain(events).collect::<Vec<_>>())
+                let users_with_groups =
+                    opentalk_db_storage::queries::users::get_all_users_with_groups(conn).await?;
+
+                for (user, groups) in users_with_groups {
+                    auth_changes.push(AuthorizationChange::CreateUser { user: user.id });
+                    auth_changes.push(AuthorizationChange::AddUserToGroups {
+                        user: user.id,
+                        groups: groups.iter().map(|g| g.id).collect(),
+                    });
+                }
+
+                let invites = opentalk_db_storage::queries::invites::get_all_invites(conn).await?;
+
+                auth_changes.extend(invites.into_iter().filter(|invite| invite.active).map(
+                    |invite| AuthorizationChange::AddInviteCodeToRoom {
+                        room: invite.room,
+                        invite_code: invite.id,
+                    },
+                ));
+
+                let event_invitees =
+                    opentalk_db_storage::queries::events::get_all_events_with_invitee(conn).await?;
+
+                for (event_id, room_id, user_id, role) in event_invitees {
+                    auth_changes.push(AuthorizationChange::AddUserToEvents {
+                        user: user_id,
+                        role,
+                        events: BTreeSet::from([event_id]),
+                    });
+                    auth_changes.push(AuthorizationChange::AddUserToRooms {
+                        user: user_id,
+                        role,
+                        rooms: BTreeSet::from([room_id]),
+                    });
+                }
+
+                Ok(auth_changes)
             }
             .scope_boxed()
         })

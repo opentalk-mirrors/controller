@@ -99,6 +99,11 @@ pub enum Resource {
     /// Served under `/v1/rooms/{room_id}/assets/{asset_id}`.
     RoomAsset(RoomId, AssetId),
 
+    /// An asset download for a room.
+    ///
+    /// Served under `/v1/rooms/{room_id}/assets/{asset_id}/download`.
+    RoomAssetDownload(RoomId, AssetId),
+
     /// The list of streaming targets for a room.
     ///
     /// Served under `/v1/rooms/{room_id}/streaming_targets`.
@@ -133,6 +138,11 @@ pub enum Resource {
     ///
     /// Served under `/v1/users/me`.
     UserMe,
+
+    /// The user assets.
+    ///
+    /// Served under `/v1/users/me/assets`.
+    UserMeAssets,
 
     /// The user event favorite.
     ///
@@ -256,6 +266,11 @@ pub(super) mod actix_web_impls {
                         extract_path::<(RoomId, AssetId)>(req.path(), &pattern).expect("invalid");
                     Ok(Resource::RoomAsset(room_id, asset_id))
                 }
+                "/v1/rooms/{room_id}/assets/{asset_id}/download" => {
+                    let (room_id, asset_id) =
+                        extract_path::<(RoomId, AssetId)>(req.path(), &pattern).expect("invalid");
+                    Ok(Resource::RoomAssetDownload(room_id, asset_id))
+                }
                 "/v1/rooms/{room_id}/sip" => {
                     let room_id = extract_path::<RoomId>(req.path(), &pattern).expect("invalid");
                     Ok(Resource::RoomSip(room_id))
@@ -280,6 +295,7 @@ pub(super) mod actix_web_impls {
                 }
                 "/v1/users/find" => Ok(Resource::UserFind),
                 "/v1/users/me" => Ok(Resource::UserMe),
+                "/v1/users/me/assets" => Ok(Resource::UserMeAssets),
                 "/v1/users/me/event_favorites/{event_id}" => {
                     let event_id = extract_path::<EventId>(req.path(), &pattern).expect("invalid");
                     Ok(Resource::UserMeEventFavorite(event_id))
