@@ -12,7 +12,7 @@ use aws_sdk_s3::primitives::{ByteStream, ByteStreamError};
 use bytes::Bytes;
 use futures::Stream;
 use opentalk_inventory::{Asset, Inventory, InventoryProvider, NewAsset, Room};
-use opentalk_types_api_v1::assets::Quota;
+use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{
     assets::{AssetFileKind, AssetId, FileExtension},
     events::EventTitle,

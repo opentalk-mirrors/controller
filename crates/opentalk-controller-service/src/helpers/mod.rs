@@ -7,10 +7,8 @@
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{Asset, Inventory};
-use opentalk_types_api_v1::{
-    assets::AssetResource,
-    users::{PrivateUserProfile, PublicUserProfile},
-};
+use opentalk_types_api_internal::module_assets::AssetResource;
+use opentalk_types_api_v1::users::{PrivateUserProfile, PublicUserProfile};
 use opentalk_types_common::{
     time::TimeZone,
     users::{Language, UserId, UserInfo},

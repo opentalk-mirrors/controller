@@ -64,6 +64,14 @@ Used for internal connection checking and development
 
 This module does not provide any configurable features.
 
+## Module `excalidraw`
+
+Handles excalidraw whiteboard integration. Excalidraw is a collaborative drawing board.
+
+### Features
+
+This module does not provide any configurable features.
+
 ## Module `legal_vote`
 
 Handles the legal-vote functionality
@@ -198,6 +206,7 @@ chat: []
 core: ["call_in", "guests_allowed", "storage_upgradable"]
 e2ee: []
 echo: []
+excalidraw: []
 legal_vote: []
 livekit: []
 meeting_notes: []

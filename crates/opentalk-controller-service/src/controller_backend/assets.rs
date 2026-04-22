@@ -14,8 +14,9 @@ use opentalk_signaling_core::{
         save_asset,
     },
 };
+use opentalk_types_api_internal::module_assets::AssetResource;
 use opentalk_types_api_v1::{
-    assets::AssetResource, error::ApiError, pagination::PagePaginationQuery,
+    error::ApiError, pagination::PagePaginationQuery,
     rooms::by_room_id::assets::RoomsByRoomIdAssetsGetResponseBody,
 };
 use opentalk_types_common::{
