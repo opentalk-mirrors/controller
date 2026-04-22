@@ -47,7 +47,7 @@ impl SettingsProvider {
             "reports" => {
                 anstream::eprintln!(
                     "{}: Found an obsolete {reports} configuration section.\n\
-                     {}: This section is deprecated and will be reintroduced in a different form in the future.",
+                     \t{}: This section is deprecated and will be reintroduced in a different form in the future.",
                     "DEPRECATION WARNING".yellow().bold(),
                     "NOTE".green(),
                     reports = "reports".bold(),
@@ -56,7 +56,7 @@ impl SettingsProvider {
             "room_server" => {
                 anstream::eprintln!(
                     "{}: Found an obsolete {room_server} (janus) configuration section.\n\
-                    {}: This section is no longer needed, please remove it and add a {livekit} section instead.",
+                     \t{}: This section is no longer needed, please remove it and add a {livekit} section instead.",
                     "DEPRECATION WARNING".yellow().bold(),
                     "NOTE".green(),
                     room_server = "room_server".bold(),
@@ -66,7 +66,7 @@ impl SettingsProvider {
             "websocket_rate_limit" => {
                 anstream::eprintln!(
                     "{}: Found an obsolete {old_section} configuration section.\n\
-                    {}: Use the {new_section} section instead.",
+                     \t{}: Use the {new_section} section instead.",
                     "DEPRECATION WARNING".yellow().bold(),
                     "NOTE".green(),
                     old_section = "websocket_rate_limit".bold(),
