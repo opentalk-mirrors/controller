@@ -7,7 +7,7 @@ use serde::Deserialize;
 use super::{
     Authorization, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Frontend, Http, Keycloak,
     Logging, Metrics, MinIO, MonitoringSettings, Oidc, OperatorInformation, RabbitMqConfig,
-    RedisConfig, RoomServer, SharedFolder, Tariffs, Tenants, UserSearch, WebSocketRateLimit,
+    RedisConfig, RoomServer, SharedFolder, Tariffs, Tenants, UserSearch,
 };
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -71,9 +71,6 @@ pub struct SettingsRaw {
 
     #[serde(default)]
     pub(crate) tariffs: Option<Tariffs>,
-
-    #[serde(default)]
-    pub(crate) websocket_rate_limit: Option<WebSocketRateLimit>,
 
     pub(crate) roomserver: RoomServer,
 
@@ -142,7 +139,6 @@ pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
         monitoring: None,
         tenants: None,
         tariffs: None,
-        websocket_rate_limit: None,
         roomserver: RoomServer {
             url: "http://localhost:11333"
                 .parse()

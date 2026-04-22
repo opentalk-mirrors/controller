@@ -36,7 +36,6 @@ mod tenants;
 mod user_search;
 mod user_search_backend;
 mod users_find_behavior;
-mod ws_rate_limit;
 
 pub(crate) use authorization::Authorization;
 pub(crate) use avatar::Avatar;
@@ -61,7 +60,7 @@ pub(crate) use operator_information::OperatorInformation;
 pub(crate) use rabbit_mq_config::RabbitMqConfig;
 pub(crate) use redis_config::RedisConfig;
 pub(crate) use reports_typst::ReportsTypst;
-pub(crate) use roomserver::RoomServer;
+pub(crate) use roomserver::{RoomServer, WebSocketRateLimit};
 pub use settings_raw::SettingsRaw;
 #[cfg(test)]
 pub(crate) use settings_raw::{SETTINGS_RAW_MINIMAL_CONFIG_TOML, settings_raw_minimal_example};
@@ -74,4 +73,3 @@ pub(crate) use tenants::Tenants;
 pub(crate) use user_search::UserSearch;
 pub(crate) use user_search_backend::{UserSearchBackend, UserSearchBackendKeycloakWebapi};
 pub use users_find_behavior::UsersFindBehavior;
-pub(crate) use ws_rate_limit::WebSocketRateLimit;

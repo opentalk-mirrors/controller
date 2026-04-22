@@ -56,11 +56,21 @@ impl SettingsProvider {
             "room_server" => {
                 anstream::eprintln!(
                     "{}: Found an obsolete {room_server} (janus) configuration section.\n\
-                 {}: This section is no longer needed, please remove it and add a {livekit} section instead.",
+                    {}: This section is no longer needed, please remove it and add a {livekit} section instead.",
                     "DEPRECATION WARNING".yellow().bold(),
                     "NOTE".green(),
                     room_server = "room_server".bold(),
                     livekit = "livekit".bold(),
+                );
+            }
+            "websocket_rate_limit" => {
+                anstream::eprintln!(
+                    "{}: Found an obsolete {old_section} configuration section.\n\
+                    {}: Use the {new_section} section instead.",
+                    "DEPRECATION WARNING".yellow().bold(),
+                    "NOTE".green(),
+                    old_section = "websocket_rate_limit".bold(),
+                    new_section = "roomserver.websocket_rate_limit".bold(),
                 );
             }
             _ => {

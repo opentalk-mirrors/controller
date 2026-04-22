@@ -129,7 +129,6 @@ impl TryFrom<SettingsRaw> for Settings {
             monitoring,
             tenants,
             tariffs,
-            websocket_rate_limit: _,
             roomserver,
             operator_information,
             // do not use the rest pattern (`..`) here!
