@@ -53,4 +53,3 @@ pretty_assertions.workspace = true
 [features]
 default = []
 mocking = []
-module_tester = ["tokio/sync"]
