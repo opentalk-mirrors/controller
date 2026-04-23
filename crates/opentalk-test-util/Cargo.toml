@@ -31,7 +31,7 @@ opentalk-database = { workspace = true, optional = true }
 opentalk-db-storage = { workspace = true, optional = true }
 opentalk-inventory.workspace = true
 opentalk-inventory-database.workspace = true
-opentalk-signaling-core = { workspace = true, features = ["module_tester"] }
+opentalk-signaling-core = { workspace = true }
 opentalk-types-common = { workspace = true, features = ["backend"] }
 opentalk-types-signaling = { workspace = true, features = ["backend"] }
 

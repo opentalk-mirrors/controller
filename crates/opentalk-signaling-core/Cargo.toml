@@ -20,14 +20,6 @@ aws-sdk-s3.workspace = true
 bytes.workspace = true
 bytestring.workspace = true
 config.workspace = true
-derive_more = { workspace = true, features = [
-  "as_ref",
-  "display",
-  "from",
-  "from_str",
-  "into",
-] }
-either.workspace = true
 futures.workspace = true
 http.workspace = true
 lapin.workspace = true
@@ -35,17 +27,13 @@ lapin-pool.workspace = true
 log.workspace = true
 opentalk-controller-settings.workspace = true
 opentalk-inventory.workspace = true
-opentalk-r3dlock.workspace = true
 opentalk-roomserver-client.workspace = true
 opentalk-types-api-internal.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["backend"] }
 opentalk-types-common = { workspace = true, features = ["backend"] }
-opentalk-types-signaling = { workspace = true, features = ["backend"] }
 opentelemetry = { workspace = true, features = ["metrics", "trace"] }
 opentelemetry_sdk.workspace = true
-parking_lot.workspace = true
 redis = { workspace = true, features = ["connection-manager", "tokio-comp"] }
-redis-args.workspace = true
 reqwest = { workspace = true, features = ["stream"] }
 rustc-hash.workspace = true
 serde = { workspace = true, features = ["derive"] }
@@ -61,9 +49,7 @@ uuid = { workspace = true, features = ["v4"] }
 [dev-dependencies]
 chrono.workspace = true
 pretty_assertions.workspace = true
-serial_test.workspace = true
 
 [features]
 default = []
 mocking = []
-module_tester = ["tokio/sync"]

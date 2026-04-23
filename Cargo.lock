@@ -5949,18 +5949,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "opentalk-r3dlock"
-version = "0.33.0"
-dependencies = [
- "pretty_assertions",
- "rand 0.10.1",
- "redis",
- "serial_test",
- "snafu 0.9.0",
- "tokio",
-]
-
-[[package]]
 name = "opentalk-report-generation"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6834,8 +6822,6 @@ dependencies = [
  "bytestring",
  "chrono",
  "config",
- "derive_more",
- "either",
  "futures",
  "http 1.4.0",
  "lapin",
@@ -6843,23 +6829,18 @@ dependencies = [
  "log",
  "opentalk-controller-settings",
  "opentalk-inventory",
- "opentalk-r3dlock",
  "opentalk-roomserver-client",
  "opentalk-types-api-internal",
  "opentalk-types-api-v1",
  "opentalk-types-common",
- "opentalk-types-signaling",
  "opentelemetry",
  "opentelemetry_sdk",
- "parking_lot",
  "pretty_assertions",
  "redis",
- "redis-args",
  "reqwest 0.13.2",
  "rustc-hash",
  "serde",
  "serde_json",
- "serial_test",
  "slotmap",
  "snafu 0.9.0",
  "tokio",
