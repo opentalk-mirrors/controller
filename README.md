@@ -44,38 +44,48 @@ docker build -f Dockerfile-<baseimage> . --tag <your tag>
 
 ## Sub-crates
 
-Inside the crates folder following crates can be found:
+Inside the `crates` folder, the following crates can be found:
 
-- [controller](crates/controller)
-    - core crate which contains all of the controllers core features
-    - OpenID Connect user authentication
-    - Database connection and interfacing
-    - `actix_web` based HTTP servers for external and internal APIs
-    - Extensible signaling websocket endpoint for video room signaling
-- [controller-settings](crates/controller-settings)
-    - Settings for the controller
-- [db-storage](crates/db-storage)
-    - Database types used for the controller and modules
-- [jobs](crates/jobs)
-    - Job execution system for maintenance tasks such as removing old meeting information according to GDPR legislation
-- [community-modules](crates/community-modules)
-    - functionality for registering all modules in the community edition
-    - depends on all modules in the community edition
-- [chat](crates/chat)
-    - chat signaling module which implements a simple room, group and private chat
-- [automod](crates/automod)
-    - signaling module implementing automoderation for videoconferences
-- [legal-vote](crates/legal-vote)
-    - signaling module implementing legal vote for videoconferences
-- [polls](crates/polls)
-    - signaling module implementing polls for videoconferences
-- [client](crates/client) EXPERIMENTAL
-    - Client side implementation of the controllers APIs used for testing
-- [kustos](crates/kustos)
-    - authz abstraction based on casbin-rs
-- [test-util](crates/test-util)
-- [types](crates/types)
-    - types that are shared across different crates, such as Web API and signaling messages
+- [opentalk-cache](crates/opentalk-cache)
+    - Redis-aware local in-memory cache layer used to reduce repeated remote lookups.
+- [opentalk-controller](crates/opentalk-controller)
+    - Main controller crate and application entry point
+- [opentalk-controller-api-actix-web](crates/opentalk-controller-api-actix-web)
+    - `actix-web` specific API integration layer (HTTP extraction/response helpers and OpenAPI-related web bindings) over the service facade.
+- [opentalk-controller-api-authorization](crates/opentalk-controller-api-authorization)
+    - Core Web API authorization interfaces and middleware-level abstractions.
+- [opentalk-controller-api-authorization-database](crates/opentalk-controller-api-authorization-database)
+    - Database-backed implementation of controller Web API authorization logic.
+- [opentalk-controller-api-authorization-synchronization](crates/opentalk-controller-api-authorization-synchronization)
+    - Synchronization components for keeping authorization information in sync across controller parts.
+- [opentalk-controller-core](crates/opentalk-controller-core)
+    - Shared controller core domain logic and abstractions
+- [opentalk-controller-service](crates/opentalk-controller-service)
+    - Main application service layer implementing controller business workflows (rooms/users/auth/integrations), including cache, messaging, and external service clients.
+- [opentalk-controller-service-facade](crates/opentalk-controller-service-facade)
+    - Stable facade/types trait layer for the service crate, consumed by API and integration crates.
+- [opentalk-controller-settings](crates/opentalk-controller-settings)
+    - Typed configuration loading/validation for controller runtime settings.
+- [opentalk-controller-utils](crates/opentalk-controller-utils)
+    - Shared controller utility code.
+- [opentalk-database](crates/opentalk-database)
+    - Database foundation crate: async Diesel/PostgreSQL pool setup, connection handling, and DB-related telemetry/error plumbing.
+- [opentalk-db-storage](crates/opentalk-db-storage)
+    - Persistence/storage layer crate with Diesel models, schema-facing types, migration support and DB-backed repository utilities.
+- [opentalk-inventory](crates/opentalk-inventory)
+    - Inventory domain crate defining inventory model abstractions and related typed data structures shared in controller logic.
+- [opentalk-inventory-common](crates/opentalk-inventory-common)
+    - Minimal shared inventory primitives and error/common types used by inventory crates.
+- [opentalk-inventory-database](crates/opentalk-inventory-database)
+    - Database adapter/implementation for inventory domain operations, bridging inventory abstractions with DB storage.
+- [opentalk-jobs](crates/opentalk-jobs)
+    - Job execution system for maintenance tasks such as removing old meeting information according to GDPR legislation.
+- [opentalk-log](crates/opentalk-log)
+    - Shared logging crate centralizing logging-related setup/utilities used across controller crates.
+- [opentalk-signaling-core](crates/opentalk-signaling-core)
+    - Core signaling infrastructure.
+- [opentalk-test-util](crates/opentalk-test-util)
+    - Shared testing support crate (controller/database fixtures and helpers, optional DB-enabled test features).
 
 ## OpenTalk Controller API Specification
 
