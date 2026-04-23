@@ -267,7 +267,7 @@ mod tests {
 
         // Sign with our private key
         let signature = sign_data(&pair, message.as_ref());
-        let signature = URL_SAFE_NO_PAD.encode(signature.as_ref());
+        let signature = URL_SAFE_NO_PAD.encode::<&[u8]>(signature.as_ref());
 
         // complete JWT
         let jwt_enc = format!("{message}.{signature}");
@@ -296,7 +296,7 @@ mod tests {
 
         // Sign with our private key
         let signature = sign_data(&pair, message.as_ref());
-        let signature = URL_SAFE_NO_PAD.encode(signature.as_ref());
+        let signature = URL_SAFE_NO_PAD.encode::<&[u8]>(signature.as_ref());
 
         // complete JWT
         let jwt_enc = format!("{message}.{signature}");
@@ -322,7 +322,7 @@ mod tests {
 
         // Create a signature which is complete garbage
         let signature = b"Some garbage signature";
-        let signature = URL_SAFE_NO_PAD.encode(signature.as_ref());
+        let signature = URL_SAFE_NO_PAD.encode::<&[u8]>(signature.as_ref());
 
         // complete JWT
         let jwt_enc = format!("{message}.{signature}");

@@ -164,7 +164,7 @@ impl TryFrom<SettingsRaw> for Settings {
         let tariffs = tariffs.map(Into::into).unwrap_or_default();
         let defaults = defaults.map(Into::into).unwrap_or_default();
         let operator_information = operator_information.map(Into::into);
-        let roomserver = roomserver.into();
+        let roomserver = roomserver.try_into()?;
 
         if http.service_api_keys.is_none() {
             return Err(SettingsError::HttpServiceApiKeysMissing);
@@ -203,9 +203,11 @@ pub(crate) fn minimal_example() -> Settings {
     use std::collections::BTreeSet;
 
     use openidconnect::{ClientId, ClientSecret};
+    use opentalk_roomserver_modules::ECHO_MODULE_ID;
     use opentalk_roomserver_types::{
         module_settings::ModuleSettings, rate_limit::RateLimitSettings,
     };
+    use opentalk_roomserver_types_livekit::LiveKitSettings;
     use opentalk_service_auth::{ApiKey, service::ApiKeys};
     use opentalk_types_common::time::TimeZone;
     use url::Url;
@@ -221,6 +223,17 @@ pub(crate) fn minimal_example() -> Settings {
             http::{DEFAULT_HTTP_PORT, DEFAULT_UPLOAD_SIZE_LIMIT},
         },
     };
+
+    let mut modules = ModuleSettings::new();
+    modules.insert_empty(ECHO_MODULE_ID);
+    modules
+        .insert(&LiveKitSettings {
+            api_key: "devkey".to_string(),
+            api_secret: "secret".to_string(),
+            public_url: "ws://localhost:7880".to_string(),
+            service_url: "http://localhost:7880".to_string(),
+        })
+        .expect("LiveKitSettings must be valid");
 
     Settings {
         frontend: Frontend {
@@ -308,7 +321,7 @@ pub(crate) fn minimal_example() -> Settings {
                 .parse()
                 .expect("must be a valid url"),
             api_key: ApiKey::new("roomserver", "secret"),
-            modules: ModuleSettings::new(),
+            modules,
             websocket_rate_limit: Some(RateLimitSettings {
                 tokens_per_second: 10,
                 token_bucket_size: 30,

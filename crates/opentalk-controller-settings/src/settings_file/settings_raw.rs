@@ -168,12 +168,6 @@ pub(crate) const SETTINGS_RAW_MINIMAL_CONFIG_TOML: &str = r#"
         access_key = "minioadmin"
         secret_key = "minioadmin"
 
-        [livekit]
-        public_url = "ws://localhost:7880"
-        service_url = "http://localhost:7880"
-        api_key = "devkey"
-        api_secret = "secret"
-
         [oidc]
         authority = "http://localhost:8080/realms/opentalk"
 
@@ -188,4 +182,10 @@ pub(crate) const SETTINGS_RAW_MINIMAL_CONFIG_TOML: &str = r#"
         url = "http://localhost:11333"
         api_key = { id = "roomserver", secret = "secret" }
         [roomserver.modules]
+        [roomserver.modules.livekit]
+        public_url = "ws://localhost:7880"
+        service_url = "http://localhost:7880"
+        api_key = "devkey"
+        api_secret = "secret"
+        [roomserver.modules.echo]
         "#;
