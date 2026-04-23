@@ -2,7 +2,11 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! API endpoints under `v1/rooms/{room_id}/roomserver`
+//! # DEPRECATED
+//!
+//! API endpoints under `v1/rooms/{room_id}/roomserver`.
+
+#![allow(deprecated)]
 
 pub mod start;
 pub mod start_invited;
