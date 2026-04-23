@@ -1431,7 +1431,7 @@ paths:
         This endpoint is provided for participation of recording and streaming clients
         which will join incognito and receive all the information and media streams required
         for creating a recording or livestream of the meeting.
-      operationId: start_recording_roomserver
+      operationId: start_recording
       requestBody:
         content:
           application/json:
