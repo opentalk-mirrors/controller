@@ -31,7 +31,6 @@ opentalk-inventory-common = { path = "crates/opentalk-inventory-common", version
 opentalk-inventory-database = { path = "crates/opentalk-inventory-database", version = "0.33.0" }
 opentalk-jobs = { path = "crates/opentalk-jobs", version = "0.33.0" }
 opentalk-log = { path = "crates/opentalk-log", version = "0.33.0" }
-opentalk-r3dlock = { path = "crates/opentalk-r3dlock", version = "0.33.0" }
 opentalk-signaling-core = { path = "crates/opentalk-signaling-core", version = "0.33.0" }
 opentalk-test-util = { path = "crates/opentalk-test-util", version = "0.33.0" }
 
