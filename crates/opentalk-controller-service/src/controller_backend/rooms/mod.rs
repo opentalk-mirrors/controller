@@ -81,7 +81,7 @@ impl ControllerBackend {
             tariff.require_feature(&features::CALL_IN_MODULE_FEATURE_ID)?;
         }
 
-        let guest_access = guest_access.unwrap_or_default();
+        let guest_access = guest_access.unwrap_or(GuestAccess::WaitingRoom);
         if guest_access != GuestAccess::Disabled {
             tariff.require_feature(&features::GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
         }
