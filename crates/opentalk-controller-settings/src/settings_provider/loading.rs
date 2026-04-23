@@ -28,8 +28,10 @@ impl SettingsProvider {
             )
             .build()?;
 
-        let settings_raw: SettingsRaw =
-            serde_path_to_error::deserialize(config).context(DeserializeConfigSnafu {
+        let mut warn_unknown_key = Self::warn_unused_key;
+        let ignored_deserializer = serde_ignored::Deserializer::new(config, &mut warn_unknown_key);
+        let settings_raw: SettingsRaw = serde_path_to_error::deserialize(ignored_deserializer)
+            .context(DeserializeConfigSnafu {
                 file_path: file_path.to_owned(),
             })?;
         Self::warn_about_deprecated_items(&settings_raw);
@@ -37,19 +39,52 @@ impl SettingsProvider {
         Ok(settings_raw)
     }
 
-    fn warn_about_deprecated_items(raw: &SettingsRaw) {
+    fn warn_unused_key(path: serde_ignored::Path) {
         use owo_colors::OwoColorize as _;
 
-        if raw.extensions.contains_key("room_server") {
-            anstream::eprintln!(
-                "{}: Found an obsolete {room_server} (janus) configuration section.\n\
-                 {}: This section is no longer needed, please remove it and add a {livekit} section instead.",
-                "DEPRECATION WARNING".yellow().bold(),
-                "NOTE".green(),
-                room_server = "room_server".bold(),
-                livekit = "livekit".bold(),
-            );
+        let path = path.to_string();
+        match path.as_str() {
+            "reports" => {
+                anstream::eprintln!(
+                    "{}: Found an obsolete {reports} configuration section.\n\
+                     \t{}: This section is deprecated and will be reintroduced in a different form in the future.",
+                    "DEPRECATION WARNING".yellow().bold(),
+                    "NOTE".green(),
+                    reports = "reports".bold(),
+                );
+            }
+            "room_server" => {
+                anstream::eprintln!(
+                    "{}: Found an obsolete {room_server} (janus) configuration section.\n\
+                     \t{}: This section is no longer needed, please remove it and add a {livekit} section instead.",
+                    "DEPRECATION WARNING".yellow().bold(),
+                    "NOTE".green(),
+                    room_server = "room_server".bold(),
+                    livekit = "livekit".bold(),
+                );
+            }
+            "websocket_rate_limit" => {
+                anstream::eprintln!(
+                    "{}: Found an obsolete {old_section} configuration section.\n\
+                     \t{}: Use the {new_section} section instead.",
+                    "DEPRECATION WARNING".yellow().bold(),
+                    "NOTE".green(),
+                    old_section = "websocket_rate_limit".bold(),
+                    new_section = "roomserver.websocket_rate_limit".bold(),
+                );
+            }
+            _ => {
+                anstream::eprintln!(
+                    "{}: Unknown configuration key {}",
+                    "WARNING".yellow().bold(),
+                    path.bold(),
+                );
+            }
         }
+    }
+
+    fn warn_about_deprecated_items(raw: &SettingsRaw) {
+        use owo_colors::OwoColorize as _;
 
         if raw.keycloak.is_some() {
             anstream::eprintln!(
@@ -60,16 +95,6 @@ impl SettingsProvider {
                 keycloak = "keycloak".bold(),
                 oidc = "oidc".bold(),
                 user_search = "user_search".bold(),
-            );
-        }
-
-        if raw.reports.is_some() {
-            anstream::eprintln!(
-                "{}: Found an obsolete {reports} configuration section.\n\
-                 {}: This section is deprecated and will be reintroduced in a different form in the future.",
-                "DEPRECATION WARNING".yellow().bold(),
-                "NOTE".green(),
-                reports = "reports".bold(),
             );
         }
     }

@@ -5,10 +5,9 @@
 use serde::Deserialize;
 
 use super::{
-    Authorization, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Extensions, Frontend, Http,
-    Keycloak, Logging, Metrics, MinIO, MonitoringSettings, Oidc, OperatorInformation,
-    RabbitMqConfig, RedisConfig, Reports, RoomServer, SharedFolder, Tariffs, Tenants, UserSearch,
-    WebSocketRateLimit,
+    Authorization, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Frontend, Http, Keycloak,
+    Logging, Metrics, MinIO, MonitoringSettings, Oidc, OperatorInformation, RabbitMqConfig,
+    RedisConfig, RoomServer, SharedFolder, Tariffs, Tenants, UserSearch,
 };
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -51,9 +50,6 @@ pub struct SettingsRaw {
     pub(crate) etcd: Option<Etcd>,
 
     #[serde(default)]
-    pub(crate) reports: Option<Reports>,
-
-    #[serde(default)]
     pub(crate) shared_folder: Option<SharedFolder>,
 
     #[serde(default)]
@@ -76,13 +72,7 @@ pub struct SettingsRaw {
     #[serde(default)]
     pub(crate) tariffs: Option<Tariffs>,
 
-    #[serde(default)]
-    pub(crate) websocket_rate_limit: Option<WebSocketRateLimit>,
-
     pub(crate) roomserver: RoomServer,
-
-    #[serde(flatten)]
-    pub(crate) extensions: Extensions,
 
     #[serde(default)]
     pub(crate) operator_information: Option<OperatorInformation>,
@@ -132,7 +122,6 @@ pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
         avatar: None,
         metrics: None,
         etcd: None,
-        reports: None,
         shared_folder: None,
         call_in: None,
         defaults: None,
@@ -150,7 +139,6 @@ pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
         monitoring: None,
         tenants: None,
         tariffs: None,
-        websocket_rate_limit: None,
         roomserver: RoomServer {
             url: "http://localhost:11333"
                 .parse()
@@ -159,7 +147,6 @@ pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
             modules: ModuleSettings::new(),
             websocket_rate_limit: None,
         },
-        extensions: Extensions::default(),
         operator_information: None,
     }
 }

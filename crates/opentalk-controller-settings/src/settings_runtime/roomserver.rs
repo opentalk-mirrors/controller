@@ -49,17 +49,19 @@ fn rate_limit_from_settings_file(config: Option<WebSocketRateLimit>) -> Option<R
     let Some(config) = config else {
         return Some(RateLimitSettings::default());
     };
+    let WebSocketRateLimit {
+        disabled,
+        tokens_per_second,
+        token_bucket_size,
+        // Do not use rest pattern (`..`) here. We ensure that all fields are used by destructuring `WebSocketRateLimit`
+    } = config;
 
-    if config.disabled {
+    if disabled {
         return None;
     }
 
     Some(RateLimitSettings {
-        tokens_per_second: config
-            .tokens_per_second
-            .unwrap_or(rate_limit::DEFAULT_TOKENS_PER_SECOND),
-        token_bucket_size: config
-            .token_bucket_size
-            .unwrap_or(rate_limit::DEFAULT_TOKEN_BUCKET_SIZE),
+        tokens_per_second: tokens_per_second.unwrap_or(rate_limit::DEFAULT_TOKENS_PER_SECOND),
+        token_bucket_size: token_bucket_size.unwrap_or(rate_limit::DEFAULT_TOKEN_BUCKET_SIZE),
     })
 }
