@@ -1456,7 +1456,7 @@ async fn create_time_independent_event(
     query: EventOptionsQuery,
     training_participation_report: Option<TrainingParticipationReportParameterSet>,
 ) -> Result<(EventResource, Option<MailResource>), CaptureApiError> {
-    let guest_access = guest_access.unwrap_or_default();
+    let guest_access = guest_access.unwrap_or(GuestAccess::WaitingRoom);
     if guest_access != GuestAccess::Disabled {
         user_tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
     }
@@ -1561,7 +1561,7 @@ async fn create_time_dependent_event(
     let (duration_secs, ends_at_dt, ends_at_tz) =
         parse_event_dt_params(is_all_day, starts_at, ends_at, &recurrence_pattern)?;
 
-    let guest_access = guest_access.unwrap_or_default();
+    let guest_access = guest_access.unwrap_or(GuestAccess::WaitingRoom);
     if guest_access != GuestAccess::Disabled {
         user_tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
     }
