@@ -18,7 +18,7 @@ RUN cargo auditable build --release --locked --package opentalk-controller
 
 FROM git.opentalk.dev:5050/opentalk/backend/containers/typst-plugins:${typst_plugins_flavor}-${typst_plugins_version} AS typst-plugins
 
-FROM ubuntu:noble
+FROM ubuntu:resolute
 
 RUN apt-get update && apt-get full-upgrade -y && \
     apt-get install --no-install-recommends -y libpq5 ca-certificates && \
