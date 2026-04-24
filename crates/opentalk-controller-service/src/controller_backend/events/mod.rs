@@ -764,6 +764,7 @@ impl ControllerBackend {
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
+        // TODO: state checks should happen in the database.
         let (
             event,
             invite,
@@ -884,16 +885,17 @@ impl ControllerBackend {
                         &recurrence_pattern,
                     )?;
 
+                    let recurrence = recurrence_pattern
+                        .map(|recurrence_pattern| UpdateEventRecurrence { recurrence_pattern });
+
                     Some(UpdateEventDate {
                         is_all_day: Some(date.is_all_day),
                         starts_at: Some(date.starts_at.to_datetime_tz()),
                         starts_at_tz: Some(date.starts_at.timezone),
                         ends_at: Some(ends_at_dt),
                         ends_at_tz: Some(ends_at_tz),
-                        recurrence: Some(UpdateEventRecurrence {
-                            duration_secs,
-                            recurrence_pattern,
-                        }),
+                        duration_secs: Some(duration_secs),
+                        recurrence,
                     })
                 }
                 PatchEventDateKind::SetTimeIndependent { .. } => {
@@ -939,6 +941,9 @@ impl ControllerBackend {
                     let (duration_secs, ends_at_dt, ends_at_tz) =
                         parse_event_dt_params(is_all_day, starts_at, ends_at, &recurrence_pattern)?;
 
+                    let recurrence = recurrence_pattern
+                        .map(|recurrence_pattern| UpdateEventRecurrence { recurrence_pattern });
+
                     if event.is_recurring() {
                         // Delete all exceptions for recurring events as the patch may modify fields
                         // that influence the timestamps at which instances (occurrences) are
@@ -954,10 +959,8 @@ impl ControllerBackend {
                         starts_at_tz: Some(starts_at.timezone),
                         ends_at: Some(ends_at_dt),
                         ends_at_tz: Some(ends_at_tz),
-                        recurrence: Some(UpdateEventRecurrence {
-                            duration_secs,
-                            recurrence_pattern,
-                        }),
+                        duration_secs: Some(duration_secs),
+                        recurrence,
                     })
                 }
             }
@@ -1597,12 +1600,9 @@ async fn create_time_dependent_event(
                 starts_at_tz: starts_at.timezone,
                 ends_at: ends_at_dt,
                 ends_at_tz,
-                recurrence: duration_secs.zip(recurrence_pattern).map(
-                    |(duration_secs, recurrence_pattern)| NewEventRecurrence {
-                        duration_secs,
-                        recurrence_pattern,
-                    },
-                ),
+                duration_secs,
+                recurrence: recurrence_pattern
+                    .map(|recurrence_pattern| NewEventRecurrence { recurrence_pattern }),
             }),
         })
         .await?;
@@ -1814,6 +1814,7 @@ fn verify_exception_dt_params(
     parse_event_dt_params(is_all_day, starts_at, ends_at, &None).map(|_| ())
 }
 
+// TODO: Calculating the duration_secs should happen in the database.
 /// parse the given event dt params
 ///
 /// checks that the given params are valid to be put in the database
@@ -1823,18 +1824,17 @@ fn verify_exception_dt_params(
 /// - if is_all_day: starts_at & ends_at have their time part at 00:00
 /// - bounded recurrence_pattern yields at least one result
 ///
-/// returns the duration of the event if its recurring
-/// and the appropriate ends_at datetime and timezone
+/// returns the duration of the event and the appropriate ends_at datetime and timezone
 fn parse_event_dt_params(
     is_all_day: bool,
     starts_at: DateTimeTz,
     ends_at: DateTimeTz,
     recurrence_pattern: &Option<String>,
-) -> Result<(Option<i32>, DateTime<Tz>, TimeZone), ApiError> {
+) -> Result<(i32, DateTime<Tz>, TimeZone), ApiError> {
     const CODE_INVALID_EVENT: &str = "invalid_event";
 
     let starts_at_dt = starts_at.to_datetime_tz();
-    let ends_at_dt = ends_at.to_datetime_tz();
+    let mut ends_at_dt = ends_at.to_datetime_tz();
 
     let duration_secs = (ends_at_dt - starts_at_dt).num_seconds();
 
@@ -1901,7 +1901,7 @@ fn parse_event_dt_params(
             false
         });
 
-        let dt_of_last_occurrence = if is_bounded {
+        ends_at_dt = if is_bounded {
             // For bounded RRULEs calculate the date of the last occurrence
             // Still limiting the iterations - just in case
             rrule_set
@@ -1924,15 +1924,9 @@ fn parse_event_dt_params(
                 .unwrap_or(DateTime::<Utc>::MAX_UTC)
                 .with_timezone(ends_at.timezone.as_ref())
         };
-
-        Ok((
-            Some(duration_secs as i32),
-            dt_of_last_occurrence,
-            ends_at.timezone,
-        ))
-    } else {
-        Ok((None, ends_at.to_datetime_tz(), ends_at.timezone))
     }
+
+    Ok((duration_secs as i32, ends_at_dt, ends_at.timezone))
 }
 
 fn compare_inventory_events_or_exceptions(

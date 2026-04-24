@@ -1051,29 +1051,45 @@ pub async fn update_event(
                 .get_result(conn)
                 .await?;
 
-            let Some(update_date) = update_event_record.date() else {
-                return Ok(EventRecord::new(event, None, None));
+            let date = match update_event_record.date() {
+                Some(update_date) => Some(
+                    diesel::insert_into(event_dates::table)
+                        .values((event_dates::event_id.eq(event_id), update_date))
+                        .on_conflict(event_dates::event_id)
+                        .do_update()
+                        .set(update_date)
+                        .get_result(conn)
+                        .await?,
+                ),
+                None => {
+                    let _ = diesel::delete(event_dates::table)
+                        .filter(event_dates::event_id.eq(event_id))
+                        .execute(conn)
+                        .await?;
+
+                    None
+                }
             };
 
-            let date = Some(
-                diesel::update(event_dates::table)
-                    .filter(event_dates::event_id.eq(event_id))
-                    .set(update_date)
-                    .get_result(conn)
-                    .await?,
-            );
+            let recurrence = match update_event_record.recurrence() {
+                Some(update_recurrence) => Some(
+                    diesel::insert_into(event_recurrences::table)
+                        .values((event_recurrences::event_id.eq(event_id), update_recurrence))
+                        .on_conflict(event_recurrences::event_id)
+                        .do_update()
+                        .set(update_recurrence)
+                        .get_result(conn)
+                        .await?,
+                ),
+                None => {
+                    let _ = diesel::delete(event_recurrences::table)
+                        .filter(event_recurrences::event_id.eq(event_id))
+                        .execute(conn)
+                        .await?;
 
-            let Some(update_recurrence) = update_event_record.recurrence() else {
-                return Ok(EventRecord::new(event, date, None));
+                    None
+                }
             };
-
-            let recurrence = Some(
-                diesel::update(event_recurrences::table)
-                    .filter(event_recurrences::event_id.eq(event_id))
-                    .set(update_recurrence)
-                    .get_result(conn)
-                    .await?,
-            );
 
             Ok(EventRecord::new(event, date, recurrence))
         }

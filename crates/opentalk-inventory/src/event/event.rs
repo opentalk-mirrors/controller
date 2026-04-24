@@ -103,6 +103,11 @@ impl Event {
         self.date().map(|date| date.is_all_day)
     }
 
+    /// Returns the duration_secs of this [`Event`].
+    pub fn duration_secs(&self) -> Option<i32> {
+        self.date().map(|date| date.duration_secs)
+    }
+
     /// Returns the recurrence of this [`Event`].
     pub fn recurrence(&self) -> Option<&EventRecurrence> {
         self.date().and_then(|date| date.recurrence.as_ref())
@@ -112,11 +117,6 @@ impl Event {
     pub fn recurrence_pattern(&self) -> Option<&str> {
         self.recurrence()
             .map(|recurrence| recurrence.recurrence_pattern.as_ref())
-    }
-
-    /// Returns the duration_secs of this [`Event`].
-    pub fn duration_secs(&self) -> Option<i32> {
-        self.recurrence().map(|recurrence| recurrence.duration_secs)
     }
 
     /// Returns `true` if the [`Event`] has a recurrence.
@@ -173,6 +173,7 @@ mod tests {
                 ends_at: Timestamp::example_data(),
                 ends_at_tz: TimeZone::default(),
                 recurrence: None,
+                duration_secs: 1800,
             }),
         };
 
@@ -201,6 +202,7 @@ mod tests {
                 starts_at_tz: TimeZone::default(),
                 ends_at: Timestamp::example_data(),
                 ends_at_tz: TimeZone::default(),
+                duration_secs: 1800,
                 recurrence: None,
             }),
         };
@@ -227,8 +229,8 @@ mod tests {
                 starts_at_tz: TimeZone::default(),
                 ends_at: Timestamp::example_data(),
                 ends_at_tz: TimeZone::default(),
+                duration_secs: 10000,
                 recurrence: Some(EventRecurrence {
-                    duration_secs: 10000,
                     recurrence_pattern: "FREQ=DAILY;INTERVAL=1".to_string(),
                 }),
             }),

@@ -30,11 +30,6 @@ use crate::{schema::event_recurrences, tables::event_dates::EventDate};
 pub struct EventRecurrence {
     /// ID of the event the date belongs to.
     pub event_id: EventId,
-    /// Only for recurring events, since ends_at contains the information about the last occurrence
-    /// of the recurring series this duration value.
-    ///
-    /// MUST be used to calculate the event instances length.
-    pub duration_secs: i32,
     /// Recurrence pattern of the event.
     pub recurrence_pattern: String,
 }

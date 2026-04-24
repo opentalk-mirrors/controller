@@ -81,14 +81,14 @@ impl NewEvent {
         self.date().map(|date| date.ends_at_tz)
     }
 
+    /// Returns the `duration_secs` of this [`NewEvent`].
+    pub fn duration_secs(&self) -> Option<i32> {
+        self.date().map(|date| date.duration_secs)
+    }
+
     /// Returns the `recurrence` of this [`NewEvent`].
     pub fn recurrence(&self) -> Option<&NewEventRecurrence> {
         self.date().and_then(|date| date.recurrence.as_ref())
-    }
-
-    /// Returns the `duration_secs` of this [`NewEvent`].
-    pub fn duration_secs(&self) -> Option<i32> {
-        self.recurrence().map(|recurrence| recurrence.duration_secs)
     }
 
     /// Returns the `recurrence_pattern` of this [`NewEvent`].
@@ -140,6 +140,7 @@ mod tests {
                     .with_ymd_and_hms(2024, 7, 20, 14, 16, 19)
                     .unwrap(),
                 ends_at_tz: TimeZone::default(),
+                duration_secs: 1800,
                 recurrence: None,
             }),
         };

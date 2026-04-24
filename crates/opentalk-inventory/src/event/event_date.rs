@@ -21,6 +21,12 @@ pub struct EventDate {
     pub ends_at: Timestamp,
     /// Timezone of the ends_at datetime.
     pub ends_at_tz: TimeZone,
+    /// Only for recurring events, since ends_at contains the information
+    /// about the last occurrence of the recurring series this duration
+    /// value.
+    ///
+    /// MUST be used to calculate the event instances length.
+    pub duration_secs: i32,
     /// The recurrence pattern for recurring events.
     pub recurrence: Option<EventRecurrence>,
 }
@@ -30,12 +36,12 @@ impl EventDate {
     /// - if the event is not recurring: returns `ends_at` and `ends_at_tz` of the event
     /// - otherwise: returns `ends_at` and `ends_at_tz` of first occurence
     pub fn ends_at_of_first_occurrence(&self) -> (Timestamp, TimeZone) {
-        let Some(recurrence) = self.recurrence.as_ref() else {
+        if self.recurrence.is_none() {
             return (self.ends_at, self.ends_at_tz);
         };
 
         (
-            self.starts_at + chrono::Duration::seconds(recurrence.duration_secs as i64),
+            self.starts_at + chrono::Duration::seconds(self.duration_secs as i64),
             self.ends_at_tz,
         )
     }

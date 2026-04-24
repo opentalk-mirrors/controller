@@ -92,6 +92,7 @@ impl From<inventory::Event> for EventRecord {
             ends_at,
             ends_at_tz,
             recurrence,
+            duration_secs,
         }) = date
         else {
             return Self::new(event, None, None);
@@ -104,19 +105,15 @@ impl From<inventory::Event> for EventRecord {
             ends_at: ends_at.into(),
             ends_at_tz,
             is_all_day,
+            duration_secs,
         });
 
-        let Some(inventory::EventRecurrence {
-            duration_secs,
-            recurrence_pattern,
-        }) = recurrence
-        else {
+        let Some(inventory::EventRecurrence { recurrence_pattern }) = recurrence else {
             return Self::new(event, date, None);
         };
 
         let recurrence = Some(EventRecurrence {
             event_id: id,
-            duration_secs,
             recurrence_pattern,
         });
 
@@ -150,14 +147,8 @@ impl From<EventRecord> for inventory::Event {
         let recurrence = recurrence.map(
             |EventRecurrence {
                  event_id: _,
-                 duration_secs,
                  recurrence_pattern,
-             }| {
-                inventory::EventRecurrence {
-                    duration_secs,
-                    recurrence_pattern,
-                }
-            },
+             }| { inventory::EventRecurrence { recurrence_pattern } },
         );
 
         let date = date.map(
@@ -168,6 +159,7 @@ impl From<EventRecord> for inventory::Event {
                  ends_at,
                  ends_at_tz,
                  is_all_day,
+                 duration_secs,
              }| {
                 inventory::EventDate {
                     is_all_day,
@@ -176,6 +168,7 @@ impl From<EventRecord> for inventory::Event {
                     ends_at: ends_at.into(),
                     ends_at_tz,
                     recurrence,
+                    duration_secs,
                 }
             },
         );

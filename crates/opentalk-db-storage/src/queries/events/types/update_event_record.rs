@@ -78,6 +78,7 @@ impl From<inventory::UpdateEvent> for UpdateEventRecord {
             ends_at,
             ends_at_tz,
             recurrence,
+            duration_secs,
         }) = date
         else {
             return Self::new(event, None, None);
@@ -89,20 +90,14 @@ impl From<inventory::UpdateEvent> for UpdateEventRecord {
             ends_at,
             ends_at_tz,
             is_all_day,
+            duration_secs,
         });
 
-        let Some(inventory::UpdateEventRecurrence {
-            duration_secs,
-            recurrence_pattern,
-        }) = recurrence
-        else {
+        let Some(inventory::UpdateEventRecurrence { recurrence_pattern }) = recurrence else {
             return Self::new(event, date, None);
         };
 
-        let recurrence = Some(UpdateEventRecurrence {
-            duration_secs,
-            recurrence_pattern,
-        });
+        let recurrence = Some(UpdateEventRecurrence { recurrence_pattern });
 
         Self::new(event, date, recurrence)
     }
