@@ -30,6 +30,7 @@ casbin_rule {
 }
 event_dates {
     uuid event_id PK,FK
+    integer duration_secs
     timestamp_with_time_zone ends_at
     character_varying ends_at_tz
     boolean is_all_day
@@ -74,7 +75,6 @@ event_invites {
 }
 event_recurrences {
     uuid event_id PK,FK
-    integer duration_secs
     character_varying recurrence_pattern
 }
 event_shared_folders {
