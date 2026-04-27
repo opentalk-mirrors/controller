@@ -93,10 +93,16 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
         let current_user = inventory.get_user(current_user.id).await?;
 
-        // Get all events we intend to get instances for
-        let recurring_events = inventory
-            .get_all_events_for_user(current_user.clone(), true)
-            .await?;
+        let recurring_events = match query.time_independent {
+            Some(false) | None => {
+                // Get all recurring events we intend to get instances for
+                inventory
+                    .get_all_events_for_user(current_user.clone(), true)
+                    .await?
+            }
+            // Omit recurring events for time independent query
+            Some(true) => Vec::new(),
+        };
 
         // Get the events and belonging data as a stream that can be interwoven
         let events_stream = inventory
