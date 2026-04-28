@@ -4874,7 +4874,7 @@ components:
           description: If waiting room is enabled
     PostAssetResponseBody:
       type: object
-      description: "Response for the `POST /services/roomserver/room/{room_id}/asset` endpoint"
+      description: "Response for the `POST /services/rooms/{room_id}/asset` endpoint"
       required:
         - asset_resource
         - quota
