@@ -224,10 +224,6 @@ users_find_behavior = "from_user_search_backend"
 [roomserver]
 # Configure a roomserver for this controller.
 #
-# When enabled, the controllers built in signaling endpoints (`rooms/<room-id>/start` & `rooms/<room-id>/start_invited`)
-# are be disabled and roomserver signaling endpoints (`rooms/roomserver/<room-id>/start` &
-# `rooms/roomserver/<room-id>/start_invited`) have to be used instead.
-#
 # The deployed frontend client has to be compatible with the roomservers signaling implementation.
 #
 # The URL of the roomserver. Needs to be reachable by clients

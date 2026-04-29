@@ -667,6 +667,8 @@ impl Controller {
         v1::rooms::by_id::delete,
         v1::rooms::by_id::get,
         v1::rooms::by_id::event::get,
+        v1::rooms::by_id::start::post,
+        v1::rooms::by_id::start_invited::post,
         v1::rooms::by_id::tariff::get,
         v1::rooms::post,
         v1::rooms::by_id::patch,
@@ -875,6 +877,7 @@ fn v1_scope(
         .service(v1::auth::login::post)
         .service(v1::auth::login::get)
         .service(v1::auth::logout::post)
+        .service(v1::rooms::by_id::start_invited::post)
         .service(v1::rooms::by_id::roomserver::start_invited::post)
         .service(v1::invite::verify::post)
         .service(v1::turn::get)
@@ -902,6 +905,7 @@ fn v1_scope(
                 .service(v1::rooms::by_id::get)
                 .service(v1::rooms::by_id::event::get)
                 .service(v1::rooms::by_id::tariff::get)
+                .service(v1::rooms::by_id::start::post)
                 .service(v1::rooms::by_id::roomserver::start::post)
                 .service(v1::rooms::by_id::delete)
                 .service(v1::events::post)
