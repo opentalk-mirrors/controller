@@ -64,6 +64,7 @@ async fn make_event(
         starts_at_tz: TimeZone::from(Tz::UTC),
         ends_at: Tz::UTC.with_ymd_and_hms(2020, 1, 1, h, 0, 0).unwrap(),
         ends_at_tz: TimeZone::from(Tz::UTC),
+        duration_secs: 1800,
         recurrence: None,
     });
 
@@ -886,6 +887,7 @@ async fn serial_test_get_event_min_max_time() {
                 starts_at_tz: TimeZone::from(Tz::UTC),
                 ends_at: Tz::UTC.with_ymd_and_hms(2020, 1, 1, 11, 0, 0).unwrap(),
                 ends_at_tz: TimeZone::from(Tz::UTC),
+                duration_secs: 1800,
                 recurrence: None,
             }),
         };

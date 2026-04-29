@@ -25,4 +25,10 @@ pub struct NewEventDate {
     pub ends_at_tz: TimeZone,
     /// The recurrence pattern for recurring events.
     pub recurrence: Option<NewEventRecurrence>,
+    /// Only for recurring events, since ends_at contains the information
+    /// about the last occurrence of the recurring series this duration
+    /// value.
+    ///
+    /// MUST be used to calculate the event instances length.
+    pub duration_secs: i32,
 }

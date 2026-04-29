@@ -46,6 +46,7 @@ diesel::table! {
         #[max_length = 255]
         ends_at_tz -> Varchar,
         is_all_day -> Bool,
+        duration_secs -> Int4,
     }
 }
 
@@ -116,7 +117,6 @@ diesel::table! {
 
     event_recurrences (event_id) {
         event_id -> Uuid,
-        duration_secs -> Int4,
         #[max_length = 4092]
         recurrence_pattern -> Varchar,
     }

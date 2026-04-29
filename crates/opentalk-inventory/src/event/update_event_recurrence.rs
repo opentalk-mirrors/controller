@@ -5,11 +5,6 @@
 /// Contains information about the recurrence of a new event.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UpdateEventRecurrence {
-    /// Only for recurring events, since ends_at contains the information about
-    /// the last occurrence of the recurring series this duration value.
-    ///
-    /// **MUST** be used to calculate the event instances length.
-    pub duration_secs: Option<i32>,
     /// The recurrence pattern for recurring events.
-    pub recurrence_pattern: Option<String>,
+    pub recurrence_pattern: String,
 }

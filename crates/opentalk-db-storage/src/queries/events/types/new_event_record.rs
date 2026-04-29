@@ -26,6 +26,7 @@ impl NewEventRecord {
             ends_at,
             ends_at_tz,
             recurrence,
+            duration_secs,
         } = self.raw_date?;
 
         Some(NewEventDateRecord {
@@ -36,6 +37,7 @@ impl NewEventRecord {
                 ends_at,
                 ends_at_tz,
                 is_all_day,
+                duration_secs,
             },
             raw_recurrence: recurrence,
         })
@@ -56,14 +58,10 @@ pub struct NewEventDateRecord {
 
 impl NewEventDateRecord {
     pub fn build_recurrence(self) -> Option<NewEventRecurrence> {
-        let inventory::NewEventRecurrence {
-            duration_secs,
-            recurrence_pattern,
-        } = self.raw_recurrence?;
+        let inventory::NewEventRecurrence { recurrence_pattern } = self.raw_recurrence?;
 
         Some(NewEventRecurrence {
             event_id: self.date.event_id,
-            duration_secs,
             recurrence_pattern,
         })
     }
