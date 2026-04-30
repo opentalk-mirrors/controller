@@ -12,9 +12,14 @@ UPDATE event_dates
 ALTER TABLE event_recurrences
     DROP COLUMN duration_secs;
 
--- Fall back to computing from starts_at / ends_at where still NULL
+-- Set fallback duration_secs to 0
+--
+-- This is fine under the assumption that we only use the duration_secs to calculate the ends_at
+-- of recurring evnts. If we change the event to be recurring we calculate the correct  
+-- duration_secs as part of our business logic, so setting it to 0 for nonrecurring events is fine 
+-- for now.
 UPDATE event_dates
-    SET duration_secs = extract(epoch FROM (ends_at - starts_at))::int
+    SET duration_secs = 0 
     WHERE duration_secs IS null;
 
 -- Now that every row is populated, enforce NOT NULL
