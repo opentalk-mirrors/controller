@@ -8,10 +8,13 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use actix_ws::{Message, ProtocolError};
 use external::ExternalRoomServer;
+use opentalk_asset_storage::{ObjectStorage, StorageNotifier};
 use opentalk_controller_service_facade::RequestUser;
-use opentalk_controller_settings::{RoomServerKind, Settings, common::HttpCorsAllowedOrigin};
+use opentalk_controller_settings::{
+    RoomServerKind, Settings, SettingsProvider, common::HttpCorsAllowedOrigin,
+};
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_inventory::{Event, Inventory};
+use opentalk_inventory::{Event, Inventory, InventoryProvider};
 use opentalk_roomserver_client::Client;
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
@@ -60,6 +63,10 @@ pub use storage_notifier::build_storage_notifier;
 /// Creates a RoomServer instance
 pub fn build_roomserver(
     kind: &RoomServerKind,
+    settings_provider: SettingsProvider,
+    inventory_provider: Arc<dyn InventoryProvider>,
+    storage: Arc<ObjectStorage>,
+    storage_notifier: Arc<dyn StorageNotifier>,
     shutdown: Receiver<()>,
 ) -> (
     Arc<dyn RoomServerBackend + Send + Sync>,
@@ -72,6 +79,10 @@ pub fn build_roomserver(
         } => {
             log::debug!("Using internal roomserver");
             let roomserver = Arc::new(InternalRoomServer::new(
+                settings_provider,
+                inventory_provider,
+                storage,
+                storage_notifier,
                 settings.clone(),
                 public_url.clone(),
                 shutdown,
