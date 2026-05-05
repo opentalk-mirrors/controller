@@ -231,7 +231,7 @@ pub(crate) fn minimal_example() -> Settings {
             api_key: "devkey".to_string(),
             api_secret: "secret".to_string(),
             public_url: "ws://localhost:7880".to_string(),
-            service_url: "http://localhost:7880".to_string(),
+            service_url: "http://localhost:7880".parse().expect("URL must be valid"),
         })
         .expect("LiveKitSettings must be valid");
 

@@ -4,7 +4,7 @@
 
 //! Provides roomserver-related implementation
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, time::Duration};
 
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::{Settings, common::HttpCorsAllowedOrigin};
@@ -312,6 +312,7 @@ impl ControllerBackend {
             fallback_language: settings.defaults.user_language.clone(),
             ws_rate_limit: settings.roomserver.websocket_rate_limit,
             allowed_origins,
+            room_idle_timeout: Duration::from_mins(1),
         };
 
         Ok(parameters)
