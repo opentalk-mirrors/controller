@@ -51,7 +51,6 @@ opentalk-roomserver-modules.workspace = true
 opentalk-roomserver-room.workspace = true
 opentalk-roomserver-types = { workspace = true, features = ["actix"] }
 opentalk-roomserver-types-training-participation-report.workspace = true
-opentalk-signaling-core.workspace = true
 opentalk-types-api-internal.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["backend"] }
 opentalk-types-common = { workspace = true, features = ["backend", "clap"] }

@@ -50,7 +50,6 @@ opentalk-jobs.workspace = true
 opentalk-keycloak-admin.workspace = true
 opentalk-roomserver-modules.workspace = true
 opentalk-service-auth = { workspace = true, features = ["actix"] }
-opentalk-signaling-core.workspace = true
 opentalk-types-api-internal = { workspace = true, features = ["utoipa"] }
 opentalk-types-api-v1 = { workspace = true, features = ["backend"] }
 opentalk-types-common = { workspace = true, features = [

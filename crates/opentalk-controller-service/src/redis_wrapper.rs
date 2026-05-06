@@ -15,11 +15,15 @@ use redis::{Arg, RedisFuture, aio::ConnectionLike};
 
 const COMMAND_KEY: Key = Key::from_static_str("command");
 const EXEC_TIME: &str = "redis.command_execution_time_seconds";
+/// Metrics for Redis operations
+#[derive(Debug)]
 pub struct RedisMetrics {
+    /// Histogram for the execution time of Redis commands.
     pub command_execution_time: Histogram<f64>,
 }
 
 impl RedisMetrics {
+    /// Appends views for Redis metrics to the provided [`MeterProviderBuilder`].
     pub fn append_views(
         provider_builder: MeterProviderBuilder,
     ) -> Result<MeterProviderBuilder, MetricError> {
@@ -32,6 +36,7 @@ impl RedisMetrics {
         )?))
     }
 
+    /// Creates a new [`RedisMetrics`].
     pub fn new(meter: &Meter) -> Self {
         Self {
             command_execution_time: meter
@@ -43,13 +48,15 @@ impl RedisMetrics {
     }
 }
 
-#[derive(Clone)]
+/// A wrapper around [`redis::aio::ConnectionManager`] that integrates OpenTelemetry metrics.
+#[derive(Clone, Debug)]
 pub struct RedisConnection {
     connection_manager: redis::aio::ConnectionManager,
     metrics: Option<Arc<RedisMetrics>>,
 }
 
 impl RedisConnection {
+    /// Creates a new [`RedisConnection`].
     pub fn new(connection_manager: redis::aio::ConnectionManager) -> Self {
         Self {
             connection_manager,
@@ -57,11 +64,13 @@ impl RedisConnection {
         }
     }
 
+    /// Attaches OpenTelemetry metrics to the connection.
     pub fn with_metrics(mut self, metrics: Arc<RedisMetrics>) -> Self {
         self.metrics = Some(metrics);
         self
     }
 
+    /// Consumes the wrapper and returns the underlying [`redis::aio::ConnectionManager`].
     pub fn into_manager(self) -> redis::aio::ConnectionManager {
         self.connection_manager
     }

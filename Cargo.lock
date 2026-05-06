@@ -5630,7 +5630,6 @@ dependencies = [
  "opentalk-keycloak-admin",
  "opentalk-roomserver-modules",
  "opentalk-service-auth",
- "opentalk-signaling-core",
  "opentalk-types-api-internal",
  "opentalk-types-api-v1",
  "opentalk-types-common",
@@ -5704,7 +5703,6 @@ dependencies = [
  "opentalk-roomserver-room",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-training-participation-report",
- "opentalk-signaling-core",
  "opentalk-types-api-internal",
  "opentalk-types-api-v1",
  "opentalk-types-common",
@@ -6910,15 +6908,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "opentalk-signaling-core"
-version = "0.33.0"
-dependencies = [
- "opentelemetry",
- "opentelemetry_sdk",
- "redis",
-]
-
-[[package]]
 name = "opentalk-test-util"
 version = "0.33.0"
 dependencies = [
@@ -6928,11 +6917,11 @@ dependencies = [
  "log",
  "opentalk-controller-api-authorization",
  "opentalk-controller-api-authorization-database",
+ "opentalk-controller-service",
  "opentalk-database",
  "opentalk-db-storage",
  "opentalk-inventory",
  "opentalk-inventory-database",
- "opentalk-signaling-core",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "pretty_assertions",

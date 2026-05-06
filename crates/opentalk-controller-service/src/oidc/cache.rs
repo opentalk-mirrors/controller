@@ -12,7 +12,6 @@ use opentalk_cache::{
 };
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{Tenant, User};
-use opentalk_signaling_core::RedisConnection;
 use snafu::Report;
 
 use super::{
@@ -22,6 +21,7 @@ use super::{
         User as CacheableUser,
     },
 };
+use crate::RedisConnection;
 
 pub type Result<T, E = CaptureApiError> = std::result::Result<T, E>;
 
