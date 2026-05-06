@@ -14,22 +14,9 @@ version.workspace = true
 workspace = true
 
 [dependencies]
-bytestring.workspace = true
-lapin.workspace = true
-lapin-pool.workspace = true
-log.workspace = true
 opentelemetry = { workspace = true, features = ["metrics", "trace"] }
 opentelemetry_sdk.workspace = true
 redis = { workspace = true, features = ["connection-manager", "tokio-comp"] }
-rustc-hash.workspace = true
-serde = { workspace = true, features = ["derive"] }
-serde_json.workspace = true
-slotmap = "1"
-snafu.workspace = true
-tokio = { workspace = true, features = ["macros"] }
-tokio-stream.workspace = true
-uuid = { workspace = true, features = ["v4"] }
 
 [features]
 default = []
-mocking = []

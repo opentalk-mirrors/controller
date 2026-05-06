@@ -22,11 +22,13 @@ actix-web = { workspace = true, features = ["rustls-0_23"] }
 actix-web-actors = "4.3"
 actix-web-httpauth.workspace = true
 bytes.workspace = true
+bytestring.workspace = true
 chrono.workspace = true
 diesel-async.workspace = true
 futures.workspace = true
 http.workspace = true
 itertools.workspace = true
+lapin.workspace = true
 lapin-pool.workspace = true
 log = { workspace = true, features = ["serde"] }
 openidconnect.workspace = true
@@ -64,11 +66,14 @@ phonenumber.workspace = true
 prometheus.workspace = true
 redis = { workspace = true, features = ["connection-manager", "tokio-comp"] }
 reqwest.workspace = true
+rustc-hash.workspace = true
 rustls = "0.23"
 rustls-pemfile = "2.2"
 rustls-pki-types = "1.14"
 serde.workspace = true
+serde_json.workspace = true
 service-probe = "0.4"
+slotmap.workspace = true
 snafu.workspace = true
 tokio = { workspace = true, features = ["signal"] }
 tokio-stream.workspace = true
@@ -95,3 +100,4 @@ swagger = ["dep:utoipa-swagger-ui"]
 # is used inside macros from opentelemetry, provides internal
 # logging for the OpenTelemetry library via tracing
 internal-logs = []
+mocking = []
