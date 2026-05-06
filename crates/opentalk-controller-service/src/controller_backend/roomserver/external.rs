@@ -73,7 +73,17 @@ impl RoomServerBackend for ExternalRoomServer {
                 log::debug!("attempted to request a token for a banned user");
                 Err(ApiError::forbidden().with_message("you are banned from this room"))
             }
-            Err(err) => {
+            Err(
+                err @ (Error::TokenError(_)
+                | Error::UrlParse(_)
+                | Error::Reqwest(_)
+                | Error::Unexpected { .. }
+                | Error::ApiError(opentalk_roomserver_client::ApiError {
+                    code:
+                        RequestTokenError::InternalServerError | RequestTokenError::InvalidApiToken,
+                    ..
+                })),
+            ) => {
                 log::error!("failed to request token from roomserver: {err}");
                 Err(ApiError::internal().with_message("failed to request token from roomserver"))
             }
@@ -94,7 +104,16 @@ impl RoomServerBackend for ExternalRoomServer {
                 code: PatchRoomError::NotFound,
                 ..
             })) => Ok(()),
-            Err(err) => {
+            Err(
+                err @ (Error::TokenError(_)
+                | Error::UrlParse(_)
+                | Error::Reqwest(_)
+                | Error::Unexpected { .. }
+                | Error::ApiError(opentalk_roomserver_client::ApiError {
+                    code: PatchRoomError::InvalidApiToken,
+                    ..
+                })),
+            ) => {
                 tracing::error!("Failed to patch roomserver room parameters: {err}");
                 Err(ApiError::internal().with_message("Failed to patch roomserver room parameters"))
             }
