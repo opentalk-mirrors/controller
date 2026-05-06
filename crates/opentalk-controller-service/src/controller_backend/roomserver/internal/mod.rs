@@ -11,7 +11,6 @@ use opentalk_roomserver_modules::setup_registry;
 use opentalk_roomserver_room::{
     ApplicationState, ModuleRegistry, RoomTaskApiError, RoomTaskContext, RoomTaskHandleError,
     RoomTaskRegistry, SignalingClientContext, TokenStore, settings::Task,
-    storage::memory_module_storage::MemoryModuleResourceStorage,
 };
 use opentalk_roomserver_types::{
     api::RoomServerAccess, client_parameters::ClientParameters,
@@ -24,10 +23,12 @@ use url::Url;
 
 use crate::controller_backend::roomserver::{
     RoomServerBackend, SignalingHandler, build_room_parameters,
-    internal::asset_storage::AssetStorage, websocket_adapter::WebSocketAdapter,
+    internal::{asset_storage::AssetStorage, module_resources::ModuleResources},
+    websocket_adapter::WebSocketAdapter,
 };
 
 mod asset_storage;
+mod module_resources;
 
 /// A roomserver backend that is running embedded in the controller.
 pub(crate) struct InternalRoomServer {
@@ -80,8 +81,7 @@ impl InternalRoomServer {
             Arc::clone(&self.storage_notifier),
             room_owner,
         );
-        // TODO: replace with controller implementation of module resources once implemented.
-        let module_resources = MemoryModuleResourceStorage::new();
+        let module_resources = ModuleResources::new(Arc::clone(&self.inventory_provider));
 
         RoomTaskContext {
             module_registry: Arc::clone(&self.module_registry),
