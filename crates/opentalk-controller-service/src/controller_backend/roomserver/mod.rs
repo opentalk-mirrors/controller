@@ -22,7 +22,6 @@ use opentalk_roomserver_types::{
     tariff_details::TariffDetails,
 };
 use opentalk_roomserver_types_training_participation_report::settings::TrainingParticipationReportSettings;
-use opentalk_signaling_core::{NoOpStorageNotifier, RoomServerStorageNotifier, StorageNotifier};
 use opentalk_types_api_v1::{
     error::ApiError,
     rooms::{
@@ -50,7 +49,10 @@ use crate::{
 
 mod external;
 mod internal;
+mod storage_notifier;
 mod websocket_adapter;
+
+pub use storage_notifier::build_storage_notifier;
 
 /// Creates a RoomServer instance
 pub fn build_roomserver(
@@ -77,21 +79,6 @@ pub fn build_roomserver(
             let roomserver_client = Client::new(service_url.clone(), api_key.clone());
             Arc::new(ExternalRoomServer::new(roomserver_client))
         }
-    }
-}
-
-/// Creates a [`StorageNotifier`] instance for the provided [`RoomServerKind`].
-pub fn build_storage_notifier(kind: &RoomServerKind) -> Arc<dyn StorageNotifier> {
-    match kind {
-        // TODO: replace once a storage notifier for the internal roomserver has been implemented
-        RoomServerKind::Internal { .. } => Arc::new(NoOpStorageNotifier),
-        RoomServerKind::External {
-            service_url,
-            api_key,
-        } => Arc::new(RoomServerStorageNotifier::new(Client::new(
-            service_url.clone(),
-            api_key.clone(),
-        ))),
     }
 }
 

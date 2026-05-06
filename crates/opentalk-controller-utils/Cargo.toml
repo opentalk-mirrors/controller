@@ -21,6 +21,7 @@ chrono.workspace = true
 diesel.workspace = true
 diesel-async.workspace = true
 log.workspace = true
+opentalk-asset-storage.workspace = true
 opentalk-cache.workspace = true
 opentalk-controller-api-authorization.workspace = true
 opentalk-controller-service-facade.workspace = true
@@ -29,7 +30,6 @@ opentalk-database.workspace = true
 opentalk-inventory.workspace = true
 opentalk-log.workspace = true
 opentalk-nextcloud-client.workspace = true
-opentalk-signaling-core.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["actix"] }
 opentalk-types-common = { workspace = true }
 rand.workspace = true

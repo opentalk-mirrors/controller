@@ -11,6 +11,7 @@ use std::{
 use aws_sdk_s3::primitives::{ByteStream, ByteStreamError};
 use bytes::Bytes;
 use futures::Stream;
+pub use object_storage::{ChunkFormat, ObjectStorage, ObjectStorageError};
 use opentalk_inventory::{Asset, Inventory, InventoryProvider, NewAsset, Room};
 use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{
@@ -23,8 +24,10 @@ use opentalk_types_common::{
     users::UserId,
 };
 use snafu::{IntoError, ResultExt, Snafu};
+pub use storage_notifier::{NoOpStorageNotifier, StorageNotifier};
 
-use crate::{ObjectStorage, ObjectStorageError, StorageNotifier, object_storage::ChunkFormat};
+mod object_storage;
+mod storage_notifier;
 
 #[derive(Debug, Snafu)]
 pub enum AssetError {

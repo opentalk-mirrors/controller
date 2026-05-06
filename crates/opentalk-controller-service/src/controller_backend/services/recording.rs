@@ -4,13 +4,13 @@
 
 use std::str::FromStr;
 
+use opentalk_asset_storage::verify_storage_usage;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_roomserver_types::{
     breakout::breakout_id::BreakoutId,
     client_parameters::{ClientKind, ClientParameters, Role},
     room_kind::RoomKind,
 };
-use opentalk_signaling_core::assets::verify_storage_usage;
 use opentalk_types_api_internal::recording::RecordingTarget;
 use opentalk_types_api_v1::rooms::{RoomResource, by_room_id::RoomserverStartResponseBody};
 use opentalk_types_common::roomserver::{DEVICE_SECRET_MIN_LENGTH, DeviceSecret};

@@ -6,11 +6,11 @@ use std::{collections::HashSet, sync::Arc};
 
 use async_trait::async_trait;
 use log::Log;
+use opentalk_asset_storage::ObjectStorage;
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{Inventory, InventoryProvider};
 use opentalk_log::{debug, info};
-use opentalk_signaling_core::ObjectStorage;
 use opentalk_types_common::rooms::RoomId;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;

@@ -35,6 +35,7 @@ lapin-pool.workspace = true
 log = { workspace = true, features = ["serde"] }
 md5.workspace = true
 openidconnect.workspace = true
+opentalk-asset-storage.workspace = true
 opentalk-cache.workspace = true
 opentalk-controller-api-authorization.workspace = true
 opentalk-controller-service-facade.workspace = true

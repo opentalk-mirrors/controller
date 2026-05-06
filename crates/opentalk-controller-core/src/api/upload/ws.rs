@@ -8,7 +8,7 @@ use actix::{Actor, ActorContext, AsyncContext, StreamHandler};
 use actix_http::ws::{CloseCode, CloseReason, Item, ProtocolError};
 use actix_web_actors::ws::{Message, WebsocketContext};
 use bytes::BytesMut;
-use opentalk_signaling_core::ObjectStorageError;
+use opentalk_asset_storage::ObjectStorageError;
 use tokio::sync::mpsc::UnboundedSender;
 
 pub const MAXIMUM_WEBSOCKET_BUFFER_SIZE: usize = 100_000_000;
@@ -21,7 +21,7 @@ pub const MAXIMUM_WEBSOCKET_BUFFER_SIZE: usize = 100_000_000;
 /// Handling timeouts is also done in this actor.
 pub struct UploadWebSocketActor {
     /// Sender to signaling runner
-    sender: UnboundedSender<Result<bytes::Bytes, opentalk_signaling_core::ObjectStorageError>>,
+    sender: UnboundedSender<Result<bytes::Bytes, opentalk_asset_storage::ObjectStorageError>>,
 
     /// Timestamp of last pong received
     last_pong: Instant,

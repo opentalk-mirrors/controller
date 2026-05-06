@@ -4,7 +4,7 @@
 
 use std::num::TryFromIntError;
 
-use opentalk_signaling_core::ObjectStorageError;
+use opentalk_asset_storage::ObjectStorageError;
 use snafu::Snafu;
 
 #[derive(Debug, Snafu)]

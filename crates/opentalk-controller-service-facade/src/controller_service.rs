@@ -11,9 +11,8 @@ pub use asset_download_proxy_stream::AssetDownloadProxyStream;
 use async_trait::async_trait;
 use bytes::Bytes;
 use futures_core::Stream;
-use opentalk_signaling_core::{
-    ObjectStorageError, StorageNotifier,
-    assets::{AssetSaved, ByStreamExt, NewAssetFileName},
+use opentalk_asset_storage::{
+    AssetSaved, ByStreamExt, NewAssetFileName, ObjectStorageError, StorageNotifier,
 };
 use opentalk_types_api_internal::{
     call_in::PostCallInStartRoomServerRequestBody,

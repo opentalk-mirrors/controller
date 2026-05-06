@@ -14,27 +14,13 @@ version.workspace = true
 workspace = true
 
 [dependencies]
-actix-http = { workspace = true, features = ["ws"] }
-async-trait.workspace = true
-aws-sdk-s3.workspace = true
-bytes.workspace = true
 bytestring.workspace = true
-config.workspace = true
-futures.workspace = true
-http.workspace = true
 lapin.workspace = true
 lapin-pool.workspace = true
 log.workspace = true
-opentalk-controller-settings.workspace = true
-opentalk-inventory.workspace = true
-opentalk-roomserver-client.workspace = true
-opentalk-types-api-internal.workspace = true
-opentalk-types-api-v1 = { workspace = true, features = ["backend"] }
-opentalk-types-common = { workspace = true, features = ["backend"] }
 opentelemetry = { workspace = true, features = ["metrics", "trace"] }
 opentelemetry_sdk.workspace = true
 redis = { workspace = true, features = ["connection-manager", "tokio-comp"] }
-reqwest = { workspace = true, features = ["stream"] }
 rustc-hash.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
@@ -42,13 +28,7 @@ slotmap = "1"
 snafu.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 tokio-stream.workspace = true
-tracing.workspace = true
-url.workspace = true
 uuid = { workspace = true, features = ["v4"] }
-
-[dev-dependencies]
-chrono.workspace = true
-pretty_assertions.workspace = true
 
 [features]
 default = []

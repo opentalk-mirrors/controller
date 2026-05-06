@@ -13,6 +13,7 @@ repository = "https://gitlab.opencode.de/opentalk/controller"
 version = "0.33.0"
 
 [workspace.dependencies]
+opentalk-asset-storage = { path = "crates/opentalk-asset-storage", version = "0.33.0" }
 opentalk-cache = { path = "crates/opentalk-cache", version = "0.33.0" }
 opentalk-controller-api-actix-web = { path = "crates/opentalk-controller-api-actix-web", version = "0.33.0" }
 opentalk-controller-api-authorization = { path = "crates/opentalk-controller-api-authorization", version = "0.33.0" }

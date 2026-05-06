@@ -9,13 +9,13 @@ use actix_web::{
 };
 use actix_web_actors::ws;
 use bytes::Bytes;
+use opentalk_asset_storage::{
+    ChunkFormat, ObjectStorage, ObjectStorageError, StorageNotifier, save_asset,
+};
 use opentalk_controller_api_actix_web::utoipa::responses::{InternalServerError, Unauthorized};
 use opentalk_controller_service_facade::{NewAssetFileName, OpenTalkControllerService};
 use opentalk_inventory::InventoryProvider;
 use opentalk_roomserver_modules::RECORDING_MODULE_ID;
-use opentalk_signaling_core::{
-    ChunkFormat, ObjectStorage, ObjectStorageError, StorageNotifier, assets::save_asset,
-};
 use opentalk_types_api_internal::recording::RecordingTarget;
 use opentalk_types_api_v1::{
     error::{ApiError, ErrorBody},

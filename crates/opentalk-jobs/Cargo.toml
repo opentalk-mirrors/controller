@@ -19,6 +19,7 @@ async-trait.workspace = true
 chrono.workspace = true
 etcd-client = "0.17"
 log.workspace = true
+opentalk-asset-storage.workspace = true
 opentalk-controller-api-authorization.workspace = true
 opentalk-controller-api-authorization-database.workspace = true
 opentalk-controller-settings.workspace = true
@@ -27,7 +28,6 @@ opentalk-inventory.workspace = true
 opentalk-keycloak-admin.workspace = true
 opentalk-log.workspace = true
 opentalk-nextcloud-client.workspace = true
-opentalk-signaling-core.workspace = true
 opentalk-types-common.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -41,6 +41,5 @@ actix-rt.workspace = true
 bytes.workspace = true
 env_logger.workspace = true
 futures.workspace = true
-opentalk-signaling-core = { workspace = true, features = ["mocking"] }
 opentalk-test-util = { workspace = true, features = ["controller", "database"] }
 serial_test.workspace = true

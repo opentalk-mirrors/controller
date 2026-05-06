@@ -5,11 +5,11 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use opentalk_asset_storage::{ObjectStorage, asset_key};
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{Inventory, InventoryProvider, UpdateAsset};
 use opentalk_log::{debug, info, warn};
-use opentalk_signaling_core::{ObjectStorage, assets::asset_key};
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 
@@ -180,12 +180,12 @@ async fn sync_files(
 mod tests {
     use bytes::Bytes;
     use futures::stream;
+    use opentalk_asset_storage::{
+        AssetSaved, ChunkFormat, NewAssetFileName, NoOpStorageNotifier, ObjectStorage,
+        ObjectStorageError, save_asset,
+    };
     use opentalk_controller_settings::MinIO;
     use opentalk_inventory::{InventoryProvider as _, NewAsset, UpdateAsset};
-    use opentalk_signaling_core::{
-        ChunkFormat, NoOpStorageNotifier, ObjectStorage, ObjectStorageError,
-        assets::{AssetSaved, NewAssetFileName, save_asset},
-    };
     use opentalk_test_util::common::TestContext;
     use opentalk_types_common::{
         assets::{AssetId, FileExtension},
