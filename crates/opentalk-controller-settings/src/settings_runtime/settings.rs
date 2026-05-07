@@ -200,7 +200,7 @@ impl TryFrom<SettingsRaw> for Settings {
 
 #[cfg(test)]
 pub(crate) fn minimal_example() -> Settings {
-    use std::collections::BTreeSet;
+    use std::{collections::BTreeSet, time::Duration};
 
     use openidconnect::{ClientId, ClientSecret};
     use opentalk_roomserver_modules::ECHO_MODULE_ID;
@@ -326,6 +326,7 @@ pub(crate) fn minimal_example() -> Settings {
                 tokens_per_second: 10,
                 token_bucket_size: 30,
             }),
+            room_idle_timeout: Duration::from_secs(60),
         },
     }
 }

@@ -16,6 +16,8 @@ pub struct RoomServer {
     pub modules: ModuleSettings,
 
     pub websocket_rate_limit: Option<WebSocketRateLimit>,
+
+    pub room_idle_timeout: Option<u64>,
 }
 
 /// Configuration for the the websocket rate limiting

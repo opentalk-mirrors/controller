@@ -146,6 +146,7 @@ pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
             api_key: ApiKey::new("roomserver", "secret"),
             modules: ModuleSettings::new(),
             websocket_rate_limit: None,
+            room_idle_timeout: Some(60),
         },
         operator_information: None,
     }
@@ -184,7 +185,7 @@ pub(crate) const SETTINGS_RAW_MINIMAL_CONFIG_TOML: &str = r#"
         [roomserver.modules]
         [roomserver.modules.livekit]
         public_url = "ws://localhost:7880"
-        service_url = "http://localhost:7880"
+        service_url = "http://localhost:7880/"
         api_key = "devkey"
         api_secret = "secret"
         [roomserver.modules.echo]

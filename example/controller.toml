@@ -253,6 +253,9 @@ api_key = { id = "roomserver", secret = "secret" }
 # The maximum amount of tokens that can be held per websocket connection (defaults to 30)
 #token_bucket_size = 30
 
+# The duration in seconds after which a room without participants is closed.
+#room_idle_timeout = 60
+
 #The Modules that are enabled in the roomserver
 [roomserver.modules]
 #[roomserver.modules.chat]
