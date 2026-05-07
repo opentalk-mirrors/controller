@@ -76,7 +76,7 @@ pub use operator_information::OperatorInformation;
 pub use rabbitmq::RabbitMq;
 pub use redis::Redis;
 pub use reports_typst::{ReportsTypst, reports_typst_default_packages_path};
-pub use roomserver::RoomServer;
+pub use roomserver::{RoomServer, RoomServerKind};
 pub use settings::Settings;
 pub use shared_folder::SharedFolder;
 pub use tariff_assignment::{DEFAULT_STATIC_TARIFF_NAME, TariffAssignment};

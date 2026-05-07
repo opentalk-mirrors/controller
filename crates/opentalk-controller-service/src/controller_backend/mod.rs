@@ -10,6 +10,7 @@ mod invites;
 mod module_resources;
 pub mod rooms;
 
+pub mod roomserver;
 mod services;
 mod sip_configs;
 mod streaming_targets;
@@ -33,7 +34,6 @@ use opentalk_controller_service_facade::{
 use opentalk_controller_settings::SettingsProvider;
 use opentalk_inventory::InventoryProvider;
 use opentalk_keycloak_admin::KeycloakAdminClient;
-use opentalk_roomserver_client::Client as RoomServerClient;
 use opentalk_signaling_core::{
     ObjectStorage, ObjectStorageError, StorageNotifier,
     assets::{AssetSaved, ByStreamExt, NewAssetFileName, asset_key},
@@ -106,6 +106,7 @@ pub use crate::controller_backend::events::shared_folder::{
     delete_shared_folders, put_shared_folder,
 };
 use crate::{
+    controller_backend::roomserver::RoomServerBackend,
     oidc::{Cache, OidcTokenHandler},
     services::MailService,
 };
@@ -122,7 +123,7 @@ pub struct ControllerBackend {
     mail_service: Arc<Option<MailService>>,
     user_search_client: Arc<Option<KeycloakAdminClient>>,
     module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
-    roomserver_client: RoomServerClient,
+    roomserver: Arc<dyn RoomServerBackend + Send + Sync>,
 }
 
 impl ControllerBackend {
@@ -139,7 +140,7 @@ impl ControllerBackend {
         mail_service: Arc<Option<MailService>>,
         user_search_client: Arc<Option<KeycloakAdminClient>>,
         module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
-        roomserver_client: RoomServerClient,
+        roomserver: Arc<dyn RoomServerBackend + Send + Sync>,
     ) -> Self {
         Self {
             settings_provider,
@@ -152,7 +153,7 @@ impl ControllerBackend {
             mail_service,
             user_search_client,
             module_features,
-            roomserver_client,
+            roomserver,
         }
     }
 }
@@ -265,33 +266,31 @@ impl OpenTalkControllerService for ControllerBackend {
         Ok(self.get_room_event(room_id, invite_code).await?)
     }
 
-    async fn start_roomserver_room_session(
+    async fn start_room_session(
         &self,
         current_user: RequestUser,
         room_id: RoomId,
         request: PostRoomsRoomserverStartRequestBody,
     ) -> Result<RoomserverStartResponseBody, ApiError> {
-        Ok(self
-            .roomserver_start_room(current_user, room_id, request)
-            .await?)
+        Ok(self.start_room(current_user, room_id, request).await?)
     }
 
-    async fn start_invited_roomserver_room_session(
+    async fn start_invited_room_session(
         &self,
         room_id: RoomId,
         request: PostRoomsRoomserverStartInvitedRequestBody,
     ) -> Result<RoomserverStartResponseBody, ApiError> {
-        Ok(self.roomserver_start_room_invited(room_id, request).await?)
+        Ok(self.start_room_invited(room_id, request).await?)
     }
 
-    async fn start_recording_roomserver(
+    async fn start_recording(
         &self,
         body: RecordingTarget,
     ) -> Result<RoomserverStartResponseBody, ApiError> {
         Ok(self.start_recording_roomserver_impl(body).await?)
     }
 
-    async fn start_call_in_roomserver(
+    async fn start_call_in(
         &self,
         request: PostCallInStartRoomServerRequestBody,
     ) -> Result<RoomserverStartResponseBody, ApiError> {

@@ -19,6 +19,7 @@ The section in the [configuration file](configuration.md) is called
 | `api_key`              | [API key](#api-key)                         | yes      | -             | API token used by the controller to authenticate against the RoomServer API. |
 | `asset_storage`        | [Asset storage](#asset-storage)             | yes      | -             | Storage backend for room assets (e.g., meeting reports).                     |
 | `websocket_rate_limit` | [WebSocketRateLimit](#websocket-rate-limit) | no       | see below     | Websocket rate limit settings for the RoomServer.                            |
+| `room_idle_timeout`    | `uint`                                      | no       | 60            | The duration in seconds after which a room without participants is closed.   |
 | `modules`              | [Module settings](#modules)                 | yes      | -             | Enabled RoomServer modules and their settings.                               |
 
 ### API key

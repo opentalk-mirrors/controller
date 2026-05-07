@@ -119,7 +119,7 @@ pub async fn post(
 ) -> Result<Json<RoomserverStartResponseBody>, ApiError> {
     let response = Json(
         service
-            .start_invited_roomserver_room_session(room_id.into_inner(), request.into_inner())
+            .start_invited_room_session(room_id.into_inner(), request.into_inner())
             .await?,
     );
 

@@ -29,8 +29,6 @@ use opentalk_types_common::{
 
 use crate::{ControllerBackend, ToUserProfile};
 
-pub mod roomserver;
-
 impl ControllerBackend {
     pub(crate) async fn get_rooms(
         &self,

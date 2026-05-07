@@ -23,13 +23,13 @@ use opentalk_controller_api_authorization::{
 use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
 use opentalk_controller_service::{
     ControllerBackend, Whatever,
+    controller_backend::roomserver,
     oidc::{Cache, OidcTokenHandler, build_oidc_token_handler},
     services::MailService,
 };
 use opentalk_controller_service_facade::OpenTalkControllerService;
 use opentalk_controller_settings::{
-    HttpTls, Monitoring, RoomServer, Settings, SettingsProvider, UserSearchBackend,
-    UserSearchBackendKeycloak,
+    HttpTls, Monitoring, Settings, SettingsProvider, UserSearchBackend, UserSearchBackendKeycloak,
     common::{HttpCorsAllowedOrigin, HttpCorsAllowedOrigins},
 };
 use opentalk_database::Db;
@@ -37,12 +37,8 @@ use opentalk_inventory::InventoryProvider;
 use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_jobs::job_runner::JobRunner;
 use opentalk_keycloak_admin::{AuthorizedClient, KeycloakAdminClient};
-use opentalk_roomserver_client::Client as RoomServerClient;
 use opentalk_service_auth::service::ApiKeyAuthorization;
-use opentalk_signaling_core::{
-    ExchangeHandle, ExchangeTask, ObjectStorage, RedisConnection, RoomServerStorageNotifier,
-    StorageNotifier,
-};
+use opentalk_signaling_core::{ExchangeHandle, ExchangeTask, ObjectStorage, RedisConnection};
 use opentalk_types_api_v1::{auth::OidcProvider, error::ApiError};
 use rustls_pki_types::{CertificateDer, PrivatePkcs8KeyDer};
 use service_probe::{ServiceState, set_service_state, start_probe};
@@ -311,11 +307,6 @@ impl Controller {
             None => None,
         });
 
-        let roomserver_client = RoomServerClient::new(
-            settings.roomserver.url.clone(),
-            settings.roomserver.api_key.clone(),
-        );
-
         let registry = opentalk_roomserver_modules::setup_registry();
 
         let module_features = registry.module_features();
@@ -325,7 +316,8 @@ impl Controller {
                 name: oidc_frontend.client_id.to_string(),
                 url: oidc_frontend.authority.to_string(),
             };
-
+            let roomserver =
+                roomserver::build_roomserver(&settings.roomserver.kind, shutdown.subscribe());
             ControllerBackend::new(
                 settings_provider.clone(),
                 authorizer.clone(),
@@ -337,7 +329,7 @@ impl Controller {
                 mail_service.clone(),
                 user_search_client.clone(),
                 module_features,
-                roomserver_client,
+                roomserver,
             )
         };
 
@@ -424,12 +416,8 @@ impl Controller {
 
                 let swagger_service_enabled = !settings_provider.get().endpoints.disable_openapi;
 
-                let RoomServer { url, api_key, .. } = &settings_provider.get().roomserver;
-                let storage_notifier: Arc<dyn StorageNotifier> =
-                    Arc::new(RoomServerStorageNotifier::new(RoomServerClient::new(
-                        url.clone(),
-                        api_key.clone(),
-                    )));
+                let roomserver_kind = &settings_provider.get().roomserver.kind;
+                let storage_notifier = roomserver::build_storage_notifier(roomserver_kind);
 
                 App::new()
                     .wrap(RequestMetrics::new(metrics.endpoint.clone()))
