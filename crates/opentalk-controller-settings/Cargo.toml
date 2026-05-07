@@ -30,6 +30,7 @@ itertools.workspace = true
 log = { workspace = true, features = ["serde"] }
 openidconnect.workspace = true
 opentalk-roomserver-modules.workspace = true
+opentalk-roomserver-room.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-service-auth = { workspace = true, features = ["actix"] }
 opentalk-types-common = { workspace = true, features = ["serde"] }

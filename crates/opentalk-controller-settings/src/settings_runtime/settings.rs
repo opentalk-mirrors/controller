@@ -7,10 +7,7 @@ use super::{
     Metrics, MinIO, Monitoring, Oidc, OperatorInformation, RabbitMq, Redis, SharedFolder, Tariffs,
     Tenants, UserSearchBackend, oidc_and_user_search_builder::OidcAndUserSearchBuilder,
 };
-use crate::{
-    Result, SettingsError, SettingsRaw, settings_file::UsersFindBehavior,
-    settings_runtime::RoomServer,
-};
+use crate::{Result, RoomServer, SettingsError, SettingsRaw, settings_file::UsersFindBehavior};
 
 /// The settings used for the OpenTalk controller at runtime
 #[derive(Debug, Clone, PartialEq)]
@@ -215,7 +212,7 @@ pub(crate) fn minimal_example() -> Settings {
     use super::OidcController;
     use crate::{
         DEFAULT_LIBRAVATAR_URL, DEFAULT_STATIC_TARIFF_NAME, DEFAULT_STATIC_TENANT_ID, Frontend,
-        OidcFrontend, TariffAssignment, TenantAssignment,
+        OidcFrontend, RoomServerKind, TariffAssignment, TenantAssignment,
         settings_runtime::{
             HttpCors,
             database::DEFAULT_DATABASE_MAX_CONNECTIONS,
@@ -317,10 +314,12 @@ pub(crate) fn minimal_example() -> Settings {
         },
         operator_information: None,
         roomserver: RoomServer {
-            url: "http://localhost:11333"
-                .parse()
-                .expect("must be a valid url"),
-            api_key: ApiKey::new("roomserver", "secret"),
+            kind: RoomServerKind::External {
+                service_url: "http://localhost:11333"
+                    .parse()
+                    .expect("must be a valid url"),
+                api_key: ApiKey::new("roomserver", "secret"),
+            },
             modules,
             websocket_rate_limit: Some(RateLimitSettings {
                 tokens_per_second: 10,

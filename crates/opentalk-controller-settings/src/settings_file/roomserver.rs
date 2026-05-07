@@ -2,22 +2,38 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use opentalk_roomserver_room::settings::settings_file::Task;
 use opentalk_roomserver_types::module_settings::ModuleSettings;
 use opentalk_service_auth::ApiKey;
 use serde::Deserialize;
 use url::Url;
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct RoomServer {
-    pub url: Url,
-
-    pub api_key: ApiKey,
+    #[serde(flatten)]
+    pub kind: RoomServerKind,
 
     pub modules: ModuleSettings,
 
     pub websocket_rate_limit: Option<WebSocketRateLimit>,
 
     pub room_idle_timeout: Option<u64>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum RoomServerKind {
+    Internal {
+        #[serde(flatten)]
+        settings: Task,
+
+        public_url: Url,
+    },
+    External {
+        service_url: Url,
+        api_key: ApiKey,
+    },
 }
 
 /// Configuration for the the websocket rate limiting

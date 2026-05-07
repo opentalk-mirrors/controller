@@ -8,7 +8,7 @@ use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use external::ExternalRoomServer;
 use opentalk_controller_service_facade::RequestUser;
-use opentalk_controller_settings::{RoomServer, Settings, common::HttpCorsAllowedOrigin};
+use opentalk_controller_settings::{RoomServerKind, Settings, common::HttpCorsAllowedOrigin};
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{Event, Inventory};
 use opentalk_roomserver_client::Client;
@@ -22,6 +22,7 @@ use opentalk_roomserver_types::{
     tariff_details::TariffDetails,
 };
 use opentalk_roomserver_types_training_participation_report::settings::TrainingParticipationReportSettings;
+use opentalk_signaling_core::{NoOpStorageNotifier, RoomServerStorageNotifier, StorageNotifier};
 use opentalk_types_api_v1::{
     error::ApiError,
     rooms::{
@@ -40,15 +41,58 @@ use opentalk_types_common::{
     tariffs::QuotaType,
     users::{UserId, UserInfo},
 };
+use tokio::sync::broadcast::Receiver;
 
-use crate::{ControllerBackend, email_to_libravatar_url, helpers::get_user_timezone};
+use crate::{
+    ControllerBackend, controller_backend::roomserver::internal::InternalRoomServer,
+    email_to_libravatar_url, helpers::get_user_timezone,
+};
 
 mod external;
+mod internal;
+mod websocket_adapter;
 
 /// Creates a RoomServer instance
-pub fn build_roomserver(settings: &RoomServer) -> Arc<dyn RoomServerBackend + Send + Sync> {
-    let client = Client::new(settings.url.clone(), settings.api_key.clone());
-    Arc::new(ExternalRoomServer::new(client))
+pub fn build_roomserver(
+    kind: &RoomServerKind,
+    shutdown: Receiver<()>,
+) -> Arc<dyn RoomServerBackend + Send + Sync> {
+    match kind {
+        RoomServerKind::Internal {
+            settings,
+            public_url,
+        } => {
+            log::debug!("Using internal roomserver");
+            Arc::new(InternalRoomServer::new(
+                settings.clone(),
+                public_url.clone(),
+                shutdown,
+            ))
+        }
+        RoomServerKind::External {
+            service_url,
+            api_key,
+        } => {
+            log::debug!("Using external roomserver");
+            let roomserver_client = Client::new(service_url.clone(), api_key.clone());
+            Arc::new(ExternalRoomServer::new(roomserver_client))
+        }
+    }
+}
+
+/// Creates a [`StorageNotifier`] instance for the provided [`RoomServerKind`].
+pub fn build_storage_notifier(kind: &RoomServerKind) -> Arc<dyn StorageNotifier> {
+    match kind {
+        // TODO: replace once a storage notifier for the internal roomserver has been implemented
+        RoomServerKind::Internal { .. } => Arc::new(NoOpStorageNotifier),
+        RoomServerKind::External {
+            service_url,
+            api_key,
+        } => Arc::new(RoomServerStorageNotifier::new(Client::new(
+            service_url.clone(),
+            api_key.clone(),
+        ))),
+    }
 }
 
 /// A trait for roomserver backends that can be used by the controller.

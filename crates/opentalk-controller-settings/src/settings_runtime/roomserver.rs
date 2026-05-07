@@ -5,6 +5,7 @@
 use std::time::Duration;
 
 use opentalk_roomserver_modules::{ECHO_MODULE_ID, LIVEKIT_MODULE_ID};
+use opentalk_roomserver_room::settings::Task;
 use opentalk_roomserver_types::{
     module_settings::ModuleSettings,
     rate_limit::{self, RateLimitSettings},
@@ -29,11 +30,8 @@ pub(crate) const DEFAULT_IDLE_TIMEOUT: Duration = Duration::from_mins(1);
 /// RoomServer settings
 #[derive(Debug, Clone, PartialEq)]
 pub struct RoomServer {
-    /// The service URL the RoomServer
-    pub url: Url,
-
-    /// The API key to access the RoomServer
-    pub api_key: ApiKey,
+    /// The kind of RoomServer to use
+    pub kind: RoomServerKind,
 
     /// Settings regarding the RoomServer modules
     pub modules: ModuleSettings,
@@ -50,8 +48,7 @@ impl TryFrom<settings_file::RoomServer> for RoomServer {
 
     fn try_from(
         settings_file::RoomServer {
-            url,
-            api_key,
+            kind,
             modules,
             websocket_rate_limit,
             room_idle_timeout,
@@ -70,8 +67,7 @@ impl TryFrom<settings_file::RoomServer> for RoomServer {
 
         if missing_modules.is_empty() {
             Ok(Self {
-                url,
-                api_key,
+                kind: kind.into(),
                 modules,
                 websocket_rate_limit: rate_limit_from_settings_file(websocket_rate_limit),
                 room_idle_timeout,
@@ -80,6 +76,48 @@ impl TryFrom<settings_file::RoomServer> for RoomServer {
             Err(SettingsError::MandatoryModulesMissing {
                 modules: missing_modules,
             })
+        }
+    }
+}
+
+/// RoomServer settings
+#[derive(Debug, Clone, PartialEq)]
+pub enum RoomServerKind {
+    /// A roomserver that is started and managed by the controller
+    Internal {
+        /// Settings for the room task.
+        settings: Task,
+
+        /// The URL of the roomserver. Needs to be reachable by clients.
+        public_url: Url,
+    },
+    /// A standalone roomserver that is accessed via its API.
+    External {
+        /// The URL the controller uses for requests to the roomserver.
+        service_url: Url,
+
+        /// The API key to access the roomserver
+        api_key: ApiKey,
+    },
+}
+
+impl From<settings_file::RoomServerKind> for RoomServerKind {
+    fn from(value: settings_file::RoomServerKind) -> Self {
+        match value {
+            settings_file::RoomServerKind::Internal {
+                settings,
+                public_url,
+            } => Self::Internal {
+                settings: settings.into(),
+                public_url,
+            },
+            settings_file::RoomServerKind::External {
+                service_url,
+                api_key,
+            } => Self::External {
+                service_url,
+                api_key,
+            },
         }
     }
 }

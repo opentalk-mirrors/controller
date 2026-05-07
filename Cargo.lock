@@ -281,6 +281,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "actix-ws"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "decf53c3cdd63dd6f289980b430238f9a2f6d19f8bce8e418272e08d3da43f0f"
+dependencies = [
+ "actix-codec",
+ "actix-http",
+ "actix-web",
+ "bytestring",
+ "futures-core",
+ "futures-sink",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
 name = "actix_derive"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5586,7 +5602,6 @@ dependencies = [
  "opentalk-inventory-database",
  "opentalk-jobs",
  "opentalk-keycloak-admin",
- "opentalk-roomserver-client",
  "opentalk-roomserver-modules",
  "opentalk-service-auth",
  "opentalk-signaling-core",
@@ -5624,6 +5639,7 @@ dependencies = [
 name = "opentalk-controller-service"
 version = "0.33.0"
 dependencies = [
+ "actix-ws",
  "async-stream",
  "async-trait",
  "base64 0.22.1",
@@ -5654,6 +5670,8 @@ dependencies = [
  "opentalk-mail-worker-protocol",
  "opentalk-nextcloud-client",
  "opentalk-roomserver-client",
+ "opentalk-roomserver-modules",
+ "opentalk-roomserver-room",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-training-participation-report",
  "opentalk-signaling-core",
@@ -5675,6 +5693,7 @@ dependencies = [
  "serde_json",
  "snafu 0.9.0",
  "tokio",
+ "tokio-util",
  "tracing",
  "url",
  "uuid",
@@ -5711,6 +5730,7 @@ dependencies = [
  "log",
  "openidconnect",
  "opentalk-roomserver-modules",
+ "opentalk-roomserver-room",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-livekit",
  "opentalk-service-auth",
@@ -6564,6 +6584,7 @@ version = "0.0.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6d8bbb0e734be176da9edf8132e4a724417e28ed53ada9e9e3df0a1d87ec409d"
 dependencies = [
+ "actix-ws",
  "anyhow",
  "bytes",
  "chrono",
@@ -10368,6 +10389,7 @@ dependencies = [
  "bytes",
  "futures-core",
  "futures-sink",
+ "futures-util",
  "pin-project-lite",
  "tokio",
 ]
