@@ -4,7 +4,7 @@
 
 //! Provides roomserver-related implementation
 
-use std::{collections::BTreeMap, sync::Arc, time::Duration};
+use std::{collections::BTreeMap, sync::Arc};
 
 use external::ExternalRoomServer;
 use opentalk_controller_service_facade::RequestUser;
@@ -357,7 +357,7 @@ pub(crate) async fn build_room_parameters(
         fallback_language: settings.defaults.user_language.clone(),
         ws_rate_limit: settings.roomserver.websocket_rate_limit,
         allowed_origins,
-        room_idle_timeout: Duration::from_mins(1),
+        room_idle_timeout: settings.roomserver.room_idle_timeout,
     };
 
     Ok(parameters)
