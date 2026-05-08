@@ -19,7 +19,7 @@ pub fn build_storage_notifier(kind: &RoomServerKind) -> Arc<dyn StorageNotifier>
         RoomServerKind::External {
             service_url,
             api_key,
-        } => Arc::new(RoomServerStorageNotifier::new(Client::new(
+        } => Arc::new(ExternalStorageNotifier::new(Client::new(
             service_url.clone(),
             api_key.clone(),
         ))),
@@ -28,11 +28,11 @@ pub fn build_storage_notifier(kind: &RoomServerKind) -> Arc<dyn StorageNotifier>
 
 #[derive(Debug, Clone)]
 /// A storage notifier for an external roomserver.
-pub struct RoomServerStorageNotifier {
+pub struct ExternalStorageNotifier {
     client: Client,
 }
 
-impl RoomServerStorageNotifier {
+impl ExternalStorageNotifier {
     /// Creates a new [`RoomServerStorageNotifier`]
     pub fn new(client: Client) -> Self {
         Self { client }
@@ -40,7 +40,7 @@ impl RoomServerStorageNotifier {
 }
 
 #[async_trait::async_trait]
-impl StorageNotifier for RoomServerStorageNotifier {
+impl StorageNotifier for ExternalStorageNotifier {
     async fn notify(&self, user_id: UserId, _old_quota: Quota, new_quota: Quota) {
         if let Err(err) = self.client.post_storage_quota(user_id, new_quota).await {
             log::error!("Failed to post roomserver storage quota: {err}");
