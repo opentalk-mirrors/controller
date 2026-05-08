@@ -48,7 +48,9 @@ pub(crate) struct InternalRoomServer {
 
 impl InternalRoomServer {
     /// Create a new internal roomserver backend
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
+        room_tasks: RoomTaskRegistry<WebSocketAdapter>,
         settings_provider: SettingsProvider,
         inventory_provider: Arc<dyn InventoryProvider>,
         storage: Arc<ObjectStorage>,
@@ -60,7 +62,7 @@ impl InternalRoomServer {
         let app_state = Self::spawn_shutdown_task(shutdown);
 
         Self {
-            room_tasks: RoomTaskRegistry::new(None),
+            room_tasks,
             module_registry: Arc::new(setup_registry()),
             app_state,
             token_store: Arc::new(Mutex::new(TokenStore::new())),

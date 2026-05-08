@@ -16,6 +16,7 @@ use opentalk_roomserver_types::signaling::{
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio_util::sync::PollSender;
 
+#[derive(Debug)]
 pub struct WebSocketAdapter {
     incoming: Receiver<Result<Message, ProtocolError>>,
     outgoing: PollSender<SignalingSocketMessage>,

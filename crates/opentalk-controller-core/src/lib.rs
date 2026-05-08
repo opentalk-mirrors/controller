@@ -314,25 +314,23 @@ impl Controller {
             )),
             None => None,
         });
-        let storage_notifier = roomserver::build_storage_notifier(&settings.roomserver.kind);
+        let roomserver = roomserver::build(
+            &settings.roomserver.kind,
+            settings_provider.clone(),
+            Arc::clone(&inventory_provider),
+            Arc::clone(&storage),
+            shutdown.subscribe(),
+        );
 
         let registry = opentalk_roomserver_modules::setup_registry();
         let module_features = registry.module_features();
 
-        let (backend, signaling_handler) = {
+        let backend = {
             let oidc_provider = OidcProvider {
                 name: oidc_frontend.client_id.to_string(),
                 url: oidc_frontend.authority.to_string(),
             };
-            let (roomserver, signaling_handler) = roomserver::build_roomserver(
-                &settings.roomserver.kind,
-                settings_provider.clone(),
-                Arc::clone(&inventory_provider),
-                Arc::clone(&storage),
-                Arc::clone(&storage_notifier),
-                shutdown.subscribe(),
-            );
-            let controller_backend = ControllerBackend::new(
+            ControllerBackend::new(
                 settings_provider.clone(),
                 authorizer.clone(),
                 inventory_provider.clone(),
@@ -343,19 +341,17 @@ impl Controller {
                 mail_service.clone(),
                 user_search_client.clone(),
                 module_features,
-                roomserver,
-            );
-
-            (controller_backend, signaling_handler)
+                roomserver.backend,
+            )
         };
 
         let service = Arc::new(backend);
         let controller = Self {
             service,
-            signaling_handler,
+            signaling_handler: roomserver.signaling_handler,
             startup_settings: settings,
             settings_provider,
-            storage_notifier,
+            storage_notifier: roomserver.storage_notifier,
             optional_config_path,
             inventory_provider,
             oidc_cache,

@@ -5,7 +5,7 @@
 use std::time::Duration;
 
 use opentalk_roomserver_modules::{ECHO_MODULE_ID, LIVEKIT_MODULE_ID};
-use opentalk_roomserver_room::settings::Task;
+use opentalk_roomserver_room::settings::{Internal, Task};
 use opentalk_roomserver_types::{
     module_settings::ModuleSettings,
     rate_limit::{self, RateLimitSettings},
@@ -88,6 +88,9 @@ pub enum RoomServerKind {
         /// Settings for the room task.
         settings: Task,
 
+        /// Internal configuration for the roomserver.
+        server: Internal,
+
         /// The URL of the roomserver. Needs to be reachable by clients.
         public_url: Url,
     },
@@ -107,9 +110,11 @@ impl From<settings_file::RoomServerKind> for RoomServerKind {
             settings_file::RoomServerKind::Internal {
                 settings,
                 public_url,
+                server,
             } => Self::Internal {
                 settings: settings.into(),
                 public_url,
+                server: server.map(Into::into).unwrap_or_default(),
             },
             settings_file::RoomServerKind::External {
                 service_url,
