@@ -13,14 +13,19 @@ RoomServer. The controller’s built-in signaling is disabled in this case.
 The section in the [configuration file](configuration.md) is called
 `roomserver`.
 
-| Field                  | Type                                        | Required | Default value | Description                                                                  |
-| ---------------------- | ------------------------------------------- | -------- | ------------- | ---------------------------------------------------------------------------- |
-| `url`                  | `string`                                    | yes      | -             | Base URL of the RoomServer that clients can reach (public URL).              |
-| `api_key`              | [API key](#api-key)                         | yes      | -             | API token used by the controller to authenticate against the RoomServer API. |
-| `asset_storage`        | [Asset storage](#asset-storage)             | yes      | -             | Storage backend for room assets (e.g., meeting reports).                     |
-| `websocket_rate_limit` | [WebSocketRateLimit](#websocket-rate-limit) | no       | see below     | Websocket rate limit settings for the RoomServer.                            |
-| `room_idle_timeout`    | `uint`                                      | no       | 60            | The duration in seconds after which a room without participants is closed.   |
-| `modules`              | [Module settings](#modules)                 | yes      | -             | Enabled RoomServer modules and their settings.                               |
+| Field                  | Type                                        | Required | Default value | Description                                                                                                                      |
+| ---------------------- | ------------------------------------------- | -------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `kind`                 | `enum`                                      | yes      | -             | Whether the roomserver is running embedded in the controller process or as an external service. Either `internal` or `external`. |
+| `service_url`          | `string`                                    | depends  | -             | The URL the controller uses for requests to the roomserver. Required when `kind = "external"`.                                   |
+| `public_url`           | `string`                                    | depends  | -             | The URL of the roomserver. Needs to be reachable by clients. Required when `kind = "internal"`.                                  |
+| `api_key`              | [API key](#api-key)                         | yes      | -             | API token used by the controller to authenticate against the RoomServer API.                                                     |
+| `asset_storage`        | [Asset storage](#asset-storage)             | yes      | -             | Storage backend for room assets (e.g., meeting reports).                                                                         |
+| `conference`           | [Conference](#conference)                   | no       | -             | Conference signaling settings. Only relevant when `kind = "internal"`.                                                           |
+| `defaults`             | [Defaults](#defaults)                       | no       | -             | Default and fallback values. Only relevant when `kind = "internal"`.                                                             |
+| `reports`              | [Reports](#reports)                         | no       | -             | Configuration related to report generation. Only relevant when `kind = "internal"`.                                              |
+| `websocket_rate_limit` | [WebSocketRateLimit](#websocket-rate-limit) | no       | see below     | Websocket rate limit settings for the RoomServer.                                                                                |
+| `room_idle_timeout`    | `uint`                                      | no       | 60            | The duration in seconds after which a room without participants is closed.                                                       |
+| `modules`              | [Module settings](#modules)                 | yes      | -             | Enabled RoomServer modules and their settings.                                                                                   |
 
 ### API key
 
@@ -46,6 +51,48 @@ backends below.
   restart or the room being closed. Suitable for testing only.
 - `controller`: Assets are stored via the controller’s asset endpoint. The
   RoomServer authenticates using the `secret` value.
+
+### Conference
+
+| Field               | Type     | Required | Default value                          | Description                                                                         |
+| ------------------- | -------- | -------- | -------------------------------------- | ----------------------------------------------------------------------------------- |
+| `signaling_salt`    | `string` | no       | random generated 24 character `string` | A random salt is generated at startup when not set. This value must be kept secret. |
+| `room_idle_timeout` | `u64`    | no       | `60`                                   | The duration in seconds after which a room without participants is closed.          |
+
+#### Signaling Salt
+
+!!! danger
+
+    This value must be kept secret.
+
+The signaling salt is used to derive a participants device id from their device secret.
+The device id is used as a unique identifier for a device.
+When not set, a random 24 character string is generated at startup.
+This means, that the signaling salt changes on each restart when not configured.
+
+#### Room Idle Timeout
+
+When all participants leave a room, it is not destroyed immediately.
+This is to ensure that the state of the room is not lost, when no participant is present for a short time.
+The room idle timeout determines how many seconds the RoomServer waits until destroying a room and dropping its state.
+
+### Defaults
+
+| Field                              | Type   | Required | Default value | Description                                                                                                                              |
+| ---------------------------------- | ------ | -------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `screen_share_requires_permission` | `bool` | no       | `true`        | When true, participants can't share their screens unless permission is granted by a moderator. Moderators can always share their screen. |
+
+### Reports
+
+| Field   | Type            | Required | Default value | Description                                         |
+| ------- | --------------- | -------- | ------------- | --------------------------------------------------- |
+| `typst` | [Typst](#typst) | no       | -             | Configuration of typst, used for report generation. |
+
+#### Typst
+
+| Field           | Type   | Required | Default value               | Description                                  |
+| --------------- | ------ | -------- | --------------------------- | -------------------------------------------- |
+| `packages_path` | `Path` | no       | `/usr/share/typst/packages` | The location where typst looks for packages. |
 
 #### Websocket Rate Limit
 
