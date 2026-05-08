@@ -21,6 +21,7 @@ actix-rt.workspace = true
 actix-web = { workspace = true, features = ["rustls-0_23"] }
 actix-web-actors = "4.3"
 actix-web-httpauth.workspace = true
+actix-ws.workspace = true
 bytes.workspace = true
 bytestring.workspace = true
 chrono.workspace = true
@@ -49,6 +50,7 @@ opentalk-inventory-database.workspace = true
 opentalk-jobs.workspace = true
 opentalk-keycloak-admin.workspace = true
 opentalk-roomserver-modules.workspace = true
+opentalk-roomserver-types = { workspace = true, features = ["actix"] }
 opentalk-service-auth = { workspace = true, features = ["actix"] }
 opentalk-types-api-internal = { workspace = true, features = ["utoipa"] }
 opentalk-types-api-v1 = { workspace = true, features = ["backend"] }

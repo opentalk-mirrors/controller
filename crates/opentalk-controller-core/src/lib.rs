@@ -25,7 +25,7 @@ use opentalk_controller_api_authorization::{
 use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
 use opentalk_controller_service::{
     ControllerBackend, RedisConnection, Whatever,
-    controller_backend::roomserver,
+    controller_backend::roomserver::{self, SignalingHandler},
     oidc::{Cache, OidcTokenHandler, build_oidc_token_handler},
     services::MailService,
 };
@@ -103,6 +103,9 @@ where
 /// Controller struct representation containing all fields required to extend and drive the controller
 pub struct Controller {
     pub service: Arc<dyn OpenTalkControllerService>,
+
+    /// The roomserver backend used for signaling
+    signaling_handler: Option<Arc<dyn SignalingHandler + Send + Sync>>,
 
     /// Settings loaded on [Controller::create]
     pub startup_settings: Arc<Settings>,
@@ -313,14 +316,14 @@ impl Controller {
 
         let module_features = registry.module_features();
 
-        let backend = {
+        let (backend, signaling_handler) = {
             let oidc_provider = OidcProvider {
                 name: oidc_frontend.client_id.to_string(),
                 url: oidc_frontend.authority.to_string(),
             };
-            let roomserver =
+            let (roomserver, signaling_handler) =
                 roomserver::build_roomserver(&settings.roomserver.kind, shutdown.subscribe());
-            ControllerBackend::new(
+            let controller_backend = ControllerBackend::new(
                 settings_provider.clone(),
                 authorizer.clone(),
                 inventory_provider.clone(),
@@ -332,13 +335,15 @@ impl Controller {
                 user_search_client.clone(),
                 module_features,
                 roomserver,
-            )
+            );
+
+            (controller_backend, signaling_handler)
         };
 
         let service = Arc::new(backend);
-
         let controller = Self {
             service,
+            signaling_handler,
             startup_settings: settings,
             settings_provider,
             optional_config_path,
@@ -392,6 +397,7 @@ impl Controller {
 
             let caches = Data::from(self.oidc_cache.clone());
             let service = Data::from(self.service);
+            let signaling = Data::new(self.signaling_handler);
 
             let authorization = AuthorizationTransform::new(self.authorizer.clone());
             let service_auth_middleware = settings_provider
@@ -427,6 +433,7 @@ impl Controller {
                     .wrap(TracingLogger::<ReducedSpanBuilder>::new())
                     .wrap(api::v1::middleware::headers::Headers {})
                     .app_data(service.clone())
+                    .app_data(signaling.clone())
                     .app_data(caches.clone())
                     .app_data(web::JsonConfig::default().error_handler(json_error_handler))
                     .app_data(Data::new(settings_provider.clone()))
@@ -872,6 +879,7 @@ fn v1_scope(
         .service(v1::invite::verify::post)
         .service(v1::turn::get)
         .service(v1::rooms::by_id::assets::by_id::proxy::get)
+        .service(api::signaling::get)
         .service(
             // empty scope to differentiate between auth endpoints
             web::scope("")

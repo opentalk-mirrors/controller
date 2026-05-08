@@ -3,6 +3,7 @@
 
 use std::sync::Arc;
 
+use actix_ws::{Message, ProtocolError};
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::Inventory;
 use opentalk_roomserver_modules::setup_registry;
@@ -17,16 +18,16 @@ use opentalk_roomserver_room::{
 };
 use opentalk_roomserver_types::{
     api::RoomServerAccess, client_parameters::ClientParameters,
-    room_parameters_patch::RoomParametersPatch,
+    room_parameters_patch::RoomParametersPatch, signaling::websocket::SignalingSocketMessage,
 };
 use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_api_v1::{error::ApiError, rooms::RoomResource};
-use opentalk_types_common::rooms::RoomId;
-use tokio::sync::{Mutex, broadcast::Receiver, watch, watch::Sender};
+use opentalk_types_common::{rooms::RoomId, roomserver::Token};
+use tokio::sync::{Mutex, broadcast, mpsc, watch, watch::Sender};
 use url::Url;
 
 use crate::controller_backend::roomserver::{
-    RoomServerBackend, build_room_parameters, websocket_adapter::WebSocketAdapter,
+    RoomServerBackend, SignalingHandler, build_room_parameters, websocket_adapter::WebSocketAdapter,
 };
 
 /// A roomserver backend that is running embedded in the controller.
@@ -42,7 +43,7 @@ pub(crate) struct InternalRoomServer {
 
 impl InternalRoomServer {
     /// Create a new internal roomserver backend
-    pub fn new(settings: Task, public_url: Url, shutdown: Receiver<()>) -> Self {
+    pub fn new(settings: Task, public_url: Url, shutdown: broadcast::Receiver<()>) -> Self {
         let app_state = Self::spawn_shutdown_task(shutdown);
 
         Self {
@@ -73,7 +74,7 @@ impl InternalRoomServer {
         }
     }
 
-    fn spawn_shutdown_task(mut shutdown: Receiver<()>) -> Sender<ApplicationState> {
+    fn spawn_shutdown_task(mut shutdown: broadcast::Receiver<()>) -> Sender<ApplicationState> {
         let (shutdown_sender, _) = watch::channel(ApplicationState::Running);
 
         let sender = shutdown_sender.clone();
@@ -147,5 +148,55 @@ impl RoomServerBackend for InternalRoomServer {
                 Err(err.into())
             }
         }
+    }
+}
+
+#[async_trait::async_trait]
+impl SignalingHandler for InternalRoomServer {
+    async fn consume_signaling_token(
+        &self,
+        token: &Token,
+    ) -> Result<SignalingClientContext, ApiError> {
+        self.token_store
+            .lock()
+            .await
+            .consume_token(token)
+            .ok_or_else(|| {
+                log::debug!("invalid or expired token");
+                ApiError::not_found()
+            })
+    }
+
+    async fn accept_signaling_connection(
+        &self,
+        ctx: SignalingClientContext,
+        incoming: mpsc::Receiver<Result<Message, ProtocolError>>,
+        outgoing: mpsc::Sender<SignalingSocketMessage>,
+    ) -> Result<(), ApiError> {
+        let SignalingClientContext {
+            room_id,
+            client_parameters,
+        } = ctx;
+
+        let task_handle = self
+            .room_tasks
+            .get_task_handle(&room_id)
+            .await
+            .ok_or_else(|| {
+                log::debug!("room not found");
+                ApiError::not_found().with_message("Room not found")
+            })?;
+
+        let adapter = WebSocketAdapter::new(incoming, outgoing);
+
+        task_handle
+            .accept_signaling_socket(adapter, client_parameters)
+            .await
+            .map_err(|err| {
+                log::error!("Failed to attach signaling socket to room {room_id}: {err}");
+                ApiError::internal().with_message("Failed to attach signaling socket to room task")
+            })?;
+
+        Ok(())
     }
 }

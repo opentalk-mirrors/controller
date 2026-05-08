@@ -6,6 +6,7 @@
 
 use std::{collections::BTreeMap, sync::Arc};
 
+use actix_ws::{Message, ProtocolError};
 use external::ExternalRoomServer;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::{RoomServerKind, Settings, common::HttpCorsAllowedOrigin};
@@ -19,6 +20,7 @@ use opentalk_roomserver_types::{
     public_user_profile::PublicUserProfile,
     room_parameters::{EventContext, RoomParameters},
     room_parameters_patch::RoomParametersPatch,
+    signaling::{signaling_context::SignalingClientContext, websocket::SignalingSocketMessage},
     tariff_details::TariffDetails,
 };
 use opentalk_roomserver_types_training_participation_report::settings::TrainingParticipationReportSettings;
@@ -36,11 +38,12 @@ use opentalk_types_common::{
     call_in::CallInInfo,
     events::invites::InviteRole,
     rooms::RoomId,
+    roomserver::Token,
     shared_folders::{SharedFolder, SharedFolderAccess},
     tariffs::QuotaType,
     users::{UserId, UserInfo},
 };
-use tokio::sync::broadcast::Receiver;
+use tokio::sync::{broadcast::Receiver, mpsc};
 
 use crate::{
     ControllerBackend, controller_backend::roomserver::internal::InternalRoomServer,
@@ -58,18 +61,23 @@ pub use storage_notifier::build_storage_notifier;
 pub fn build_roomserver(
     kind: &RoomServerKind,
     shutdown: Receiver<()>,
-) -> Arc<dyn RoomServerBackend + Send + Sync> {
+) -> (
+    Arc<dyn RoomServerBackend + Send + Sync>,
+    Option<Arc<dyn SignalingHandler + Send + Sync>>,
+) {
     match kind {
         RoomServerKind::Internal {
             settings,
             public_url,
         } => {
             log::debug!("Using internal roomserver");
-            Arc::new(InternalRoomServer::new(
+            let roomserver = Arc::new(InternalRoomServer::new(
                 settings.clone(),
                 public_url.clone(),
                 shutdown,
-            ))
+            ));
+
+            (roomserver.clone(), Some(roomserver))
         }
         RoomServerKind::External {
             service_url,
@@ -77,7 +85,7 @@ pub fn build_roomserver(
         } => {
             log::debug!("Using external roomserver");
             let roomserver_client = Client::new(service_url.clone(), api_key.clone());
-            Arc::new(ExternalRoomServer::new(roomserver_client))
+            (Arc::new(ExternalRoomServer::new(roomserver_client)), None)
         }
     }
 }
@@ -101,6 +109,32 @@ pub trait RoomServerBackend {
         &self,
         room_id: RoomId,
         patch: RoomParametersPatch,
+    ) -> Result<(), ApiError>;
+}
+
+/// A trait for handling signaling connections to the internal roomserver.
+#[async_trait::async_trait]
+pub trait SignalingHandler {
+    /// Consume a signaling token and return the associated client context.
+    ///
+    /// This must be called **before** the WebSocket upgrade so that an HTTP
+    /// error response can still be sent when the token is invalid or expired.
+    async fn consume_signaling_token(
+        &self,
+        token: &Token,
+    ) -> Result<SignalingClientContext, ApiError>;
+
+    /// Accept a signaling WebSocket connection.
+    ///
+    /// Builds a websocket adapter from the provided channel halves and
+    /// attaches it to the room task identified by the given context.
+    /// Only supported by the internal roomserver backend; the external
+    /// backend returns `404 Not Found`.
+    async fn accept_signaling_connection(
+        &self,
+        ctx: SignalingClientContext,
+        incoming: mpsc::Receiver<Result<Message, ProtocolError>>,
+        outgoing: mpsc::Sender<SignalingSocketMessage>,
     ) -> Result<(), ApiError>;
 }
 
