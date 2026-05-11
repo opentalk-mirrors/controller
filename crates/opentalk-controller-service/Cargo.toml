@@ -35,6 +35,7 @@ lapin-pool.workspace = true
 log = { workspace = true, features = ["serde"] }
 md5.workspace = true
 openidconnect.workspace = true
+opentalk-asset-storage.workspace = true
 opentalk-cache.workspace = true
 opentalk-controller-api-authorization.workspace = true
 opentalk-controller-service-facade.workspace = true
@@ -50,7 +51,6 @@ opentalk-roomserver-modules.workspace = true
 opentalk-roomserver-room.workspace = true
 opentalk-roomserver-types = { workspace = true, features = ["actix"] }
 opentalk-roomserver-types-training-participation-report.workspace = true
-opentalk-signaling-core.workspace = true
 opentalk-types-api-internal.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["backend"] }
 opentalk-types-common = { workspace = true, features = ["backend", "clap"] }

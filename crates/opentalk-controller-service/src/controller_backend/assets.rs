@@ -6,14 +6,11 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use futures_core::Stream;
-use opentalk_controller_utils::CaptureApiError;
-use opentalk_signaling_core::{
-    ChunkFormat, ObjectStorageError, StorageNotifier,
-    assets::{
-        AssetError, AssetSaved, ByStreamExt, NewAssetFileName, asset_key, delete_asset, get_asset,
-        save_asset,
-    },
+use opentalk_asset_storage::{
+    AssetError, AssetSaved, ByStreamExt, ChunkFormat, NewAssetFileName, ObjectStorageError,
+    StorageNotifier, asset_key, delete_asset, get_asset, save_asset,
 };
+use opentalk_controller_utils::CaptureApiError;
 use opentalk_types_api_internal::module_assets::AssetResource;
 use opentalk_types_api_v1::{
     error::ApiError, pagination::PagePaginationQuery,

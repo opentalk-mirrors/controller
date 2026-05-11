@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use log::Log;
+use opentalk_asset_storage::ObjectStorage;
 use opentalk_controller_api_authorization::authorization::{AuthorizationChange, Authorizer};
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::Inventory;
-use opentalk_signaling_core::ObjectStorage;
 use opentalk_types_common::users::UserId;
 
 use super::Error;

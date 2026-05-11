@@ -15,14 +15,16 @@ use std::{
 
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, Scope, web, web::Data};
+use exchange_task::{ExchangeHandle, ExchangeTask};
 use lapin_pool::RabbitMqPool;
+use opentalk_asset_storage::ObjectStorage;
 use opentalk_controller_api_actix_web::{v1, well_known};
 use opentalk_controller_api_authorization::{
     authorization::Authorizer, middleware::AuthorizationTransform,
 };
 use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
 use opentalk_controller_service::{
-    ControllerBackend, Whatever,
+    ControllerBackend, RedisConnection, Whatever,
     controller_backend::roomserver,
     oidc::{Cache, OidcTokenHandler, build_oidc_token_handler},
     services::MailService,
@@ -38,7 +40,6 @@ use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_jobs::job_runner::JobRunner;
 use opentalk_keycloak_admin::{AuthorizedClient, KeycloakAdminClient};
 use opentalk_service_auth::service::ApiKeyAuthorization;
-use opentalk_signaling_core::{ExchangeHandle, ExchangeTask, ObjectStorage, RedisConnection};
 use opentalk_types_api_v1::{auth::OidcProvider, error::ApiError};
 use rustls_pki_types::{CertificateDer, PrivatePkcs8KeyDer};
 use service_probe::{ServiceState, set_service_state, start_probe};
@@ -61,6 +62,7 @@ use crate::{
 };
 
 mod authorization;
+mod exchange_task;
 mod metrics;
 mod swagger;
 mod trace;

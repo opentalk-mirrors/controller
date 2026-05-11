@@ -27,6 +27,10 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use futures_core::Stream;
 use openidconnect::AccessToken;
+use opentalk_asset_storage::{
+    AssetSaved, ByStreamExt, NewAssetFileName, ObjectStorage, ObjectStorageError, StorageNotifier,
+    asset_key,
+};
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_service_facade::{
     AssetDownloadProxyStream, OpenTalkControllerService, RequestUser,
@@ -34,10 +38,6 @@ use opentalk_controller_service_facade::{
 use opentalk_controller_settings::SettingsProvider;
 use opentalk_inventory::InventoryProvider;
 use opentalk_keycloak_admin::KeycloakAdminClient;
-use opentalk_signaling_core::{
-    ObjectStorage, ObjectStorageError, StorageNotifier,
-    assets::{AssetSaved, ByStreamExt, NewAssetFileName, asset_key},
-};
 use opentalk_types_api_internal::{
     call_in::PostCallInStartRoomServerRequestBody,
     module_assets::AssetResource,

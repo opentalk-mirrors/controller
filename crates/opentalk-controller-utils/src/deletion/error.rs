@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use opentalk_asset_storage::ObjectStorageError;
 use opentalk_controller_api_authorization::authorization::AuthorizationError;
-use opentalk_signaling_core::ObjectStorageError;
 use opentalk_types_api_v1::error::ApiError;
 use snafu::Snafu;
 

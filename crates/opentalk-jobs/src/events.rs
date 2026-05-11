@@ -8,6 +8,7 @@ use std::{
 };
 
 use log::Log;
+use opentalk_asset_storage::ObjectStorage;
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::{
@@ -16,7 +17,6 @@ use opentalk_controller_utils::{
 };
 use opentalk_inventory::{Inventory, InventoryProvider, UpdateUser, User};
 use opentalk_log::{debug, info, warn};
-use opentalk_signaling_core::ObjectStorage;
 use opentalk_types_common::{events::EventId, rooms::RoomId, time::Timestamp, users::UserId};
 use snafu::Report;
 

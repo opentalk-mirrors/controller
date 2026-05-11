@@ -27,11 +27,11 @@ pretty_assertions.workspace = true
 
 opentalk-controller-api-authorization.workspace = true
 opentalk-controller-api-authorization-database.workspace = true
+opentalk-controller-service.workspace = true
 opentalk-database = { workspace = true, optional = true }
 opentalk-db-storage = { workspace = true, optional = true }
 opentalk-inventory.workspace = true
 opentalk-inventory-database.workspace = true
-opentalk-signaling-core = { workspace = true }
 opentalk-types-common = { workspace = true, features = ["backend"] }
 opentalk-types-signaling = { workspace = true, features = ["backend"] }
 

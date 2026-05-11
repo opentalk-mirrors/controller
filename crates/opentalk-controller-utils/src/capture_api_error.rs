@@ -4,12 +4,12 @@
 
 use std::fmt::Display;
 
+use opentalk_asset_storage::{AssetError, ObjectStorageError};
 use opentalk_controller_api_authorization::authorization::{
     AuthorizationChangeError, AuthorizationError,
 };
 use opentalk_controller_service_facade::StartRoomError;
 use opentalk_database::DatabaseError;
-use opentalk_signaling_core::{ObjectStorageError, assets::AssetError};
 use opentalk_types_api_v1::error::ApiError;
 use rand::distr::uniform;
 use snafu::Whatever;

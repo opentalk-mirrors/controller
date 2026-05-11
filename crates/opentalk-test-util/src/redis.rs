@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_signaling_core::RedisConnection;
+use opentalk_controller_service::RedisConnection;
 use redis::aio::ConnectionManager;
 
 pub async fn setup() -> RedisConnection {

@@ -6,6 +6,7 @@
 
 use diesel_async::scoped_futures::ScopedFutureExt;
 use log::Log;
+use opentalk_asset_storage::{ObjectStorage, asset_key};
 use opentalk_controller_api_authorization::authorization::{
     AccessMethod, AuthorizationChange, AuthorizationTarget, Authorizer, Resource, Subject,
     SubjectCollection,
@@ -13,7 +14,6 @@ use opentalk_controller_api_authorization::authorization::{
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{EventSharedFolder, Inventory, transaction};
 use opentalk_log::debug;
-use opentalk_signaling_core::{ObjectStorage, assets::asset_key};
 use opentalk_types_common::{assets::AssetId, events::EventId, rooms::RoomId, users::UserId};
 use snafu::{ResultExt, ensure};
 

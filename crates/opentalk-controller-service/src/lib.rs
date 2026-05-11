@@ -28,12 +28,14 @@ pub mod helpers;
 pub mod metrics;
 pub mod oidc;
 pub mod phone_numbers;
+mod redis_wrapper;
 pub mod services;
 
 pub mod user_profiles;
 
 pub use controller_backend::ControllerBackend;
 pub use helpers::{ToUserProfile, email_to_libravatar_url};
+pub use redis_wrapper::{RedisConnection, RedisMetrics};
 use snafu::{Backtrace, Snafu};
 
 type Result<T, E = Whatever> = std::result::Result<T, E>;
