@@ -7,7 +7,6 @@ use actix_ws::{Message, ProtocolError};
 use opentalk_asset_storage::{ObjectStorage, StorageNotifier};
 use opentalk_controller_settings::{Settings, SettingsProvider};
 use opentalk_inventory::{Inventory, InventoryProvider};
-use opentalk_roomserver_modules::setup_registry;
 use opentalk_roomserver_room::{
     ApplicationState, ModuleRegistry, RoomTaskApiError, RoomTaskContext, RoomTaskHandleError,
     RoomTaskRegistry, SignalingClientContext, TokenStore, settings::Task,
@@ -56,6 +55,7 @@ impl InternalRoomServer {
         storage: Arc<ObjectStorage>,
         storage_notifier: Arc<dyn StorageNotifier>,
         room_task_settings: Task,
+        module_registry: ModuleRegistry,
         public_url: Url,
         shutdown: broadcast::Receiver<()>,
     ) -> Self {
@@ -63,7 +63,7 @@ impl InternalRoomServer {
 
         Self {
             room_tasks,
-            module_registry: Arc::new(setup_registry()),
+            module_registry: Arc::new(module_registry),
             app_state,
             token_store: Arc::new(Mutex::new(TokenStore::new())),
             settings: Arc::new(room_task_settings),

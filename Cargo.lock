@@ -5705,7 +5705,6 @@ dependencies = [
  "opentalk-mail-worker-protocol",
  "opentalk-nextcloud-client",
  "opentalk-roomserver-client",
- "opentalk-roomserver-modules",
  "opentalk-roomserver-room",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-training-participation-report",

@@ -16,7 +16,7 @@ use opentalk_controller_settings::{
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{Event, Inventory, InventoryProvider};
 use opentalk_roomserver_client::Client;
-use opentalk_roomserver_room::{RoomTaskRegistry, settings::Internal};
+use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry, settings::Internal};
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
     client_parameters::{ClientKind, ClientParameters, Role},
@@ -81,6 +81,7 @@ pub fn build(
     settings_provider: SettingsProvider,
     inventory_provider: Arc<dyn InventoryProvider>,
     storage: Arc<ObjectStorage>,
+    module_registry: ModuleRegistry,
     shutdown: Receiver<()>,
 ) -> RoomServerComponents {
     match kind {
@@ -106,6 +107,7 @@ pub fn build(
                 storage,
                 Arc::clone(&storage_notifier),
                 settings.to_owned(),
+                module_registry,
                 public_url.to_owned(),
                 shutdown,
             ));

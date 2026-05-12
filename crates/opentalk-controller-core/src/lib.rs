@@ -314,16 +314,17 @@ impl Controller {
             )),
             None => None,
         });
+
+        let registry = opentalk_roomserver_modules::setup_registry();
+        let module_features = registry.module_features();
         let roomserver = roomserver::build(
             &settings.roomserver.kind,
             settings_provider.clone(),
             Arc::clone(&inventory_provider),
             Arc::clone(&storage),
+            registry,
             shutdown.subscribe(),
         );
-
-        let registry = opentalk_roomserver_modules::setup_registry();
-        let module_features = registry.module_features();
 
         let backend = {
             let oidc_provider = OidcProvider {
