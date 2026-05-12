@@ -168,6 +168,12 @@ pub trait OpenTalkControllerService: Send + Sync {
         body: RecordingTarget,
     ) -> Result<RoomserverStartResponseBody, ApiError>;
 
+    /// Starts a signaling session for transcription
+    async fn start_transcription(
+        &self,
+        body: RecordingTarget,
+    ) -> Result<RoomserverStartResponseBody, ApiError>;
+
     /// Starts a signaling session for call-in
     async fn start_call_in(
         &self,

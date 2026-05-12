@@ -52,7 +52,7 @@ pub(crate) struct RecordingUploadWebSocketHeaders {
 #[utoipa::path(
     context_path = "/recording",
     request_body = RecordingTarget,
-    operation_id = "start_recording_roomserver",
+    operation_id = "start_recording",
     responses(
         (
             status = StatusCode::OK,

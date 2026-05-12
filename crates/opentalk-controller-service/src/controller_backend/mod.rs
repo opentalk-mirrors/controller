@@ -287,7 +287,14 @@ impl OpenTalkControllerService for ControllerBackend {
         &self,
         body: RecordingTarget,
     ) -> Result<RoomserverStartResponseBody, ApiError> {
-        Ok(self.start_recording_roomserver_impl(body).await?)
+        Ok(self.start_recording_impl(body).await?)
+    }
+
+    async fn start_transcription(
+        &self,
+        body: RecordingTarget,
+    ) -> Result<RoomserverStartResponseBody, ApiError> {
+        Ok(self.start_transcription_impl(body).await?)
     }
 
     async fn start_call_in(

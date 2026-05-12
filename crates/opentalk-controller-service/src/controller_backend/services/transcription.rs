@@ -12,7 +12,7 @@ use crate::{
 };
 
 impl ControllerBackend {
-    pub(crate) async fn start_recording_impl(
+    pub(crate) async fn start_transcription_impl(
         &self,
         body: RecordingTarget,
     ) -> Result<RoomserverStartResponseBody, CaptureApiError> {
@@ -24,7 +24,7 @@ impl ControllerBackend {
             &mut *inventory,
             body.room_id,
             body.breakout_room,
-            ServiceKind::Recording,
+            ServiceKind::Transcription,
         )
         .await?;
 

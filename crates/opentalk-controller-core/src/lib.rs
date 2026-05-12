@@ -966,7 +966,8 @@ fn internal_service_scope(auth_middleware: Option<ApiKeyAuthorization>) -> Scope
             .service(api::internal::module_resources::delete)
             .service(api::internal::call_in::post)
             .service(api::internal::recording::post_start)
-            .service(api::internal::recording::get_upload),
+            .service(api::internal::recording::get_upload)
+            .service(api::internal::transcription::post_start),
     )
 }
 
