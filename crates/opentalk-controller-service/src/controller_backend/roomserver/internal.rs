@@ -81,7 +81,7 @@ impl InternalRoomServer {
         _ = tokio::spawn(async move {
             _ = shutdown.recv().await;
             if let Err(err) = sender.send(ApplicationState::ShuttingDown) {
-                log::error!("Failed to send shutdown signal: {err}");
+                log::debug!("Failed to send shutdown signal: {err}");
             }
         });
 
