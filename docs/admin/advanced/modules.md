@@ -176,6 +176,18 @@ Handles training participation report functionality. Participants are asked to c
 
 This module does not provide any configurable features.
 
+## Module `transcription`
+
+Live transcription for meetings
+
+### Features
+
+The following features can be configured for the module. All features are enabled by default and can be disabled either [by configuration](https://docs.opentalk.eu/admin/controller/advanced/defaults/) or [by tariff](https://docs.opentalk.eu/admin/controller/advanced/tariffs/).
+
+#### `transcription::transcription`
+
+Allows to create transcriptions for meetings
+
 ## Module `whiteboard`
 
 Handles whiteboard integration. The whiteboard is a collaborative drawing board that can be used during the meeting.
@@ -219,6 +231,7 @@ shared_folder: []
 subroom_audio: []
 timer: []
 training_participation_report: []
+transcription: ["transcription"]
 whiteboard: []
 ```
 
