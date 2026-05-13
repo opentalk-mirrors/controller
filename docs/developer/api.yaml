@@ -1422,6 +1422,99 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
       security: []
+  /livekit/rtc:
+    get:
+      tags:
+        - "livekit::rtc"
+      summary: Opens a new LiveKit WebSocket connection for RTC communication.
+      description: |-
+        This endpoint establishes a WebSocket connection to the upstream LiveKit server.
+        The access token can be provided either as a query parameter or in the `Authorization`
+        header with the `Bearer` scheme.
+
+        # Available paths
+        - `/livekit/rtc`
+        - `/livekit/rtc/v1`
+      operationId: livekit_rtc
+      parameters:
+        - name: access_token
+          in: query
+          description: "LiveKit access token (JWT) as query parameter. If not provided, must be in Authorization header with Bearer scheme"
+          required: false
+          schema:
+            type: string
+      responses:
+        "101":
+          description: Successfully upgraded connection to WebSocket for RTC communication
+        "400":
+          description: Invalid token format or missing required token claims
+        "401":
+          description: Missing access token or invalid token scheme
+        "500":
+          description: An internal server error occurred
+      security:
+        - Livekit-Token: []
+  /livekit/rtc/v1:
+    get:
+      tags:
+        - "livekit::rtc::v1"
+      operationId: livekit_rtc_v1
+      parameters:
+        - name: access_token
+          in: query
+          description: "LiveKit access token (JWT) as query parameter. If not provided, must be in Authorization header with Bearer scheme"
+          required: false
+          schema:
+            type: string
+      responses:
+        "101":
+          description: Successfully upgraded connection to WebSocket for RTC communication
+        "400":
+          description: Invalid token format or missing required token claims
+        "401":
+          description: Missing access token or invalid token scheme
+        "500":
+          description: An internal server error occurred
+      security:
+        - Livekit-Token: []
+  /livekit/rtc/v1/validate:
+    post:
+      tags:
+        - "livekit::rtc::v1::validate"
+      summary: Proxies the LiveKit validate request to the upstream livekit service via the room task
+      operationId: livekit_rtc_v1_validate
+      responses:
+        "200":
+          description: Validation response from LiveKit
+        "400":
+          description: Invalid request headers
+        "422":
+          description: No livekit module configured for the request
+        "500":
+          description: An internal server error occurred
+      security:
+        - Livekit-Token: []
+  /livekit/rtc/validate:
+    post:
+      tags:
+        - "livekit::rtc::validate"
+      summary: Proxies the LiveKit validate request to the upstream livekit service via the room task
+      description: |-
+        # Available paths
+        - `/livekit/rtc/validate`
+        - `/livekit/rtc/v1/validate`
+      operationId: livekit_rtc_validate
+      responses:
+        "200":
+          description: Validation response from LiveKit
+        "400":
+          description: Invalid request headers
+        "422":
+          description: No livekit module configured for the request
+        "500":
+          description: An internal server error occurred
+      security:
+        - Livekit-Token: []
   /recording/recording/start:
     post:
       tags:

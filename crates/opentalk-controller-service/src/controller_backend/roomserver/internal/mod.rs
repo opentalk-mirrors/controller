@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use actix_ws::{Message, ProtocolError};
+use http::{
+    HeaderMap,
+    header::{AUTHORIZATION, Entry},
+};
 use opentalk_asset_storage::{ObjectStorage, StorageNotifier};
 use opentalk_controller_settings::{Settings, SettingsProvider};
 use opentalk_inventory::{Inventory, InventoryProvider};
@@ -12,22 +16,33 @@ use opentalk_roomserver_room::{
     RoomTaskRegistry, SignalingClientContext, TokenStore, settings::Task,
 };
 use opentalk_roomserver_types::{
-    api::RoomServerAccess, client_parameters::ClientParameters,
-    room_parameters_patch::RoomParametersPatch, signaling::websocket::SignalingSocketMessage,
+    api::RoomServerAccess,
+    client_parameters::ClientParameters,
+    livekit_proxy::{LiveKitProxyRequest, PreparedSocket, websocket::LiveKitSocket},
+    room_parameters_patch::RoomParametersPatch,
+    signaling::websocket::SignalingSocketMessage,
 };
+use opentalk_roomserver_web_api::livekit_proxy::LiveKitProxyBackend;
 use opentalk_types_api_v1::{error::ApiError, rooms::RoomResource};
 use opentalk_types_common::{rooms::RoomId, roomserver::Token, users::UserId};
+use snafu::ResultExt;
 use tokio::sync::{Mutex, broadcast, mpsc, watch, watch::Sender};
 use url::Url;
 
-use crate::controller_backend::roomserver::{
-    RoomServerBackend, SignalingHandler, build_room_parameters,
-    internal::{asset_storage::AssetStorage, module_resources::ModuleResources},
-    websocket_adapter::WebSocketAdapter,
+use crate::{
+    Whatever,
+    controller_backend::roomserver::{
+        RoomServerBackend, SignalingHandler, SignalingProxyBackend, build_room_parameters,
+        internal::{asset_storage::AssetStorage, module_resources::ModuleResources},
+        websocket_adapter::WebSocketAdapter,
+    },
 };
 
 mod asset_storage;
 mod module_resources;
+
+const LIVEKIT_CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
+const LIVEKIT_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// A roomserver backend that is running embedded in the controller.
 pub(crate) struct InternalRoomServer {
@@ -37,6 +52,7 @@ pub(crate) struct InternalRoomServer {
     /// A list of eligible participants and their join tokens
     token_store: Arc<Mutex<TokenStore<SignalingClientContext>>>,
     settings: Arc<Task>,
+    livekit_client: reqwest::Client,
 
     settings_provider: SettingsProvider,
     inventory_provider: Arc<dyn InventoryProvider>,
@@ -56,20 +72,26 @@ impl InternalRoomServer {
         room_task_settings: Task,
         module_registry: ModuleRegistry,
         shutdown: broadcast::Receiver<()>,
-    ) -> Self {
+    ) -> Result<Self, Whatever> {
         let app_state = Self::spawn_shutdown_task(shutdown);
+        let livekit_client = reqwest::ClientBuilder::new()
+            .connect_timeout(LIVEKIT_CONNECT_TIMEOUT)
+            .timeout(LIVEKIT_TIMEOUT)
+            .build()
+            .whatever_context("Failed to build livekit client")?;
 
-        Self {
+        Ok(Self {
             room_tasks,
             module_registry: Arc::new(module_registry),
             app_state,
             token_store: Arc::new(Mutex::new(TokenStore::new())),
             settings: Arc::new(room_task_settings),
+            livekit_client,
             settings_provider,
             inventory_provider,
             storage,
             storage_notifier,
-        }
+        })
     }
 
     fn room_task_context(&self, room_owner: UserId) -> RoomTaskContext {
@@ -105,6 +127,8 @@ impl InternalRoomServer {
         shutdown_sender
     }
 }
+
+impl SignalingProxyBackend for InternalRoomServer {}
 
 #[async_trait::async_trait]
 impl RoomServerBackend for InternalRoomServer {
@@ -166,6 +190,84 @@ impl RoomServerBackend for InternalRoomServer {
                 Err(err.into())
             }
         }
+    }
+}
+
+#[async_trait::async_trait]
+impl LiveKitProxyBackend for InternalRoomServer {
+    async fn connect_upstream_socket(
+        &self,
+        ws_request: LiveKitProxyRequest,
+    ) -> Result<PreparedSocket, ApiError> {
+        let Some(task_handle) = self.room_tasks.get_task_handle(&ws_request.room_id).await else {
+            return Err(ApiError::not_found());
+        };
+
+        task_handle
+            .prepare_proxy_socket(ws_request)
+            .await
+            .map_err(Into::into)
+    }
+
+    async fn connect_downstream_socket(
+        &self,
+        ws_request: LiveKitProxyRequest,
+        upstream_socket: PreparedSocket,
+        socket: Box<dyn LiveKitSocket>,
+    ) -> Result<(), ApiError> {
+        let Some(task_handle) = self.room_tasks.get_task_handle(&ws_request.room_id).await else {
+            return Err(ApiError::not_found());
+        };
+
+        task_handle
+            .accept_livekit_socket(ws_request, upstream_socket, socket)
+            .await?;
+
+        Ok(())
+    }
+
+    async fn proxy_livekit_validate(
+        &self,
+        room_id: RoomId,
+        mut headers: HeaderMap,
+        raw_query: Option<String>,
+    ) -> Result<reqwest::Response, ApiError> {
+        let Some(task_handle) = self.room_tasks.get_task_handle(&room_id).await else {
+            return Err(ApiError::not_found());
+        };
+
+        let mut livekit_service_url = task_handle.livekit_service_url().await?;
+        _ = livekit_service_url
+            .path_segments_mut()
+            .map_err(|()| {
+                log::error!("Invalid livekit URL, cannot be base");
+                ApiError::internal()
+            })?
+            .push("rtc")
+            .push("validate");
+        livekit_service_url.set_query(raw_query.as_deref());
+
+        let auth_headers = match headers.entry(AUTHORIZATION) {
+            Entry::Occupied(occupied) => {
+                let (_, values) = occupied.remove_entry_mult();
+
+                values
+                    .into_iter()
+                    .map(|value| (AUTHORIZATION, value))
+                    .collect()
+            }
+            Entry::Vacant(_) => HeaderMap::new(),
+        };
+
+        self.livekit_client
+            .post(livekit_service_url)
+            .headers(auth_headers)
+            .send()
+            .await
+            .map_err(|err| {
+                log::error!("Failed to send validate request to livekit: {err}");
+                ApiError::internal()
+            })
     }
 }
 

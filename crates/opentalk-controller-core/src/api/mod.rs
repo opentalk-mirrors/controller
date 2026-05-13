@@ -10,6 +10,7 @@
 
 pub mod headers;
 pub mod internal;
+pub mod livekit;
 pub mod signaling;
 pub mod upload;
 pub mod v1;

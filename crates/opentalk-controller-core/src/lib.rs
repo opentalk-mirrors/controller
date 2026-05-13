@@ -25,7 +25,7 @@ use opentalk_controller_api_authorization::{
 use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
 use opentalk_controller_service::{
     ControllerBackend, RedisConnection, Whatever,
-    controller_backend::roomserver::{self, SignalingHandler},
+    controller_backend::roomserver::{self, SignalingProxyBackend},
     oidc::{Cache, OidcTokenHandler, build_oidc_token_handler},
     services::MailService,
 };
@@ -57,7 +57,10 @@ use tokio::{
 use tracing_actix_web::TracingLogger;
 
 use crate::{
-    api::v1::{middleware::metrics::RequestMetrics, response::error::json_error_handler},
+    api::{
+        livekit,
+        v1::{middleware::metrics::RequestMetrics, response::error::json_error_handler},
+    },
     trace::ReducedSpanBuilder,
 };
 
@@ -105,7 +108,7 @@ pub struct Controller {
     pub service: Arc<dyn OpenTalkControllerService>,
 
     /// The roomserver backend used for signaling
-    signaling_handler: Option<Arc<dyn SignalingHandler>>,
+    signaling_handler: Option<Arc<dyn SignalingProxyBackend>>,
 
     /// Settings loaded on [Controller::create]
     pub startup_settings: Arc<Settings>,
@@ -324,7 +327,7 @@ impl Controller {
             Arc::clone(&storage),
             registry,
             shutdown.subscribe(),
-        );
+        )?;
 
         let backend = {
             let oidc_provider = OidcProvider {
@@ -456,6 +459,7 @@ impl Controller {
                     .service(metrics::metrics)
                     .with_swagger_service_if(swagger_service_enabled)
                     .service(internal_service_scope(service_auth_middleware))
+                    .service(livekit_scope())
                     .service(v1_scope(
                         settings_provider.clone(),
                         authorizer,
@@ -698,6 +702,10 @@ impl Controller {
         api::internal::module_resources::get,
         api::internal::module_resources::patch,
         api::internal::module_resources::delete,
+        livekit::rtc::get,
+        livekit::rtc::validate::post,
+        livekit::rtc::v1::get,
+        livekit::rtc::v1::validate::post,
     ),
     components(
         schemas(
@@ -983,6 +991,14 @@ fn internal_service_scope(auth_middleware: Option<ApiKeyAuthorization>) -> Scope
             .service(api::internal::recording::get_upload)
             .service(api::internal::transcription::post_start),
     )
+}
+
+fn livekit_scope() -> Scope {
+    web::scope("livekit")
+        .service(livekit::rtc::get)
+        .service(livekit::rtc::v1::get)
+        .service(livekit::rtc::validate::post)
+        .service(livekit::rtc::v1::validate::post)
 }
 
 fn setup_cors(settings_provider: SettingsProvider) -> Cors {
