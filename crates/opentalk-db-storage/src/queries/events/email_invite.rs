@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use diesel::prelude::*;
-use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{
     events::EventId,
@@ -26,60 +26,56 @@ pub async fn migrate_event_email_invites_to_user_invites(
     conn: &mut DbConnection,
     user: &User,
 ) -> Result<Vec<(EventId, RoomId)>> {
-    conn.transaction(|conn| {
-        async move {
-            let email_invites_with_room: Vec<(EventEmailInvite, RoomId)> =
-                event_email_invites::table
-                    .filter(event_email_invites::email.eq(&user.email))
-                    .inner_join(events::table)
-                    .filter(events::tenant_id.eq(user.tenant_id))
-                    .select((event_email_invites::all_columns, events::room))
-                    .load(conn)
-                    .await?;
+    conn.transaction(async |conn| {
+        let email_invites_with_room: Vec<(EventEmailInvite, RoomId)> = event_email_invites::table
+            .filter(event_email_invites::email.eq(&user.email))
+            .inner_join(events::table)
+            .filter(events::tenant_id.eq(user.tenant_id))
+            .select((event_email_invites::all_columns, events::room))
+            .load(conn)
+            .await?;
 
-            if email_invites_with_room.is_empty() {
-                return Ok(vec![]);
-            }
+        if email_invites_with_room.is_empty() {
+            return Ok(vec![]);
+        }
 
-            let event_ids = email_invites_with_room
-                .iter()
-                .map(|(email_invite, room_id)| (email_invite.event_id, *room_id))
-                .collect();
+        let event_ids = email_invites_with_room
+            .iter()
+            .map(|(email_invite, room_id)| (email_invite.event_id, *room_id))
+            .collect();
 
-            let new_invites: Vec<_> = email_invites_with_room
-                .into_iter()
-                .map(|(email_invite, _)| NewEventInvite {
-                    event_id: email_invite.event_id,
-                    invitee: user.id,
-                    role: email_invite.role.into(),
-                    created_by: email_invite.created_by,
-                    created_at: Some(email_invite.created_at),
-                })
-                .collect();
+        let new_invites: Vec<_> = email_invites_with_room
+            .into_iter()
+            .map(|(email_invite, _)| NewEventInvite {
+                event_id: email_invite.event_id,
+                invitee: user.id,
+                role: email_invite.role.into(),
+                created_by: email_invite.created_by,
+                created_at: Some(email_invite.created_at),
+            })
+            .collect();
 
-            diesel::insert_into(event_invites::table)
-                .values(new_invites)
-                .on_conflict_do_nothing()
-                .execute(conn)
-                .await?;
-
-            diesel::delete(
-                event_email_invites::table.filter(
-                    event_email_invites::email.eq(&user.email).and(
-                        event_email_invites::event_id.eq_any(
-                            events::table
-                                .filter(events::tenant_id.eq(user.tenant_id))
-                                .select(events::id),
-                        ),
-                    ),
-                ),
-            )
+        diesel::insert_into(event_invites::table)
+            .values(new_invites)
+            .on_conflict_do_nothing()
             .execute(conn)
             .await?;
 
-            Ok(event_ids)
-        }
-        .scope_boxed()
+        diesel::delete(
+            event_email_invites::table.filter(
+                event_email_invites::email.eq(&user.email).and(
+                    event_email_invites::event_id.eq_any(
+                        events::table
+                            .filter(events::tenant_id.eq(user.tenant_id))
+                            .select(events::id),
+                    ),
+                ),
+            ),
+        )
+        .execute(conn)
+        .await?;
+
+        Ok(event_ids)
     })
     .await
 }

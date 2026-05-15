@@ -4,7 +4,6 @@
 
 //! Functionality to delete events including all associated resources
 
-use diesel_async::scoped_futures::ScopedFutureExt;
 use log::Log;
 use opentalk_asset_storage::{ObjectStorage, asset_key};
 use opentalk_controller_api_authorization::authorization::{
@@ -157,8 +156,8 @@ impl Deleter for EventDeleter {
         let event = inventory.get_event(event_id).await?;
         let room_id = event.room;
 
-        let transaction_result: Result<Vec<AssetId>, Error> = transaction(inventory, |inventory| {
-            async move {
+        let transaction_result: Result<Vec<AssetId>, Error> =
+            transaction(inventory, async |inventory| {
                 prepared_commit
                     .detect_race_condition(inventory, event_id)
                     .await?;
@@ -176,10 +175,8 @@ impl Deleter for EventDeleter {
                 .await?;
 
                 Ok(current_assets)
-            }
-            .scope_boxed()
-        })
-        .await;
+            })
+            .await;
 
         let assets = transaction_result?;
 

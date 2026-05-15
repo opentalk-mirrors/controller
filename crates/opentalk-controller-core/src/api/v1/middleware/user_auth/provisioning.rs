@@ -4,7 +4,6 @@
 
 use std::collections::BTreeSet;
 
-use diesel_async::scoped_futures::ScopedFutureExt as _;
 use openidconnect::AccessToken;
 use opentalk_controller_api_authorization::authorization::{AuthorizationChange, Authorizer};
 use opentalk_controller_service::{
@@ -130,20 +129,17 @@ pub(super) async fn provision_user(
 
     let login_result = {
         let tenant = tenant.clone();
-        transaction(inventory.as_mut(), |inventory| {
-            async move {
-                create_or_update_user(
-                    inventory,
-                    tenant,
-                    info,
-                    settings,
-                    &groups,
-                    tariff,
-                    tariff_status,
-                )
-                .await
-            }
-            .scope_boxed()
+        transaction(inventory.as_mut(), async |inventory| {
+            create_or_update_user(
+                inventory,
+                tenant,
+                info,
+                settings,
+                &groups,
+                tariff,
+                tariff_status,
+            )
+            .await
         })
         .await?
     };

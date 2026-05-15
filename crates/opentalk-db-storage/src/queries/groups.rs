@@ -7,7 +7,7 @@
 use std::collections::BTreeSet;
 
 use diesel::prelude::*;
-use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{
     tenants::TenantId,
@@ -38,26 +38,23 @@ pub async fn get_groups_for_user(conn: &mut DbConnection, user_id: UserId) -> Re
 /// returned instead
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn insert_or_get_group(conn: &mut DbConnection, group: Group) -> Result<Group> {
-    conn.transaction(|conn| {
-        async move {
-            let group = groups::table
-                .select(groups::all_columns)
-                .filter(groups::name.eq(&group.name))
-                .first(conn)
-                .await
-                .optional()?;
+    conn.transaction(async |conn| {
+        let group = groups::table
+            .select(groups::all_columns)
+            .filter(groups::name.eq(&group.name))
+            .first(conn)
+            .await
+            .optional()?;
 
-            if let Some(group) = group {
-                return Ok(group);
-            }
-
-            diesel::insert_into(groups::table)
-                .values(group)
-                .get_result(conn)
-                .await
-                .map_err(DatabaseError::from)
+        if let Some(group) = group {
+            return Ok(group);
         }
-        .scope_boxed()
+
+        diesel::insert_into(groups::table)
+            .values(group)
+            .get_result(conn)
+            .await
+            .map_err(DatabaseError::from)
     })
     .await
 }

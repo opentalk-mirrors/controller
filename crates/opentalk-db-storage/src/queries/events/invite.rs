@@ -5,7 +5,7 @@
 use std::collections::BTreeSet;
 
 use diesel::prelude::*;
-use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
@@ -30,39 +30,36 @@ pub async fn get_event_user_invites_for_events(
     conn: &mut DbConnection,
     events: &[&Event],
 ) -> Result<Vec<Vec<(EventInvite, User)>>> {
-    conn.transaction(|conn| {
-        async move {
-            let invites: Vec<EventInvite> = EventInvite::belonging_to(events).load(conn).await?;
-            let mut user_ids: Vec<UserId> = invites.iter().map(|x| x.invitee).collect();
-            // Small optimization to filter out duplicates
-            user_ids.sort_unstable();
-            user_ids.dedup();
+    conn.transaction(async |conn| {
+        let invites: Vec<EventInvite> = EventInvite::belonging_to(events).load(conn).await?;
+        let mut user_ids: Vec<UserId> = invites.iter().map(|x| x.invitee).collect();
+        // Small optimization to filter out duplicates
+        user_ids.sort_unstable();
+        user_ids.dedup();
 
-            let users = db::queries::users::get_users_by_ids(conn, &user_ids).await?;
+        let users = db::queries::users::get_users_by_ids(conn, &user_ids).await?;
 
-            let invites_by_event: Vec<Vec<EventInvite>> = invites.grouped_by(events);
-            let mut invites_with_users_by_event = Vec::with_capacity(events.len());
+        let invites_by_event: Vec<Vec<EventInvite>> = invites.grouped_by(events);
+        let mut invites_with_users_by_event = Vec::with_capacity(events.len());
 
-            for invites in invites_by_event {
-                let mut invites_with_users = Vec::with_capacity(invites.len());
+        for invites in invites_by_event {
+            let mut invites_with_users = Vec::with_capacity(invites.len());
 
-                for invite in invites {
-                    let user = users
-                        .iter()
-                        .find(|user| user.id == invite.invitee)
-                        .ok_or_else(|| DatabaseError::Custom {
-                            message: "bug: user invite invitee missing".to_owned(),
-                        })?;
+            for invite in invites {
+                let user = users
+                    .iter()
+                    .find(|user| user.id == invite.invitee)
+                    .ok_or_else(|| DatabaseError::Custom {
+                        message: "bug: user invite invitee missing".to_owned(),
+                    })?;
 
-                    invites_with_users.push((invite, user.clone()))
-                }
-
-                invites_with_users_by_event.push(invites_with_users);
+                invites_with_users.push((invite, user.clone()))
             }
 
-            Ok(invites_with_users_by_event)
+            invites_with_users_by_event.push(invites_with_users);
         }
-        .scope_boxed()
+
+        Ok(invites_with_users_by_event)
     })
     .await
 }
