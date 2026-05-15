@@ -20,7 +20,6 @@ actix-web.workspace = true
 chrono.workspace = true
 clap = { workspace = true, features = ["derive"] }
 diesel.workspace = true
-diesel-async.workspace = true
 humansize.workspace = true
 itertools.workspace = true
 jsonwebtoken = { workspace = true, features = ["aws_lc_rs"] }

@@ -142,9 +142,9 @@ where
 }
 
 impl AsyncConnectionCore for MetricsConnection<Parent> {
-    type ExecuteFuture<'conn, 'query> = Instrument<BoxFuture<'query, QueryResult<usize>>>;
+    type ExecuteFuture<'conn, 'query> = Instrument<BoxFuture<'conn, QueryResult<usize>>>;
     type LoadFuture<'conn, 'query> =
-        Instrument<BoxFuture<'query, QueryResult<Self::Stream<'conn, 'query>>>>;
+        Instrument<BoxFuture<'conn, QueryResult<Self::Stream<'conn, 'query>>>>;
     type Stream<'conn, 'query> = BoxStream<'static, QueryResult<Self::Row<'conn, 'query>>>;
     type Row<'conn, 'query> = <Parent as AsyncConnectionCore>::Row<'conn, 'query>;
     type Backend = <Parent as AsyncConnectionCore>::Backend;

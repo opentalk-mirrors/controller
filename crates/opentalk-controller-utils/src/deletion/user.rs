@@ -4,7 +4,6 @@
 
 //! Functionality to delete users including all associated resources
 
-use diesel_async::scoped_futures::ScopedFutureExt;
 use log::Log;
 use opentalk_asset_storage::ObjectStorage;
 use opentalk_controller_api_authorization::authorization::{AuthorizationChange, Authorizer};
@@ -71,14 +70,11 @@ impl Deleter for UserDeleter {
 
         debug!(log: logger, "Deleting all database resources of user {user_id}");
         let _transaction_result: Result<(), opentalk_inventory::Error> =
-            transaction(inventory, |inventory| {
-                async move {
-                    inventory.remove_user_from_all_groups(user_id).await?;
-                    inventory.delete_user(user_id).await?;
+            transaction(inventory, async |inventory| {
+                inventory.remove_user_from_all_groups(user_id).await?;
+                inventory.delete_user(user_id).await?;
 
-                    Ok(())
-                }
-                .scope_boxed()
+                Ok(())
             })
             .await;
 

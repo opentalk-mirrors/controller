@@ -7,7 +7,7 @@
 use diesel::{
     BoolExpressionMethods, ExpressionMethods, JoinOnDsl as _, NullableExpressionMethods, QueryDsl,
 };
-use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{
     assets::{AssetId, AssetSorting, FileSize},
@@ -118,30 +118,27 @@ pub async fn delete_asset_from_room(
     room_id: RoomId,
     asset_id: AssetId,
 ) -> Result<FileSize> {
-    conn.transaction(|conn| {
-        async move {
-            //FIXME: This check (as well as the room_id parameter) can be removed when assets have their own permission
-            // check and don't rely on room permissions
-            //
-            // check if the asset exists for the specified room
-            room_assets::table
-                .filter(
-                    room_assets::asset_id
-                        .eq(asset_id)
-                        .and(room_assets::room_id.eq(room_id)),
-                )
-                .execute(conn)
-                .await?;
+    conn.transaction(async |conn| {
+        //FIXME: This check (as well as the room_id parameter) can be removed when assets have their own permission
+        // check and don't rely on room permissions
+        //
+        // check if the asset exists for the specified room
+        room_assets::table
+            .filter(
+                room_assets::asset_id
+                    .eq(asset_id)
+                    .and(room_assets::room_id.eq(room_id)),
+            )
+            .execute(conn)
+            .await?;
 
-            diesel::delete(assets::table.filter(assets::id.eq(asset_id)))
-                .load::<Asset>(conn)
-                .await?
-                .iter()
-                .map(|asset| asset.size)
-                .reduce(|acc, e| acc.saturating_add(e))
-                .ok_or(DatabaseError::NotFound)
-        }
-        .scope_boxed()
+        diesel::delete(assets::table.filter(assets::id.eq(asset_id)))
+            .load::<Asset>(conn)
+            .await?
+            .iter()
+            .map(|asset| asset.size)
+            .reduce(|acc, e| acc.saturating_add(e))
+            .ok_or(DatabaseError::NotFound)
     })
     .await
 }
@@ -176,28 +173,25 @@ pub async fn create_asset_for_room(
     new_asset: NewAsset,
     room_id: RoomId,
 ) -> Result<Asset> {
-    conn.transaction(|conn| {
-        async move {
-            let asset: Asset = diesel::insert_into(assets::table)
-                .values(new_asset)
-                .get_result(conn)
+    conn.transaction(async |conn| {
+        let asset: Asset = diesel::insert_into(assets::table)
+            .values(new_asset)
+            .get_result(conn)
+            .await?;
+
+        {
+            let room_asset = RoomAsset {
+                room_id,
+                asset_id: asset.id,
+            };
+
+            diesel::insert_into(room_assets::table)
+                .values(room_asset)
+                .execute(conn)
                 .await?;
-
-            {
-                let room_asset = RoomAsset {
-                    room_id,
-                    asset_id: asset.id,
-                };
-
-                diesel::insert_into(room_assets::table)
-                    .values(room_asset)
-                    .execute(conn)
-                    .await?;
-            }
-
-            Ok(asset)
         }
-        .scope_boxed()
+
+        Ok(asset)
     })
     .await
 }

@@ -7,7 +7,6 @@
 use std::collections::BTreeSet;
 
 use chrono::Utc;
-use diesel_async::scoped_futures::ScopedFutureExt;
 use opentalk_controller_api_authorization::authorization::{AuthorizationChange, Authorizer};
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
@@ -272,23 +271,20 @@ impl ControllerBackend {
         )
         .await?;
 
-        let (room_id, invite) = transaction(inventory.as_mut(), |inventory| {
-            async move {
-                // delete invite to the event
-                let invite = inventory
-                    .delete_event_invite_by_invitee(event_id, user_id)
-                    .await?;
+        let (room_id, invite) = transaction(inventory.as_mut(), async |inventory| {
+            // delete invite to the event
+            let invite = inventory
+                .delete_event_invite_by_invitee(event_id, user_id)
+                .await?;
 
-                // user access is going to be removed for the event, remove favorite entry if it exists
-                _ = inventory
-                    .delete_event_favorite_for_user(event_id, current_user.id)
-                    .await?;
+            // user access is going to be removed for the event, remove favorite entry if it exists
+            _ = inventory
+                .delete_event_favorite_for_user(event_id, current_user.id)
+                .await?;
 
-                let event = inventory.get_event(invite.event_id).await?;
+            let event = inventory.get_event(invite.event_id).await?;
 
-                Ok::<_, opentalk_inventory::Error>((event.room, invite))
-            }
-            .scope_boxed()
+            Ok::<_, opentalk_inventory::Error>((event.room, invite))
         })
         .await?;
 
@@ -385,23 +381,20 @@ impl ControllerBackend {
         let mail_recipient = if let Some(user) = user_from_db {
             let user_id = user.id;
 
-            transaction(inventory.as_mut(), |inventory| {
-                async move {
-                    // delete invite to the event
-                    log::error!("deleting: {event_id}, {user_id}");
+            transaction(inventory.as_mut(), async |inventory| {
+                // delete invite to the event
+                log::error!("deleting: {event_id}, {user_id}");
 
-                    _ = inventory
-                        .delete_event_invite_by_invitee(event_id, current_user.id)
-                        .await?;
+                _ = inventory
+                    .delete_event_invite_by_invitee(event_id, current_user.id)
+                    .await?;
 
-                    // user access is going to be removed for the event, remove favorite entry if it exists
-                    _ = inventory
-                        .delete_event_favorite_for_user(event_id, current_user.id)
-                        .await?;
+                // user access is going to be removed for the event, remove favorite entry if it exists
+                _ = inventory
+                    .delete_event_favorite_for_user(event_id, current_user.id)
+                    .await?;
 
-                    Ok::<_, opentalk_inventory::Error>(())
-                }
-                .scope_boxed()
+                Ok::<_, opentalk_inventory::Error>(())
             })
             .await?;
 

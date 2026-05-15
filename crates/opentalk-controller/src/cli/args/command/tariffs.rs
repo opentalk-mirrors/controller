@@ -10,7 +10,6 @@ use std::{
 };
 
 use clap::Subcommand;
-use diesel_async::scoped_futures::ScopedFutureExt;
 use humansize::{DECIMAL, FormatSizeOptions, format_size};
 use itertools::Itertools;
 use opentalk_controller_core::load_settings_provider;
@@ -208,7 +207,7 @@ async fn create_tariff(
     let inventory_provider = DatabaseConnectionPool::new(db);
     let mut inventory = inventory_provider.get_inventory().await?;
 
-    transaction(inventory.as_mut(), |inventory| async move {
+    transaction(inventory.as_mut(), async |inventory| {
         let tariff = inventory.create_tariff(
 
         NewTariff {
@@ -227,8 +226,8 @@ async fn create_tariff(
         );
 
         Ok(())
-    }
-    .scope_boxed()).await
+    })
+    .await
 }
 
 async fn delete_tariff(settings: &Settings, name: String) -> Result<(), CliExecutionError> {
@@ -236,19 +235,16 @@ async fn delete_tariff(settings: &Settings, name: String) -> Result<(), CliExecu
     let inventory_provider = DatabaseConnectionPool::new(db);
     let mut inventory = inventory_provider.get_inventory().await?;
 
-    transaction(inventory.as_mut(), |inventory| {
-        async move {
-            let tariff = inventory.get_tariff_by_name(&name).await?;
-            inventory
-                .delete_all_external_tariff_mappings_for_tariff(tariff.id)
-                .await?;
-            inventory.delete_tariff(tariff.id).await?;
+    transaction(inventory.as_mut(), async |inventory| {
+        let tariff = inventory.get_tariff_by_name(&name).await?;
+        inventory
+            .delete_all_external_tariff_mappings_for_tariff(tariff.id)
+            .await?;
+        inventory.delete_tariff(tariff.id).await?;
 
-            println!("Deleted tariff name={name:?} ({})", tariff.id);
+        println!("Deleted tariff name={name:?} ({})", tariff.id);
 
-            Ok(())
-        }
-        .scope_boxed()
+        Ok(())
     })
     .await
 }
@@ -271,73 +267,69 @@ async fn edit_tariff(
     let inventory_provider = DatabaseConnectionPool::new(db);
     let mut inventory = inventory_provider.get_inventory().await?;
 
-    transaction(inventory.as_mut(), |inventory| {
-        async move {
-            let tariff = inventory.get_tariff_by_name(&name).await?;
+    transaction(inventory.as_mut(), async |inventory| {
+        let tariff = inventory.get_tariff_by_name(&name).await?;
 
-            // Remove all specified external tariff ids
-            if !remove_external_tariff_ids.is_empty() {
-                let external_tariff_ids_to_remove: Vec<ExternalTariffId> =
-                    remove_external_tariff_ids
-                        .into_iter()
-                        .map(ExternalTariffId::from)
-                        .collect();
-                inventory
-                    .delete_external_tariff_mappings_for_tariff_by_external_id(
-                        tariff.id,
-                        &external_tariff_ids_to_remove,
-                    )
-                    .await?;
-            }
-
-            // Add all specified external tariff ids
-            if !add_external_tariff_ids.is_empty() {
-                for to_add in add_external_tariff_ids {
-                    inventory
-                        .create_external_tariff_mapping(to_add.into(), tariff.id)
-                        .await?;
-                }
-            }
-
-            // Modify the `disabled_modules` list
-            let mut disabled_modules = tariff.disabled_modules();
-            disabled_modules
-                .retain(|disabled_module| !remove_disabled_modules.contains(disabled_module));
-            disabled_modules.extend(add_disabled_modules);
-
-            // Modify the `disabled_features` list
-            let mut disabled_features = tariff.disabled_features();
-            disabled_features
-                .retain(|disabled_module| !remove_disabled_features.contains(disabled_module));
-            disabled_features.extend(add_disabled_features);
-
-            // Modify the `quotas` set
-            let mut quotas = tariff.quotas.clone();
-            quotas.retain(|key, _| !remove_quotas.contains(key));
-            quotas.extend(add_quotas);
-
-            // Apply changeset
-            let updated_tariff = inventory
-                .update_tariff(
-                    tariff,
-                    UpdateTariff {
-                        name: set_name,
-                        updated_at: Timestamp::now(),
-                        quotas: Some(quotas),
-                        disabled_modules: Some(Vec::from_iter(disabled_modules)),
-                        disabled_features: Some(Vec::from_iter(disabled_features)),
-                    },
+        // Remove all specified external tariff ids
+        if !remove_external_tariff_ids.is_empty() {
+            let external_tariff_ids_to_remove: Vec<ExternalTariffId> = remove_external_tariff_ids
+                .into_iter()
+                .map(ExternalTariffId::from)
+                .collect();
+            inventory
+                .delete_external_tariff_mappings_for_tariff_by_external_id(
+                    tariff.id,
+                    &external_tariff_ids_to_remove,
                 )
                 .await?;
-
-            println!(
-                "Updated tariff name={:?} ({})",
-                updated_tariff.name, updated_tariff.id
-            );
-            print_tariffs(inventory, [updated_tariff]).await?;
-            Ok(())
         }
-        .scope_boxed()
+
+        // Add all specified external tariff ids
+        if !add_external_tariff_ids.is_empty() {
+            for to_add in add_external_tariff_ids {
+                inventory
+                    .create_external_tariff_mapping(to_add.into(), tariff.id)
+                    .await?;
+            }
+        }
+
+        // Modify the `disabled_modules` list
+        let mut disabled_modules = tariff.disabled_modules();
+        disabled_modules
+            .retain(|disabled_module| !remove_disabled_modules.contains(disabled_module));
+        disabled_modules.extend(add_disabled_modules);
+
+        // Modify the `disabled_features` list
+        let mut disabled_features = tariff.disabled_features();
+        disabled_features
+            .retain(|disabled_module| !remove_disabled_features.contains(disabled_module));
+        disabled_features.extend(add_disabled_features);
+
+        // Modify the `quotas` set
+        let mut quotas = tariff.quotas.clone();
+        quotas.retain(|key, _| !remove_quotas.contains(key));
+        quotas.extend(add_quotas);
+
+        // Apply changeset
+        let updated_tariff = inventory
+            .update_tariff(
+                tariff,
+                UpdateTariff {
+                    name: set_name,
+                    updated_at: Timestamp::now(),
+                    quotas: Some(quotas),
+                    disabled_modules: Some(Vec::from_iter(disabled_modules)),
+                    disabled_features: Some(Vec::from_iter(disabled_features)),
+                },
+            )
+            .await?;
+
+        println!(
+            "Updated tariff name={:?} ({})",
+            updated_tariff.name, updated_tariff.id
+        );
+        print_tariffs(inventory, [updated_tariff]).await?;
+        Ok(())
     })
     .await
 }

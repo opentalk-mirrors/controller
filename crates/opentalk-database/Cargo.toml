@@ -18,7 +18,7 @@ version.workspace = true
 workspace = true
 
 [dependencies]
-deadpool-runtime = { version = "0.1", features = ["tokio_1"] }
+deadpool-runtime = { version = "0.3", features = ["tokio_1"] }
 diesel = { workspace = true, features = [
   "chrono",
   "i-implement-a-third-party-backend-and-opt-into-breaking-changes",

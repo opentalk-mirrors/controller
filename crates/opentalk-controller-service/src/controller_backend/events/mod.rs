@@ -8,7 +8,6 @@ use std::{cmp::Ordering, collections::BTreeSet, pin::Pin, sync::Arc};
 
 use chrono::{DateTime, Datelike, NaiveTime, Utc};
 use chrono_tz::Tz;
-use diesel_async::scoped_futures::ScopedFutureExt;
 use futures_core::Stream;
 use futures_util::{TryStreamExt, pin_mut, stream::StreamExt};
 use opentalk_controller_api_authorization::authorization::AuthorizationChange;
@@ -112,13 +111,33 @@ impl ControllerBackend {
         let tariff = self.get_tariff_for_user(current_user.id).await?;
 
         let transaction_settings = settings.clone();
-        let (event_resource, mail_resource) = transaction(inventory.as_mut(), |inventory| {
+        let (event_resource, mail_resource) = transaction(inventory.as_mut(), async |inventory| {
             let tariff = tariff.clone();
-            async move {
-                // simplify logic by splitting the event creation
-                // into two paths: time independent and time dependent
-                let (mut event_resource, mail_resource) = match event {
-                    PostEventsBody {
+            // simplify logic by splitting the event creation
+            // into two paths: time independent and time dependent
+            let (mut event_resource, mail_resource) = match event {
+                PostEventsBody {
+                    title,
+                    description,
+                    password,
+                    waiting_room,
+                    guest_access,
+                    e2e_encryption,
+                    is_adhoc,
+                    streaming_targets,
+                    has_shared_folder: _,
+                    show_meeting_details,
+                    training_participation_report,
+                    date:
+                        EventDateKind::TimeIndependent {
+                            is_time_independent: _,
+                        },
+                } => {
+                    create_time_independent_event(
+                        &transaction_settings,
+                        inventory,
+                        current_user,
+                        &tariff,
                         title,
                         description,
                         password,
@@ -127,92 +146,68 @@ impl ControllerBackend {
                         e2e_encryption,
                         is_adhoc,
                         streaming_targets,
-                        has_shared_folder: _,
                         show_meeting_details,
+                        query,
                         training_participation_report,
-                        date:
-                            EventDateKind::TimeIndependent {
-                                is_time_independent: _,
-                            },
-                    } => {
-                        create_time_independent_event(
-                            &transaction_settings,
-                            inventory,
-                            current_user,
-                            &tariff,
-                            title,
-                            description,
-                            password,
-                            waiting_room,
-                            guest_access,
-                            e2e_encryption,
-                            is_adhoc,
-                            streaming_targets,
-                            show_meeting_details,
-                            query,
-                            training_participation_report,
-                        )
-                        .await?
-                    }
-                    PostEventsBody {
-                        title,
-                        description,
-                        password,
-                        waiting_room,
-                        guest_access,
-                        e2e_encryption,
-                        is_adhoc,
-                        streaming_targets,
-                        has_shared_folder: _,
-                        show_meeting_details,
-                        training_participation_report,
-                        date:
-                            EventDateKind::TimeDependent {
-                                is_time_independent: _,
-                                date:
-                                    EventDate {
-                                        is_all_day,
-                                        starts_at,
-                                        ends_at,
-                                        recurrence_pattern,
-                                    },
-                            },
-                    } => {
-                        create_time_dependent_event(
-                            &transaction_settings,
-                            inventory,
-                            current_user,
-                            &tariff,
-                            title,
-                            description,
-                            password,
-                            waiting_room,
-                            guest_access,
-                            e2e_encryption,
-                            is_all_day,
-                            starts_at,
-                            ends_at,
-                            recurrence_pattern,
-                            is_adhoc,
-                            streaming_targets,
-                            show_meeting_details,
-                            query,
-                            training_participation_report,
-                        )
-                        .await?
-                    }
-                };
-
-                if event.has_shared_folder {
-                    let (shared_folder, _) =
-                        put_shared_folder(&transaction_settings, event_resource.id, inventory)
-                            .await?;
-                    event_resource.shared_folder = Some(SharedFolder::from(shared_folder));
+                    )
+                    .await?
                 }
+                PostEventsBody {
+                    title,
+                    description,
+                    password,
+                    waiting_room,
+                    guest_access,
+                    e2e_encryption,
+                    is_adhoc,
+                    streaming_targets,
+                    has_shared_folder: _,
+                    show_meeting_details,
+                    training_participation_report,
+                    date:
+                        EventDateKind::TimeDependent {
+                            is_time_independent: _,
+                            date:
+                                EventDate {
+                                    is_all_day,
+                                    starts_at,
+                                    ends_at,
+                                    recurrence_pattern,
+                                },
+                        },
+                } => {
+                    create_time_dependent_event(
+                        &transaction_settings,
+                        inventory,
+                        current_user,
+                        &tariff,
+                        title,
+                        description,
+                        password,
+                        waiting_room,
+                        guest_access,
+                        e2e_encryption,
+                        is_all_day,
+                        starts_at,
+                        ends_at,
+                        recurrence_pattern,
+                        is_adhoc,
+                        streaming_targets,
+                        show_meeting_details,
+                        query,
+                        training_participation_report,
+                    )
+                    .await?
+                }
+            };
 
-                Result::<_, CaptureApiError>::Ok((event_resource, mail_resource))
+            if event.has_shared_folder {
+                let (shared_folder, _) =
+                    put_shared_folder(&transaction_settings, event_resource.id, inventory).await?;
+                event_resource.shared_folder = Some(SharedFolder::from(shared_folder));
             }
-            .scope_boxed()
+
+            Result::<_, CaptureApiError>::Ok((event_resource, mail_resource))
         })
         .await?;
 

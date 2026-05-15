@@ -5,7 +5,7 @@
 //! Contains streaming targets database queries
 
 use diesel::prelude::*;
-use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{
     self as types,
@@ -46,32 +46,29 @@ pub async fn replace_room_streaming_targets(
     room_id: RoomId,
     streaming_targets: Vec<StreamingTarget>,
 ) -> Result<Vec<types::streaming::RoomStreamingTarget>> {
-    conn.transaction(|conn| {
-        async move {
-            // Delete existing records by room_id
-            delete_by_room_id(conn, room_id).await?;
+    conn.transaction(async |conn| {
+        // Delete existing records by room_id
+        delete_by_room_id(conn, room_id).await?;
 
-            let new_records: Vec<NewRoomStreamingTarget> = streaming_targets
-                .into_iter()
-                .map(|streaming_target| {
-                    NewRoomStreamingTarget::from_streaming_target_kind(
-                        streaming_target.kind,
-                        room_id,
-                        streaming_target.name,
-                    )
-                })
-                .collect();
+        let new_records: Vec<NewRoomStreamingTarget> = streaming_targets
+            .into_iter()
+            .map(|streaming_target| {
+                NewRoomStreamingTarget::from_streaming_target_kind(
+                    streaming_target.kind,
+                    room_id,
+                    streaming_target.name,
+                )
+            })
+            .collect();
 
-            // Insert new records and fetch the resulting records
-            let inserted_records: Vec<RoomStreamingTarget> =
-                diesel::insert_into(room_streaming_targets::table)
-                    .values(&new_records)
-                    .get_results(conn)
-                    .await?;
+        // Insert new records and fetch the resulting records
+        let inserted_records: Vec<RoomStreamingTarget> =
+            diesel::insert_into(room_streaming_targets::table)
+                .values(&new_records)
+                .get_results(conn)
+                .await?;
 
-            Ok(inserted_records)
-        }
-        .scope_boxed()
+        Ok(inserted_records)
     })
     .await
     .and_then(|inserted_records| {

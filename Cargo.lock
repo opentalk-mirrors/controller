@@ -2171,21 +2171,20 @@ checksum = "be1e0bca6c3637f992fc1cc7cbc52a78c1ef6db076dbf1059c4323d6a2048376"
 
 [[package]]
 name = "deadpool"
-version = "0.12.3"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0be2b1d1d6ec8d846f05e137292d0b89133caf95ef33695424c09568bdd39b1b"
+checksum = "883466cb8db62725aee5f4a6011e8a5d42912b42632df32aad57fc91127c6e04"
 dependencies = [
  "deadpool-runtime",
- "lazy_static",
  "num_cpus",
  "tokio",
 ]
 
 [[package]]
 name = "deadpool-runtime"
-version = "0.1.4"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "092966b41edc516079bdf31ec78a2e0588d1d0c08f78b91d8307215928642b2b"
+checksum = "2657f61fb1dd8bf37a8d51093cc7cee4e77125b22f7753f49b289f831bec2bae"
 dependencies = [
  "tokio",
 ]
@@ -2333,15 +2332,15 @@ dependencies = [
 
 [[package]]
 name = "diesel-async"
-version = "0.7.4"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13096fb8dae53f2d411c4b523bec85f45552ed3044a2ab4d85fb2092d9cb4f34"
+checksum = "9c20ddcc6737cecdaef3dfecb2796bdfe3002456521189d30be8e4c5a1bc821d"
 dependencies = [
  "deadpool",
  "diesel",
  "futures-core",
  "futures-util",
- "scoped-futures",
+ "pin-project-lite",
  "tokio",
  "tokio-postgres",
 ]
@@ -4776,9 +4775,9 @@ dependencies = [
 
 [[package]]
 name = "metrics"
-version = "0.24.5"
+version = "0.24.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff56c2e7dce6bd462e3b8919986a617027481b1dcc703175b58cf9dd98a2f071"
+checksum = "89550ee9f79e88fef3119de263694973a8adb26c21d75322164fb8c493039fe2"
 dependencies = [
  "portable-atomic",
  "rapidhash",
@@ -5489,7 +5488,6 @@ dependencies = [
  "chrono",
  "clap",
  "diesel",
- "diesel-async",
  "humansize",
  "itertools 0.14.0",
  "jsonwebtoken",
@@ -5667,7 +5665,6 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "derive_more",
- "diesel-async",
  "futures",
  "futures-core",
  "futures-util",
@@ -5779,7 +5776,6 @@ dependencies = [
  "async-trait",
  "chrono",
  "diesel",
- "diesel-async",
  "log",
  "opentalk-asset-storage",
  "opentalk-cache",
@@ -5907,7 +5903,6 @@ dependencies = [
  "opentalk-inventory-common",
  "opentalk-types-common",
  "pretty_assertions",
- "scoped-futures",
  "serde",
  "serde_json",
  "strum 0.28.0",
@@ -9097,15 +9092,6 @@ dependencies = [
  "ref-cast",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "scoped-futures"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b24aae2d0636530f359e9d5ef0c04669d11c5e756699b27a6a6d845d8329091"
-dependencies = [
- "pin-project-lite",
 ]
 
 [[package]]
