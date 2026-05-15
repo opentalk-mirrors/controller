@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_roomserver_room::settings::settings_file::Task;
+use opentalk_roomserver_room::settings::settings_file::{Internal, Task};
 use opentalk_roomserver_types::module_settings::ModuleSettings;
 use opentalk_service_auth::ApiKey;
 use serde::Deserialize;
@@ -29,6 +29,9 @@ pub enum RoomServerKind {
         settings: Task,
 
         public_url: Url,
+
+        #[serde(default)]
+        server: Option<Internal>,
     },
     External {
         service_url: Url,

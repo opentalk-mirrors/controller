@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::fmt::Debug;
+
 use async_trait::async_trait;
 use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::users::UserId;
 
 #[async_trait]
-pub trait StorageNotifier: Send + Sync {
+pub trait StorageNotifier: Send + Sync + Debug {
     async fn notify(&self, user_id: UserId, old_quota: Quota, new_quota: Quota);
 }
 
@@ -22,6 +24,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct NoOpStorageNotifier;
 
 #[async_trait]

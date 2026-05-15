@@ -8,11 +8,15 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use actix_ws::{Message, ProtocolError};
 use external::ExternalRoomServer;
+use opentalk_asset_storage::{ObjectStorage, StorageNotifier};
 use opentalk_controller_service_facade::RequestUser;
-use opentalk_controller_settings::{RoomServerKind, Settings, common::HttpCorsAllowedOrigin};
+use opentalk_controller_settings::{
+    RoomServerKind, Settings, SettingsProvider, common::HttpCorsAllowedOrigin,
+};
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_inventory::{Event, Inventory};
+use opentalk_inventory::{Event, Inventory, InventoryProvider};
 use opentalk_roomserver_client::Client;
+use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry, settings::Internal};
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
     client_parameters::{ClientKind, ClientParameters, Role},
@@ -46,8 +50,13 @@ use opentalk_types_common::{
 use tokio::sync::{broadcast::Receiver, mpsc};
 
 use crate::{
-    ControllerBackend, controller_backend::roomserver::internal::InternalRoomServer,
-    email_to_libravatar_url, helpers::get_user_timezone,
+    ControllerBackend,
+    controller_backend::roomserver::{
+        internal::InternalRoomServer,
+        storage_notifier::{ExternalStorageNotifier, InternalStorageNotifier},
+    },
+    email_to_libravatar_url,
+    helpers::get_user_timezone,
 };
 
 mod external;
@@ -55,44 +64,82 @@ mod internal;
 mod storage_notifier;
 mod websocket_adapter;
 
-pub use storage_notifier::build_storage_notifier;
+/// A struct holding the roomserver backend and related components.
+#[allow(missing_debug_implementations)] // Debug is not implemented for the trait objects
+pub struct RoomServerComponents {
+    /// The roomserver backend implementation.
+    pub backend: Arc<dyn RoomServerBackend>,
+    /// The signaling handler for the internal roomserver, if applicable.
+    pub signaling_handler: Option<Arc<dyn SignalingHandler>>,
+    /// The storage notifier for notifying the roomserver about storage usage changes.
+    pub storage_notifier: Arc<dyn StorageNotifier>,
+}
 
-/// Creates a RoomServer instance
-pub fn build_roomserver(
+/// Creates a RoomServer and [`StorageNotifier`] instance
+pub fn build(
     kind: &RoomServerKind,
+    settings_provider: SettingsProvider,
+    inventory_provider: Arc<dyn InventoryProvider>,
+    storage: Arc<ObjectStorage>,
+    module_registry: ModuleRegistry,
     shutdown: Receiver<()>,
-) -> (
-    Arc<dyn RoomServerBackend + Send + Sync>,
-    Option<Arc<dyn SignalingHandler + Send + Sync>>,
-) {
+) -> RoomServerComponents {
     match kind {
         RoomServerKind::Internal {
             settings,
             public_url,
+            server,
         } => {
             log::debug!("Using internal roomserver");
+
+            // An internal roomserver setup cannot have an orchestrator
+            let room_tasks = RoomTaskRegistry::new(None);
+            let Internal {
+                parallel_storage_quota_requests,
+            } = server;
+            let storage_notifier: Arc<dyn StorageNotifier> = Arc::new(
+                InternalStorageNotifier::new(room_tasks.clone(), *parallel_storage_quota_requests),
+            );
             let roomserver = Arc::new(InternalRoomServer::new(
-                settings.clone(),
-                public_url.clone(),
+                room_tasks,
+                settings_provider,
+                inventory_provider,
+                storage,
+                Arc::clone(&storage_notifier),
+                settings.to_owned(),
+                module_registry,
+                public_url.to_owned(),
                 shutdown,
             ));
 
-            (roomserver.clone(), Some(roomserver))
+            RoomServerComponents {
+                backend: roomserver.clone(),
+                signaling_handler: Some(roomserver),
+                storage_notifier,
+            }
         }
         RoomServerKind::External {
             service_url,
             api_key,
         } => {
-            log::debug!("Using external roomserver");
-            let roomserver_client = Client::new(service_url.clone(), api_key.clone());
-            (Arc::new(ExternalRoomServer::new(roomserver_client)), None)
+            log::debug!("Using external roomserver at {service_url}");
+
+            let roomserver_client = Client::new(service_url.to_owned(), api_key.to_owned());
+            let roomserver = ExternalRoomServer::new(roomserver_client.clone());
+            let storage_notifier = ExternalStorageNotifier::new(roomserver_client);
+
+            RoomServerComponents {
+                backend: Arc::new(roomserver),
+                signaling_handler: None,
+                storage_notifier: Arc::new(storage_notifier),
+            }
         }
     }
 }
 
 /// A trait for roomserver backends that can be used by the controller.
 #[async_trait::async_trait]
-pub trait RoomServerBackend {
+pub trait RoomServerBackend: Send + Sync {
     /// Request a room access token from the roomserver.
     async fn request_access(
         &self,
@@ -114,7 +161,7 @@ pub trait RoomServerBackend {
 
 /// A trait for handling signaling connections to the internal roomserver.
 #[async_trait::async_trait]
-pub trait SignalingHandler {
+pub trait SignalingHandler: Send + Sync {
     /// Consume a signaling token and return the associated client context.
     ///
     /// This must be called **before** the WebSocket upgrade so that an HTTP

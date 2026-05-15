@@ -4,7 +4,7 @@
 
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{
-    ModuleResource as DbModuleResource, ModuleResourceFilter as DbModuleResourceFilter,
+    Inventory, ModuleResource as DbModuleResource, ModuleResourceFilter as DbModuleResourceFilter,
     ModuleResourceOperation as DbModuleResourceOperation, NewModuleResource as DbNewModuleResource,
 };
 use opentalk_types_api_internal::module_resources::{
@@ -21,20 +21,7 @@ impl ControllerBackend {
     ) -> Result<ModuleResource, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let user = inventory.get_user(resource.created_by).await?;
-
-        let new_resource = DbNewModuleResource {
-            tenant_id: user.tenant_id,
-            room_id: resource.room_id,
-            created_by: resource.created_by,
-            namespace: resource.namespace.to_string(),
-            tag: resource.tag,
-            data: resource.data,
-        };
-
-        let db_resource = inventory.create_module_resource(new_resource).await?;
-
-        Ok(api_resource_from_db_resource(db_resource))
+        Ok(create_module_resource(inventory.as_mut(), resource).await?)
     }
 
     pub(crate) async fn get_module_resources(
@@ -43,14 +30,7 @@ impl ControllerBackend {
     ) -> Result<Vec<ModuleResource>, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let db_filter = api_to_db_filter(filter);
-
-        let db_resources = inventory.get_module_resources(db_filter).await?;
-
-        Ok(db_resources
-            .into_iter()
-            .map(api_resource_from_db_resource)
-            .collect())
+        Ok(get_module_resources(inventory.as_mut(), filter).await?)
     }
 
     pub(crate) async fn patch_module_resources(
@@ -60,20 +40,7 @@ impl ControllerBackend {
     ) -> Result<Vec<ModuleResource>, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let db_filter = api_to_db_filter(filter);
-        let db_operation = patch_operations
-            .into_iter()
-            .map(api_to_db_operation)
-            .collect();
-
-        let db_resources = inventory
-            .patch_module_resources(db_filter, db_operation)
-            .await?;
-
-        Ok(db_resources
-            .into_iter()
-            .map(api_resource_from_db_resource)
-            .collect())
+        Ok(patch_module_resources(inventory.as_mut(), filter, patch_operations).await?)
     }
 
     pub(crate) async fn delete_module_resources(
@@ -82,15 +49,77 @@ impl ControllerBackend {
     ) -> Result<Vec<ModuleResource>, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let db_filter = api_to_db_filter(filter);
-
-        let db_resources = inventory.delete_module_resources(db_filter).await?;
-
-        Ok(db_resources
-            .into_iter()
-            .map(api_resource_from_db_resource)
-            .collect())
+        Ok(delete_module_resources(inventory.as_mut(), filter).await?)
     }
+}
+
+pub(crate) async fn create_module_resource(
+    inventory: &mut dyn Inventory,
+    resource: NewModuleResource,
+) -> Result<ModuleResource, opentalk_inventory::Error> {
+    let user = inventory.get_user(resource.created_by).await?;
+
+    let new_resource = DbNewModuleResource {
+        tenant_id: user.tenant_id,
+        room_id: resource.room_id,
+        created_by: resource.created_by,
+        namespace: resource.namespace.to_string(),
+        tag: resource.tag,
+        data: resource.data,
+    };
+
+    let db_resource = inventory.create_module_resource(new_resource).await?;
+
+    Ok(api_resource_from_db_resource(db_resource))
+}
+
+pub(crate) async fn get_module_resources(
+    inventory: &mut dyn Inventory,
+    filter: ModuleResourceFilter,
+) -> Result<Vec<ModuleResource>, opentalk_inventory::Error> {
+    let db_filter = api_to_db_filter(filter);
+
+    let db_resources = inventory.get_module_resources(db_filter).await?;
+
+    Ok(db_resources
+        .into_iter()
+        .map(api_resource_from_db_resource)
+        .collect())
+}
+
+pub(crate) async fn patch_module_resources(
+    inventory: &mut dyn Inventory,
+    filter: ModuleResourceFilter,
+    patch_operations: Vec<ModuleResourceOperation>,
+) -> Result<Vec<ModuleResource>, opentalk_inventory::Error> {
+    let db_filter = api_to_db_filter(filter);
+    let db_operation = patch_operations
+        .into_iter()
+        .map(api_to_db_operation)
+        .collect();
+
+    let db_resources = inventory
+        .patch_module_resources(db_filter, db_operation)
+        .await?;
+
+    Ok(db_resources
+        .into_iter()
+        .map(api_resource_from_db_resource)
+        .collect())
+}
+
+pub(crate) async fn delete_module_resources(
+    inventory: &mut dyn Inventory,
+    filter: ModuleResourceFilter,
+) -> Result<Vec<ModuleResource>, opentalk_inventory::Error> {
+    let db_filter = api_to_db_filter(filter);
+
+    let db_resources = inventory.delete_module_resources(db_filter).await?;
+
+    Ok(db_resources
+        .into_iter()
+        .map(api_resource_from_db_resource)
+        .collect())
 }
 
 fn api_to_db_operation(operation: ModuleResourceOperation) -> DbModuleResourceOperation {

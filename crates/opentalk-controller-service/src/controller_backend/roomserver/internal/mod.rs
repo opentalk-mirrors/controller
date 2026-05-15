@@ -4,31 +4,30 @@
 use std::sync::Arc;
 
 use actix_ws::{Message, ProtocolError};
-use opentalk_controller_settings::Settings;
-use opentalk_inventory::Inventory;
-use opentalk_roomserver_modules::setup_registry;
+use opentalk_asset_storage::{ObjectStorage, StorageNotifier};
+use opentalk_controller_settings::{Settings, SettingsProvider};
+use opentalk_inventory::{Inventory, InventoryProvider};
 use opentalk_roomserver_room::{
     ApplicationState, ModuleRegistry, RoomTaskApiError, RoomTaskContext, RoomTaskHandleError,
-    RoomTaskRegistry, SignalingClientContext, TokenStore,
-    settings::Task,
-    storage::{
-        memory_asset_storage::MemoryAssetStorage,
-        memory_module_storage::MemoryModuleResourceStorage,
-    },
+    RoomTaskRegistry, SignalingClientContext, TokenStore, settings::Task,
 };
 use opentalk_roomserver_types::{
     api::RoomServerAccess, client_parameters::ClientParameters,
     room_parameters_patch::RoomParametersPatch, signaling::websocket::SignalingSocketMessage,
 };
-use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_api_v1::{error::ApiError, rooms::RoomResource};
-use opentalk_types_common::{rooms::RoomId, roomserver::Token};
+use opentalk_types_common::{rooms::RoomId, roomserver::Token, users::UserId};
 use tokio::sync::{Mutex, broadcast, mpsc, watch, watch::Sender};
 use url::Url;
 
 use crate::controller_backend::roomserver::{
-    RoomServerBackend, SignalingHandler, build_room_parameters, websocket_adapter::WebSocketAdapter,
+    RoomServerBackend, SignalingHandler, build_room_parameters,
+    internal::{asset_storage::AssetStorage, module_resources::ModuleResources},
+    websocket_adapter::WebSocketAdapter,
 };
+
+mod asset_storage;
+mod module_resources;
 
 /// A roomserver backend that is running embedded in the controller.
 pub(crate) struct InternalRoomServer {
@@ -39,31 +38,52 @@ pub(crate) struct InternalRoomServer {
     token_store: Arc<Mutex<TokenStore<SignalingClientContext>>>,
     settings: Arc<Task>,
     public_url: Url,
+
+    settings_provider: SettingsProvider,
+    inventory_provider: Arc<dyn InventoryProvider>,
+    storage: Arc<ObjectStorage>,
+    storage_notifier: Arc<dyn StorageNotifier>,
 }
 
 impl InternalRoomServer {
     /// Create a new internal roomserver backend
-    pub fn new(settings: Task, public_url: Url, shutdown: broadcast::Receiver<()>) -> Self {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        room_tasks: RoomTaskRegistry<WebSocketAdapter>,
+        settings_provider: SettingsProvider,
+        inventory_provider: Arc<dyn InventoryProvider>,
+        storage: Arc<ObjectStorage>,
+        storage_notifier: Arc<dyn StorageNotifier>,
+        room_task_settings: Task,
+        module_registry: ModuleRegistry,
+        public_url: Url,
+        shutdown: broadcast::Receiver<()>,
+    ) -> Self {
         let app_state = Self::spawn_shutdown_task(shutdown);
 
         Self {
-            room_tasks: RoomTaskRegistry::new(None),
-            module_registry: Arc::new(setup_registry()),
+            room_tasks,
+            module_registry: Arc::new(module_registry),
             app_state,
             token_store: Arc::new(Mutex::new(TokenStore::new())),
-            settings: Arc::new(settings),
+            settings: Arc::new(room_task_settings),
             public_url,
+            settings_provider,
+            inventory_provider,
+            storage,
+            storage_notifier,
         }
     }
 
-    fn room_task_context(&self) -> RoomTaskContext {
-        // TODO: replace with controller implementation of asset storage once implemented.
-        let asset_storage = MemoryAssetStorage::new(Quota {
-            total: None,
-            used: 0,
-        });
-        // TODO: replace with controller implementation of module resources once implemented.
-        let module_resources = MemoryModuleResourceStorage::new();
+    fn room_task_context(&self, room_owner: UserId) -> RoomTaskContext {
+        let asset_storage = AssetStorage::new(
+            self.settings_provider.clone(),
+            Arc::clone(&self.inventory_provider),
+            Arc::clone(&self.storage),
+            Arc::clone(&self.storage_notifier),
+            room_owner,
+        );
+        let module_resources = ModuleResources::new(Arc::clone(&self.inventory_provider));
 
         RoomTaskContext {
             module_registry: Arc::clone(&self.module_registry),
@@ -117,7 +137,7 @@ impl RoomServerBackend for InternalRoomServer {
         } else {
             // Room needs to be created
             let room_parameters = build_room_parameters(inventory, settings, room).await?;
-            let ctx = self.room_task_context();
+            let ctx = self.room_task_context(room_parameters.created_by.id);
             self.room_tasks
                 .create_if_not_exists(ctx, room_id, room_parameters.into())
                 .await;

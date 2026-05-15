@@ -17,7 +17,7 @@ use actix_cors::Cors;
 use actix_web::{App, HttpServer, Scope, web, web::Data};
 use exchange_task::{ExchangeHandle, ExchangeTask};
 use lapin_pool::RabbitMqPool;
-use opentalk_asset_storage::ObjectStorage;
+use opentalk_asset_storage::{ObjectStorage, StorageNotifier};
 use opentalk_controller_api_actix_web::{v1, well_known};
 use opentalk_controller_api_authorization::{
     authorization::Authorizer, middleware::AuthorizationTransform,
@@ -105,7 +105,7 @@ pub struct Controller {
     pub service: Arc<dyn OpenTalkControllerService>,
 
     /// The roomserver backend used for signaling
-    signaling_handler: Option<Arc<dyn SignalingHandler + Send + Sync>>,
+    signaling_handler: Option<Arc<dyn SignalingHandler>>,
 
     /// Settings loaded on [Controller::create]
     pub startup_settings: Arc<Settings>,
@@ -121,6 +121,8 @@ pub struct Controller {
     oidc_cache: Arc<Cache>,
 
     storage: Arc<ObjectStorage>,
+
+    storage_notifier: Arc<dyn StorageNotifier>,
 
     oidc: Arc<dyn OidcTokenHandler>,
 
@@ -298,7 +300,8 @@ impl Controller {
 
         let (shutdown, _) = broadcast::channel::<()>(1);
         let (reload, _) = broadcast::channel::<()>(4);
-        let inventory_provider = Arc::new(DatabaseConnectionPool::new(db));
+        let inventory_provider: Arc<dyn InventoryProvider> =
+            Arc::new(DatabaseConnectionPool::new(db));
 
         let mail_service = Arc::new(match rabbitmq_pool.as_ref() {
             Some(rabbitmq_pool) => Some(MailService::new(
@@ -313,17 +316,22 @@ impl Controller {
         });
 
         let registry = opentalk_roomserver_modules::setup_registry();
-
         let module_features = registry.module_features();
+        let roomserver = roomserver::build(
+            &settings.roomserver.kind,
+            settings_provider.clone(),
+            Arc::clone(&inventory_provider),
+            Arc::clone(&storage),
+            registry,
+            shutdown.subscribe(),
+        );
 
-        let (backend, signaling_handler) = {
+        let backend = {
             let oidc_provider = OidcProvider {
                 name: oidc_frontend.client_id.to_string(),
                 url: oidc_frontend.authority.to_string(),
             };
-            let (roomserver, signaling_handler) =
-                roomserver::build_roomserver(&settings.roomserver.kind, shutdown.subscribe());
-            let controller_backend = ControllerBackend::new(
+            ControllerBackend::new(
                 settings_provider.clone(),
                 authorizer.clone(),
                 inventory_provider.clone(),
@@ -334,18 +342,17 @@ impl Controller {
                 mail_service.clone(),
                 user_search_client.clone(),
                 module_features,
-                roomserver,
-            );
-
-            (controller_backend, signaling_handler)
+                roomserver.backend,
+            )
         };
 
         let service = Arc::new(backend);
         let controller = Self {
             service,
-            signaling_handler,
+            signaling_handler: roomserver.signaling_handler,
             startup_settings: settings,
             settings_provider,
+            storage_notifier: roomserver.storage_notifier,
             optional_config_path,
             inventory_provider,
             oidc_cache,
@@ -385,6 +392,7 @@ impl Controller {
         let http_server = {
             let settings_provider = self.settings_provider.clone();
             let storage = Arc::downgrade(&self.storage);
+            let storage_notifier = Arc::downgrade(&self.storage_notifier);
             let inventory_provider = Arc::downgrade(&self.inventory_provider);
             let http_client = Data::new(reqwest::Client::new());
 
@@ -415,6 +423,7 @@ impl Controller {
                 // Unwraps cannot panic. Server gets stopped before dropping the Arc.
                 let inventory_provider = Data::from(inventory_provider.upgrade().unwrap());
                 let storage = Data::from(storage.upgrade().unwrap());
+                let storage_notifier = Data::from(storage_notifier.upgrade().unwrap());
 
                 let oidc_ctx = Data::from(oidc_ctx.upgrade().unwrap());
                 let authorizer = Data::new(self.authorizer.clone());
@@ -423,9 +432,6 @@ impl Controller {
                 let service_auth_middleware = service_auth_middleware.clone();
 
                 let swagger_service_enabled = !settings_provider.get().endpoints.disable_openapi;
-
-                let roomserver_kind = &settings_provider.get().roomserver.kind;
-                let storage_notifier = roomserver::build_storage_notifier(roomserver_kind);
 
                 App::new()
                     .wrap(RequestMetrics::new(metrics.endpoint.clone()))
@@ -445,7 +451,7 @@ impl Controller {
                     .app_data(Data::new(shutdown.clone()))
                     .app_data(metrics.clone())
                     .app_data(http_client.clone())
-                    .app_data(Data::from(storage_notifier))
+                    .app_data(storage_notifier)
                     .service(well_known::opentalk::api::get)
                     .service(metrics::metrics)
                     .with_swagger_service_if(swagger_service_enabled)

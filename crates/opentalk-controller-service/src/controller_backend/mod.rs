@@ -123,7 +123,7 @@ pub struct ControllerBackend {
     mail_service: Arc<Option<MailService>>,
     user_search_client: Arc<Option<KeycloakAdminClient>>,
     module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
-    roomserver: Arc<dyn RoomServerBackend + Send + Sync>,
+    roomserver: Arc<dyn RoomServerBackend>,
 }
 
 impl ControllerBackend {
@@ -140,7 +140,7 @@ impl ControllerBackend {
         mail_service: Arc<Option<MailService>>,
         user_search_client: Arc<Option<KeycloakAdminClient>>,
         module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
-        roomserver: Arc<dyn RoomServerBackend + Send + Sync>,
+        roomserver: Arc<dyn RoomServerBackend>,
     ) -> Self {
         Self {
             settings_provider,

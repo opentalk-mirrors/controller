@@ -3,49 +3,76 @@
 
 //! This module contains the implementation of a [`StorageNotifier`] which notifies the RoomServer about changes in the storage quota.
 
-use std::sync::Arc;
+use std::num::NonZero;
 
-use opentalk_asset_storage::{NoOpStorageNotifier, StorageNotifier};
-use opentalk_controller_settings::RoomServerKind;
+use futures::{StreamExt as _, stream};
+use opentalk_asset_storage::StorageNotifier;
 use opentalk_roomserver_client::Client;
+use opentalk_roomserver_room::RoomTaskRegistry;
 use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::users::UserId;
 
-/// Creates a [`StorageNotifier`] instance for the provided [`RoomServerKind`].
-pub fn build_storage_notifier(kind: &RoomServerKind) -> Arc<dyn StorageNotifier> {
-    match kind {
-        // TODO: replace once a storage notifier for the internal roomserver has been implemented
-        RoomServerKind::Internal { .. } => Arc::new(NoOpStorageNotifier),
-        RoomServerKind::External {
-            service_url,
-            api_key,
-        } => Arc::new(RoomServerStorageNotifier::new(Client::new(
-            service_url.clone(),
-            api_key.clone(),
-        ))),
-    }
-}
+use crate::controller_backend::roomserver::websocket_adapter::WebSocketAdapter;
 
 #[derive(Debug, Clone)]
 /// A storage notifier for an external roomserver.
-pub struct RoomServerStorageNotifier {
+pub struct ExternalStorageNotifier {
     client: Client,
 }
 
-impl RoomServerStorageNotifier {
-    /// Creates a new [`RoomServerStorageNotifier`]
+impl ExternalStorageNotifier {
+    /// Creates a new [`ExternalStorageNotifier`]
     pub fn new(client: Client) -> Self {
         Self { client }
     }
 }
 
 #[async_trait::async_trait]
-impl StorageNotifier for RoomServerStorageNotifier {
+impl StorageNotifier for ExternalStorageNotifier {
     async fn notify(&self, user_id: UserId, _old_quota: Quota, new_quota: Quota) {
         if let Err(err) = self.client.post_storage_quota(user_id, new_quota).await {
             log::error!("Failed to post roomserver storage quota: {err}");
         } else {
             log::debug!("Notified RoomServer about quota change");
         }
+    }
+}
+
+#[derive(Debug)]
+/// A storage notifier for an embedded roomserver.
+pub struct InternalStorageNotifier {
+    room_tasks: RoomTaskRegistry<WebSocketAdapter>,
+    parallel_requests: NonZero<usize>,
+}
+
+impl InternalStorageNotifier {
+    pub fn new(
+        room_tasks: RoomTaskRegistry<WebSocketAdapter>,
+        parallel_requests: NonZero<usize>,
+    ) -> Self {
+        Self {
+            room_tasks,
+            parallel_requests,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl StorageNotifier for InternalStorageNotifier {
+    async fn notify(&self, user_id: UserId, _old_quota: Quota, new_quota: Quota) {
+        let handles = self.room_tasks.task_handles_by_creator(user_id).await;
+
+        let parallel_requests = self.parallel_requests.get();
+        stream::iter(handles)
+            .map(|(room_id, handle)| {
+                let quota = new_quota.clone();
+                async move {
+                    _ = handle.set_storage_quota(quota).await.inspect_err(|err| {
+                        log::warn!("Failed to set storage quota for room {room_id}: {err}");
+                    });
+                }
+            })
+            .for_each_concurrent(parallel_requests, |fut| fut)
+            .await;
     }
 }
