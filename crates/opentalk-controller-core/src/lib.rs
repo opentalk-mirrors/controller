@@ -105,7 +105,7 @@ pub struct Controller {
     pub service: Arc<dyn OpenTalkControllerService>,
 
     /// The roomserver backend used for signaling
-    signaling_handler: Option<Arc<dyn SignalingHandler + Send + Sync>>,
+    signaling_handler: Option<Arc<dyn SignalingHandler>>,
 
     /// Settings loaded on [Controller::create]
     pub startup_settings: Arc<Settings>,

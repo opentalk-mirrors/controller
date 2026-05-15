@@ -68,9 +68,9 @@ mod websocket_adapter;
 #[allow(missing_debug_implementations)] // Debug is not implemented for the trait objects
 pub struct RoomServerComponents {
     /// The roomserver backend implementation.
-    pub backend: Arc<dyn RoomServerBackend + Send + Sync>,
+    pub backend: Arc<dyn RoomServerBackend>,
     /// The signaling handler for the internal roomserver, if applicable.
-    pub signaling_handler: Option<Arc<dyn SignalingHandler + Send + Sync>>,
+    pub signaling_handler: Option<Arc<dyn SignalingHandler>>,
     /// The storage notifier for notifying the roomserver about storage usage changes.
     pub storage_notifier: Arc<dyn StorageNotifier>,
 }
@@ -139,7 +139,7 @@ pub fn build(
 
 /// A trait for roomserver backends that can be used by the controller.
 #[async_trait::async_trait]
-pub trait RoomServerBackend {
+pub trait RoomServerBackend: Send + Sync {
     /// Request a room access token from the roomserver.
     async fn request_access(
         &self,
@@ -161,7 +161,7 @@ pub trait RoomServerBackend {
 
 /// A trait for handling signaling connections to the internal roomserver.
 #[async_trait::async_trait]
-pub trait SignalingHandler {
+pub trait SignalingHandler: Send + Sync {
     /// Consume a signaling token and return the associated client context.
     ///
     /// This must be called **before** the WebSocket upgrade so that an HTTP

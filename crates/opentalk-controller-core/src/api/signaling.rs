@@ -55,7 +55,7 @@ pub async fn get(
     req: HttpRequest,
     payload: Payload,
     token: Path<Token>,
-    signaling: Data<Option<Arc<dyn SignalingHandler + Send + Sync>>>,
+    signaling: Data<Option<Arc<dyn SignalingHandler>>>,
 ) -> Result<HttpResponse, ApiError> {
     let signaling = signaling
         .as_ref() // Option as ref
