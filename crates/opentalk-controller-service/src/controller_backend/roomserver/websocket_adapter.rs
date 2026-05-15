@@ -23,7 +23,6 @@ pub struct WebSocketAdapter {
 }
 
 impl WebSocketAdapter {
-    #[allow(dead_code, reason = "Will be used in the future")]
     pub fn new(
         incoming: Receiver<Result<Message, ProtocolError>>,
         outgoing: Sender<SignalingSocketMessage>,
