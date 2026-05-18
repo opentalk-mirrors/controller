@@ -247,9 +247,9 @@ where
 }
 
 async fn rollback_object_storage(storage: &ObjectStorage, asset_id: &AssetId) -> Result<()> {
-    log::info!("Rollback asset upload since room update failed");
+    tracing::info!("Rollback asset upload since room update failed");
     if let Err(rollback_err) = storage.delete(asset_key(asset_id)).await {
-        log::error!(
+        tracing::error!(
             "Failed to rollback s3 asset after database error, leaking asset: {}",
             &asset_key(asset_id)
         );

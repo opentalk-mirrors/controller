@@ -5456,7 +5456,6 @@ dependencies = [
  "chrono",
  "futures",
  "http 1.4.0",
- "log",
  "opentalk-controller-settings",
  "opentalk-inventory",
  "opentalk-types-api-internal",
@@ -5465,6 +5464,7 @@ dependencies = [
  "pretty_assertions",
  "reqwest 0.13.3",
  "snafu 0.9.0",
+ "tracing",
  "url",
 ]
 
