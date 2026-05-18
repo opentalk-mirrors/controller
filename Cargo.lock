@@ -5808,7 +5808,6 @@ dependencies = [
  "diesel",
  "diesel-async",
  "futures-core",
- "log",
  "opentalk-controller-settings",
  "opentelemetry",
  "opentelemetry_sdk",

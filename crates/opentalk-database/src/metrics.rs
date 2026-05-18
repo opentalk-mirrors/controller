@@ -156,7 +156,7 @@ impl AsyncConnectionCore for MetricsConnection<Parent> {
     where
         T: QueryFragment<Self::Backend> + QueryId + 'query,
     {
-        log::trace!(
+        tracing::trace!(
             "SQL Query:\n{}",
             diesel::debug_query::<Self::Backend, _>(&source)
         );
@@ -175,7 +175,7 @@ impl AsyncConnectionCore for MetricsConnection<Parent> {
         T::Query: QueryFragment<Self::Backend> + QueryId + 'query,
     {
         let query = source.as_query();
-        log::trace!(
+        tracing::trace!(
             "SQL Query:\n{}",
             diesel::debug_query::<Self::Backend, _>(&query)
         );

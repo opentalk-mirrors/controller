@@ -27,7 +27,6 @@ diesel = { workspace = true, features = [
 ] }
 diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
 futures-core.workspace = true
-log = { workspace = true, features = ["serde"] }
 opentalk-controller-settings.workspace = true
 opentelemetry.workspace = true
 opentelemetry_sdk.workspace = true
