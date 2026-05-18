@@ -12,7 +12,10 @@ use bytes::Bytes;
 use opentalk_asset_storage::{
     ChunkFormat, ObjectStorage, ObjectStorageError, StorageNotifier, save_asset,
 };
-use opentalk_controller_api_actix_web::utoipa::responses::{InternalServerError, Unauthorized};
+use opentalk_controller_api_actix_web::{
+    host::Host,
+    utoipa::responses::{InternalServerError, Unauthorized},
+};
 use opentalk_controller_service_facade::{NewAssetFileName, OpenTalkControllerService};
 use opentalk_inventory::InventoryProvider;
 use opentalk_roomserver_modules::RECORDING_MODULE_ID;
@@ -84,8 +87,11 @@ pub(crate) struct RecordingUploadWebSocketHeaders {
 pub async fn post_start(
     service: Data<dyn OpenTalkControllerService>,
     body: Json<RecordingTarget>,
+    host: Host,
 ) -> Result<Json<RoomserverStartResponseBody>, ApiError> {
-    let response = service.start_recording(body.into_inner()).await?;
+    let response = service
+        .start_recording(body.into_inner(), host.into_inner())
+        .await?;
 
     Ok(Json(response))
 }

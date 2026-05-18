@@ -12,6 +12,7 @@ use opentalk_roomserver_types::{
 };
 use opentalk_types_api_v1::{error::ApiError, rooms::RoomResource};
 use opentalk_types_common::rooms::RoomId;
+use url::Url;
 
 use super::build_room_parameters;
 use crate::controller_backend::roomserver::RoomServerBackend;
@@ -38,6 +39,7 @@ impl RoomServerBackend for ExternalRoomServer {
         settings: Arc<Settings>,
         room: RoomResource,
         client_parameters: ClientParameters,
+        _host: Url,
     ) -> Result<RoomServerAccess, ApiError> {
         let room_id = room.id;
 

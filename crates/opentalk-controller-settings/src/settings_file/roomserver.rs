@@ -28,8 +28,6 @@ pub enum RoomServerKind {
         #[serde(flatten)]
         settings: Task,
 
-        public_url: Url,
-
         #[serde(default)]
         server: Option<Internal>,
     },

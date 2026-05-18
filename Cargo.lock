@@ -5732,6 +5732,7 @@ dependencies = [
  "opentalk-types-common",
  "pretty_assertions",
  "strum 0.28.0",
+ "url",
 ]
 
 [[package]]

@@ -18,6 +18,7 @@ use opentalk_types_common::{
     roomserver::{DEVICE_SECRET_MIN_LENGTH, DeviceSecret},
 };
 use rand::RngExt;
+use url::Url;
 
 use crate::{ControllerBackend, ToUserProfile};
 
@@ -54,6 +55,7 @@ impl ControllerBackend {
     pub(crate) async fn start_call_in_roomserver_impl(
         &self,
         request: PostCallInStartRoomServerRequestBody,
+        host: Url,
     ) -> Result<RoomserverStartResponseBody, CaptureApiError> {
         let settings = self.settings_provider.get();
 
@@ -97,6 +99,7 @@ impl ControllerBackend {
                 settings,
                 room_resource,
                 client_parameters,
+                host,
             )
             .await?;
 

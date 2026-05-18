@@ -235,10 +235,6 @@ service_url = "http://localhost:11333"
 # Only relevant when `roomserver.kind` is `external`.
 api_key = { id = "roomserver", secret = "secret" }
 
-# The URL of the roomserver. Needs to be reachable by clients.
-# Only relevant when `roomserver.kind` is `internal`.
-#public_url = "http://localhost:11333"
-
 # Conference settings are optional and only relevant when `roomserver.kind` is `internal`.
 # [roomserver.conference]
 # Used to derive participant ids from device secrets.

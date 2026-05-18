@@ -75,6 +75,7 @@ use opentalk_types_common::{
     users::UserId,
 };
 pub use start_room_error::StartRoomError;
+use url::Url;
 
 use crate::RequestUser;
 
@@ -153,6 +154,7 @@ pub trait OpenTalkControllerService: Send + Sync {
         current_user: RequestUser,
         room_id: RoomId,
         request: PostRoomsRoomserverStartRequestBody,
+        host: Url,
     ) -> Result<RoomserverStartResponseBody, ApiError>;
 
     /// Start a roomserver signaling session for an invitation code
@@ -160,24 +162,28 @@ pub trait OpenTalkControllerService: Send + Sync {
         &self,
         room_id: RoomId,
         request: PostRoomsRoomserverStartInvitedRequestBody,
+        host: Url,
     ) -> Result<RoomserverStartResponseBody, ApiError>;
 
     /// Starts a signaling session for recording
     async fn start_recording(
         &self,
         body: RecordingTarget,
+        host: Url,
     ) -> Result<RoomserverStartResponseBody, ApiError>;
 
     /// Starts a signaling session for transcription
     async fn start_transcription(
         &self,
         body: RecordingTarget,
+        host: Url,
     ) -> Result<RoomserverStartResponseBody, ApiError>;
 
     /// Starts a signaling session for call-in
     async fn start_call_in(
         &self,
         request: PostCallInStartRoomServerRequestBody,
+        host: Url,
     ) -> Result<RoomserverStartResponseBody, ApiError>;
 
     /// Get the assets associated with a room.

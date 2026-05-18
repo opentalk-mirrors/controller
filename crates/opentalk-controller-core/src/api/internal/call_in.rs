@@ -8,7 +8,10 @@ use actix_web::{
     post,
     web::{Data, Json},
 };
-use opentalk_controller_api_actix_web::utoipa::responses::{InternalServerError, Unauthorized};
+use opentalk_controller_api_actix_web::{
+    host::Host,
+    utoipa::responses::{InternalServerError, Unauthorized},
+};
 use opentalk_controller_service_facade::OpenTalkControllerService;
 use opentalk_types_api_internal::call_in::PostCallInStartRoomServerRequestBody;
 use opentalk_types_api_v1::{
@@ -54,8 +57,11 @@ use opentalk_types_api_v1::{
 pub async fn post(
     service: Data<dyn OpenTalkControllerService>,
     request: Json<PostCallInStartRoomServerRequestBody>,
+    host: Host,
 ) -> Result<Json<RoomserverStartResponseBody>, ApiError> {
-    let response = service.start_call_in(request.into_inner()).await?;
+    let response = service
+        .start_call_in(request.into_inner(), host.into_inner())
+        .await?;
 
     Ok(Json(response))
 }
