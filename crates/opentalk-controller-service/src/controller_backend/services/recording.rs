@@ -5,6 +5,7 @@
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_types_api_internal::recording::RecordingTarget;
 use opentalk_types_api_v1::rooms::by_room_id::RoomserverStartResponseBody;
+use url::Url;
 
 use crate::{
     ControllerBackend,
@@ -15,6 +16,7 @@ impl ControllerBackend {
     pub(crate) async fn start_recording_impl(
         &self,
         body: RecordingTarget,
+        host: Url,
     ) -> Result<RoomserverStartResponseBody, CaptureApiError> {
         let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
@@ -35,6 +37,7 @@ impl ControllerBackend {
                 settings,
                 room_resource,
                 client_parameters,
+                host,
             )
             .await?;
 

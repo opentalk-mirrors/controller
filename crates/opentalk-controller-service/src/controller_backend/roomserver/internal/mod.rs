@@ -37,7 +37,6 @@ pub(crate) struct InternalRoomServer {
     /// A list of eligible participants and their join tokens
     token_store: Arc<Mutex<TokenStore<SignalingClientContext>>>,
     settings: Arc<Task>,
-    public_url: Url,
 
     settings_provider: SettingsProvider,
     inventory_provider: Arc<dyn InventoryProvider>,
@@ -56,7 +55,6 @@ impl InternalRoomServer {
         storage_notifier: Arc<dyn StorageNotifier>,
         room_task_settings: Task,
         module_registry: ModuleRegistry,
-        public_url: Url,
         shutdown: broadcast::Receiver<()>,
     ) -> Self {
         let app_state = Self::spawn_shutdown_task(shutdown);
@@ -67,7 +65,6 @@ impl InternalRoomServer {
             app_state,
             token_store: Arc::new(Mutex::new(TokenStore::new())),
             settings: Arc::new(room_task_settings),
-            public_url,
             settings_provider,
             inventory_provider,
             storage,
@@ -118,6 +115,7 @@ impl RoomServerBackend for InternalRoomServer {
         settings: Arc<Settings>,
         room: RoomResource,
         client_parameters: ClientParameters,
+        host: Url,
     ) -> Result<RoomServerAccess, ApiError> {
         let room_id = room.id;
         let task_handle = self.room_tasks.get_task_handle(&room_id).await;
@@ -150,7 +148,7 @@ impl RoomServerBackend for InternalRoomServer {
             .create_token(SignalingClientContext::new(room_id, client_parameters));
 
         Ok(RoomServerAccess {
-            public_url: self.public_url.clone(),
+            public_url: host,
             token,
         })
     }

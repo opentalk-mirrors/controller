@@ -100,6 +100,7 @@ use opentalk_types_common::{
     tariffs::TariffResource,
     users::UserId,
 };
+use url::Url;
 use utils::{verify_invite_read, verify_invite_write};
 
 pub use crate::controller_backend::events::shared_folder::{
@@ -271,37 +272,44 @@ impl OpenTalkControllerService for ControllerBackend {
         current_user: RequestUser,
         room_id: RoomId,
         request: PostRoomsRoomserverStartRequestBody,
+        host: Url,
     ) -> Result<RoomserverStartResponseBody, ApiError> {
-        Ok(self.start_room(current_user, room_id, request).await?)
+        Ok(self
+            .start_room(current_user, room_id, request, host)
+            .await?)
     }
 
     async fn start_invited_room_session(
         &self,
         room_id: RoomId,
         request: PostRoomsRoomserverStartInvitedRequestBody,
+        host: Url,
     ) -> Result<RoomserverStartResponseBody, ApiError> {
-        Ok(self.start_room_invited(room_id, request).await?)
+        Ok(self.start_room_invited(room_id, request, host).await?)
     }
 
     async fn start_recording(
         &self,
         body: RecordingTarget,
+        host: Url,
     ) -> Result<RoomserverStartResponseBody, ApiError> {
-        Ok(self.start_recording_impl(body).await?)
+        Ok(self.start_recording_impl(body, host).await?)
     }
 
     async fn start_transcription(
         &self,
         body: RecordingTarget,
+        host: Url,
     ) -> Result<RoomserverStartResponseBody, ApiError> {
-        Ok(self.start_transcription_impl(body).await?)
+        Ok(self.start_transcription_impl(body, host).await?)
     }
 
     async fn start_call_in(
         &self,
         request: PostCallInStartRoomServerRequestBody,
+        host: Url,
     ) -> Result<RoomserverStartResponseBody, ApiError> {
-        Ok(self.start_call_in_roomserver_impl(request).await?)
+        Ok(self.start_call_in_roomserver_impl(request, host).await?)
     }
 
     async fn get_room_assets(

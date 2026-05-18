@@ -90,9 +90,6 @@ pub enum RoomServerKind {
 
         /// Internal configuration for the roomserver.
         server: Internal,
-
-        /// The URL of the roomserver. Needs to be reachable by clients.
-        public_url: Url,
     },
     /// A standalone roomserver that is accessed via its API.
     External {
@@ -107,13 +104,8 @@ pub enum RoomServerKind {
 impl From<settings_file::RoomServerKind> for RoomServerKind {
     fn from(value: settings_file::RoomServerKind) -> Self {
         match value {
-            settings_file::RoomServerKind::Internal {
-                settings,
-                public_url,
-                server,
-            } => Self::Internal {
+            settings_file::RoomServerKind::Internal { settings, server } => Self::Internal {
                 settings: settings.into(),
-                public_url,
                 server: server.map(Into::into).unwrap_or_default(),
             },
             settings_file::RoomServerKind::External {

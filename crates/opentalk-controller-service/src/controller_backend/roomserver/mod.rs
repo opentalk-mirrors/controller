@@ -48,6 +48,7 @@ use opentalk_types_common::{
     users::{UserId, UserInfo},
 };
 use tokio::sync::{broadcast::Receiver, mpsc};
+use url::Url;
 
 use crate::{
     ControllerBackend,
@@ -85,11 +86,7 @@ pub fn build(
     shutdown: Receiver<()>,
 ) -> RoomServerComponents {
     match kind {
-        RoomServerKind::Internal {
-            settings,
-            public_url,
-            server,
-        } => {
+        RoomServerKind::Internal { settings, server } => {
             log::debug!("Using internal roomserver");
 
             // An internal roomserver setup cannot have an orchestrator
@@ -108,7 +105,6 @@ pub fn build(
                 Arc::clone(&storage_notifier),
                 settings.to_owned(),
                 module_registry,
-                public_url.to_owned(),
                 shutdown,
             ));
 
@@ -147,6 +143,7 @@ pub trait RoomServerBackend: Send + Sync {
         settings: Arc<Settings>,
         room: RoomResource,
         client_parameters: ClientParameters,
+        host: Url,
     ) -> Result<RoomServerAccess, ApiError>;
 
     /// Patch the parameters of a room
@@ -192,6 +189,7 @@ impl ControllerBackend {
         user: RequestUser,
         room_id: RoomId,
         request: PostRoomsRoomserverStartRequestBody,
+        host: Url,
     ) -> Result<RoomserverStartResponseBody, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
         let settings = self.settings_provider.get();
@@ -225,7 +223,7 @@ impl ControllerBackend {
 
         let access = self
             .roomserver
-            .request_access(inventory.as_mut(), settings, room, client_parameters)
+            .request_access(inventory.as_mut(), settings, room, client_parameters, host)
             .await?;
 
         Ok(RoomserverStartResponseBody {
@@ -239,6 +237,7 @@ impl ControllerBackend {
         &self,
         room_id: RoomId,
         request: PostRoomsRoomserverStartInvitedRequestBody,
+        host: Url,
     ) -> Result<RoomserverStartResponseBody, CaptureApiError> {
         let _ = self
             .authenticate_guest(&room_id, &request.invite_code, &request.password)
@@ -263,6 +262,7 @@ impl ControllerBackend {
                 settings,
                 room_resource,
                 client_parameters,
+                host,
             )
             .await?;
 

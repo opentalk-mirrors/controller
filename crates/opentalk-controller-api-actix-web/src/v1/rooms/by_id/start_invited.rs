@@ -15,7 +15,7 @@ use opentalk_types_api_v1::{
 };
 use opentalk_types_common::rooms::RoomId;
 
-use crate::utoipa::responses::InternalServerError;
+use crate::{host::Host, utoipa::responses::InternalServerError};
 
 /// Start a signaling session with the roomserver with an invitation code
 ///
@@ -116,10 +116,15 @@ pub async fn post(
     service: Data<dyn OpenTalkControllerService>,
     room_id: Path<RoomId>,
     request: Json<PostRoomsRoomserverStartInvitedRequestBody>,
+    host: Host,
 ) -> Result<Json<RoomserverStartResponseBody>, ApiError> {
     let response = Json(
         service
-            .start_invited_room_session(room_id.into_inner(), request.into_inner())
+            .start_invited_room_session(
+                room_id.into_inner(),
+                request.into_inner(),
+                host.into_inner(),
+            )
             .await?,
     );
 
