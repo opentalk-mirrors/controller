@@ -36,7 +36,7 @@ impl FromRequest for Host {
 
         let result = Url::parse(&host)
             .map_err(|err| {
-                log::error!("Failed to parse host: {err}");
+                tracing::error!("Failed to parse host: {err}");
                 ApiError::internal().with_message("Failed to parse host name")
             })
             .map(Host);
