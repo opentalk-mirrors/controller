@@ -320,12 +320,12 @@ pub(super) mod actix_web_impls {
 
         let matches = resource.capture_match_info(&mut path);
         if !matches {
-            log::warn!("Path {path:?} didn't match pattern {pattern:?}");
+            tracing::warn!("Path {path:?} didn't match pattern {pattern:?}");
         }
 
         let path: T = serde::de::Deserialize::deserialize(PathDeserializer::new(&path))
             .map_err(move |err| {
-                log::debug!(
+                tracing::debug!(
                     "Failed during Path extractor deserialization. \
                          Request path: {path:?}",
                 );

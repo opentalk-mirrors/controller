@@ -5547,7 +5547,6 @@ dependencies = [
  "actix-web",
  "async-trait",
  "http 0.2.12",
- "log",
  "mockall",
  "opentalk-types-api-v1",
  "opentalk-types-common",
@@ -5556,6 +5555,7 @@ dependencies = [
  "serde_json",
  "snafu 0.9.0",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

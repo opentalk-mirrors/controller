@@ -22,13 +22,13 @@ actix-router = { version = "0.5", optional = true }
 actix-web = { workspace = true, optional = true }
 async-trait.workspace = true
 http0.workspace = true
-log.workspace = true
 mockall = { workspace = true, optional = true }
 opentalk-types-api-v1.workspace = true
 opentalk-types-common.workspace = true
 serde = { workspace = true, optional = true }
 snafu.workspace = true
 tokio = { workspace = true, features = ["sync"] }
+tracing.workspace = true
 
 
 [features]

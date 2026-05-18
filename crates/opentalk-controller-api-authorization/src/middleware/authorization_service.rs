@@ -51,7 +51,7 @@ impl<S: Service<ServiceRequest, Response = ServiceResponse, Error = actix_web::E
             let admission = if let Ok(target) = target {
                 authorizer.authorize(target).await
             } else {
-                log::error!("Could not parse path for {:?}, denying access", req.path());
+                tracing::error!("Could not parse path for {:?}, denying access", req.path());
                 Ok(Admission::Denied)
             };
 
@@ -59,7 +59,7 @@ impl<S: Service<ServiceRequest, Response = ServiceResponse, Error = actix_web::E
                 Ok(Admission::Allowed) => service.call(req).await,
                 Ok(Admission::Denied) => Ok(req.into_response(HttpResponse::Forbidden().finish())),
                 Err(e) => {
-                    log::error!("Attempt to request authorization failed: {e:?}");
+                    tracing::error!("Attempt to request authorization failed: {e:?}");
                     Ok(req.into_response(HttpResponse::InternalServerError().finish()))
                 }
             }
