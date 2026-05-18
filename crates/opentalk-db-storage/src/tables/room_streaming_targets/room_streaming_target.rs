@@ -85,7 +85,7 @@ impl TryFrom<RoomStreamingTarget> for types::streaming::RoomStreamingTarget {
         let kind = match record.kind {
             StreamingKind::Custom => StreamingTargetKind::Custom {
                 streaming_endpoint: Url::parse(&record.streaming_endpoint).map_err(|err| {
-                    log::warn!(
+                    tracing::warn!(
                         "Failed to parse streaming endpoint: {}",
                         Report::from_error(err)
                     );
@@ -95,7 +95,7 @@ impl TryFrom<RoomStreamingTarget> for types::streaming::RoomStreamingTarget {
                 })?,
                 streaming_key: record.streaming_key,
                 public_url: Url::parse(&record.public_url).map_err(|err| {
-                    log::warn!(
+                    tracing::warn!(
                         "Invalid public url entry in db: {}",
                         Report::from_error(err)
                     );

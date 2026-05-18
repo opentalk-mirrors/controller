@@ -38,7 +38,6 @@ diesel = { workspace = true, features = [
 diesel-async.workspace = true
 futures-core.workspace = true
 icu_locid.workspace = true
-log = { workspace = true, features = ["serde"] }
 opentalk-database.workspace = true
 opentalk-diesel-newtype.workspace = true
 opentalk-inventory.workspace = true

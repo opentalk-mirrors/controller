@@ -5833,7 +5833,6 @@ dependencies = [
  "diesel-async",
  "futures-core",
  "icu_locid",
- "log",
  "opentalk-database",
  "opentalk-diesel-newtype",
  "opentalk-inventory",

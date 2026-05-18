@@ -30,7 +30,7 @@ type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[tracing::instrument(skip(config))]
 async fn migrate(config: Config) -> Result<Report> {
-    log::debug!("config: {:?}", config);
+    tracing::debug!("config: {:?}", config);
 
     let (mut client, conn) = config.connect(NoTls).await?;
 
@@ -39,7 +39,7 @@ async fn migrate(config: Config) -> Result<Report> {
     tokio::spawn(
         async move {
             if let Err(e) = conn.await {
-                log::error!("connection error: {}", snafu::Report::from_error(e))
+                tracing::error!("connection error: {}", snafu::Report::from_error(e))
             }
 
             tx.send(()).expect("Channel unexpectedly dropped");
@@ -58,7 +58,7 @@ async fn migrate(config: Config) -> Result<Report> {
             .collect::<Vec<_>>()
             .join(", ");
 
-        log::info!("Applied migration(s): {applied_migration_names}");
+        tracing::info!("Applied migration(s): {applied_migration_names}");
     }
 
     drop(client);

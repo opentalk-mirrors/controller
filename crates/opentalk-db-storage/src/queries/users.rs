@@ -263,7 +263,7 @@ pub async fn get_used_storage_used_size_u64(
     let used_storage = get_user_storage_used_size(conn, user_id).await?;
 
     Ok(used_storage.to_u64().unwrap_or_else(|| {
-        log::warn!("failed to convert used storage: {used_storage} to u64");
+        tracing::warn!("failed to convert used storage: {used_storage} to u64");
         u64::MAX
     }))
 }
