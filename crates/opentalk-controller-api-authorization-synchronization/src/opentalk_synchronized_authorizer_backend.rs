@@ -62,7 +62,7 @@ impl Drop for OpenTalkSynchronizedAuthorizerBackend {
     fn drop(&mut self) {
         const TIMEOUT: Duration = Duration::from_millis(500);
         if let Err(SendTimeoutError::Timeout(_)) = self.shutdown_sender.send_timeout((), TIMEOUT) {
-            log::warn!(
+            tracing::warn!(
                 "Shutdown signal for authorization synchronization task was not sent within timeout {TIMEOUT:?}"
             );
         }
@@ -83,8 +83,8 @@ impl AuthorizerBackend for OpenTalkSynchronizedAuthorizerBackend {
         changeset: &[AuthorizationChange],
     ) -> Result<(), AuthorizationChangeError> {
         if let Err(e) = self.synchronizer.send_changes(changeset).await {
-            log::warn!("Error sending authorization change to other nodes: {e}");
-            log::warn!(
+            tracing::warn!("Error sending authorization change to other nodes: {e}");
+            tracing::warn!(
                 "Authorization information on the other nodes may be inaccurate until reloaded from the database"
             );
         }
@@ -142,14 +142,14 @@ async fn receive_and_apply_changes(
         changes = synchronizer.receive_changes() => {
             match changes {
                 Some(changes) => {
-                    log::debug!("Received authorization changes, applying");
+                    tracing::debug!("Received authorization changes, applying");
                     if let Err(e) = upstream.apply_changes(&changes).await {
-                        log::warn!("Error applying authorization changes from other node: {e}");
+                        tracing::warn!("Error applying authorization changes from other node: {e}");
                     }
                     Continuation::Continue
                 }
                 None => {
-                    log::debug!("Authorization synchronizer was shut down, stopping synchronization.");
+                    tracing::debug!("Authorization synchronizer was shut down, stopping synchronization.");
                     Continuation::Stop
                 },
             }
@@ -157,11 +157,11 @@ async fn receive_and_apply_changes(
         shutdown = shutdown_receiver.recv_async() => {
             match shutdown{
                 Ok(()) => {
-                    log::debug!("Shutdown signal received, stopping authorization synchronizer receiver task");
+                    tracing::debug!("Shutdown signal received, stopping authorization synchronizer receiver task");
                     Continuation::Stop
                 }
                 Err(e) => {
-                    log::warn!("Failed to shut down authorization synchronizer receiver task: {e}");
+                    tracing::warn!("Failed to shut down authorization synchronizer receiver task: {e}");
                     Continuation::Stop
                 }
             }
