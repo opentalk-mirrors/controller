@@ -5751,7 +5751,6 @@ dependencies = [
  "iana-time-zone",
  "icu_locid",
  "itertools 0.14.0",
- "log",
  "openidconnect",
  "opentalk-roomserver-modules",
  "opentalk-roomserver-room",
@@ -5771,6 +5770,7 @@ dependencies = [
  "snafu 0.9.0",
  "tempfile",
  "toml 1.1.2+spec-1.1.0",
+ "tracing",
  "url",
  "uuid",
 ]

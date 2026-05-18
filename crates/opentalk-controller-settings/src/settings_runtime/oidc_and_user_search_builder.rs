@@ -135,7 +135,7 @@ impl OidcAndUserSearchBuilder {
         disable_users_find: Option<bool>,
         users_find_use_kc: Option<bool>,
     ) -> Result<Self> {
-        log::warn!(
+        tracing::warn!(
             "Found a deprecated [keycloak] configuration. Please use the new [oidc] and [user_search] configuration instead."
         );
 
