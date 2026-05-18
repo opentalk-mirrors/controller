@@ -246,7 +246,7 @@ impl ExchangeTask {
         match delivery {
             Some(Ok(delivery)) => {
                 if let Err(e) = self.handle_rmq_message(&delivery.data).await {
-                    log::warn!(
+                    tracing::warn!(
                         "Failed to handle incoming RMQ message, {}",
                         Report::from_error(e)
                     );
@@ -261,7 +261,7 @@ impl ExchangeTask {
     }
 
     async fn reconnect_rabbitmq(&mut self) {
-        log::error!("Disconnected from RabbitMQ! Trying to reconnect");
+        tracing::error!("Disconnected from RabbitMQ! Trying to reconnect");
 
         // Reset all subscribers this will cause all handles to receive an error
         self.subscriber.clear();
@@ -279,16 +279,16 @@ impl ExchangeTask {
                     Ok(consumer) => {
                         rmq.channel = channel;
                         rmq.consumer = consumer;
-                        log::info!("Reconnected to RabbitMQ");
+                        tracing::info!("Reconnected to RabbitMQ");
                         return;
                     }
-                    Err(e) => log::warn!(
+                    Err(e) => tracing::warn!(
                         "Was able to create channel but not consumer, {}",
                         Report::from_error(e)
                     ),
                 },
                 Err(_) => {
-                    log::warn!(
+                    tracing::warn!(
                         "RabbitMQ reconnect attempt failed, waiting {wait_duration:?} before next attempt"
                     );
                 }

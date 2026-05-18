@@ -80,7 +80,7 @@ pub struct BlockingError {
 
 impl From<BlockingError> for ApiError {
     fn from(e: BlockingError) -> Self {
-        log::error!(
+        tracing::error!(
             "REST API threw internal error from blocking error: {}",
             Report::from_error(e)
         );
@@ -162,9 +162,9 @@ impl Controller {
     pub async fn create(optional_config_path: Option<PathBuf>) -> Result<Self> {
         let settings_provider = load_settings_provider(optional_config_path.as_deref())?;
 
-        log::info!("Starting OpenTalk Controller");
+        tracing::info!("Starting OpenTalk Controller");
 
-        log::info!(
+        tracing::info!(
             "Global timezone is {}",
             settings_provider.get().defaults.timezone
         );
@@ -222,7 +222,7 @@ impl Controller {
             .unwrap();
 
         let authorizer = Authorizer::new(if settings.authorization.synchronize_controllers {
-            log::warn!(
+            tracing::warn!(
                 "no auth synchronization between controllers happens for now, this needs to be implemented"
             );
             OpenTalkAuthorizerBackend::new_from_changeset(&authorization_changes)
@@ -489,7 +489,7 @@ impl Controller {
         })?;
 
         set_service_state(ServiceState::Ready);
-        log::info!("Startup finished");
+        tracing::info!("Startup finished");
 
         let http_server = http_server.disable_signals().run();
         let http_server_handle = http_server.handle();
@@ -503,14 +503,14 @@ impl Controller {
         loop {
             tokio::select! {
                 _ = ctrl_c() => {
-                    log::info!("Got termination signal, exiting");
+                    tracing::info!("Got termination signal, exiting");
                     break;
                 }
                 _ = reload_signal.recv() => {
-                    log::info!("Got reload signal, reloading");
+                    tracing::info!("Got reload signal, reloading");
 
                     if let Err(e) = self.settings_provider.reload_from_path_or_standard_paths(self.optional_config_path.as_deref()) {
-                        log::error!("Failed to reload settings, {}", Report::from_error(e));
+                        tracing::error!("Failed to reload settings, {}", Report::from_error(e));
                         continue
                     }
 
@@ -534,7 +534,7 @@ impl Controller {
             let receiver_count = self.shutdown.receiver_count();
 
             if receiver_count > 0 {
-                log::debug!("Waiting for {receiver_count} tasks to be stopped");
+                tracing::debug!("Waiting for {receiver_count} tasks to be stopped");
                 sleep(Duration::from_secs(1)).await;
             }
         }
@@ -543,7 +543,7 @@ impl Controller {
             // Close all rabbitmq connections
             // TODO what code and text to use here
             if let Err(e) = rabbitmq_pool.close(0, "shutting down").await {
-                log::error!(
+                tracing::error!(
                     "Failed to close RabbitMQ connections, {}",
                     Report::from_error(e)
                 );
@@ -551,9 +551,9 @@ impl Controller {
         }
 
         if self.shutdown.receiver_count() > 0 {
-            log::error!("Not all tasks stopped. Exiting anyway");
+            tracing::error!("Not all tasks stopped. Exiting anyway");
         } else {
-            log::info!("All tasks stopped, goodbye!");
+            tracing::info!("All tasks stopped, goodbye!");
         }
 
         Ok(())
@@ -970,7 +970,7 @@ fn internal_service_scope(auth_middleware: Option<ApiKeyAuthorization>) -> Scope
     let Some(auth_middleware) = auth_middleware else {
         static WARN: std::sync::Once = std::sync::Once::new();
         WARN.call_once(|| {
-            log::debug!(
+            tracing::debug!(
                 "Missing `http.service_api_keys` configuration, internal service routes are disabled"
             );
         });

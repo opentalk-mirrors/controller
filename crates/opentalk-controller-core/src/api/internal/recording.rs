@@ -168,7 +168,7 @@ pub(crate) async fn get_upload(
             .await;
 
             if let Err(e) = result {
-                log::error!("Error saving asset, {e}");
+                tracing::error!("Error saving asset, {e}");
             }
         }
     });

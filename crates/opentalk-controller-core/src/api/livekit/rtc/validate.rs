@@ -63,7 +63,7 @@ pub(crate) async fn validate(
     let access_token = extract_access_token(query, auth_header)?;
     let content = jsonwebtoken::dangerous::insecure_decode::<Claims>(access_token.as_bytes())
         .map_err(|err| {
-            log::debug!("Failed to decode livekit token: {err}");
+            tracing::debug!("Failed to decode livekit token: {err}");
             ApiError::bad_request()
         })?;
 
@@ -76,10 +76,10 @@ pub(crate) async fn validate(
         .proxy_livekit_validate(room_id, headers, raw_query)
         .await?;
 
-    log::trace!("Received validate response: {response:?}");
+    tracing::trace!("Received validate response: {response:?}");
 
     let status = StatusCode::from_u16(response.status().as_u16()).map_err(|err| {
-        log::error!("Failed to convert status code: {err}");
+        tracing::error!("Failed to convert status code: {err}");
         ApiError::internal()
     })?;
 
@@ -94,7 +94,7 @@ pub(crate) async fn validate(
     }
 
     let body = response.bytes().await.map_err(|err| {
-        log::error!("Failed to convert response body: {err}");
+        tracing::error!("Failed to convert response body: {err}");
         ApiError::internal()
     })?;
 

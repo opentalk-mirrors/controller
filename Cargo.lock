@@ -5606,7 +5606,6 @@ dependencies = [
  "lapin",
  "lapin-pool",
  "livekit-api",
- "log",
  "openidconnect",
  "opentalk-asset-storage",
  "opentalk-controller-api-actix-web",

@@ -33,7 +33,6 @@ jsonwebtoken.workspace = true
 lapin.workspace = true
 lapin-pool.workspace = true
 livekit-api.workspace = true
-log = { workspace = true, features = ["serde"] }
 openidconnect.workspace = true
 opentalk-asset-storage.workspace = true
 opentalk-controller-api-actix-web.workspace = true

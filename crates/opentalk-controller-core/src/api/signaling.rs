@@ -72,7 +72,7 @@ pub async fn get(
 
     // Perform the WebSocket upgrade
     let (response, session, msg_stream) = actix_ws::handle(&req, payload).map_err(|err| {
-        log::error!("WebSocket handshake failed: {err}");
+        tracing::error!("WebSocket handshake failed: {err}");
         ApiError::internal().with_message("WebSocket handshake failed")
     })?;
 

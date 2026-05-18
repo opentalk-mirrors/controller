@@ -115,7 +115,7 @@ where
         let auth = match Authorization::<BearerOrInviteCode>::parse(&req) {
             Ok(a) => a,
             Err(e) => {
-                log::warn!(
+                tracing::warn!(
                     "Unable to parse access token or invite code, {}",
                     Report::from_error(e)
                 );

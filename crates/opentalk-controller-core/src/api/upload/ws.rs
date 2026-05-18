@@ -61,7 +61,7 @@ impl UploadWebSocketActor {
         match item {
             Item::FirstText(bytes) | Item::FirstBinary(bytes) => {
                 if self.continuation.is_some() {
-                    log::warn!("Got continuation while processing one");
+                    tracing::warn!("Got continuation while processing one");
                 }
 
                 self.continuation = Some(Continuation {
@@ -73,13 +73,13 @@ impl UploadWebSocketActor {
                     continuation.buffer.extend_from_slice(&bytes);
 
                     if continuation.buffer.len() >= MAXIMUM_WEBSOCKET_BUFFER_SIZE {
-                        log::error!(
+                        tracing::error!(
                             "Fragmented above the maxium websocket buffer size, stopping actor"
                         );
                         ctx.stop();
                     }
                 } else {
-                    log::warn!("Got continuation continue message without a continuation set");
+                    tracing::warn!("Got continuation continue message without a continuation set");
                 }
             }
             Item::Last(bytes) => {
@@ -87,7 +87,7 @@ impl UploadWebSocketActor {
                     continuation.buffer.extend_from_slice(&bytes);
                     self.forward_to_runner(ctx, Ok(continuation.buffer.freeze()));
                 } else {
-                    log::warn!("Got continuation last message without a continuation set");
+                    tracing::warn!("Got continuation last message without a continuation set");
                 }
             }
         }
@@ -136,7 +136,7 @@ impl StreamHandler<Result<Message, ProtocolError>> for UploadWebSocketActor {
             }
             Ok(Message::Nop) => {}
             Err(e) => {
-                log::debug!("Protocol error in websocket - exiting, {e}");
+                tracing::debug!("Protocol error in websocket - exiting, {e}");
 
                 ctx.stop();
             }
