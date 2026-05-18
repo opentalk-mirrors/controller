@@ -1012,6 +1012,7 @@ fn setup_cors(settings_provider: SettingsProvider) -> Cors {
 
     cors.allowed_header(CONTENT_TYPE)
         .allowed_header(AUTHORIZATION)
+        .expose_headers([LINK])
         .allowed_methods([
             Method::GET,
             Method::POST,
