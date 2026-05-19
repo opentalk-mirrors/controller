@@ -9,7 +9,9 @@ use futures_util::{Stream, StreamExt};
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{Result, Room};
 use opentalk_types_api_v1::error::ApiError;
-use opentalk_types_common::{features::GUESTS_ALLOWED_MODULE_FEATURE_ID, tariffs::TariffResource};
+use opentalk_types_common::{
+    features::GUESTS_ALLOWED_MODULE_FEATURE_ID, rooms::GuestAccess, tariffs::TariffResource,
+};
 
 pub(crate) fn interweave_result_streams<'a, T: 'a>(
     streams: Vec<Pin<Box<dyn Stream<Item = Result<T>> + 'a>>>,
@@ -66,13 +68,13 @@ pub fn verify_invite_read(tariff: &TariffResource, room: &Room) -> Result<(), Ca
         &GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
         &GUESTS_ALLOWED_MODULE_FEATURE_ID.feature,
     );
-    if !room.e2e_encryption && guests_allowed {
+    if !room.e2e_encryption && guests_allowed && room.guest_access != GuestAccess::Disabled {
         return Ok(());
     }
 
     Err(ApiError::not_found()
             .with_code("service_unavailable")
-            .with_message("Invites are not available: either the guest feature is disabled or the room is encrypted".to_string())
+            .with_message("Invites are not available: either the guest feature is disabled, guest access is disabled for this room or the room is encrypted".to_string())
             .into())
 }
 
@@ -83,12 +85,12 @@ pub fn verify_invite_write(tariff: &TariffResource, room: &Room) -> Result<(), C
         &GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
         &GUESTS_ALLOWED_MODULE_FEATURE_ID.feature,
     );
-    if !room.e2e_encryption && guests_allowed {
+    if !room.e2e_encryption && guests_allowed && room.guest_access != GuestAccess::Disabled {
         return Ok(());
     }
 
     Err(ApiError::forbidden()
             .with_code("service_unavailable")
-            .with_message("Invites are not available: either the guest feature is disabled or the room is encrypted".to_string())
+            .with_message("Invites are not available: either the guest feature is disabled, guest access is disabled for this room or the room is encrypted".to_string())
             .into())
 }
