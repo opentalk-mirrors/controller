@@ -11,7 +11,7 @@ use actix_web::{
     web::{Data, Path, Payload},
 };
 use futures::StreamExt as _;
-use opentalk_controller_service::controller_backend::roomserver::SignalingHandler;
+use opentalk_controller_service::controller_backend::roomserver::SignalingProxyBackend;
 use opentalk_roomserver_types::signaling::websocket::SignalingSocketMessage;
 use opentalk_types_api_v1::error::ApiError;
 use opentalk_types_common::roomserver::Token;
@@ -55,7 +55,7 @@ pub async fn get(
     req: HttpRequest,
     payload: Payload,
     token: Path<Token>,
-    signaling: Data<Option<Arc<dyn SignalingHandler>>>,
+    signaling: Data<Option<Arc<dyn SignalingProxyBackend>>>,
 ) -> Result<HttpResponse, ApiError> {
     let signaling = signaling
         .as_ref() // Option as ref
@@ -72,7 +72,7 @@ pub async fn get(
 
     // Perform the WebSocket upgrade
     let (response, session, msg_stream) = actix_ws::handle(&req, payload).map_err(|err| {
-        tracing::error!("WebSocket handshake failed: {err}");
+        log::error!("WebSocket handshake failed: {err}");
         ApiError::internal().with_message("WebSocket handshake failed")
     })?;
 

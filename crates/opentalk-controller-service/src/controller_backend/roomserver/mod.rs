@@ -28,6 +28,7 @@ use opentalk_roomserver_types::{
     tariff_details::TariffDetails,
 };
 use opentalk_roomserver_types_training_participation_report::settings::TrainingParticipationReportSettings;
+use opentalk_roomserver_web_api::livekit_proxy::LiveKitProxyBackend;
 use opentalk_types_api_v1::{
     error::ApiError,
     rooms::{
@@ -51,7 +52,7 @@ use tokio::sync::{broadcast::Receiver, mpsc};
 use url::Url;
 
 use crate::{
-    ControllerBackend,
+    ControllerBackend, Whatever,
     controller_backend::roomserver::{
         internal::InternalRoomServer,
         storage_notifier::{ExternalStorageNotifier, InternalStorageNotifier},
@@ -71,7 +72,7 @@ pub struct RoomServerComponents {
     /// The roomserver backend implementation.
     pub backend: Arc<dyn RoomServerBackend>,
     /// The signaling handler for the internal roomserver, if applicable.
-    pub signaling_handler: Option<Arc<dyn SignalingHandler>>,
+    pub signaling_handler: Option<Arc<dyn SignalingProxyBackend>>,
     /// The storage notifier for notifying the roomserver about storage usage changes.
     pub storage_notifier: Arc<dyn StorageNotifier>,
 }
@@ -84,7 +85,7 @@ pub fn build(
     storage: Arc<ObjectStorage>,
     module_registry: ModuleRegistry,
     shutdown: Receiver<()>,
-) -> RoomServerComponents {
+) -> Result<RoomServerComponents, Whatever> {
     match kind {
         RoomServerKind::Internal { settings, server } => {
             log::debug!("Using internal roomserver");
@@ -106,13 +107,13 @@ pub fn build(
                 settings.to_owned(),
                 module_registry,
                 shutdown,
-            ));
+            )?);
 
-            RoomServerComponents {
+            Ok(RoomServerComponents {
                 backend: roomserver.clone(),
                 signaling_handler: Some(roomserver),
                 storage_notifier,
-            }
+            })
         }
         RoomServerKind::External {
             service_url,
@@ -124,11 +125,11 @@ pub fn build(
             let roomserver = ExternalRoomServer::new(roomserver_client.clone());
             let storage_notifier = ExternalStorageNotifier::new(roomserver_client);
 
-            RoomServerComponents {
+            Ok(RoomServerComponents {
                 backend: Arc::new(roomserver),
                 signaling_handler: None,
                 storage_notifier: Arc::new(storage_notifier),
-            }
+            })
         }
     }
 }
@@ -181,6 +182,9 @@ pub trait SignalingHandler: Send + Sync {
         outgoing: mpsc::Sender<SignalingSocketMessage>,
     ) -> Result<(), ApiError>;
 }
+
+/// A combination of [`SignalingHandler`] and [`LiveKitProxyBackend`]
+pub trait SignalingProxyBackend: SignalingHandler + LiveKitProxyBackend {}
 
 impl ControllerBackend {
     #[tracing::instrument(level = "debug", skip(self, user, request), fields(user_id = %user.id))]

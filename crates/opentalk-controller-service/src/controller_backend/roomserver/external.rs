@@ -116,7 +116,7 @@ impl RoomServerBackend for ExternalRoomServer {
                     ..
                 })),
             ) => {
-                tracing::error!("Failed to patch roomserver room parameters: {err}");
+                log::error!("Failed to patch roomserver room parameters: {err}");
                 Err(ApiError::internal().with_message("Failed to patch roomserver room parameters"))
             }
         }

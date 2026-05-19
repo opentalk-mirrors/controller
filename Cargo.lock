@@ -5602,8 +5602,10 @@ dependencies = [
  "futures",
  "http 1.4.0",
  "itertools 0.14.0",
+ "jsonwebtoken",
  "lapin",
  "lapin-pool",
+ "livekit-api",
  "log",
  "openidconnect",
  "opentalk-asset-storage",
@@ -5622,6 +5624,7 @@ dependencies = [
  "opentalk-keycloak-admin",
  "opentalk-roomserver-modules",
  "opentalk-roomserver-types",
+ "opentalk-roomserver-web-api",
  "opentalk-service-auth",
  "opentalk-types-api-internal",
  "opentalk-types-api-v1",
@@ -5694,6 +5697,7 @@ dependencies = [
  "opentalk-roomserver-room",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-training-participation-report",
+ "opentalk-roomserver-web-api",
  "opentalk-types-api-internal",
  "opentalk-types-api-v1",
  "opentalk-types-common",
@@ -6624,6 +6628,7 @@ checksum = "b2b60c7c7a94e222078e9e9898c310489b1274baf38f93a166025ba80d97e335"
 dependencies = [
  "actix-ws",
  "anyhow",
+ "axum",
  "bytes",
  "chrono",
  "derive_more",
@@ -6913,6 +6918,29 @@ dependencies = [
  "opentalk-types-signaling",
  "serde",
  "url",
+]
+
+[[package]]
+name = "opentalk-roomserver-web-api"
+version = "0.0.39"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57b412b232f0338e97547d1d3c928de0e57d26647df9f1e81c8fca120990bd4d"
+dependencies = [
+ "async-trait",
+ "axum",
+ "jsonwebtoken",
+ "livekit-api",
+ "opentalk-roomserver-types",
+ "opentalk-service-auth",
+ "opentalk-types-api-internal",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "reqwest 0.13.3",
+ "serde",
+ "tower-http",
+ "tracing",
+ "utoipa",
+ "uuid",
 ]
 
 [[package]]

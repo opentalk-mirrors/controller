@@ -29,8 +29,10 @@ diesel-async.workspace = true
 futures.workspace = true
 http.workspace = true
 itertools.workspace = true
+jsonwebtoken.workspace = true
 lapin.workspace = true
 lapin-pool.workspace = true
+livekit-api.workspace = true
 log = { workspace = true, features = ["serde"] }
 openidconnect.workspace = true
 opentalk-asset-storage.workspace = true
@@ -51,6 +53,7 @@ opentalk-jobs.workspace = true
 opentalk-keycloak-admin.workspace = true
 opentalk-roomserver-modules.workspace = true
 opentalk-roomserver-types = { workspace = true, features = ["actix"] }
+opentalk-roomserver-web-api.workspace = true
 opentalk-service-auth = { workspace = true, features = ["actix"] }
 opentalk-types-api-internal = { workspace = true, features = ["utoipa"] }
 opentalk-types-api-v1 = { workspace = true, features = ["backend"] }
