@@ -291,20 +291,6 @@ impl OidcContext {
             None => None,
         };
 
-        fn expect_present_localized<'a, T>(
-            t: Option<&'a LocalizedClaim<T>>,
-            name: &str,
-        ) -> Result<&'a T, CaptureApiError> {
-            match t.and_then(|c| c.get(None)) {
-                Some(t) => Ok(t),
-                None => Err(ApiError::bad_request()
-                    .with_message(format!(
-                        "userinfo claims are missing mandatory '{name}' field"
-                    ))
-                    .into()),
-            }
-        }
-
         fn expect_present<'a, T>(t: Option<&'a T>, name: &str) -> Result<&'a T, CaptureApiError> {
             match t {
                 Some(t) => Ok(t),
@@ -332,11 +318,24 @@ impl OidcContext {
             raw_email.to_lowercase()
         };
 
+        // Convert missing claims to empty strings to hotfix https://git.opentalk.dev/opentalk/product/tickets/-/work_items/223
+        // Later on we should represent data correctly, storing missing claims as `null` in the database or passing them to the frontend
+        let firstname = claims
+            .given_name()
+            .and_then(|claim| claim.get(None))
+            .map(|first_name| first_name.to_string())
+            .unwrap_or_default();
+        let lastname = claims
+            .family_name()
+            .and_then(|claim| claim.get(None))
+            .map(|family_name| family_name.to_string())
+            .unwrap_or_default();
+
         Ok(OpenIdConnectUserInfo {
             sub: claims.subject().to_string(),
             email,
-            firstname: expect_present_localized(claims.given_name(), "given_name")?.to_string(),
-            lastname: expect_present_localized(claims.family_name(), "family_name")?.to_string(),
+            firstname,
+            lastname,
             avatar_url: optional(claims.picture()),
             locale,
             timezone,
