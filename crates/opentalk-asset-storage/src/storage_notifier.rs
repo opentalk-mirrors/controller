@@ -30,7 +30,7 @@ pub struct NoOpStorageNotifier;
 #[async_trait]
 impl StorageNotifier for NoOpStorageNotifier {
     async fn notify(&self, user_id: UserId, old_quota: Quota, new_quota: Quota) {
-        log::debug!(
+        tracing::debug!(
             "Skipped storage notification for user: {user_id}. Quota update from {old_quota:?} to {new_quota:?}"
         );
     }

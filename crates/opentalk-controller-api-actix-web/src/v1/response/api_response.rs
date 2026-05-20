@@ -108,10 +108,10 @@ fn extract_full_url_from_request(req: &actix_web::HttpRequest) -> Option<Url> {
         scheme = conn.scheme(),
         host = conn.host()
     ))
-    .inspect_err(|e| log::warn!("Failed to extract full url for API response: {e}"))
+    .inspect_err(|e| tracing::warn!("Failed to extract full url for API response: {e}"))
     .ok()?;
 
     url.join(&req.uri().to_string())
-        .inspect_err(|e| log::warn!("Failed to extract full url for API response: {e}"))
+        .inspect_err(|e| tracing::warn!("Failed to extract full url for API response: {e}"))
         .ok()
 }

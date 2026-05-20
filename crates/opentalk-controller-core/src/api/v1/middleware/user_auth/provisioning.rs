@@ -107,7 +107,7 @@ pub(super) async fn provision_user(
     let tenant_id = match &settings.tenants.assignment {
         TenantAssignment::Static { static_tenant_id } => static_tenant_id.clone(),
         TenantAssignment::ByExternalTenantId { .. } => info.tenant_id.clone().ok_or_else(|| {
-            log::error!("Invalid access token, missing tenant_id");
+            tracing::error!("Invalid access token, missing tenant_id");
             ApiError::unauthorized().with_www_authenticate(AuthenticationError::InvalidAccessToken)
         })?,
     };
@@ -157,7 +157,7 @@ fn map_tariff_status_name(mapping: &TariffStatusMapping, name: &String) -> Tarif
     } else if mapping.downgraded.contains(name) {
         TariffStatus::Downgraded
     } else {
-        log::error!("Invalid tariff status value found: \"{name}\"");
+        tracing::error!("Invalid tariff status value found: \"{name}\"");
         TariffStatus::Default
     }
 }
@@ -293,7 +293,7 @@ async fn update_core_user_permissions(
                 ])
                 .await
                 .map_err(|e| {
-                    log::error!("Could not apply changes in the authorization database: {e:?}");
+                    tracing::error!("Could not apply changes in the authorization database: {e:?}");
                     ApiError::internal()
                 })?;
 

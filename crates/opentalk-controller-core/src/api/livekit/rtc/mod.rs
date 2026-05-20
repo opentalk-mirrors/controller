@@ -81,7 +81,7 @@ pub(crate) async fn proxy_socket(
     // We do not verify the token since this is done by livekit. We only proxy the connection.
     let content = jsonwebtoken::dangerous::insecure_decode::<Claims>(access_token.as_bytes())
         .map_err(|err| {
-            log::debug!("Failed to decode livekit token: {err}");
+            tracing::debug!("Failed to decode livekit token: {err}");
             ApiError::bad_request()
         })?;
 
@@ -104,7 +104,7 @@ pub(crate) async fn proxy_socket(
 
     // Perform the WebSocket upgrade
     let (response, session, msg_stream) = actix_ws::handle(&req, payload).map_err(|err| {
-        log::error!("WebSocket handshake failed: {err}");
+        tracing::error!("WebSocket handshake failed: {err}");
         ApiError::internal().with_message("WebSocket handshake failed")
     })?;
 
@@ -146,7 +146,7 @@ pub(crate) async fn proxy_socket(
                }
                // Shutdown: close session when the server is shutting down
                _ = shutdown_rx.recv() => {
-                  log::debug!("Shutdown signal received, closing livekit proxy WebSocket");
+                  tracing::debug!("Shutdown signal received, closing livekit proxy WebSocket");
                   _ = session.close(None).await;
                   break;
                }
@@ -183,7 +183,7 @@ pub(crate) async fn proxy_socket(
     proxy
         .connect_downstream_socket(ws_request, upstream_socket, Box::new(socket))
         .await
-        .inspect_err(|err| log::warn!("Failed to accept livekit socket: {err:?}"))?;
+        .inspect_err(|err| tracing::warn!("Failed to accept livekit socket: {err:?}"))?;
 
     Ok(response)
 }

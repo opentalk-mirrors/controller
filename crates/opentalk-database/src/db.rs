@@ -88,7 +88,7 @@ impl Db {
             }
             Err(e) => {
                 let state = self.pool.status();
-                log::error!(
+                tracing::error!(
                     "Unable to get connection from connection pool.
                                 Error: {}
                                 Pool State:

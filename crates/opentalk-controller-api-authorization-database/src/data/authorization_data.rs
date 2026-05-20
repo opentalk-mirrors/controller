@@ -40,7 +40,7 @@ impl AuthorizationData {
             access_method,
         }: AuthorizationTarget,
     ) -> Admission {
-        log::debug!(
+        tracing::debug!(
             "Authorizing resource {resource:?} with access method {access_method:?} for authenticated subjects {authenticated_subjects:?}"
         );
         match resource {
@@ -466,7 +466,7 @@ impl AuthorizationData {
     }
 
     fn add_user_to_groups(&mut self, user: &UserId, groups: &BTreeSet<GroupId>) {
-        log::debug!("Adding user {user} to groups {groups:?} in authorization cache");
+        tracing::debug!("Adding user {user} to groups {groups:?} in authorization cache");
         for group in groups {
             self.groups.entry(*group).or_default().add_user(*user);
         }
@@ -487,14 +487,14 @@ impl AuthorizationData {
     }
 
     fn create_event(&mut self, event: &EventId, creator: &UserId) {
-        log::debug!("Adding event {event} with creator {creator} to authorization cache");
+        tracing::debug!("Adding event {event} with creator {creator} to authorization cache");
         let entry = self
             .events
             .entry(*event)
             .or_insert_with(|| Event::new(*creator));
 
         if &entry.owner != creator {
-            log::warn!(
+            tracing::warn!(
                 "New event {event} with creator {creator} was already present with creator {}.",
                 entry.owner
             );
@@ -502,19 +502,19 @@ impl AuthorizationData {
     }
 
     fn delete_event(&mut self, event: &EventId) {
-        log::debug!("Removing event {event} from authorization cache");
+        tracing::debug!("Removing event {event} from authorization cache");
         let _ = self.events.remove(event);
     }
 
     fn create_room(&mut self, room: &RoomId, creator: &UserId) {
-        log::debug!("Adding room {room} with creator {creator} to authorization cache");
+        tracing::debug!("Adding room {room} with creator {creator} to authorization cache");
         let entry = self
             .rooms
             .entry(*room)
             .or_insert_with(|| Room::new(*creator));
 
         if &entry.owner != creator {
-            log::warn!(
+            tracing::warn!(
                 "New room {room} with creator {creator} was already present with creator {}.",
                 entry.owner
             );
@@ -541,7 +541,7 @@ impl AuthorizationData {
             if let Some(room) = self.rooms.get_mut(room) {
                 room.add_invited_user(user, role);
             } else {
-                log::warn!("Atttempted to add user to room {room} which does not exist");
+                tracing::warn!("Atttempted to add user to room {room} which does not exist");
             }
         }
     }
@@ -565,7 +565,7 @@ impl AuthorizationData {
             if let Some(event) = self.events.get_mut(event) {
                 event.add_invited_user(user, role);
             } else {
-                log::warn!("Atttempted to add user to event {event} which does not exist");
+                tracing::warn!("Atttempted to add user to event {event} which does not exist");
             }
         }
     }
@@ -588,7 +588,7 @@ impl AuthorizationData {
         if let Some(room) = self.rooms.get_mut(room) {
             room.add_invite_code(invite_code);
         } else {
-            log::warn!("Atttempted to add invite code to room {room} which does not exist");
+            tracing::warn!("Atttempted to add invite code to room {room} which does not exist");
         }
     }
 

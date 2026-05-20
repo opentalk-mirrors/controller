@@ -239,7 +239,7 @@ impl ObjectStorage {
             },
         );
 
-        log::info!("Using MinIO S3 bucket: {} ", minio.bucket,);
+        tracing::info!("Using MinIO S3 bucket: {} ", minio.bucket,);
 
         Ok(Self {
             client,
@@ -308,9 +308,9 @@ impl ObjectStorage {
         }
 
         if let Err(err) = res.as_ref() {
-            log::debug!("Failed to upload object to s3: {err}");
+            tracing::debug!("Failed to upload object to s3: {err}");
         } else {
-            log::debug!("Uploaded object to s3");
+            tracing::debug!("Uploaded object to s3");
         }
 
         res
@@ -654,7 +654,7 @@ impl ObjectStorage {
             request = request.header(reqwest::header::RANGE, v);
         }
         let response = request.send().await.map_err(|e| {
-            log::error!("Proxy request to object storage failed: {e}");
+            tracing::error!("Proxy request to object storage failed: {e}");
             ServiceUnavailableSnafu {}.build()
         })?;
 

@@ -51,7 +51,7 @@ pub(super) async fn authenticate_user(
                 )
                 .await
                 .is_err()
-                .then(|| log::warn!("Failed to cache user data error for access token"));
+                .then(|| tracing::warn!("Failed to cache user data error for access token"));
 
             user_profile_result
         }
@@ -60,7 +60,7 @@ pub(super) async fn authenticate_user(
                 .insert_access_token(access_token, Err(error.clone()), None)
                 .await
                 .is_err()
-                .then(|| log::warn!("Failed to cache verification error for access token"));
+                .then(|| tracing::warn!("Failed to cache verification error for access token"));
             return Err(error);
         }
     }

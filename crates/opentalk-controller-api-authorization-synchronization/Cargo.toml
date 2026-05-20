@@ -20,11 +20,11 @@ workspace = true
 [dependencies]
 async-trait.workspace = true
 flume.workspace = true
-log.workspace = true
 mockall = { workspace = true, optional = true }
 opentalk-controller-api-authorization.workspace = true
 snafu.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }
+tracing.workspace = true
 
 [dev-dependencies]
 mockall.workspace = true

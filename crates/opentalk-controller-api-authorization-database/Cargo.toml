@@ -19,6 +19,6 @@ workspace = true
 
 [dependencies]
 async-trait.workspace = true
-log.workspace = true
 opentalk-controller-api-authorization.workspace = true
 opentalk-types-common.workspace = true
+tracing.workspace = true

@@ -74,12 +74,12 @@ pub async fn metrics(
 
     if !allowed {
         if allowlist.is_empty() {
-            log::debug!(
+            tracing::debug!(
                 "An attempt to access the metrics endpoint from IP address {peer_addr} was denied. Access to the metrics endpoint has not been configured."
             );
         } else {
             let allowed_nets = allowlist.iter().map(|net| format!("\"{net}\"")).join(", ");
-            log::debug!(
+            tracing::debug!(
                 "An attempt to access the metrics endpoint from IP address {peer_addr} was denied. Access allowed from: {allowed_nets}."
             );
         }

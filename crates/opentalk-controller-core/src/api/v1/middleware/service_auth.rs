@@ -87,7 +87,7 @@ where
         let auth = match Authorization::<Bearer>::parse(&req) {
             Ok(a) => a,
             Err(e) => {
-                log::warn!("Unable to parse access token, {}", Report::from_error(e));
+                tracing::warn!("Unable to parse access token, {}", Report::from_error(e));
                 let error = ApiError::unauthorized()
                     .with_message("Unable to parse access token")
                     .with_www_authenticate(AuthenticationError::InvalidAccessToken);
