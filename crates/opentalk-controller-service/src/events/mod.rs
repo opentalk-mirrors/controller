@@ -88,8 +88,8 @@ async fn enrich_invitees_from_user_search(
             if let Some(user) = user_for_email {
                 let profile_details = UnregisteredUser {
                     email: profile_details.email,
-                    firstname: user.first_name,
-                    lastname: user.last_name,
+                    firstname: user.first_name.unwrap_or_default(),
+                    lastname: user.last_name.unwrap_or_default(),
                     avatar_url: profile_details.avatar_url,
                 };
                 EventInvitee {
@@ -190,8 +190,8 @@ async fn enrich_from_user_search(
         if let Some(keycloak_user) = keycloak_user {
             MailRecipient::Unregistered(UnregisteredMailRecipient {
                 email: recipient.email,
-                first_name: keycloak_user.first_name,
-                last_name: keycloak_user.last_name,
+                first_name: keycloak_user.first_name.unwrap_or_default(),
+                last_name: keycloak_user.last_name.unwrap_or_default(),
             })
         } else {
             MailRecipient::External(recipient)

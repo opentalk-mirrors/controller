@@ -272,8 +272,8 @@ impl ControllerBackend {
 
                     GetFindResponseEntry::Unregistered(UnregisteredUser {
                         email: kc_user.email,
-                        firstname: kc_user.first_name,
-                        lastname: kc_user.last_name,
+                        firstname: kc_user.first_name.unwrap_or_default(),
+                        lastname: kc_user.last_name.unwrap_or_default(),
                         avatar_url,
                     })
                 }))
