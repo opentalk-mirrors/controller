@@ -128,6 +128,14 @@ Handles the raising hand functionality
 
 This module does not provide any configurable features.
 
+## Module `reaction`
+
+Handles emoji reactions
+
+### Features
+
+This module does not provide any configurable features.
+
 ## Module `recording`
 
 Handles recording functionality.
@@ -226,6 +234,7 @@ meeting_report: []
 moderation: []
 polls: []
 raise_hands: []
+reaction: []
 recording: ["record", "stream"]
 shared_folder: []
 subroom_audio: []
