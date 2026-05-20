@@ -14,11 +14,11 @@ use chrono::DateTime;
 use lapin::BasicProperties;
 use lapin_pool::{RabbitMqChannel, RabbitMqPool};
 use opentalk_controller_settings::Settings;
-use opentalk_inventory::{Event, EventException, EventExceptionKind, Room, RoomSipConfig, User};
+use opentalk_inventory::{
+    Event, EventException, EventExceptionKind, Room, RoomSipConfig, User, utils::is_call_in_allowed,
+};
 use opentalk_mail_worker_protocol::{MailTask, v1};
 use opentalk_types_common::{
-    features::CALL_IN_FEATURE_ID,
-    modules::CORE_MODULE_ID,
     shared_folders::SharedFolder,
     streaming::RoomStreamingTarget,
     tariffs::TariffResource,
@@ -138,8 +138,7 @@ fn to_event(
 
     let mut call_in = None;
 
-    if room_tariff.has_feature_enabled(&CORE_MODULE_ID, &CALL_IN_FEATURE_ID)
-        && !room.e2e_encryption
+    if is_call_in_allowed(room_tariff, &room)
         && let (Some(call_in_settings), Some(sip_config)) = (&settings.call_in, sip_config)
     {
         call_in = Some(v1::CallIn {

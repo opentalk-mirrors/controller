@@ -23,7 +23,7 @@ use opentalk_inventory::{
     Inventory, InventoryProvider, NewEvent, NewEventDate, NewEventRecurrence, NewRoom,
     NewRoomSipConfig, Room, RoomSipConfig, Tariff, Tenant, UpdateEvent, UpdateEventDate,
     UpdateEventRecurrence, UpdateEventTrainingParticipationReportParameterSet, UpdateRoom, User,
-    transaction,
+    transaction, utils::is_call_in_allowed,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_roomserver_types::room_parameters_patch::RoomParametersPatch;
@@ -42,8 +42,7 @@ use opentalk_types_api_v1::{
 };
 use opentalk_types_common::{
     events::{EventDescription, EventId, EventTitle, invites::EventInviteStatus},
-    features::{CALL_IN_FEATURE_ID, GUESTS_ALLOWED_MODULE_FEATURE_ID},
-    modules::DEFAULT_MODULE_ID,
+    features::GUESTS_ALLOWED_MODULE_FEATURE_ID,
     pagination::{ItemCount, Page, PageSize},
     rooms::{GuestAccess, RoomPassword},
     shared_folders::SharedFolder,
@@ -1360,13 +1359,9 @@ impl EventRoomInfoExt for EventRoomInfo {
         sip_config: Option<&RoomSipConfig>,
         tariff: &TariffResource,
     ) -> Self {
-        let call_in_feature_is_enabled = tariff
-            .has_feature_enabled(&DEFAULT_MODULE_ID, &CALL_IN_FEATURE_ID)
-            && !room.e2e_encryption;
-
         let mut call_in = None;
 
-        if call_in_feature_is_enabled
+        if is_call_in_allowed(tariff, room)
             && let (Some(call_in_config), Some(sip_config)) = (&settings.call_in, sip_config)
         {
             call_in = Some(CallInInfo {

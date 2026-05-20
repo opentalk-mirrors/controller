@@ -257,15 +257,9 @@ impl ControllerBackend {
             Some(event) => {
                 let call_in_tel = settings.call_in.as_ref().map(|call_in| call_in.tel.clone());
 
-                let event_info = build_event_info(
-                    inventory.as_mut(),
-                    call_in_tel,
-                    *room_id,
-                    room.e2e_encryption,
-                    event,
-                    &tariff,
-                )
-                .await?;
+                let event_info =
+                    build_event_info(inventory.as_mut(), call_in_tel, &room, event, &tariff)
+                        .await?;
 
                 Ok(GetRoomEventResponseBody(event_info))
             }
