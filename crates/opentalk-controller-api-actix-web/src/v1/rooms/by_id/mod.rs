@@ -63,6 +63,7 @@ pub mod tariff;
     ),
     security(
         ("BearerAuth" = []),
+        ("InviteCode" = []),
     ),
 )]
 #[get("/rooms/{room_id}")]
