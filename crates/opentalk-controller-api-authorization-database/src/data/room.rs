@@ -8,7 +8,9 @@ use opentalk_controller_api_authorization::authorization::{
     AccessMethod, Admission, Subject, SubjectCollection,
 };
 use opentalk_types_common::{
-    events::invites::InviteRole, rooms::invite_codes::InviteCode, users::UserId,
+    events::invites::InviteRole,
+    rooms::{GuestAccess, invite_codes::InviteCode},
+    users::UserId,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -16,14 +18,16 @@ pub struct Room {
     pub owner: UserId,
     pub invited_users: BTreeMap<UserId, InviteRole>,
     pub invite_codes: BTreeSet<InviteCode>,
+    pub guest_access: GuestAccess,
 }
 
 impl Room {
-    pub fn new(owner: UserId) -> Self {
+    pub fn new(owner: UserId, guest_access: GuestAccess) -> Self {
         Self {
             owner,
             invited_users: BTreeMap::new(),
             invite_codes: BTreeSet::new(),
+            guest_access,
         }
     }
 
@@ -41,6 +45,12 @@ impl Room {
 
     pub fn remove_invite_code(&mut self, invite_code: &InviteCode) {
         let _ = self.invite_codes.remove(invite_code);
+    }
+
+    pub fn update_room_configuration(&mut self, guest_access: &Option<GuestAccess>) {
+        if let Some(guest_access) = guest_access {
+            self.guest_access = *guest_access;
+        }
     }
 
     pub fn authorize(
@@ -62,6 +72,7 @@ impl Room {
 
         // Invite codes are only allowed to read
         if method.is_read_only()
+            && !self.guest_access.is_disabled()
             && authenticated_subjects.contains_any_invite_code(&self.invite_codes)
         {
             return Admission::Allowed;

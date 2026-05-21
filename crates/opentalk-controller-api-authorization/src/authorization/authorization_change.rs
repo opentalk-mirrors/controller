@@ -6,7 +6,7 @@ use std::collections::BTreeSet;
 
 use opentalk_types_common::{
     events::{EventId, invites::InviteRole},
-    rooms::{RoomId, invite_codes::InviteCode},
+    rooms::{GuestAccess, RoomId, invite_codes::InviteCode},
     users::{GroupId, UserId},
 };
 
@@ -58,6 +58,9 @@ pub enum AuthorizationChange {
 
         /// The id of the user that created the room.
         creator: UserId,
+
+        /// The guest access of the room.
+        guest_access: GuestAccess,
     },
 
     /// Delete a room
@@ -137,6 +140,15 @@ pub enum AuthorizationChange {
         /// The invite code that should be removed from the room.
         invite_code: InviteCode,
     },
+
+    /// Update the configuration of a room.
+    UpdateRoomConfiguration {
+        /// The room for which the guest access should be patched.
+        room: RoomId,
+
+        /// The new guest access for the room.
+        guest_access: Option<GuestAccess>,
+    },
 }
 
 #[cfg(all(test, feature = "serde"))]
@@ -145,7 +157,7 @@ mod serde_tests {
 
     use opentalk_types_common::{
         events::{EventId, invites::InviteRole},
-        rooms::{RoomId, invite_codes::InviteCode},
+        rooms::{GuestAccess, RoomId, invite_codes::InviteCode},
         users::{GroupId, UserId},
     };
     use pretty_assertions::assert_eq;
@@ -252,12 +264,14 @@ mod serde_tests {
         let c = AuthorizationChange::CreateRoom {
             room: RoomId::from_u128(0x3c9_2f84_79a4_3875),
             creator: UserId::from_u128(0x11335577),
+            guest_access: GuestAccess::DirectAccess,
         };
 
         let json = json!({
             "change": "create_room",
             "room": "00000000-0000-0000-03c9-2f8479a43875",
             "creator": "00000000-0000-0000-0000-000011335577",
+            "guest_access": "direct_access",
         });
 
         let serialized = serde_json::to_value(c.clone()).expect("Must be serializable");
@@ -463,6 +477,27 @@ mod serde_tests {
             "change": "remove_invite_code_from_room",
             "invite_code": "00000000-0000-0000-0000-000011335577",
             "room": "00000000-0000-0000-0000-000000987654",
+        });
+
+        let serialized = serde_json::to_value(c.clone()).expect("Must be serializable");
+        assert_eq!(serialized, json);
+
+        let deserialized: AuthorizationChange =
+            serde_json::from_value(json).expect("Must be deserializable");
+        assert_eq!(deserialized, c);
+    }
+
+    #[test]
+    fn update_room_configuration() {
+        let c = AuthorizationChange::UpdateRoomConfiguration {
+            room: RoomId::from_u128(0x987654),
+            guest_access: Some(GuestAccess::WaitingRoom),
+        };
+
+        let json = json!({
+           "change": "update_room_configuration",
+           "room": "00000000-0000-0000-0000-000000987654",
+           "guest_access": "waiting_room",
         });
 
         let serialized = serde_json::to_value(c.clone()).expect("Must be serializable");

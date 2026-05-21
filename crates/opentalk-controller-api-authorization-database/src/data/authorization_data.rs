@@ -10,7 +10,7 @@ use opentalk_controller_api_authorization::authorization::{
 use opentalk_types_common::{
     assets::AssetId,
     events::{EventId, invites::InviteRole},
-    rooms::{RoomId, invite_codes::InviteCode},
+    rooms::{GuestAccess, RoomId, invite_codes::InviteCode},
     streaming::StreamingTargetId,
     users::{GroupId, UserId},
 };
@@ -151,8 +151,12 @@ impl AuthorizationData {
                 AuthorizationChange::DeleteEvent { event } => {
                     self.delete_event(event);
                 }
-                AuthorizationChange::CreateRoom { room, creator } => {
-                    self.create_room(room, creator);
+                AuthorizationChange::CreateRoom {
+                    room,
+                    creator,
+                    guest_access,
+                } => {
+                    self.create_room(room, creator, guest_access);
                 }
                 AuthorizationChange::DeleteRoom { room } => {
                     self.delete_room(room);
@@ -180,6 +184,9 @@ impl AuthorizationData {
                 }
                 AuthorizationChange::RemoveInviteCodeFromRoom { room, invite_code } => {
                     self.remove_invite_code_from_room(room, invite_code);
+                }
+                AuthorizationChange::UpdateRoomConfiguration { room, guest_access } => {
+                    self.update_room_configuration(room, guest_access);
                 }
             }
         }
@@ -506,12 +513,12 @@ impl AuthorizationData {
         let _ = self.events.remove(event);
     }
 
-    fn create_room(&mut self, room: &RoomId, creator: &UserId) {
-        tracing::debug!("Adding room {room} with creator {creator} to authorization cache");
+    fn create_room(&mut self, room: &RoomId, creator: &UserId, guest_access: &GuestAccess) {
+        tracing::debug!(%room, %creator, ?guest_access, "Adding room to authorization cache");
         let entry = self
             .rooms
             .entry(*room)
-            .or_insert_with(|| Room::new(*creator));
+            .or_insert_with(|| Room::new(*creator, *guest_access));
 
         if &entry.owner != creator {
             tracing::warn!(
@@ -595,6 +602,14 @@ impl AuthorizationData {
     fn remove_invite_code_from_room(&mut self, room: &RoomId, invite_code: &InviteCode) {
         if let Some(room) = self.rooms.get_mut(room) {
             room.remove_invite_code(invite_code);
+        }
+    }
+
+    fn update_room_configuration(&mut self, room: &RoomId, guest_access: &Option<GuestAccess>) {
+        if let Some(room) = self.rooms.get_mut(room) {
+            room.update_room_configuration(guest_access);
+        } else {
+            tracing::warn!(%room, ?guest_access, "Attempted to update configuration for a room which does not exist");
         }
     }
 }

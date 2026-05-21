@@ -17,14 +17,17 @@ pub(super) async fn load_authorization_changes(
         .transaction(async |conn| {
             let mut auth_changes = Vec::new();
 
-            let room_and_creator_ids =
-                opentalk_db_storage::queries::rooms::get_all_room_and_creator_ids(conn).await?;
+            let room_id_and_auth_props =
+                opentalk_db_storage::queries::rooms::get_all_room_ids_with_auth_properties(conn)
+                    .await?;
 
-            auth_changes.extend(
-                room_and_creator_ids
-                    .into_iter()
-                    .map(|(room, creator)| AuthorizationChange::CreateRoom { room, creator }),
-            );
+            auth_changes.extend(room_id_and_auth_props.into_iter().map(
+                |(room, creator, guest_access)| AuthorizationChange::CreateRoom {
+                    room,
+                    creator,
+                    guest_access,
+                },
+            ));
 
             let event_and_creator_ids =
                 opentalk_db_storage::queries::events::get_all_event_and_creator_ids(conn).await?;

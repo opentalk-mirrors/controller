@@ -22,8 +22,8 @@ use opentalk_inventory::{
     EventTrainingParticipationReportParameterSet, GetEventExceptionsCursor, GetEventsCursor,
     Inventory, InventoryProvider, NewEvent, NewEventDate, NewEventRecurrence, NewRoom,
     NewRoomSipConfig, Room, RoomSipConfig, Tariff, Tenant, UpdateEvent, UpdateEventDate,
-    UpdateEventRecurrence, UpdateEventTrainingParticipationReportParameterSet, UpdateRoom, User,
-    transaction, utils::is_call_in_allowed,
+    UpdateEventRecurrence, UpdateEventTrainingParticipationReportParameterSet, User, transaction,
+    utils::is_call_in_allowed,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_roomserver_types::room_parameters_patch::RoomParametersPatch;
@@ -221,6 +221,7 @@ impl ControllerBackend {
                 AuthorizationChange::CreateRoom {
                     room: event_resource.room.id,
                     creator: event_resource.created_by.id,
+                    guest_access: event.guest_access.unwrap_or_default(),
                 },
             ])
             .await
@@ -774,26 +775,21 @@ impl ControllerBackend {
 
         let tariff = self.build_tariff_resource(&tariff)?;
 
+        // Update the event's room if at least one of the fields is set
         let room = if patch.password.is_some()
             || patch.waiting_room.is_some()
             || patch.guest_access.is_some()
             || patch.e2e_encryption.is_some()
         {
-            if patch.guest_access != Some(GuestAccess::Disabled) {
-                tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
-            }
-            // Update the event's room if at least one of the fields is set
-            inventory
-                .update_room(
-                    event.room,
-                    UpdateRoom {
-                        password: patch.password.clone(),
-                        waiting_room: patch.waiting_room,
-                        guest_access: patch.guest_access,
-                        e2e_encryption: patch.e2e_encryption,
-                    },
-                )
-                .await?
+            self.update_room(
+                current_user.id,
+                event.room,
+                patch.password.clone(),
+                patch.waiting_room,
+                patch.guest_access,
+                patch.e2e_encryption,
+            )
+            .await?
         } else {
             room
         };

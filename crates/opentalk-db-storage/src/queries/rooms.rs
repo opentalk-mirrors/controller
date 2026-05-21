@@ -9,7 +9,7 @@ use diesel_async::RunQueryDsl;
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{
     pagination::{ItemCount, Page, PageSize},
-    rooms::RoomId,
+    rooms::{GuestAccess, RoomId},
     users::UserId,
 };
 
@@ -138,14 +138,14 @@ pub async fn get_tariff(conn: &mut DbConnection, room: Room) -> Result<Tariff> {
     db::queries::tariffs::get_tariff(conn, user.tariff_id).await
 }
 
-/// Select all room ids and their creator
+/// Select all room ids with all properties relevant for authorization
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_all_room_and_creator_ids(
+pub async fn get_all_room_ids_with_auth_properties(
     conn: &mut DbConnection,
-) -> Result<Vec<(RoomId, UserId)>> {
+) -> Result<Vec<(RoomId, UserId, GuestAccess)>> {
     rooms::table
-        .select((rooms::id, rooms::created_by))
-        .load::<(RoomId, UserId)>(conn)
+        .select((rooms::id, rooms::created_by, rooms::guest_access))
+        .load::<(RoomId, UserId, GuestAccess)>(conn)
         .await
         .map_err(DatabaseError::from)
 }

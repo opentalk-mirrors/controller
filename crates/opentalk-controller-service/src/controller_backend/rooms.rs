@@ -114,6 +114,7 @@ impl ControllerBackend {
             .apply_change(&AuthorizationChange::CreateRoom {
                 room: room_resource.id,
                 creator: current_user.id,
+                guest_access: room_resource.guest_access,
             })
             .await
             .map_err(|e| {
@@ -133,15 +134,47 @@ impl ControllerBackend {
         guest_access: Option<GuestAccess>,
         e2e_encryption: Option<bool>,
     ) -> Result<RoomResource, CaptureApiError> {
-        let settings = self.settings_provider.get();
-        let mut inventory = self.inventory_provider.get_inventory().await?;
+        let room = self
+            .update_room(
+                current_user.id,
+                room_id,
+                password,
+                waiting_room,
+                guest_access,
+                e2e_encryption,
+            )
+            .await?;
 
-        let tariff = self.get_tariff_for_user(current_user.id).await?;
+        let settings = self.settings_provider.get();
+        let room_resource = RoomResource {
+            id: room.id,
+            created_by: current_user.to_public_user_profile(&settings),
+            created_at: room.created_at,
+            password: room.password,
+            waiting_room: room.waiting_room,
+            guest_access: room.guest_access,
+        };
+
+        Ok(room_resource)
+    }
+
+    /// Updates a room in the database and applies the necessary changes in the authorization middleware.
+    pub(crate) async fn update_room(
+        &self,
+        created_by: UserId,
+        room_id: RoomId,
+        password: Option<Option<RoomPassword>>,
+        waiting_room: Option<bool>,
+        guest_access: Option<GuestAccess>,
+        e2e_encryption: Option<bool>,
+    ) -> Result<Room, CaptureApiError> {
+        let tariff = self.get_tariff_for_user(created_by).await?;
 
         if guest_access != Some(GuestAccess::Disabled) {
             tariff.require_feature(&features::GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
         }
 
+        let mut inventory = self.inventory_provider.get_inventory().await?;
         let room = inventory
             .update_room(
                 room_id,
@@ -154,16 +187,14 @@ impl ControllerBackend {
             )
             .await?;
 
-        let room_resource = RoomResource {
-            id: room.id,
-            created_by: current_user.to_public_user_profile(&settings),
-            created_at: room.created_at,
-            password: room.password,
-            waiting_room: room.waiting_room,
-            guest_access: room.guest_access,
-        };
+        self.authorizer
+            .apply_change(&AuthorizationChange::UpdateRoomConfiguration {
+                room: room_id,
+                guest_access,
+            })
+            .await?;
 
-        Ok(room_resource)
+        Ok(room)
     }
 
     pub(crate) async fn delete_room(
