@@ -139,13 +139,23 @@ pub async fn get_tariff(conn: &mut DbConnection, room: Room) -> Result<Tariff> {
 }
 
 /// Select all room ids with all properties relevant for authorization
+///
+/// * Room id
+/// * Creator user id
+/// * Guest access
+/// * E2E encryption
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_room_ids_with_auth_properties(
     conn: &mut DbConnection,
-) -> Result<Vec<(RoomId, UserId, GuestAccess)>> {
+) -> Result<Vec<(RoomId, UserId, GuestAccess, bool)>> {
     rooms::table
-        .select((rooms::id, rooms::created_by, rooms::guest_access))
-        .load::<(RoomId, UserId, GuestAccess)>(conn)
+        .select((
+            rooms::id,
+            rooms::created_by,
+            rooms::guest_access,
+            rooms::e2e_encryption,
+        ))
+        .load::<(RoomId, UserId, GuestAccess, bool)>(conn)
         .await
         .map_err(DatabaseError::from)
 }

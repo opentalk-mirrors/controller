@@ -115,6 +115,7 @@ impl ControllerBackend {
                 room: room_resource.id,
                 creator: current_user.id,
                 guest_access: room_resource.guest_access,
+                e2e_encryption,
             })
             .await
             .map_err(|e| {
@@ -191,6 +192,7 @@ impl ControllerBackend {
             .apply_change(&AuthorizationChange::UpdateRoomConfiguration {
                 room: room_id,
                 guest_access,
+                e2e_encryption,
             })
             .await?;
 

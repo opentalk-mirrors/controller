@@ -19,15 +19,17 @@ pub struct Room {
     pub invited_users: BTreeMap<UserId, InviteRole>,
     pub invite_codes: BTreeSet<InviteCode>,
     pub guest_access: GuestAccess,
+    pub e2e_encryption: bool,
 }
 
 impl Room {
-    pub fn new(owner: UserId, guest_access: GuestAccess) -> Self {
+    pub fn new(owner: UserId, guest_access: GuestAccess, e2e_encryption: bool) -> Self {
         Self {
             owner,
             invited_users: BTreeMap::new(),
             invite_codes: BTreeSet::new(),
             guest_access,
+            e2e_encryption,
         }
     }
 
@@ -47,9 +49,17 @@ impl Room {
         let _ = self.invite_codes.remove(invite_code);
     }
 
-    pub fn update_room_configuration(&mut self, guest_access: &Option<GuestAccess>) {
+    pub fn update_room_configuration(
+        &mut self,
+        guest_access: &Option<GuestAccess>,
+        e2e_encryption: &Option<bool>,
+    ) {
         if let Some(guest_access) = guest_access {
             self.guest_access = *guest_access;
+        }
+
+        if let Some(e2e_encryption) = e2e_encryption {
+            self.e2e_encryption = *e2e_encryption;
         }
     }
 
@@ -73,6 +83,7 @@ impl Room {
         // Invite codes are only allowed to read
         if method.is_read_only()
             && !self.guest_access.is_disabled()
+            && !self.e2e_encryption
             && authenticated_subjects.contains_any_invite_code(&self.invite_codes)
         {
             return Admission::Allowed;

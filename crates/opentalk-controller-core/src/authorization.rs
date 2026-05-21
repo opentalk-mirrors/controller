@@ -22,10 +22,11 @@ pub(super) async fn load_authorization_changes(
                     .await?;
 
             auth_changes.extend(room_id_and_auth_props.into_iter().map(
-                |(room, creator, guest_access)| AuthorizationChange::CreateRoom {
+                |(room, creator, guest_access, e2e_encryption)| AuthorizationChange::CreateRoom {
                     room,
                     creator,
                     guest_access,
+                    e2e_encryption,
                 },
             ));
 

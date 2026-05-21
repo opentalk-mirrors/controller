@@ -61,6 +61,9 @@ pub enum AuthorizationChange {
 
         /// The guest access of the room.
         guest_access: GuestAccess,
+
+        /// Whether the room is end-to-end encrypted.
+        e2e_encryption: bool,
     },
 
     /// Delete a room
@@ -148,6 +151,9 @@ pub enum AuthorizationChange {
 
         /// The new guest access for the room.
         guest_access: Option<GuestAccess>,
+
+        /// The new end-to-end encryption setting for the room.
+        e2e_encryption: Option<bool>,
     },
 }
 
@@ -265,12 +271,14 @@ mod serde_tests {
             room: RoomId::from_u128(0x3c9_2f84_79a4_3875),
             creator: UserId::from_u128(0x11335577),
             guest_access: GuestAccess::DirectAccess,
+            e2e_encryption: false,
         };
 
         let json = json!({
             "change": "create_room",
             "room": "00000000-0000-0000-03c9-2f8479a43875",
             "creator": "00000000-0000-0000-0000-000011335577",
+            "e2e_encryption": false,
             "guest_access": "direct_access",
         });
 
@@ -492,12 +500,14 @@ mod serde_tests {
         let c = AuthorizationChange::UpdateRoomConfiguration {
             room: RoomId::from_u128(0x987654),
             guest_access: Some(GuestAccess::WaitingRoom),
+            e2e_encryption: Some(false),
         };
 
         let json = json!({
            "change": "update_room_configuration",
            "room": "00000000-0000-0000-0000-000000987654",
            "guest_access": "waiting_room",
+           "e2e_encryption": false,
         });
 
         let serialized = serde_json::to_value(c.clone()).expect("Must be serializable");

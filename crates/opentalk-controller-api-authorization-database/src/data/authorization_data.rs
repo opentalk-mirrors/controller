@@ -155,8 +155,9 @@ impl AuthorizationData {
                     room,
                     creator,
                     guest_access,
+                    e2e_encryption,
                 } => {
-                    self.create_room(room, creator, guest_access);
+                    self.create_room(room, creator, guest_access, e2e_encryption);
                 }
                 AuthorizationChange::DeleteRoom { room } => {
                     self.delete_room(room);
@@ -185,8 +186,12 @@ impl AuthorizationData {
                 AuthorizationChange::RemoveInviteCodeFromRoom { room, invite_code } => {
                     self.remove_invite_code_from_room(room, invite_code);
                 }
-                AuthorizationChange::UpdateRoomConfiguration { room, guest_access } => {
-                    self.update_room_configuration(room, guest_access);
+                AuthorizationChange::UpdateRoomConfiguration {
+                    room,
+                    guest_access,
+                    e2e_encryption,
+                } => {
+                    self.update_room_configuration(room, guest_access, e2e_encryption);
                 }
             }
         }
@@ -513,12 +518,18 @@ impl AuthorizationData {
         let _ = self.events.remove(event);
     }
 
-    fn create_room(&mut self, room: &RoomId, creator: &UserId, guest_access: &GuestAccess) {
-        tracing::debug!(%room, %creator, ?guest_access, "Adding room to authorization cache");
+    fn create_room(
+        &mut self,
+        room: &RoomId,
+        creator: &UserId,
+        guest_access: &GuestAccess,
+        e2e_encryption: &bool,
+    ) {
+        tracing::debug!(%room, %creator, ?guest_access, e2e_encryption, "Adding room to authorization cache");
         let entry = self
             .rooms
             .entry(*room)
-            .or_insert_with(|| Room::new(*creator, *guest_access));
+            .or_insert_with(|| Room::new(*creator, *guest_access, *e2e_encryption));
 
         if &entry.owner != creator {
             tracing::warn!(
@@ -605,11 +616,21 @@ impl AuthorizationData {
         }
     }
 
-    fn update_room_configuration(&mut self, room: &RoomId, guest_access: &Option<GuestAccess>) {
+    fn update_room_configuration(
+        &mut self,
+        room: &RoomId,
+        guest_access: &Option<GuestAccess>,
+        e2e_encryption: &Option<bool>,
+    ) {
         if let Some(room) = self.rooms.get_mut(room) {
-            room.update_room_configuration(guest_access);
+            room.update_room_configuration(guest_access, e2e_encryption);
         } else {
-            tracing::warn!(%room, ?guest_access, "Attempted to update configuration for a room which does not exist");
+            tracing::warn!(
+                %room,
+                ?guest_access,
+                e2e_encryption,
+                "Attempted to update configuration for a room which does not exist"
+            );
         }
     }
 }

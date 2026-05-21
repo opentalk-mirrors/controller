@@ -222,6 +222,7 @@ impl ControllerBackend {
                     room: event_resource.room.id,
                     creator: event_resource.created_by.id,
                     guest_access: event.guest_access.unwrap_or_default(),
+                    e2e_encryption: event.e2e_encryption,
                 },
             ])
             .await
