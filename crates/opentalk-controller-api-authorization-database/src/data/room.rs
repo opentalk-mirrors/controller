@@ -18,6 +18,7 @@ use opentalk_types_common::{
 pub struct Room {
     pub owner: UserId,
     pub invited_users: BTreeMap<UserId, InviteRole>,
+    pub is_guest_feature_enabled: bool,
     // The active flag is not stored for invite codes, as the invite code is removed when it is deactivated.
     pub invite_codes: BTreeMap<InviteCode, Option<Timestamp>>,
     pub guest_access: GuestAccess,
@@ -25,10 +26,16 @@ pub struct Room {
 }
 
 impl Room {
-    pub fn new(owner: UserId, guest_access: GuestAccess, e2e_encryption: bool) -> Self {
+    pub fn new(
+        owner: UserId,
+        is_guest_feature_enabled: bool,
+        guest_access: GuestAccess,
+        e2e_encryption: bool,
+    ) -> Self {
         Self {
             owner,
             invited_users: BTreeMap::new(),
+            is_guest_feature_enabled,
             invite_codes: BTreeMap::new(),
             guest_access,
             e2e_encryption,
@@ -84,6 +91,7 @@ impl Room {
 
         // Invite codes are only allowed to read
         if method.is_read_only()
+            && self.is_guest_feature_enabled
             && !self.guest_access.is_disabled()
             && !self.e2e_encryption
             && authenticated_subjects.contains_any_valid_invite_code(&self.invite_codes)

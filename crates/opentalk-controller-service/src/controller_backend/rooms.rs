@@ -17,7 +17,9 @@ use opentalk_types_api_v1::{
     rooms::{GetRoomsResponseBody, RoomResource, by_room_id::GetRoomEventResponseBody},
 };
 use opentalk_types_common::{
-    features::{self, GUESTS_ALLOWED_FEATURE_ID},
+    features::{
+        CALL_IN_MODULE_FEATURE_ID, GUESTS_ALLOWED_FEATURE_ID, GUESTS_ALLOWED_MODULE_FEATURE_ID,
+    },
     modules::CORE_MODULE_ID,
     pagination::ItemCount,
     rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
@@ -74,12 +76,12 @@ impl ControllerBackend {
         let tariff = self.get_tariff_for_user(current_user.id).await?;
 
         if enable_sip {
-            tariff.require_feature(&features::CALL_IN_MODULE_FEATURE_ID)?;
+            tariff.require_feature(&CALL_IN_MODULE_FEATURE_ID)?;
         }
 
         let guest_access = guest_access.unwrap_or(GuestAccess::WaitingRoom);
         if guest_access != GuestAccess::Disabled {
-            tariff.require_feature(&features::GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
+            tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
         }
 
         let room = inventory
@@ -110,10 +112,15 @@ impl ControllerBackend {
             guest_access: room.guest_access,
         };
 
+        let is_guest_feature_enabled = tariff.has_feature_enabled(
+            &GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
+            &GUESTS_ALLOWED_MODULE_FEATURE_ID.feature,
+        );
         self.authorizer
             .apply_change(&AuthorizationChange::CreateRoom {
                 room: room_resource.id,
                 creator: current_user.id,
+                is_guest_feature_enabled,
                 guest_access: room_resource.guest_access,
                 e2e_encryption,
             })
@@ -172,7 +179,7 @@ impl ControllerBackend {
         let tariff = self.get_tariff_for_user(created_by).await?;
 
         if guest_access != Some(GuestAccess::Disabled) {
-            tariff.require_feature(&features::GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
+            tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
         }
 
         let mut inventory = self.inventory_provider.get_inventory().await?;

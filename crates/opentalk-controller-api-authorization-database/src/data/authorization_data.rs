@@ -155,10 +155,17 @@ impl AuthorizationData {
                 AuthorizationChange::CreateRoom {
                     room,
                     creator,
+                    is_guest_feature_enabled,
                     guest_access,
                     e2e_encryption,
                 } => {
-                    self.create_room(room, creator, guest_access, e2e_encryption);
+                    self.create_room(
+                        room,
+                        creator,
+                        is_guest_feature_enabled,
+                        guest_access,
+                        e2e_encryption,
+                    );
                 }
                 AuthorizationChange::DeleteRoom { room } => {
                     self.delete_room(room);
@@ -198,6 +205,10 @@ impl AuthorizationData {
                 } => {
                     self.update_room_configuration(room, guest_access, e2e_encryption);
                 }
+                AuthorizationChange::UpdateUserTariffAssignment {
+                    user,
+                    is_guest_feature_enabled,
+                } => self.update_user_tariff_assignment(user, is_guest_feature_enabled),
             }
         }
     }
@@ -527,14 +538,26 @@ impl AuthorizationData {
         &mut self,
         room: &RoomId,
         creator: &UserId,
+        is_guest_feature_enabled: &bool,
         guest_access: &GuestAccess,
         e2e_encryption: &bool,
     ) {
-        tracing::debug!(%room, %creator, ?guest_access, e2e_encryption, "Adding room to authorization cache");
-        let entry = self
-            .rooms
-            .entry(*room)
-            .or_insert_with(|| Room::new(*creator, *guest_access, *e2e_encryption));
+        tracing::debug!(
+            %room,
+            %creator,
+            is_guest_feature_enabled,
+            ?guest_access,
+            e2e_encryption,
+            "Adding room to authorization cache"
+        );
+        let entry = self.rooms.entry(*room).or_insert_with(|| {
+            Room::new(
+                *creator,
+                *is_guest_feature_enabled,
+                *guest_access,
+                *e2e_encryption,
+            )
+        });
 
         if &entry.owner != creator {
             tracing::warn!(
@@ -641,6 +664,14 @@ impl AuthorizationData {
                 e2e_encryption,
                 "Attempted to update configuration for a room which does not exist"
             );
+        }
+    }
+
+    fn update_user_tariff_assignment(&mut self, owner: &UserId, is_guest_feature_enabled: &bool) {
+        for (_, room) in self.rooms.iter_mut() {
+            if room.owner == *owner {
+                room.is_guest_feature_enabled = *is_guest_feature_enabled;
+            }
         }
     }
 }

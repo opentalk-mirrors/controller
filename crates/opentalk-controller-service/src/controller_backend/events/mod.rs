@@ -212,6 +212,10 @@ impl ControllerBackend {
 
         drop(inventory);
 
+        let is_guest_feature_enabled = tariff.has_feature_enabled(
+            &GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
+            &GUESTS_ALLOWED_MODULE_FEATURE_ID.feature,
+        );
         self.authorizer
             .apply_changes(&[
                 AuthorizationChange::CreateEvent {
@@ -221,6 +225,7 @@ impl ControllerBackend {
                 AuthorizationChange::CreateRoom {
                     room: event_resource.room.id,
                     creator: event_resource.created_by.id,
+                    is_guest_feature_enabled,
                     guest_access: event.guest_access.unwrap_or_default(),
                     e2e_encryption: event.e2e_encryption,
                 },

@@ -7,6 +7,7 @@ use std::collections::BTreeSet;
 use diesel_async::AsyncConnection as _;
 use opentalk_controller_api_authorization::authorization::AuthorizationChange;
 use opentalk_database::{DatabaseError, Db};
+use opentalk_db_storage::queries::rooms::RoomAuthProperties;
 
 pub(super) async fn load_authorization_changes(
     db: &Db,
@@ -22,11 +23,20 @@ pub(super) async fn load_authorization_changes(
                     .await?;
 
             auth_changes.extend(room_id_and_auth_props.into_iter().map(
-                |(room, creator, guest_access, e2e_encryption)| AuthorizationChange::CreateRoom {
-                    room,
-                    creator,
-                    guest_access,
-                    e2e_encryption,
+                |RoomAuthProperties {
+                     room_id,
+                     created_by,
+                     guest_access,
+                     e2e_encryption,
+                     guests_allowed_by_tariff,
+                 }| {
+                    AuthorizationChange::CreateRoom {
+                        room: room_id,
+                        creator: created_by,
+                        is_guest_feature_enabled: guests_allowed_by_tariff,
+                        guest_access,
+                        e2e_encryption,
+                    }
                 },
             ));
 

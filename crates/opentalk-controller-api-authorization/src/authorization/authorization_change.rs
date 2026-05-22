@@ -60,6 +60,9 @@ pub enum AuthorizationChange {
         /// The id of the user that created the room.
         creator: UserId,
 
+        /// Whether the guest feature is enabled in the tariff of the creator.
+        is_guest_feature_enabled: bool,
+
         /// The guest access of the room.
         guest_access: GuestAccess,
 
@@ -158,6 +161,15 @@ pub enum AuthorizationChange {
 
         /// The new end-to-end encryption setting for the room.
         e2e_encryption: Option<bool>,
+    },
+
+    /// Update rooms on changes to the owner's tariff assignment.
+    UpdateUserTariffAssignment {
+        /// The user who's tariff assignment has changed.
+        user: UserId,
+
+        /// `true` when the `core::guests_allowed` feature is enabled in the new tariff.
+        is_guest_feature_enabled: bool,
     },
 }
 
@@ -275,6 +287,7 @@ mod serde_tests {
         let c = AuthorizationChange::CreateRoom {
             room: RoomId::from_u128(0x3c9_2f84_79a4_3875),
             creator: UserId::from_u128(0x11335577),
+            is_guest_feature_enabled: true,
             guest_access: GuestAccess::DirectAccess,
             e2e_encryption: false,
         };
@@ -283,6 +296,7 @@ mod serde_tests {
             "change": "create_room",
             "room": "00000000-0000-0000-03c9-2f8479a43875",
             "creator": "00000000-0000-0000-0000-000011335577",
+            "is_guest_feature_enabled": true,
             "e2e_encryption": false,
             "guest_access": "direct_access",
         });
@@ -515,6 +529,27 @@ mod serde_tests {
            "room": "00000000-0000-0000-0000-000000987654",
            "guest_access": "waiting_room",
            "e2e_encryption": false,
+        });
+
+        let serialized = serde_json::to_value(c.clone()).expect("Must be serializable");
+        assert_eq!(serialized, json);
+
+        let deserialized: AuthorizationChange =
+            serde_json::from_value(json).expect("Must be deserializable");
+        assert_eq!(deserialized, c);
+    }
+
+    #[test]
+    fn update_user_tariff_assignment() {
+        let c = AuthorizationChange::UpdateUserTariffAssignment {
+            user: UserId::from_u128(0x11335577),
+            is_guest_feature_enabled: true,
+        };
+
+        let json = json!({
+           "change": "update_user_tariff_assignment",
+           "user": "00000000-0000-0000-0000-000011335577",
+           "is_guest_feature_enabled": true,
         });
 
         let serialized = serde_json::to_value(c.clone()).expect("Must be serializable");

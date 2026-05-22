@@ -30,7 +30,6 @@ snafu.workspace = true
 tokio = { workspace = true, features = ["sync"] }
 tracing.workspace = true
 
-
 [features]
 # TODO: this should be empty, only enabled for as long as no dependency uses the `serde` feature
 default = ["serde"]
