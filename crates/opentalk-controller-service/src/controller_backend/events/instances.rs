@@ -716,6 +716,7 @@ impl ControllerBackend {
                 .apply_change(&AuthorizationChange::AddInviteCodeToRoom {
                     room: room.id,
                     invite_code: invite_for_room.invite_code,
+                    expiration: invite_for_room.expiration,
                 })
                 .await
                 .map_err(|e| {

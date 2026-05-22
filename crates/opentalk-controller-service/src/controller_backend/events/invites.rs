@@ -881,6 +881,7 @@ async fn create_invite_to_non_matching_email(
                         .apply_change(&AuthorizationChange::AddInviteCodeToRoom {
                             room: room.id,
                             invite_code: invite.invite_code,
+                            expiration: invite.expiration,
                         })
                         .await
                         .map_err(|e| {

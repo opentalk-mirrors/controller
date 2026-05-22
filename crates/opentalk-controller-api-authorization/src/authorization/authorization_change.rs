@@ -7,6 +7,7 @@ use std::collections::BTreeSet;
 use opentalk_types_common::{
     events::{EventId, invites::InviteRole},
     rooms::{GuestAccess, RoomId, invite_codes::InviteCode},
+    time::Timestamp,
     users::{GroupId, UserId},
 };
 
@@ -133,6 +134,9 @@ pub enum AuthorizationChange {
 
         /// The invite code that should be added to the room.
         invite_code: InviteCode,
+
+        /// The optional expiration timestamp of the invite code.
+        expiration: Option<Timestamp>,
     },
 
     /// Remove an invite code from a room.
@@ -164,6 +168,7 @@ mod serde_tests {
     use opentalk_types_common::{
         events::{EventId, invites::InviteRole},
         rooms::{GuestAccess, RoomId, invite_codes::InviteCode},
+        time::Timestamp,
         users::{GroupId, UserId},
     };
     use pretty_assertions::assert_eq;
@@ -458,12 +463,14 @@ mod serde_tests {
         let c = AuthorizationChange::AddInviteCodeToRoom {
             invite_code: InviteCode::from_u128(0x11335577),
             room: RoomId::from_u128(0x987654),
+            expiration: Some(Timestamp::unix_epoch()),
         };
 
         let json = json!({
             "change": "add_invite_code_to_room",
             "invite_code": "00000000-0000-0000-0000-000011335577",
             "room": "00000000-0000-0000-0000-000000987654",
+            "expiration": "1970-01-01T00:00:00Z",
         });
 
         let serialized = serde_json::to_value(c.clone()).expect("Must be serializable");

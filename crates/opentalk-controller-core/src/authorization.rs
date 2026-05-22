@@ -59,6 +59,7 @@ pub(super) async fn load_authorization_changes(
                     .map(|invite| AuthorizationChange::AddInviteCodeToRoom {
                         room: invite.room,
                         invite_code: invite.id,
+                        expiration: invite.expiration.map(Into::into),
                     }),
             );
 

@@ -12,6 +12,7 @@ use opentalk_types_common::{
     events::{EventId, invites::InviteRole},
     rooms::{GuestAccess, RoomId, invite_codes::InviteCode},
     streaming::StreamingTargetId,
+    time::Timestamp,
     users::{GroupId, UserId},
 };
 
@@ -180,8 +181,12 @@ impl AuthorizationData {
                 AuthorizationChange::RemoveUserFromEvents { user, events } => {
                     self.remove_user_from_events(user, events);
                 }
-                AuthorizationChange::AddInviteCodeToRoom { room, invite_code } => {
-                    self.add_invite_code_to_room(room, invite_code);
+                AuthorizationChange::AddInviteCodeToRoom {
+                    room,
+                    invite_code: code,
+                    expiration,
+                } => {
+                    self.add_invite_code_to_room(room, code, expiration);
                 }
                 AuthorizationChange::RemoveInviteCodeFromRoom { room, invite_code } => {
                     self.remove_invite_code_from_room(room, invite_code);
@@ -602,9 +607,14 @@ impl AuthorizationData {
         }
     }
 
-    fn add_invite_code_to_room(&mut self, room: &RoomId, invite_code: &InviteCode) {
+    fn add_invite_code_to_room(
+        &mut self,
+        room: &RoomId,
+        invite_code: &InviteCode,
+        expiration: &Option<Timestamp>,
+    ) {
         if let Some(room) = self.rooms.get_mut(room) {
-            room.add_invite_code(invite_code);
+            room.add_invite_code(invite_code, expiration);
         } else {
             tracing::warn!("Atttempted to add invite code to room {room} which does not exist");
         }

@@ -55,6 +55,7 @@ impl ControllerBackend {
             .apply_change(&AuthorizationChange::AddInviteCodeToRoom {
                 room: room_id,
                 invite_code: invite.invite_code,
+                expiration: invite.expiration,
             })
             .await
             .map_err(|e| {
@@ -169,6 +170,7 @@ impl ControllerBackend {
         }
 
         let now = Timestamp::now();
+        let expiration = body.expiration.map(Into::into);
         let invite = inventory
             .update_room_invite(
                 room_id,
@@ -176,11 +178,20 @@ impl ControllerBackend {
                 UpdateRoomInvite {
                     updated_by: Some(current_user.id),
                     updated_at: Some(now),
-                    expiration: Some(body.expiration.map(Into::into)),
+                    expiration: Some(expiration),
                     active: None,
                     room: None,
                 },
             )
+            .await?;
+
+        // Overwrite the invite in the authorization database
+        self.authorizer
+            .apply_change(&AuthorizationChange::AddInviteCodeToRoom {
+                room: room_id,
+                invite_code,
+                expiration,
+            })
             .await?;
 
         let created_by = created_by.to_public_user_profile(&settings);
