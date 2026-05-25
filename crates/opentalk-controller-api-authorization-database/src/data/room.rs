@@ -92,12 +92,17 @@ impl Room {
             return Admission::Denied;
         }
 
-        // Attempt authorization against owner
+        if authenticated_subjects.contains_any_invite_code(&self.invite_codes) {
+            return Admission::Allowed;
+        }
+
         if authenticated_subjects.contains(&Subject::User(self.owner)) {
             return Admission::Allowed;
         }
 
-        if authenticated_subjects.contains_any_user_by_key(&self.invited_users) {
+        // A request from registered user which is not invited contains only Bearer token
+        // Invite code is in the request body. Therefore we need to allow any registered user here
+        if authenticated_subjects.contains_any_user() {
             return Admission::Allowed;
         }
 

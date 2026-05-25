@@ -4,8 +4,6 @@
 
 //! Provides room-related implementation
 
-use std::str::FromStr;
-
 use opentalk_controller_api_authorization::authorization::AuthorizationChange;
 use opentalk_controller_service_facade::{RequestUser, StartRoomError};
 use opentalk_controller_utils::{
@@ -14,7 +12,7 @@ use opentalk_controller_utils::{
 };
 use opentalk_inventory::{NewRoom, NewRoomSipConfig, Room, UpdateRoom, utils::build_event_info};
 use opentalk_types_api_v1::{
-    error::{ApiError, ERROR_CODE_INVALID_VALUE, ValidationErrorEntry},
+    error::ApiError,
     pagination::PagePaginationQuery,
     rooms::{GetRoomsResponseBody, RoomResource, by_room_id::GetRoomEventResponseBody},
 };
@@ -273,22 +271,16 @@ impl ControllerBackend {
     pub(crate) async fn authenticate_guest(
         &self,
         room_id: &RoomId,
-        invite_code: &str,
-        password: &Option<RoomPassword>,
+        invite_code: Option<InviteCode>,
+        password: Option<RoomPassword>,
     ) -> Result<Room, CaptureApiError> {
-        let invite_code_as_uuid = uuid::Uuid::from_str(invite_code).map_err(|_| {
-            ApiError::unprocessable_entities([ValidationErrorEntry::new(
-                "invite_code",
-                ERROR_CODE_INVALID_VALUE,
-                Some("Bad invite code format"),
-            )])
-        })?;
+        let Some(invite_code) = invite_code else {
+            return Err(ApiError::not_found().into());
+        };
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let invite = inventory
-            .get_room_invite(InviteCode::from(invite_code_as_uuid))
-            .await?;
+        let invite = inventory.get_room_invite(invite_code).await?;
 
         if !invite.active {
             return Err(ApiError::not_found().into());

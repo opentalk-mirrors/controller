@@ -2419,81 +2419,13 @@ paths:
               $ref: "#/components/schemas/PostRoomsRoomserverStartInvitedRequestBody"
         required: true
       responses:
-        "200":
-          description: Returns the roomserver token and roomserver address
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RoomserverStartResponseBody"
-        "400":
-          description: |-
-            The provided ID token is malformed or contains
-                            invalid claims,  no breakout rooms were found for this room, the
-                            breakout room id is invalid, the room doesn't exist or the guest
-                            does not have a valid invite for this room. Guests shall not be
-                            able to distinguish between existing rooms and rooms they don't
-                            have permission to enter, therefore the response is the same in
-                            these cases.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorBody"
-              examples:
-                RoomIdMismatch:
-                  summary: Room id mismatch
-                  value:
-                    code: bad_request
-                    message: Room id mismatch
-        "401":
-          description: |-
-            Either: the provided access token is expired or the
-                            provided id or access token is invalid. The WWW-Authenticate
-                            header will contain an error description 'session expired' to
-                            distinguish between an invalid and an expired token.
-                            Or: the provided password was incorrect, in which case the body
-                            contains more information.
+        "308":
+          description: "Redirects to *POST `/v1/rooms/{room_id}/start`*"
           headers:
-            www-authenticate:
+            location:
               schema:
                 type: string
-              description: "Will contain 'session expired' to distinguish between an invalid and an expired token"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorBody"
-              examples:
-                ExpiredOrInvalidAccessToken:
-                  summary: Expired or invalid access token
-                  value:
-                    code: unauthorized
-                    message: The session for this user has expired
-                WrongRoomPassword:
-                  summary: Wrong room password
-                  value:
-                    code: wrong_room_password
-                    message: The provided password does not match the room password
-        "403":
-          description: The participant has been banned from entering this room
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorBody"
-              example:
-                code: banned_from_room
-                message: This user has been banned from entering this room
-        "404":
-          description: The specified room could not be found or it has no event associated with it
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorBody"
-              example:
-                code: not_found
-                message: A requested resource could not be found
-        "422":
-          description: Invalid body contents received
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+              description: "Target URL: `/v1/rooms/{room_id}/start`"
       security: []
   "/rooms/{room_id}/streaming_targets":
     get:

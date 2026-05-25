@@ -67,8 +67,8 @@ use opentalk_types_api_v1::{
     rooms::{
         GetRoomsResponseBody, RoomResource,
         by_room_id::{
-            GetRoomEventResponseBody, PostRoomsRoomserverStartInvitedRequestBody,
-            PostRoomsRoomserverStartRequestBody, RoomserverStartResponseBody,
+            GetRoomEventResponseBody, PostRoomsRoomserverStartRequestBody,
+            RoomserverStartResponseBody,
             assets::RoomsByRoomIdAssetsGetResponseBody,
             invites::{
                 GetRoomsInvitesResponseBody, InviteResource, PostInviteRequestBody,
@@ -269,7 +269,7 @@ impl OpenTalkControllerService for ControllerBackend {
 
     async fn start_room_session(
         &self,
-        current_user: RequestUser,
+        current_user: Option<RequestUser>,
         room_id: RoomId,
         request: PostRoomsRoomserverStartRequestBody,
         host: Url,
@@ -277,15 +277,6 @@ impl OpenTalkControllerService for ControllerBackend {
         Ok(self
             .start_room(current_user, room_id, request, host)
             .await?)
-    }
-
-    async fn start_invited_room_session(
-        &self,
-        room_id: RoomId,
-        request: PostRoomsRoomserverStartInvitedRequestBody,
-        host: Url,
-    ) -> Result<RoomserverStartResponseBody, ApiError> {
-        Ok(self.start_room_invited(room_id, request, host).await?)
     }
 
     async fn start_recording(
