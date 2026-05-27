@@ -10,7 +10,10 @@ use opentalk_controller_utils::{
     CaptureApiError, TariffResourceExt as _,
     deletion::{Deleter, RoomDeleter},
 };
-use opentalk_inventory::{NewRoom, NewRoomSipConfig, Room, UpdateRoom, utils::build_event_info};
+use opentalk_inventory::{
+    NewRoom, NewRoomSipConfig, Room, UpdateRoom,
+    utils::{build_event_info, is_invite_valid},
+};
 use opentalk_types_api_v1::{
     error::ApiError,
     pagination::PagePaginationQuery,
@@ -282,7 +285,7 @@ impl ControllerBackend {
     /// Returns the associated room
     pub(crate) async fn authenticate_guest(
         &self,
-        room_id: &RoomId,
+        room_id: RoomId,
         invite_code: Option<InviteCode>,
         password: Option<RoomPassword>,
     ) -> Result<Room, CaptureApiError> {
@@ -291,20 +294,14 @@ impl ControllerBackend {
         };
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
-
+        let (room, created_by) = inventory.get_room_with_creator(room_id).await?;
+        let tariff = self.get_tariff_for_user(created_by.id).await?;
         let invite = inventory.get_room_invite(invite_code).await?;
 
-        if !invite.active {
+        if !is_invite_valid(&invite, &room, &tariff) {
+            // Don't leak the existence of the room
             return Err(ApiError::not_found().into());
         }
-
-        if invite.room != *room_id {
-            return Err(ApiError::bad_request()
-                .with_message("Room id mismatch")
-                .into());
-        }
-
-        let room = inventory.get_room(invite.room).await?;
 
         drop(inventory);
 
