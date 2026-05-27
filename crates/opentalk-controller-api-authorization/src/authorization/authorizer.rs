@@ -21,7 +21,7 @@ pub struct Authorizer {
 
 impl std::fmt::Debug for Authorizer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Authorizator")
+        write!(f, "Authorizer")
     }
 }
 
