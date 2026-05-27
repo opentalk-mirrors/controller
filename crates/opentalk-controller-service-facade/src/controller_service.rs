@@ -138,11 +138,7 @@ pub trait OpenTalkControllerService: Send + Sync {
     async fn get_room_tariff(&self, room_id: &RoomId) -> Result<TariffResource, ApiError>;
 
     /// Get a room's event
-    async fn get_room_event(
-        &self,
-        room_id: &RoomId,
-        invite_code: Option<InviteCode>,
-    ) -> Result<GetRoomEventResponseBody, ApiError>;
+    async fn get_room_event(&self, room_id: &RoomId) -> Result<GetRoomEventResponseBody, ApiError>;
 
     /// Start a roomserver signaling session as a registered user
     async fn start_room_session(

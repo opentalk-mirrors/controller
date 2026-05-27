@@ -255,12 +255,8 @@ impl OpenTalkControllerService for ControllerBackend {
         Ok(self.get_room_tariff(*room_id).await?)
     }
 
-    async fn get_room_event(
-        &self,
-        room_id: &RoomId,
-        invite_code: Option<InviteCode>,
-    ) -> Result<GetRoomEventResponseBody, ApiError> {
-        Ok(self.get_room_event(room_id, invite_code).await?)
+    async fn get_room_event(&self, room_id: &RoomId) -> Result<GetRoomEventResponseBody, ApiError> {
+        Ok(self.get_room_event(room_id).await?)
     }
 
     async fn start_room_session(
