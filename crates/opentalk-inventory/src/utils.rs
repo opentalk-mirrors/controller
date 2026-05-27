@@ -7,13 +7,13 @@
 use opentalk_types_common::{
     call_in::CallInInfo,
     events::{EventInfo, MeetingDetails},
-    features::{CALL_IN_MODULE_FEATURE_ID, GUESTS_ALLOWED_FEATURE_ID},
-    modules::CORE_MODULE_ID,
+    features::{CALL_IN_MODULE_FEATURE_ID, GUESTS_ALLOWED_MODULE_FEATURE_ID},
     streaming::get_public_urls_from_room_streaming_targets,
     tariffs::TariffResource,
+    time::Timestamp,
 };
 
-use crate::{Event, Inventory, Result, Room, event::EventAndEncryption};
+use crate::{Event, Inventory, Result, Room, RoomInvite, event::EventAndEncryption};
 
 /// Build the user-facing event info for a room.
 pub async fn build_event_info(
@@ -24,7 +24,7 @@ pub async fn build_event_info(
     tariff: &TariffResource,
 ) -> Result<EventInfo> {
     let event_info = if event.show_meeting_details {
-        let invite = if tariff.has_feature_enabled(&CORE_MODULE_ID, &GUESTS_ALLOWED_FEATURE_ID) {
+        let invite = if is_room_guest_access_allowed(room, tariff) {
             inventory.get_valid_invite_for_room(room.id).await?
         } else {
             None
@@ -75,4 +75,200 @@ pub fn is_call_in_allowed(tariff: &TariffResource, room: &Room) -> bool {
             &CALL_IN_MODULE_FEATURE_ID.module,
             &CALL_IN_MODULE_FEATURE_ID.feature,
         )
+}
+
+/// Checks if the given `invite` is valid for the given `room` and `tariff`.
+pub fn is_invite_valid(invite: &RoomInvite, room: &Room, tariff: &TariffResource) -> bool {
+    invite.active
+        && invite.room == room.id
+        && invite
+            .expiration
+            .is_none_or(|expiration| expiration > Timestamp::now())
+        && is_room_guest_access_allowed(room, tariff)
+}
+
+/// Checks if guest access is allowed for a given `room` and `tariff`.
+///
+/// This only checks if guests are allowed in the room in general. For verifying access with an invite code use
+/// [`is_invite_valid`] instead.
+pub fn is_room_guest_access_allowed(room: &Room, tariff: &TariffResource) -> bool {
+    !room.e2e_encryption
+        && !room.guest_access.is_disabled()
+        && tariff.has_feature_enabled(
+            &GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
+            &GUESTS_ALLOWED_MODULE_FEATURE_ID.feature,
+        )
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::{BTreeMap, BTreeSet};
+
+    use opentalk_types_common::{
+        features::GUESTS_ALLOWED_MODULE_FEATURE_ID,
+        rooms::{GuestAccess, RoomId, invite_codes::InviteCode},
+        tariffs::{TariffId, TariffModuleResource, TariffResource},
+        tenants::TenantId,
+        time::Timestamp,
+        users::UserId,
+    };
+
+    use super::{is_invite_valid, is_room_guest_access_allowed};
+    use crate::{Room, RoomInvite};
+
+    #[test]
+    fn invite_valid() {
+        let allowed_room = Room {
+            id: RoomId::nil(),
+            id_serial: 0,
+            created_by: UserId::nil(),
+            created_at: Timestamp::unix_epoch(),
+            password: None,
+            waiting_room: true,
+            guest_access: GuestAccess::WaitingRoom,
+            tenant_id: TenantId::nil(),
+            e2e_encryption: false,
+        };
+        let allowed_tariff = TariffResource {
+            id: TariffId::nil(),
+            name: "Guest Feature Enabled".to_owned(),
+            quotas: BTreeMap::new(),
+            modules: BTreeMap::from_iter([(
+                GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
+                TariffModuleResource {
+                    features: BTreeSet::from([GUESTS_ALLOWED_MODULE_FEATURE_ID.feature]),
+                },
+            )]),
+        };
+        let valid_invite = RoomInvite {
+            invite_code: InviteCode::nil(),
+            id_serial: 0,
+            created_by: UserId::nil(),
+            created_at: Timestamp::unix_epoch(),
+            updated_by: UserId::nil(),
+            updated_at: Timestamp::unix_epoch(),
+            room: RoomId::nil(),
+            active: true,
+            expiration: None,
+        };
+        assert!(is_invite_valid(
+            &valid_invite,
+            &allowed_room,
+            &allowed_tariff
+        ));
+
+        let valid_invite = RoomInvite {
+            invite_code: InviteCode::nil(),
+            id_serial: 0,
+            created_by: UserId::nil(),
+            created_at: Timestamp::unix_epoch(),
+            updated_by: UserId::nil(),
+            updated_at: Timestamp::unix_epoch(),
+            room: RoomId::nil(),
+            active: false,
+            expiration: None,
+        };
+        assert!(!is_invite_valid(
+            &valid_invite,
+            &allowed_room,
+            &allowed_tariff
+        ));
+
+        let expired_invite = RoomInvite {
+            invite_code: InviteCode::nil(),
+            id_serial: 0,
+            created_by: UserId::nil(),
+            created_at: Timestamp::unix_epoch(),
+            updated_by: UserId::nil(),
+            updated_at: Timestamp::unix_epoch(),
+            room: RoomId::nil(),
+            active: true,
+            expiration: Some(Timestamp::unix_epoch()),
+        };
+        assert!(!is_invite_valid(
+            &expired_invite,
+            &allowed_room,
+            &allowed_tariff
+        ));
+    }
+
+    #[test]
+    fn room_guest_access() {
+        let allowed_room = Room {
+            id: RoomId::nil(),
+            id_serial: 0,
+            created_by: UserId::nil(),
+            created_at: Timestamp::unix_epoch(),
+            password: None,
+            waiting_room: true,
+            guest_access: GuestAccess::WaitingRoom,
+            tenant_id: TenantId::nil(),
+            e2e_encryption: false,
+        };
+        let allowed_tariff = TariffResource {
+            id: TariffId::nil(),
+            name: "Guest Feature Enabled".to_owned(),
+            quotas: BTreeMap::new(),
+            modules: BTreeMap::from_iter([(
+                GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
+                TariffModuleResource {
+                    features: BTreeSet::from([GUESTS_ALLOWED_MODULE_FEATURE_ID.feature]),
+                },
+            )]),
+        };
+        println!(
+            "guest_feature_enabled={}",
+            allowed_tariff.has_feature_enabled(
+                &GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
+                &GUESTS_ALLOWED_MODULE_FEATURE_ID.feature
+            )
+        );
+        assert!(is_room_guest_access_allowed(&allowed_room, &allowed_tariff));
+
+        let encrypted_room = Room {
+            id: RoomId::nil(),
+            id_serial: 0,
+            created_by: UserId::nil(),
+            created_at: Timestamp::unix_epoch(),
+            password: None,
+            waiting_room: true,
+            guest_access: GuestAccess::WaitingRoom,
+            tenant_id: TenantId::nil(),
+            e2e_encryption: true,
+        };
+        assert!(!is_room_guest_access_allowed(
+            &encrypted_room,
+            &allowed_tariff
+        ));
+
+        let guest_access_disabled_room = Room {
+            id: RoomId::nil(),
+            id_serial: 0,
+            created_by: UserId::nil(),
+            created_at: Timestamp::unix_epoch(),
+            password: None,
+            waiting_room: true,
+            guest_access: GuestAccess::Disabled,
+            tenant_id: TenantId::nil(),
+            e2e_encryption: false,
+        };
+        assert!(!is_room_guest_access_allowed(
+            &guest_access_disabled_room,
+            &allowed_tariff
+        ));
+
+        let guest_feature_disabled_tariff = TariffResource {
+            id: TariffId::nil(),
+            name: "Guest Feature Disabled".to_owned(),
+            quotas: BTreeMap::new(),
+            modules: BTreeMap::from_iter([(
+                GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
+                TariffModuleResource::default(),
+            )]),
+        };
+        assert!(!is_room_guest_access_allowed(
+            &allowed_room,
+            &guest_feature_disabled_tariff
+        ));
+    }
 }

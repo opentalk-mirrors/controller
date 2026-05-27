@@ -124,7 +124,7 @@ impl Room {
             return Admission::Denied;
         }
 
-        if authenticated_subjects.contains_any_invite_code(&self.invite_codes) {
+        if authenticated_subjects.contains_any_valid_invite_code(&self.invite_codes) {
             return Admission::Allowed;
         }
 

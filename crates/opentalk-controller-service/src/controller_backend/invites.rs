@@ -5,7 +5,9 @@
 use opentalk_controller_api_authorization::authorization::AuthorizationChange;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_inventory::{NewRoomInvite, RoomInvite, RoomInviteWithUsers, UpdateRoomInvite};
+use opentalk_inventory::{
+    NewRoomInvite, RoomInvite, RoomInviteWithUsers, UpdateRoomInvite, utils::is_invite_valid,
+};
 use opentalk_types_api_v1::{
     error::ApiError,
     pagination::PagePaginationQuery,
@@ -16,8 +18,6 @@ use opentalk_types_api_v1::{
     users::PublicUserProfile,
 };
 use opentalk_types_common::{
-    features::GUESTS_ALLOWED_FEATURE_ID,
-    modules::DEFAULT_MODULE_ID,
     pagination::ItemCount,
     rooms::{RoomId, invite_codes::InviteCode},
     time::Timestamp,
@@ -248,18 +248,9 @@ impl ControllerBackend {
 
         let invite = inventory.get_room_invite(data.invite_code).await?;
         let room = inventory.get_room(invite.room).await?;
-
         let tariff = self.get_room_tariff(room.id).await?;
 
-        let expired = invite
-            .expiration
-            .map(|expiration| expiration <= Timestamp::now())
-            .unwrap_or_default();
-
-        if !invite.active
-            || !tariff.has_feature_enabled(&DEFAULT_MODULE_ID, &GUESTS_ALLOWED_FEATURE_ID)
-            || expired
-        {
+        if !is_invite_valid(&invite, &room, &tariff) {
             // Do not leak the existence of the invite
             return Err(ApiError::not_found().into());
         }

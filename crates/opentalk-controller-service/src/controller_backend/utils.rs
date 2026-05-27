@@ -7,11 +7,9 @@ use std::{cmp::Ordering, pin::Pin};
 use async_stream::{__private::AsyncStream, stream};
 use futures_util::{Stream, StreamExt};
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_inventory::{Result, Room};
+use opentalk_inventory::{Result, Room, utils::is_room_guest_access_allowed};
 use opentalk_types_api_v1::error::ApiError;
-use opentalk_types_common::{
-    features::GUESTS_ALLOWED_MODULE_FEATURE_ID, rooms::GuestAccess, tariffs::TariffResource,
-};
+use opentalk_types_common::tariffs::TariffResource;
 
 pub(crate) fn interweave_result_streams<'a, T: 'a>(
     streams: Vec<Pin<Box<dyn Stream<Item = Result<T>> + 'a>>>,
@@ -64,33 +62,25 @@ pub(crate) fn interweave_result_streams<'a, T: 'a>(
 /// Verifies if invites can be read for a given room
 /// Returns an error if invites the action is not allowed
 pub fn verify_invite_read(tariff: &TariffResource, room: &Room) -> Result<(), CaptureApiError> {
-    let guests_allowed = tariff.has_feature_enabled(
-        &GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
-        &GUESTS_ALLOWED_MODULE_FEATURE_ID.feature,
-    );
-    if !room.e2e_encryption && guests_allowed && room.guest_access != GuestAccess::Disabled {
-        return Ok(());
-    }
-
-    Err(ApiError::not_found()
+    if is_room_guest_access_allowed(room, tariff) {
+        Ok(())
+    } else {
+        Err(ApiError::not_found()
             .with_code("service_unavailable")
             .with_message("Invites are not available: either the guest feature is disabled, guest access is disabled for this room or the room is encrypted".to_string())
             .into())
+    }
 }
 
 /// Verifies if invites can be written for a given room
 /// Returns an error if invites the action is not allowed
 pub fn verify_invite_write(tariff: &TariffResource, room: &Room) -> Result<(), CaptureApiError> {
-    let guests_allowed = tariff.has_feature_enabled(
-        &GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
-        &GUESTS_ALLOWED_MODULE_FEATURE_ID.feature,
-    );
-    if !room.e2e_encryption && guests_allowed && room.guest_access != GuestAccess::Disabled {
-        return Ok(());
-    }
-
-    Err(ApiError::forbidden()
+    if is_room_guest_access_allowed(room, tariff) {
+        Ok(())
+    } else {
+        Err(ApiError::forbidden()
             .with_code("service_unavailable")
             .with_message("Invites are not available: either the guest feature is disabled, guest access is disabled for this room or the room is encrypted".to_string())
             .into())
+    }
 }
