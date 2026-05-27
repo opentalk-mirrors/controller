@@ -38,7 +38,7 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let room = inventory.get_room(room_id).await?;
-        let tariff = self.get_tariff_for_room(room_id).await?;
+        let tariff = self.get_room_tariff(room_id).await?;
         verify_invite_write(&tariff, &room)?;
 
         let invite = inventory
@@ -81,7 +81,7 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let room = inventory.get_room(room_id).await?;
-        let tariff = self.get_tariff_for_room(room_id).await?;
+        let tariff = self.get_room_tariff(room_id).await?;
         verify_invite_read(&tariff, &room)?;
 
         let (invites_with_users, total_invites) = inventory
@@ -121,7 +121,7 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let room = inventory.get_room(room_id).await?;
-        let tariff = self.get_tariff_for_room(room_id).await?;
+        let tariff = self.get_room_tariff(room_id).await?;
         verify_invite_read(&tariff, &room)?;
 
         let RoomInviteWithUsers {
@@ -154,7 +154,7 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let room = inventory.get_room(room_id).await?;
-        let tariff = self.get_tariff_for_room(room_id).await?;
+        let tariff = self.get_room_tariff(room_id).await?;
         verify_invite_write(&tariff, &room)?;
 
         let RoomInviteWithUsers {
@@ -209,7 +209,7 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let room = inventory.get_room(room_id).await?;
-        let tariff = self.get_tariff_for_room(room_id).await?;
+        let tariff = self.get_room_tariff(room_id).await?;
         verify_invite_write(&tariff, &room)?;
 
         _ = inventory
@@ -249,7 +249,7 @@ impl ControllerBackend {
         let invite = inventory.get_room_invite(data.invite_code).await?;
         let room = inventory.get_room(invite.room).await?;
 
-        let tariff = self.get_tariff_for_room(room.id).await?;
+        let tariff = self.get_room_tariff(room.id).await?;
 
         let expired = invite
             .expiration

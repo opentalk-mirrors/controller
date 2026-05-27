@@ -106,7 +106,7 @@ impl ControllerBackend {
     }
 
     pub(crate) async fn delete_sip_config(&self, room_id: RoomId) -> Result<(), CaptureApiError> {
-        let tariff = self.get_tariff_for_room(room_id).await?;
+        let tariff = self.get_room_tariff(room_id).await?;
         tariff.require_feature(&features::CALL_IN_MODULE_FEATURE_ID)?;
 
         let mut inventory = self.inventory_provider.get_inventory().await?;

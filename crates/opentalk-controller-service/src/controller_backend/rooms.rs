@@ -23,7 +23,6 @@ use opentalk_types_common::{
     modules::CORE_MODULE_ID,
     pagination::ItemCount,
     rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
-    tariffs::TariffResource,
     users::UserId,
 };
 
@@ -247,22 +246,6 @@ impl ControllerBackend {
         };
 
         Ok(room_resource)
-    }
-
-    pub(crate) async fn get_room_tariff(
-        &self,
-        room_id: RoomId,
-        invite_code: Option<InviteCode>,
-    ) -> Result<TariffResource, CaptureApiError> {
-        let tariff = self.get_tariff_for_room(room_id).await?;
-
-        if invite_code.is_some()
-            && !tariff.has_feature_enabled(&CORE_MODULE_ID, &GUESTS_ALLOWED_FEATURE_ID)
-        {
-            return Err(ApiError::not_found().into());
-        }
-
-        Ok(tariff)
     }
 
     pub(crate) async fn get_room_event(

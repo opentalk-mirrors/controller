@@ -137,7 +137,7 @@ impl ControllerBackend {
 
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
         let current_user = inventory.get_user(current_user.id).await?;
-        let room_tariff = self.get_tariff_for_room(event.room).await?;
+        let room_tariff = self.get_room_tariff(event.room).await?;
 
         match create_invite {
             PostEventInviteBody::User(user_invite) => {

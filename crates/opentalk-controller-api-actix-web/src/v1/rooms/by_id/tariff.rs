@@ -6,14 +6,11 @@
 
 use actix_web::{
     get,
-    web::{Data, Json, Path, ReqData},
+    web::{Data, Json, Path},
 };
 use opentalk_controller_service_facade::OpenTalkControllerService;
 use opentalk_types_api_v1::error::ApiError;
-use opentalk_types_common::{
-    rooms::{RoomId, invite_codes::InviteCode},
-    tariffs::TariffResource,
-};
+use opentalk_types_common::{rooms::RoomId, tariffs::TariffResource};
 
 use crate::utoipa::responses::{Forbidden, InternalServerError, Unauthorized};
 
@@ -55,11 +52,6 @@ use crate::utoipa::responses::{Forbidden, InternalServerError, Unauthorized};
 pub async fn get(
     service: Data<dyn OpenTalkControllerService>,
     room_id: Path<RoomId>,
-    invite_code: ReqData<Option<InviteCode>>,
 ) -> Result<Json<TariffResource>, ApiError> {
-    Ok(Json(
-        service
-            .get_room_tariff(&room_id, invite_code.into_inner())
-            .await?,
-    ))
+    Ok(Json(service.get_room_tariff(&room_id).await?))
 }
