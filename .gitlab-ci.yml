@@ -45,6 +45,7 @@ variables:
 
 .template_vars:
   FLAVORS: [trixie, noble, scratch]
+  DEFAULT_FLAVOR: trixie
 
 .default_job_condition: &default_job_condition
   needs: []
@@ -66,6 +67,12 @@ include:
     ref: v1
     file: .gitlab-ci-template.yml
   - project: opentalk/ci/templates/changelog
+    ref: v2
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/rust-container-build
+    inputs:
+      harbor_namespace_suffix: controller
+      additional_labels: team-dashboard
     ref: v2
     file: .gitlab-ci-template.yml
 
@@ -387,67 +394,13 @@ build:pages:
   script:
     - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
 
-package:read-tags:
-  stage: package
-  needs: []
-  rules:
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_PIPELINE_SOURCE == "pipeline"
-      when: never
-  image:
-    name: alpine/git:v2.54.0
-    entrypoint: ['']
-    pull_policy: if-not-present
-  artifacts:
-    reports:
-      dotenv: package.env
-  script:
-    - git fetch --tags
-    - TAGS=$(git tag --list | grep "^v[[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+$" | sort -V)
-    - TAGS=$(echo "$TAGS" | sort -V | head -n -1 | tr "\n" " ")
-    - echo "TAGS=$TAGS" > package.env
-
-package:container-controller-mr:
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_vars, FLAVORS]
-  stage: package
-  needs: []
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "pipeline"
-      when: never
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-      when: manual
-      allow_failure: true
-  image:
-    name: quay.io/buildah/stable:v1.43.0
-    pull_policy: if-not-present
-  artifacts:
-    reports:
-      dotenv: container.env
-  before_script:
-    - buildah login -u "$CI_REGISTRY_USER" --password $CI_REGISTRY_PASSWORD $CI_REGISTRY
-  script:
-    - echo "OPENTALK_CONTROLLER_IMAGE_NAME=$CI_REGISTRY_IMAGE" > container.env
-    - echo "OPENTALK_CONTROLLER_IMAGE_TAG=$IMAGE_TAG" >> container.env
-    - >
-      IMAGE_TAG=$(
-          echo -n "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" |
-          tr -c '[:alnum:]_.-' '_' |
-          sed 's/^[.-]/_/' |
-          cut -c -63
-      )
-    - buildah build -f $CI_PROJECT_DIR/Dockerfile-$FLAVOR -t "$CI_REGISTRY_IMAGE:$IMAGE_TAG-$FLAVOR"
-    - buildah push "$CI_REGISTRY_IMAGE:$IMAGE_TAG-$FLAVOR"
-
 trigger:service-integration-tests:
   stage: trigger
   variables:
     OPENTALK_CONTROLLER_IMAGE_TAG: dev
     OPENTALK_CONTROLLER_IMAGE_NAME: registry.heinlein.group/opentalk/controller
   needs:
-    - job: package:container-controller-mr
+    - job: package:container-build-mr
       optional: true
     - job: push-and-sign-images-to-harbor
       optional: true
@@ -469,117 +422,3 @@ trigger-docs:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   trigger:
     project: opentalk/backend/docs
-
-package:controller-container-build:
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_vars, FLAVORS]
-  stage: package
-  rules:
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
-    - if: $CI_PIPELINE_SOURCE == "pipeline"
-      when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_COMMIT_BRANCH =~ /^release\/v\d+\.\d+\.x$/
-  image:
-    name: quay.io/buildah/stable:v1.43.0
-    pull_policy: if-not-present
-  before_script:
-    - buildah login -u "$CI_REGISTRY_USER" --password $CI_REGISTRY_PASSWORD $CI_REGISTRY
-  script:
-    - buildah build -f $CI_PROJECT_DIR/Dockerfile-$FLAVOR -t  "$CI_REGISTRY_IMAGE:$FLAVOR-${CI_COMMIT_SHA:0:8}"
-    - buildah push "$CI_REGISTRY_IMAGE:$FLAVOR-${CI_COMMIT_SHA:0:8}"
-
-package:controller-container-create-and-push-tags:
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_vars, FLAVORS]
-  stage: package
-  needs:
-    - job: package:read-tags
-      optional: true
-    - job: package:controller-container-build
-  rules:
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
-    - if: $CI_PIPELINE_SOURCE == "pipeline"
-      when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_COMMIT_BRANCH =~ /^release\/v\d+\.\d+\.x$/
-  image:
-    name: $SKOPEO_IMAGE
-    entrypoint: ['']
-    pull_policy: if-not-present
-  script:
-    - >
-      TAGS_TO_PUSH=$(./ci/create-container-tags.sh
-      "${CI_COMMIT_TAG:-$CI_COMMIT_REF_NAME}"
-      "$TAGS" "$FLAVOR" "$DEFAULT_FLAVOR")
-    - |
-      for tag in $TAGS_TO_PUSH; do
-        skopeo copy \
-        --src-creds="${CI_REGISTRY_USER}":"${CI_REGISTRY_PASSWORD}" \
-        --dest-creds="${CI_REGISTRY_USER}":"${CI_REGISTRY_PASSWORD}" \
-        "docker://${CI_REGISTRY_IMAGE}:$FLAVOR-${CI_COMMIT_SHA:0:8}" "docker://${CI_REGISTRY_IMAGE}:$tag"
-      done
-    - echo "TAGS_$FLAVOR=$TAGS_TO_PUSH" > package.env
-  artifacts:
-    reports:
-      dotenv: package.env
-
-push-and-sign-images-to-harbor:
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_vars, FLAVORS]
-  needs:
-    - package:controller-container-create-and-push-tags
-  rules:
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_COMMIT_BRANCH =~ /^release\/v\d+\.\d+\.x$/
-  stage: package
-  variables:
-    PIPELINE_FULL_IMAGE_NAME: $CI_REGISTRY_IMAGE
-    PIPELINE_NAMESPACE_SUFFIX: controller
-    PIPELINE_TAGS_ENV_NAME: TAGS_$FLAVOR
-  trigger:
-    project: opentalk/opentalk-devops/push-and-sign-images-for-the-opentalk-namespace
-    strategy: depend
-    forward:
-      pipeline_variables: true
-
-
-read-trivy-ignore-file:
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_vars, FLAVORS]
-  stage: package
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'schedule'
-  script:
-    - echo "TRIVY_IGNORE_STR_$FLAVOR=$(
-         cat $CI_PROJECT_DIR/.trivyignore-$FLAVOR | sed -n 'H;${x;s/^\n//;s/\n/\\n/g;p}'
-      )"  > package.env
-  artifacts:
-    reports:
-      dotenv: package.env
-
-container-scanning:
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_vars, FLAVORS]
-  needs:
-    - package:controller-container-build
-    - read-trivy-ignore-file
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'schedule'
-  stage: package
-  variables:
-    PIPELINE_FULL_IMAGE_NAME: $CI_REGISTRY_IMAGE:dev-$FLAVOR
-    PIPELINE_PROJECT_WITH_NAMESPACE: $CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME
-    PIPELINE_ADDITIONAL_LABELS: team::conference management
-    PIPELINE_TRIVY_IGNORE_FILE_STR_VAR: TRIVY_IGNORE_STR_${FLAVOR}
-  trigger:
-    project: opentalk/opentalk-devops/scan-container
-    strategy: depend
-    forward:
-      pipeline_variables: true
