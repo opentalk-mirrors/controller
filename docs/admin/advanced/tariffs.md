@@ -41,6 +41,11 @@ Tariffs can be assigned to individual users in Keycloak. To do so, navigate to t
 
 For this to take effect, the controller must be configured to use the `"by_external_tariff_id"` assignment strategy.
 
+!!! danger
+
+    When externally assigning a tariff to a user that affects authorization (e.g. `core::guests_allowed`), the changes only take effect after the user has logged in again.
+    This includes changes to any events created by the user.
+
 ## `opentalk-controller tariffs` subcommand
 
 This subcommand is used to manage tariffs.
@@ -120,6 +125,10 @@ Options:
 #### Edit an Existing Tariff
 
 Run `opentalk-controller tariffs edit <TariffName>` to edit an existing tariff.
+
+!!! danger
+
+    When changing disabled features that affect authorization (e.g. `core::guests_allowed`), the controller has to be restarted for the changes to take effect in the authorization.
 
 Help output looks like this:
 
