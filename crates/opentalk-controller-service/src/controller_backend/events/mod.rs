@@ -2122,7 +2122,7 @@ mod tests {
                     "room": {
                         "id": "00000000-0000-0000-0000-000000000000",
                         "waiting_room": false,
-                        "guest_access": "direct_access",
+                        "guest_access": "waiting_room",
                         "e2e_encryption": false
                     },
                     "invitees_truncated": false,
@@ -2269,7 +2269,7 @@ mod tests {
                     "room": {
                         "id": "00000000-0000-0000-0000-000000000000",
                         "waiting_room": false,
-                        "guest_access": "direct_access",
+                        "guest_access": "waiting_room",
                         "e2e_encryption": false,
                         "call_in": {
                             "tel": "030123456",
