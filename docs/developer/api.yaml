@@ -5388,42 +5388,6 @@ components:
       example:
         device_secret: v3rys3cr3tD3v1ce5tr1ng
         display_name: Alice Adams
-    PostRoomsStartInvitedRequestBody:
-      type: object
-      description: "The JSON body expected when making a *POST /rooms/{room_id}/start_invited*"
-      required:
-        - invite_code
-      properties:
-        breakout_room:
-          $ref: "#/components/schemas/BreakoutRoomId"
-          description: Optional breakout room ID
-        invite_code:
-          type: string
-          description: The invite code
-        password:
-          $ref: "#/components/schemas/RoomPassword"
-          description: "The invited user's password to the room"
-        resumption:
-          $ref: "#/components/schemas/ResumptionToken"
-          description: The resumption token for the room
-      example:
-        breakout_room: 00000000-0000-0000-0000-0000badcab1e
-        invite_code: 00000000-0000-0000-0000-0000deadbeef
-        password: v3rys3cr3t
-        resumption: 654321zyxwvutsrqponmlkjihgfedcba654321zyxwvutsrqponmlkjihgfedcba
-    PostRoomsStartRequestBody:
-      type: object
-      description: "The JSON body expected when making a *POST /rooms/{room_id}/start*"
-      properties:
-        breakout_room:
-          $ref: "#/components/schemas/BreakoutRoomId"
-          description: Optional breakout room ID
-        resumption:
-          $ref: "#/components/schemas/ResumptionToken"
-          description: The resumption token for the room
-      example:
-        breakout_room: 00000000-0000-0000-0000-00000badcafe
-        resumption: 654321zyxwvutsrqponmlkjihgfedcba654321zyxwvutsrqponmlkjihgfedcba
     PrivateUserProfile:
       type: object
       description: |-
