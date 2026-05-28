@@ -10,7 +10,7 @@ use opentalk_controller_api_authorization::authorization::{
 };
 use opentalk_controller_service_facade::StartRoomError;
 use opentalk_database::DatabaseError;
-use opentalk_types_api_v1::error::ApiError;
+use opentalk_types_api_common::error::ApiError;
 use rand::distr::uniform;
 use snafu::Whatever;
 

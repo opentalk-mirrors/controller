@@ -22,7 +22,7 @@ pub use download_proxy_stream::DownloadProxyStream;
 use futures::{Stream, StreamExt};
 use http::StatusCode;
 use opentalk_controller_settings::MinIO;
-use opentalk_types_api_v1::{
+use opentalk_types_api_common::{
     error::{ApiError, ErrorBody},
     pagination::Cursor,
 };

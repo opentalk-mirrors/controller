@@ -4,7 +4,7 @@
 
 use opentalk_asset_storage::ObjectStorageError;
 use opentalk_controller_api_authorization::authorization::AuthorizationError;
-use opentalk_types_api_v1::error::ApiError;
+use opentalk_types_api_common::error::ApiError;
 use snafu::Snafu;
 
 use crate::CaptureApiError;
