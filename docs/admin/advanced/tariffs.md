@@ -11,6 +11,36 @@ The following quotas are supported:
 | `room_time_limit_secs`   | This quota restricts the total duration for which a tenant can utilize a meeting room, measured in seconds.                             |
 | `room_participant_limit` | This quota sets a limit on the number of participants that can join a room.                                                             |
 
+## Configuration
+
+The section in the [configuration file](../core/configuration.md) is called `tariffs`.
+
+| Field                | Type     | Required | Default value             | Description                                                                          |
+| -------------------- | -------- | -------- | ------------------------- | ------------------------------------------------------------------------------------ |
+| `assignment`         | `string` | no       | `"static"`                | The tariff assignment strategy. Either `"static"` or `"by_external_tariff_id"`       |
+| `static_tariff_name` | `string` | no       | `"OpenTalkDefaultTariff"` | Name of the tariff assigned to every user. Only used when `assignment` is `"static"` |
+
+When `assignment` is set to `"by_external_tariff_id"`, the OIDC provider (Keycloak) must be configured to include a `tariff_id` field in its ID token's JWT claims. It is used to assign users the correct tariff.
+
+### `tariffs.status_mapping`
+
+Status mapping can only be used when the tariff assignment is configured as `"by_external_tariff_id"`. If present, the controller will look at the JWT attribute named `tariff_status` and transfer its value to its internal tariff status based on the values of the `default`, `paid` and `downgraded` field values. An entry in any of the lists below must be unique across all lists.
+
+| Field                    | Type       | Required | Default value | Description                                                                                      |
+| ------------------------ | ---------- | -------- | ------------- | ------------------------------------------------------------------------------------------------ |
+| `downgraded_tariff_name` | `string`   | no       | -             | The name of the tariff that gets applied when the user's tariff status is `"downgraded"`.        |
+| `default`                | `string[]` | no       | -             | List of status values that map to the default tariff status.                                     |
+| `paid`                   | `string[]` | no       | -             | List of status values that indicate the user's tariff has been paid and is valid.                |
+| `downgraded`             | `string[]` | no       | -             | List of status values that indicate the user's tariff is downgraded (e.g. because it is unpaid). |
+
+Any user with an invalid value in the `tariff_status` attribute will be set to the default status, but a warning will be issued if the mapping does not contain that attribute value.
+
+## Assigning Tariffs to Users via Keycloak
+
+Tariffs can be assigned to individual users in Keycloak. To do so, navigate to the user's **Attributes** section in the Keycloak admin console and add an attribute with the key `tariff_id` and a value matching the external tariff ID of the desired tariff.
+
+For this to take effect, the controller must be configured to use the `"by_external_tariff_id"` assignment strategy.
+
 ## `opentalk-controller tariffs` subcommand
 
 This subcommand is used to manage tariffs.
