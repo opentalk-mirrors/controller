@@ -5385,6 +5385,12 @@ components:
         display_name:
           $ref: "#/components/schemas/DisplayName"
           description: The clients display name. Optional because registered users already have a configured display name
+        invite_code:
+          $ref: "#/components/schemas/InviteCode"
+          description: The invite code
+        password:
+          $ref: "#/components/schemas/RoomPassword"
+          description: "The invited user's password to the room"
       example:
         device_secret: v3rys3cr3tD3v1ce5tr1ng
         display_name: Alice Adams
