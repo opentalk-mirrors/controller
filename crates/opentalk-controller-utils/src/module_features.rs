@@ -5,7 +5,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use opentalk_inventory::{Inventory, Room};
-use opentalk_types_api_v1::error::ApiError;
+use opentalk_types_api_common::error::ApiError;
 use opentalk_types_common::{
     features::{FeatureId, ModuleFeatureId},
     modules::ModuleId,

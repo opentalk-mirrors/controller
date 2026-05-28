@@ -5,7 +5,7 @@
 //! Utils for [`Event`]
 use chrono::{DateTime, TimeZone};
 use opentalk_inventory::{Event, EventDate};
-use opentalk_types_api_v1::error::ApiError;
+use opentalk_types_api_common::error::ApiError;
 use rrule::{RRule, RRuleSet, Unvalidated};
 use snafu::{Report, ResultExt, Snafu};
 
