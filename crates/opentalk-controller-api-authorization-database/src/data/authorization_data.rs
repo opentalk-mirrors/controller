@@ -639,7 +639,7 @@ impl AuthorizationData {
         if let Some(room) = self.rooms.get_mut(room) {
             room.add_invite_code(invite_code, expiration);
         } else {
-            tracing::warn!("Atttempted to add invite code to room {room} which does not exist");
+            tracing::warn!("Attempted to add invite code to room {room} which does not exist");
         }
     }
 
