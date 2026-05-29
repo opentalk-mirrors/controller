@@ -179,7 +179,7 @@ impl ControllerBackend {
 
         // Create the resource vector
         let settings = self.settings_provider.get();
-        let vector = self
+        let (vector, has_more_items) = self
             .create_events_or_instances_vec_from_stream(
                 self.inventory_provider.clone(),
                 &settings,
@@ -190,33 +190,8 @@ impl ControllerBackend {
             )
             .await?;
 
-        // Build a cursor that can be used to fetch the next page
-        let ret_cursor_data = vector.last().map(|item| {
-            let (event_id, event_created_at, event_starts_at, instance_id) = match item {
-                EventOrInstance::Event(event) => (
-                    event.id,
-                    event.created_at,
-                    event.date.starts_at().cloned(),
-                    None,
-                ),
-                EventOrInstance::Instance(instance) => (
-                    instance.recurring_event_id,
-                    instance.created_at,
-                    Some(instance.starts_at),
-                    Some(instance.instance_id),
-                ),
-            };
-
-            GetEventsCursorData {
-                event_id,
-                event_created_at,
-                event_starts_at: event_starts_at.map(Into::into),
-                instance_id,
-            }
-        });
-
+        let after = build_after_cursor(&vector, has_more_items);
         let before = None;
-        let after = ret_cursor_data.map(|c| Cursor(c).to_base64());
 
         Ok((vector, before, after))
     }
@@ -229,16 +204,17 @@ impl ControllerBackend {
         stream: impl Stream<Item = opentalk_inventory::Result<InternalEventOrInstance>>,
         invitees_max: Option<PageSize>,
         per_page: Option<PageSize>,
-    ) -> Result<Vec<EventOrInstance>, CaptureApiError> {
-        let stream = stream.take(per_page.unwrap_or_default().into());
-        let mut items: Vec<EventOrInstance> = Vec::new();
+    ) -> Result<(Vec<EventOrInstance>, bool), CaptureApiError> {
+        let limit: usize = per_page.unwrap_or_default().into();
+
+        let (raw_items, has_more_items) = take_with_has_more(stream, limit).await?;
 
         let mut inventory = inventory_provider.get_inventory().await?;
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
 
-        pin_mut!(stream);
-        while let Some(result) = stream.next().await {
-            let item = match result? {
+        let mut items: Vec<EventOrInstance> = Vec::with_capacity(raw_items.len());
+        for raw in raw_items {
+            let item = match raw {
                 InternalEventOrInstance::Event(event) => {
                     let resource = self
                         .build_event_resource(
@@ -273,7 +249,7 @@ impl ControllerBackend {
             items.push(item);
         }
 
-        Ok(items)
+        Ok((items, has_more_items))
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -899,6 +875,60 @@ fn patch<T>(dst: &mut T, value: Option<T>) {
     }
 }
 
+/// Consume up to `limit` items from `stream`, also reporting whether the stream
+/// had more items beyond that limit. The (limit+1)th item, if any, is consumed
+/// but not returned.
+async fn take_with_has_more<T, E, S>(stream: S, limit: usize) -> Result<(Vec<T>, bool), E>
+where
+    S: Stream<Item = Result<T, E>>,
+{
+    pin_mut!(stream);
+    let mut items = Vec::with_capacity(limit);
+    for _ in 0..limit {
+        let Some(result) = stream.next().await else {
+            return Ok((items, false));
+        };
+        items.push(result?);
+    }
+    let has_more = stream.next().await.transpose()?.is_some();
+    Ok((items, has_more))
+}
+
+/// Build the `after` pagination cursor from a page of results.
+///
+/// Returns `None` when `has_more_items` is false (i.e. this is the last page),
+/// even if `items` is non-empty. This prevents clients from being handed a
+/// cursor that would yield an empty next page.
+fn build_after_cursor(items: &[EventOrInstance], has_more_items: bool) -> Option<String> {
+    if !has_more_items {
+        return None;
+    }
+    items.last().map(|item| {
+        let (event_id, event_created_at, event_starts_at, instance_id) = match item {
+            EventOrInstance::Event(event) => (
+                event.id,
+                event.created_at,
+                event.date.starts_at().cloned(),
+                None,
+            ),
+            EventOrInstance::Instance(instance) => (
+                instance.recurring_event_id,
+                instance.created_at,
+                Some(instance.starts_at),
+                Some(instance.instance_id),
+            ),
+        };
+
+        Cursor(GetEventsCursorData {
+            event_id,
+            event_created_at,
+            event_starts_at: event_starts_at.map(Into::into),
+            instance_id,
+        })
+        .to_base64()
+    })
+}
+
 fn verify_instance_date(
     event_date: &EventDate,
     instance_date: DateTime<TimeZone>,
@@ -1144,5 +1174,147 @@ mod tests {
                 }
             )
         );
+    }
+
+    fn sample_event_or_instance() -> EventOrInstance {
+        let unix_epoch: Timestamp = SystemTime::UNIX_EPOCH.into();
+        let instance_id = unix_epoch.into();
+        let event_id = EventId::nil();
+        let user_profile = PublicUserProfile {
+            id: UserId::nil(),
+            email: "test@example.org".into(),
+            user_info: UserInfo {
+                title: "".parse().expect("valid user title"),
+                firstname: "Test".into(),
+                lastname: "Test".into(),
+                display_name: "Tester".parse().expect("valid display name"),
+                avatar_url: "https://example.org/avatar".into(),
+            },
+        };
+
+        EventOrInstance::Instance(EventInstance {
+            id: EventAndInstanceId(event_id, instance_id),
+            recurring_event_id: event_id,
+            instance_id,
+            created_by: user_profile.clone(),
+            created_at: unix_epoch,
+            updated_by: user_profile,
+            updated_at: unix_epoch,
+            title: "Instance title".parse().expect("valid event title"),
+            description: "Instance description"
+                .parse()
+                .expect("valid event description"),
+            room: EventRoomInfo {
+                id: RoomId::nil(),
+                password: None,
+                waiting_room: false,
+                guest_access: GuestAccess::default(),
+                e2e_encryption: false,
+                call_in: None,
+            },
+            invitees_truncated: false,
+            invitees: vec![],
+            is_all_day: false,
+            starts_at: DateTimeTz {
+                datetime: *unix_epoch,
+                timezone: TimeZone::from(Tz::Europe__Berlin),
+            },
+            ends_at: DateTimeTz {
+                datetime: *unix_epoch,
+                timezone: TimeZone::from(Tz::Europe__Berlin),
+            },
+            type_: InstanceMarker::Instance,
+            status: EventStatus::Ok,
+            invite_status: EventInviteStatus::Accepted,
+            is_favorite: false,
+            can_edit: false,
+            shared_folder: None,
+            training_participation_report: None,
+        })
+    }
+
+    #[test]
+    fn build_after_cursor_returns_none_when_no_more_items() {
+        let items = vec![sample_event_or_instance()];
+        assert_eq!(build_after_cursor(&items, false), None);
+    }
+
+    #[test]
+    fn build_after_cursor_returns_none_when_items_empty() {
+        assert_eq!(build_after_cursor(&[], true), None);
+    }
+
+    #[test]
+    fn build_after_cursor_returns_some_when_more_items_exist() {
+        let items = vec![sample_event_or_instance()];
+        let cursor = build_after_cursor(&items, true);
+        assert!(
+            cursor.is_some(),
+            "expected a cursor when has_more_items is true"
+        );
+        assert!(!cursor.unwrap().is_empty());
+    }
+
+    #[test]
+    fn take_with_has_more_empty_stream() {
+        let stream = futures_util::stream::iter(Vec::<Result<i32, &'static str>>::new());
+        let (items, has_more) =
+            futures::executor::block_on(take_with_has_more(stream, 5)).expect("ok");
+        assert!(items.is_empty());
+        assert!(!has_more);
+    }
+
+    #[test]
+    fn take_with_has_more_fewer_than_limit() {
+        let stream = futures_util::stream::iter(vec![Ok::<_, &'static str>(1), Ok(2)]);
+        let (items, has_more) =
+            futures::executor::block_on(take_with_has_more(stream, 5)).expect("ok");
+        assert_eq!(items, vec![1, 2]);
+        assert!(!has_more);
+    }
+
+    #[test]
+    fn take_with_has_more_exactly_limit() {
+        let stream = futures_util::stream::iter(vec![Ok::<_, &'static str>(1), Ok(2), Ok(3)]);
+        let (items, has_more) =
+            futures::executor::block_on(take_with_has_more(stream, 3)).expect("ok");
+        assert_eq!(items, vec![1, 2, 3]);
+        assert!(
+            !has_more,
+            "no cursor must be emitted when exactly `limit` items exist"
+        );
+    }
+
+    #[test]
+    fn take_with_has_more_more_than_limit() {
+        let stream =
+            futures_util::stream::iter(vec![Ok::<_, &'static str>(1), Ok(2), Ok(3), Ok(4)]);
+        let (items, has_more) =
+            futures::executor::block_on(take_with_has_more(stream, 3)).expect("ok");
+        assert_eq!(items, vec![1, 2, 3]);
+        assert!(has_more);
+    }
+
+    #[test]
+    fn take_with_has_more_zero_limit() {
+        let stream = futures_util::stream::iter(vec![Ok::<_, &'static str>(1)]);
+        let (items, has_more) =
+            futures::executor::block_on(take_with_has_more(stream, 0)).expect("ok");
+        assert!(items.is_empty());
+        assert!(has_more);
+    }
+
+    #[test]
+    fn take_with_has_more_propagates_error_within_limit() {
+        let stream = futures_util::stream::iter(vec![Ok(1), Err::<i32, _>("boom"), Ok(3)]);
+        let err = futures::executor::block_on(take_with_has_more(stream, 5));
+        assert_eq!(err, Err("boom"));
+    }
+
+    #[test]
+    fn take_with_has_more_propagates_error_at_peek() {
+        let stream = futures_util::stream::iter(vec![Ok(1), Ok(2), Err::<i32, _>("peek-err")]);
+        let err = futures::executor::block_on(take_with_has_more(stream, 2));
+        assert_eq!(err, Err("peek-err"));
     }
 }
