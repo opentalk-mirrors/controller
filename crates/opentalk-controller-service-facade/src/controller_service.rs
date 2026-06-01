@@ -115,7 +115,6 @@ pub trait OpenTalkControllerService: Send + Sync {
     /// Patch a room with the provided fields
     async fn patch_room(
         &self,
-        current_user: RequestUser,
         room_id: RoomId,
         password: Option<Option<RoomPassword>>,
         waiting_room: Option<bool>,

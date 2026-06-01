@@ -213,7 +213,6 @@ impl OpenTalkControllerService for ControllerBackend {
 
     async fn patch_room(
         &self,
-        current_user: RequestUser,
         room_id: RoomId,
         password: Option<Option<RoomPassword>>,
         waiting_room: Option<bool>,
@@ -222,7 +221,6 @@ impl OpenTalkControllerService for ControllerBackend {
     ) -> Result<RoomResource, ApiError> {
         Ok(self
             .patch_room(
-                current_user,
                 room_id,
                 password,
                 waiting_room,

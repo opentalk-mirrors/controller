@@ -111,17 +111,14 @@ pub async fn get(
 #[patch("/rooms/{room_id}")]
 pub async fn patch(
     service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
     room_id: Path<RoomId>,
     body: Json<PatchRoomsRequestBody>,
 ) -> Result<Json<RoomResource>, ApiError> {
-    let current_user = current_user.into_inner();
     let room_id = room_id.into_inner();
     let body = body.into_inner();
 
     let room_resource = service
         .patch_room(
-            current_user,
             room_id,
             body.password,
             body.waiting_room,

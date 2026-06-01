@@ -788,7 +788,6 @@ impl ControllerBackend {
             || patch.e2e_encryption.is_some()
         {
             self.update_room(
-                current_user.id,
                 event.room,
                 patch.password.clone(),
                 patch.waiting_room,
