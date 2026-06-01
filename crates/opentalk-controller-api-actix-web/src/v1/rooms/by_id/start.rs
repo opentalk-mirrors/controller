@@ -74,21 +74,21 @@ use crate::{host::Host, utoipa::responses::InternalServerError};
 #[post("/rooms/{room_id}/start")]
 pub async fn post(
     service: Data<dyn OpenTalkControllerService>,
-    current_user: ReqData<RequestUser>,
+    current_user: Option<ReqData<RequestUser>>,
     room_id: Path<RoomId>,
     request: Json<PostRoomsRoomserverStartRequestBody>,
     host: Host,
 ) -> Result<Json<RoomserverStartResponseBody>, ApiError> {
+    let user = current_user.map(|user| user.into_inner());
     let response = Json(
         service
             .start_room_session(
-                current_user.into_inner(),
+                user,
                 room_id.into_inner(),
                 request.into_inner(),
                 host.into_inner(),
             )
             .await?,
     );
-
     Ok(response)
 }

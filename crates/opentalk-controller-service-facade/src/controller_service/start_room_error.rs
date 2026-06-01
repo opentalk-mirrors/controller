@@ -22,6 +22,12 @@ pub enum StartRoomError {
 
     /// The user requesting to start the room is banned from the room
     BannedFromRoom,
+
+    /// The guest has not provided an invite code
+    NoInviteCode,
+
+    /// The guest has not provided a display name
+    NoDisplayName,
 }
 
 impl From<StartRoomError> for ApiError {
@@ -39,6 +45,12 @@ impl From<StartRoomError> for ApiError {
             StartRoomError::BannedFromRoom => Self::forbidden()
                 .with_code(StartRoomError::BannedFromRoom.as_ref())
                 .with_message("This user has been banned from entering this room"),
+            StartRoomError::NoInviteCode => Self::unauthorized()
+                .with_code(StartRoomError::NoInviteCode.as_ref())
+                .with_message("Invite code is not provided"),
+            StartRoomError::NoDisplayName => Self::bad_request()
+                .with_code(StartRoomError::NoDisplayName.as_ref())
+                .with_message("Display name is not provided"),
         }
     }
 }
@@ -64,5 +76,7 @@ mod tests {
             "invalid_breakout_room_id"
         );
         assert_eq!(StartRoomError::BannedFromRoom.as_ref(), "banned_from_room");
+        assert_eq!(StartRoomError::NoInviteCode.as_ref(), "no_invite_code");
+        assert_eq!(StartRoomError::NoDisplayName.as_ref(), "no_display_name");
     }
 }

@@ -4,18 +4,9 @@
 
 //! API endpoints under `v1/rooms/{room_id}/start_invited`
 
-use actix_web::{
-    post,
-    web::{Data, Json, Path},
-};
-use opentalk_controller_service_facade::{OpenTalkControllerService, StartRoomError};
-use opentalk_types_api_v1::{
-    error::{ApiError, ErrorBody},
-    rooms::by_room_id::{PostRoomsRoomserverStartInvitedRequestBody, RoomserverStartResponseBody},
-};
+use actix_web::{HttpResponse, http::header, post, web::Path};
+use opentalk_types_api_v1::rooms::by_room_id::PostRoomsRoomserverStartInvitedRequestBody;
 use opentalk_types_common::rooms::RoomId;
-
-use crate::{host::Host, utoipa::responses::InternalServerError};
 
 /// Start a signaling session with the roomserver with an invitation code
 ///
@@ -31,102 +22,19 @@ use crate::{host::Host, utoipa::responses::InternalServerError};
     request_body = PostRoomsRoomserverStartInvitedRequestBody,
     responses(
         (
-            status = StatusCode::OK,
-            description = "Returns the roomserver token and roomserver address",
-            body = RoomserverStartResponseBody,
-        ),
-        (
-            status = StatusCode::BAD_REQUEST,
-            description = r"The provided ID token is malformed or contains
-                invalid claims,  no breakout rooms were found for this room, the
-                breakout room id is invalid, the room doesn't exist or the guest
-                does not have a valid invite for this room. Guests shall not be
-                able to distinguish between existing rooms and rooms they don't
-                have permission to enter, therefore the response is the same in
-                these cases.",
-            body = ErrorBody,
-            examples(
-                (
-                    "RoomIdMismatch" = (
-                        summary = "Room id mismatch", value = json!(ErrorBody::new("bad_request", "Room id mismatch"))
-                    )
-                ),
-            ),
-        ),
-        (
-            status = StatusCode::UNPROCESSABLE_ENTITY,
-            description = "Invalid invite code",
-        ),
-        (
-            status = StatusCode::UNPROCESSABLE_ENTITY,
-            description = "Invalid body contents received",
-        ),
-        (
-            status = StatusCode::UNAUTHORIZED,
-            body = ErrorBody,
-            description = r"Either: the provided access token is expired or the
-                provided id or access token is invalid. The WWW-Authenticate
-                header will contain an error description 'session expired' to
-                distinguish between an invalid and an expired token.
-                Or: the provided password was incorrect, in which case the body
-                contains more information.",
+            status = StatusCode::PERMANENT_REDIRECT,
+            description = "Redirects to *POST `/v1/rooms/{room_id}/start`*",
             headers(
-                (
-                    "www-authenticate",
-                    description = "Will contain 'session expired' to distinguish between an invalid and an expired token"
-                ),
+             ("location", description = "Target URL: `/v1/rooms/{room_id}/start`"),
             ),
-            examples(
-                ("WrongRoomPassword" = (
-                    summary = "Wrong room password",
-                    value = json!(ApiError::from(StartRoomError::WrongRoomPassword).body)
-                )),
-                ("ExpiredOrInvalidAccessToken" = (
-                    summary = "Expired or invalid access token",
-                    value = json!(
-                        ApiError::unauthorized()
-                        .with_message("The session for this user has expired")
-                        .with_www_authenticate(opentalk_types_api_v1::error::AuthenticationError::SessionExpired)
-                        .body
-                    )
-                )),
-            ),
-        ),
-        (
-            status = StatusCode::FORBIDDEN,
-            body = ErrorBody,
-            description = "The participant has been banned from entering this room",
-            example = json!(ApiError::from(StartRoomError::BannedFromRoom).body),
-        ),
-        (
-            status = StatusCode::NOT_FOUND,
-            description = "The specified room could not be found or it has no event associated with it",
-            body = ErrorBody,
-            example = json!(ApiError::not_found().body),
-        ),
-        (
-            status = StatusCode::INTERNAL_SERVER_ERROR,
-            response = InternalServerError,
         ),
     ),
     security(),
 )]
 #[post("/rooms/{room_id}/start_invited")]
-pub async fn post(
-    service: Data<dyn OpenTalkControllerService>,
-    room_id: Path<RoomId>,
-    request: Json<PostRoomsRoomserverStartInvitedRequestBody>,
-    host: Host,
-) -> Result<Json<RoomserverStartResponseBody>, ApiError> {
-    let response = Json(
-        service
-            .start_invited_room_session(
-                room_id.into_inner(),
-                request.into_inner(),
-                host.into_inner(),
-            )
-            .await?,
-    );
-
-    Ok(response)
+pub async fn post(room_id: Path<RoomId>) -> HttpResponse {
+    let room_id = room_id.into_inner();
+    HttpResponse::PermanentRedirect()
+        .insert_header((header::LOCATION, format!("/v1/rooms/{}/start", room_id)))
+        .finish()
 }

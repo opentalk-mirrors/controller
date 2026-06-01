@@ -9,7 +9,7 @@ use std::{collections::BTreeMap, sync::Arc};
 use actix_ws::{Message, ProtocolError};
 use external::ExternalRoomServer;
 use opentalk_asset_storage::{ObjectStorage, StorageNotifier};
-use opentalk_controller_service_facade::RequestUser;
+use opentalk_controller_service_facade::{RequestUser, StartRoomError};
 use opentalk_controller_settings::{
     RoomServerKind, Settings, SettingsProvider, common::HttpCorsAllowedOrigin,
 };
@@ -33,10 +33,7 @@ use opentalk_types_api_v1::{
     error::ApiError,
     rooms::{
         RoomResource,
-        by_room_id::{
-            PostRoomsRoomserverStartInvitedRequestBody, PostRoomsRoomserverStartRequestBody,
-            RoomserverStartResponseBody,
-        },
+        by_room_id::{PostRoomsRoomserverStartRequestBody, RoomserverStartResponseBody},
     },
 };
 use opentalk_types_common::{
@@ -187,10 +184,10 @@ pub trait SignalingHandler: Send + Sync {
 pub trait SignalingProxyBackend: SignalingHandler + LiveKitProxyBackend {}
 
 impl ControllerBackend {
-    #[tracing::instrument(level = "debug", skip(self, user, request), fields(user_id = %user.id))]
+    #[tracing::instrument(level = "debug", skip(self, user, request), fields(user_id = %user.as_ref().map(|u| u.id.to_string()).unwrap_or_else(|| "unknown".to_owned())))]
     pub(crate) async fn start_room(
         &self,
-        user: RequestUser,
+        user: Option<RequestUser>,
         room_id: RoomId,
         request: PostRoomsRoomserverStartRequestBody,
         host: Url,
@@ -199,75 +196,30 @@ impl ControllerBackend {
         let settings = self.settings_provider.get();
 
         let room = self.get_room(&room_id).await?;
-        let role =
-            Self::get_user_role(inventory.as_mut(), user.id, room_id, room.created_by.id).await?;
-        let timezone = get_user_timezone(room.created_by.id, inventory.as_mut(), &settings).await;
-        let avatar_url = user.avatar_url.unwrap_or_else(|| {
-            email_to_libravatar_url(&settings.avatar.libravatar_url, &user.email)
-        });
 
-        let client_parameters = ClientParameters {
-            device_secret: request.device_secret,
-            kind: ClientKind::Registered {
-                profile: PublicUserProfile {
-                    id: user.id,
-                    email: user.email,
-                    user_info: UserInfo {
-                        title: user.title,
-                        firstname: user.firstname,
-                        lastname: user.lastname,
-                        display_name: request.display_name.unwrap_or(user.display_name),
-                        avatar_url,
-                    },
-                    timezone,
-                },
-            },
-            role,
+        let invite_role = match &user {
+            Some(user) => Self::get_invite_role(inventory.as_mut(), user.id, &room).await?,
+            None => None,
+        };
+
+        let client_parameters = match invite_role {
+            Some(role) => {
+                Self::build_registered_user(
+                    inventory.as_mut(),
+                    &settings,
+                    request,
+                    &room,
+                    user.unwrap(),
+                    role,
+                )
+                .await
+            }
+            None => self.build_guest_user(request, &room, None).await?,
         };
 
         let access = self
             .roomserver
             .request_access(inventory.as_mut(), settings, room, client_parameters, host)
-            .await?;
-
-        Ok(RoomserverStartResponseBody {
-            token: access.token,
-            roomserver_address: access.public_url.to_string(),
-        })
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, request))]
-    pub(crate) async fn start_room_invited(
-        &self,
-        room_id: RoomId,
-        request: PostRoomsRoomserverStartInvitedRequestBody,
-        host: Url,
-    ) -> Result<RoomserverStartResponseBody, CaptureApiError> {
-        let _ = self
-            .authenticate_guest(&room_id, &request.invite_code, &request.password)
-            .await?;
-
-        let room_resource = self.get_room(&room_id).await?;
-
-        let client_parameters = ClientParameters {
-            device_secret: request.device_secret,
-            kind: ClientKind::Guest {
-                display_name: request.display_name,
-            },
-            role: Role::User,
-        };
-
-        let mut inventory = self.inventory_provider.get_inventory().await?;
-        let settings = self.settings_provider.get();
-        let access = self
-            .roomserver
-            .request_access(
-                inventory.as_mut(),
-                settings,
-                room_resource,
-                client_parameters,
-                host,
-            )
             .await?;
 
         Ok(RoomserverStartResponseBody {
@@ -289,26 +241,89 @@ impl ControllerBackend {
         self.roomserver.patch_room_parameters(room_id, patch).await
     }
 
-    async fn get_user_role(
+    /// Returns the role of the invite for a user to a room.
+    ///
+    /// Returns [`None`] when the user is not registered or not invited.
+    async fn get_invite_role(
         inventory: &mut dyn Inventory,
         user_id: UserId,
-        room_id: RoomId,
-        room_creator: UserId,
-    ) -> Result<Role, CaptureApiError> {
-        if user_id == room_creator {
-            return Ok(Role::Moderator);
+        room: &RoomResource,
+    ) -> Result<Option<InviteRole>, CaptureApiError> {
+        // Room owner is always a moderator
+        if user_id == room.created_by.id {
+            return Ok(Some(InviteRole::Moderator));
         }
 
-        let role = match inventory
-            .get_event_invite_for_user_and_room(user_id, room_id)
+        Ok(inventory
+            .get_event_invite_for_user_and_room(user_id, room.id)
             .await?
-            .map(|invite| invite.role)
-        {
-            Some(InviteRole::Moderator) => Role::Moderator,
-            None | Some(InviteRole::User) => Role::User,
-        };
+            .map(|invite| invite.role))
+    }
 
-        Ok(role)
+    /// Build a registered user  
+    async fn build_registered_user(
+        inventory: &mut dyn Inventory,
+        settings: &Arc<Settings>,
+        request: PostRoomsRoomserverStartRequestBody,
+        room: &RoomResource,
+        user: RequestUser,
+        invite_role: InviteRole,
+    ) -> ClientParameters {
+        let timezone = get_user_timezone(room.created_by.id, inventory, settings).await;
+        let avatar_url = user.avatar_url.unwrap_or_else(|| {
+            email_to_libravatar_url(&settings.avatar.libravatar_url, &user.email)
+        });
+        let role = match invite_role {
+            InviteRole::Moderator => Role::Moderator,
+            InviteRole::User => Role::User,
+        };
+        ClientParameters {
+            device_secret: request.device_secret,
+            kind: ClientKind::Registered {
+                profile: PublicUserProfile {
+                    id: user.id,
+                    email: user.email,
+                    user_info: UserInfo {
+                        title: user.title,
+                        firstname: user.firstname,
+                        lastname: user.lastname,
+                        display_name: request.display_name.unwrap_or(user.display_name),
+                        avatar_url,
+                    },
+                    timezone,
+                },
+            },
+            role,
+        }
+    }
+
+    /// Build a guest user
+    /// Registered but not invited user are treated as guests
+    ///
+    /// A guest must provide:
+    /// - a valid invite code
+    /// - a password, in case of a password-protected room
+    /// - a display name
+    async fn build_guest_user(
+        &self,
+        request: PostRoomsRoomserverStartRequestBody,
+        room: &RoomResource,
+        user: Option<RequestUser>,
+    ) -> Result<ClientParameters, CaptureApiError> {
+        let _ = self
+            .authenticate_guest(&room.id, request.invite_code, request.password)
+            .await?;
+
+        let display_name = request
+            .display_name
+            .or(user.map(|user| user.display_name))
+            .ok_or(CaptureApiError::from(StartRoomError::NoDisplayName))?;
+
+        Ok(ClientParameters {
+            device_secret: request.device_secret,
+            kind: ClientKind::Guest { display_name },
+            role: Role::User,
+        })
     }
 }
 
