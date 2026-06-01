@@ -5367,7 +5367,7 @@ dependencies = [
  "opentalk-types-common",
  "pretty_assertions",
  "reqwest 0.13.4",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "tracing",
  "url",
 ]
@@ -5381,7 +5381,7 @@ dependencies = [
  "redis",
  "rkyv",
  "siphasher",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "tokio",
 ]
 
@@ -5415,7 +5415,7 @@ dependencies = [
  "rustls 0.23.40",
  "serde_json",
  "service-probe-client",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "strum 0.28.0",
  "sysinfo",
  "tabled",
@@ -5457,7 +5457,7 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_json",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "tokio",
  "tracing",
 ]
@@ -5482,7 +5482,7 @@ dependencies = [
  "opentalk-controller-api-authorization",
  "opentalk-types-common",
  "pretty_assertions",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "tokio",
  "tracing",
 ]
@@ -5549,7 +5549,7 @@ dependencies = [
  "serde_json",
  "service-probe",
  "slotmap",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "tokio",
  "tokio-stream",
  "tracing",
@@ -5617,7 +5617,7 @@ dependencies = [
  "rrule",
  "serde",
  "serde_json",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "tokio",
  "tokio-util",
  "tracing",
@@ -5670,7 +5670,7 @@ dependencies = [
  "serde_path_to_error",
  "serde_with",
  "serial_test",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "tempfile",
  "toml 1.1.2+spec-1.1.0",
  "tracing",
@@ -5700,7 +5700,7 @@ dependencies = [
  "opentalk-types-common",
  "rand 0.10.1",
  "rrule",
- "snafu 0.9.0",
+ "snafu 0.9.1",
 ]
 
 [[package]]
@@ -5715,7 +5715,7 @@ dependencies = [
  "opentelemetry",
  "opentelemetry_sdk",
  "pin-project-lite",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "tracing",
  "url",
 ]
@@ -5749,7 +5749,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serial_test",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "strum 0.28.0",
  "tokio",
  "tracing",
@@ -5792,7 +5792,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_repr",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "url",
 ]
 
@@ -5821,7 +5821,7 @@ dependencies = [
 name = "opentalk-inventory-common"
 version = "0.33.0"
 dependencies = [
- "snafu 0.9.0",
+ "snafu 0.9.1",
 ]
 
 [[package]]
@@ -5839,7 +5839,7 @@ dependencies = [
  "opentalk-inventory",
  "opentalk-inventory-common",
  "opentalk-types-common",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "tracing",
 ]
 
@@ -5869,7 +5869,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serial_test",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "tokio",
  "tokio-cron-scheduler",
  "uuid",
@@ -5886,7 +5886,7 @@ dependencies = [
  "reqwest 0.13.4",
  "serde",
  "serde_json",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "tokio",
  "url",
 ]
@@ -6882,7 +6882,7 @@ dependencies = [
  "redis",
  "serde",
  "serde_json",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "tokio",
 ]
 
@@ -6917,7 +6917,7 @@ dependencies = [
  "postcard",
  "serde",
  "serde_json",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "url",
  "utoipa",
 ]
@@ -6980,7 +6980,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "strum 0.28.0",
  "url",
  "utoipa",
@@ -6999,7 +6999,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "utoipa",
 ]
 
@@ -7876,7 +7876,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes",
- "heck 0.4.1",
+ "heck 0.5.0",
  "itertools 0.12.1",
  "log",
  "multimap",
@@ -7896,7 +7896,7 @@ version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "343d3bd7056eda839b03204e68deff7d1b13aba7af2b2fd16890697274262ee7"
 dependencies = [
- "heck 0.4.1",
+ "heck 0.5.0",
  "itertools 0.14.0",
  "log",
  "multimap",
@@ -9553,11 +9553,11 @@ dependencies = [
 
 [[package]]
 name = "snafu"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1d4bced6a69f90b2056c03dcff2c4737f98d6fb9e0853493996e1d253ca29c6"
+checksum = "d1a012328be2e3f5d5f6f3218147ca02588cea4cb865e876849ab6debcf36522"
 dependencies = [
- "snafu-derive 0.9.0",
+ "snafu-derive 0.9.1",
 ]
 
 [[package]]
@@ -9566,7 +9566,7 @@ version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1c97747dbf44bb1ca44a561ece23508e99cb592e862f22222dcf42f51d1e451"
 dependencies = [
- "heck 0.4.1",
+ "heck 0.5.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -9574,11 +9574,11 @@ dependencies = [
 
 [[package]]
 name = "snafu-derive"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54254b8531cafa275c5e096f62d48c81435d1015405a91198ddb11e967301d40"
+checksum = "5f103c50866b8743da9429b8a581d81a27c2d3a9c4ac7df8f8571c1dd7896eda"
 dependencies = [
- "heck 0.4.1",
+ "heck 0.5.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -12190,7 +12190,7 @@ dependencies = [
  "opentalk-database",
  "opentalk-db-storage",
  "rand 0.10.1",
- "snafu 0.9.0",
+ "snafu 0.9.1",
  "tokio",
  "unified-diff",
  "url",
