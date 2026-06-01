@@ -31,7 +31,7 @@ pub async fn build_event_info(
         };
 
         let call_in = if let Some(call_in_tel) = call_in_tel {
-            if is_call_in_allowed(tariff, room) {
+            if is_call_in_allowed(room, tariff) {
                 inventory
                     .get_room_sip_config(room.id)
                     .await?
@@ -69,7 +69,7 @@ pub async fn build_event_info(
 }
 
 /// Checks if call-in is allowed for a given room and tariff.
-pub fn is_call_in_allowed(tariff: &TariffResource, room: &Room) -> bool {
+pub fn is_call_in_allowed(room: &Room, tariff: &TariffResource) -> bool {
     !room.e2e_encryption
         && tariff.has_feature_enabled(
             &CALL_IN_MODULE_FEATURE_ID.module,

@@ -138,7 +138,7 @@ fn to_event(
 
     let mut call_in = None;
 
-    if is_call_in_allowed(room_tariff, &room)
+    if is_call_in_allowed(&room, room_tariff)
         && let (Some(call_in_settings), Some(sip_config)) = (&settings.call_in, sip_config)
     {
         call_in = Some(v1::CallIn {

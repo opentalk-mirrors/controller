@@ -1363,7 +1363,7 @@ impl EventRoomInfoExt for EventRoomInfo {
     ) -> Self {
         let mut call_in = None;
 
-        if is_call_in_allowed(tariff, room)
+        if is_call_in_allowed(room, tariff)
             && let (Some(call_in_config), Some(sip_config)) = (&settings.call_in, sip_config)
         {
             call_in = Some(CallInInfo {
