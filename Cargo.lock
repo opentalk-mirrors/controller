@@ -5877,16 +5877,16 @@ dependencies = [
 
 [[package]]
 name = "opentalk-keycloak-admin"
-version = "0.5.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffdf5ddd57f26073c1450a58cfebc0a712a8c58cd72d9d4ed4bce78b13f9082a"
+checksum = "b6a630b23fb56b79e01c2bf378663c67f843beb525f7e4889e5009b47b4f99e2"
 dependencies = [
  "log",
  "openidconnect",
  "reqwest 0.13.4",
  "serde",
  "serde_json",
- "snafu 0.8.9",
+ "snafu 0.9.0",
  "tokio",
  "url",
 ]

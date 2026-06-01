@@ -346,8 +346,8 @@ impl MailService {
 
         let invitee = v1::UnregisteredUser {
             email: invitee.email.into(),
-            first_name: invitee.first_name,
-            last_name: invitee.last_name,
+            first_name: invitee.first_name.unwrap_or_default(),
+            last_name: invitee.last_name.unwrap_or_default(),
         };
 
         // Create MailTask
