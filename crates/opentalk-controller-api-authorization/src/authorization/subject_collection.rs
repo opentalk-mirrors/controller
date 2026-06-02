@@ -5,7 +5,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use opentalk_types_common::{
-    events::invites::InviteRole, rooms::invite_codes::InviteCode, users::UserId,
+    events::invites::InviteRole, rooms::invite_codes::InviteCode, time::Timestamp, users::UserId,
 };
 
 use crate::authorization::Subject;
@@ -36,15 +36,23 @@ impl SubjectCollection {
             .any(|id| users.contains_key(id))
     }
 
-    /// Query whether the subject collection contains any of the invite codes in a `BTreeSet`.
-    pub fn contains_any_invite_code(&self, codes: &BTreeSet<InviteCode>) -> bool {
+    /// Query whether the subject collection contains any of the invite codes that are not expired in a `BTreeMap`.
+    pub fn contains_any_valid_invite_code(
+        &self,
+        invites: &BTreeMap<InviteCode, Option<Timestamp>>,
+    ) -> bool {
+        let now = Timestamp::now();
         self.0
             .iter()
             .filter_map(|s| match s {
                 Subject::User(_) => None,
                 Subject::InviteCode(code) => Some(code),
             })
-            .any(|code| codes.contains(code))
+            .any(|code| {
+                invites
+                    .get(code)
+                    .is_some_and(|expiration| expiration.is_none_or(|expiration| expiration > now))
+            })
     }
 
     /// Query whether any of the users in the subject collection has a role equal or higher in a

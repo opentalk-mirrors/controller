@@ -10,8 +10,9 @@ use opentalk_controller_api_authorization::authorization::{
 use opentalk_types_common::{
     assets::AssetId,
     events::{EventId, invites::InviteRole},
-    rooms::{RoomId, invite_codes::InviteCode},
+    rooms::{GuestAccess, RoomId, invite_codes::InviteCode},
     streaming::StreamingTargetId,
+    time::Timestamp,
     users::{GroupId, UserId},
 };
 
@@ -151,8 +152,20 @@ impl AuthorizationData {
                 AuthorizationChange::DeleteEvent { event } => {
                     self.delete_event(event);
                 }
-                AuthorizationChange::CreateRoom { room, creator } => {
-                    self.create_room(room, creator);
+                AuthorizationChange::CreateRoom {
+                    room,
+                    creator,
+                    is_guest_feature_enabled,
+                    guest_access,
+                    e2e_encryption,
+                } => {
+                    self.create_room(
+                        room,
+                        creator,
+                        is_guest_feature_enabled,
+                        guest_access,
+                        e2e_encryption,
+                    );
                 }
                 AuthorizationChange::DeleteRoom { room } => {
                     self.delete_room(room);
@@ -175,12 +188,27 @@ impl AuthorizationData {
                 AuthorizationChange::RemoveUserFromEvents { user, events } => {
                     self.remove_user_from_events(user, events);
                 }
-                AuthorizationChange::AddInviteCodeToRoom { room, invite_code } => {
-                    self.add_invite_code_to_room(room, invite_code);
+                AuthorizationChange::AddInviteCodeToRoom {
+                    room,
+                    invite_code: code,
+                    expiration,
+                } => {
+                    self.add_invite_code_to_room(room, code, expiration);
                 }
                 AuthorizationChange::RemoveInviteCodeFromRoom { room, invite_code } => {
                     self.remove_invite_code_from_room(room, invite_code);
                 }
+                AuthorizationChange::UpdateRoomConfiguration {
+                    room,
+                    guest_access,
+                    e2e_encryption,
+                } => {
+                    self.update_room_configuration(room, guest_access, e2e_encryption);
+                }
+                AuthorizationChange::UpdateUserTariffAssignment {
+                    user,
+                    is_guest_feature_enabled,
+                } => self.update_user_tariff_assignment(user, is_guest_feature_enabled),
             }
         }
     }
@@ -506,12 +534,30 @@ impl AuthorizationData {
         let _ = self.events.remove(event);
     }
 
-    fn create_room(&mut self, room: &RoomId, creator: &UserId) {
-        tracing::debug!("Adding room {room} with creator {creator} to authorization cache");
-        let entry = self
-            .rooms
-            .entry(*room)
-            .or_insert_with(|| Room::new(*creator));
+    fn create_room(
+        &mut self,
+        room: &RoomId,
+        creator: &UserId,
+        is_guest_feature_enabled: &bool,
+        guest_access: &GuestAccess,
+        e2e_encryption: &bool,
+    ) {
+        tracing::debug!(
+            %room,
+            %creator,
+            is_guest_feature_enabled,
+            ?guest_access,
+            e2e_encryption,
+            "Adding room to authorization cache"
+        );
+        let entry = self.rooms.entry(*room).or_insert_with(|| {
+            Room::new(
+                *creator,
+                *is_guest_feature_enabled,
+                *guest_access,
+                *e2e_encryption,
+            )
+        });
 
         if &entry.owner != creator {
             tracing::warn!(
@@ -584,17 +630,48 @@ impl AuthorizationData {
         }
     }
 
-    fn add_invite_code_to_room(&mut self, room: &RoomId, invite_code: &InviteCode) {
+    fn add_invite_code_to_room(
+        &mut self,
+        room: &RoomId,
+        invite_code: &InviteCode,
+        expiration: &Option<Timestamp>,
+    ) {
         if let Some(room) = self.rooms.get_mut(room) {
-            room.add_invite_code(invite_code);
+            room.add_invite_code(invite_code, expiration);
         } else {
-            tracing::warn!("Atttempted to add invite code to room {room} which does not exist");
+            tracing::warn!("Attempted to add invite code to room {room} which does not exist");
         }
     }
 
     fn remove_invite_code_from_room(&mut self, room: &RoomId, invite_code: &InviteCode) {
         if let Some(room) = self.rooms.get_mut(room) {
             room.remove_invite_code(invite_code);
+        }
+    }
+
+    fn update_room_configuration(
+        &mut self,
+        room: &RoomId,
+        guest_access: &Option<GuestAccess>,
+        e2e_encryption: &Option<bool>,
+    ) {
+        if let Some(room) = self.rooms.get_mut(room) {
+            room.update_room_configuration(guest_access, e2e_encryption);
+        } else {
+            tracing::warn!(
+                %room,
+                ?guest_access,
+                e2e_encryption,
+                "Attempted to update configuration for a room which does not exist"
+            );
+        }
+    }
+
+    fn update_user_tariff_assignment(&mut self, owner: &UserId, is_guest_feature_enabled: &bool) {
+        for (_, room) in self.rooms.iter_mut() {
+            if room.owner == *owner {
+                room.is_guest_feature_enabled = *is_guest_feature_enabled;
+            }
         }
     }
 }

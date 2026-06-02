@@ -260,7 +260,7 @@ impl ControllerBackend {
             .map(|invite| invite.role))
     }
 
-    /// Build a registered user  
+    /// Build a registered user
     async fn build_registered_user(
         inventory: &mut dyn Inventory,
         settings: &Arc<Settings>,
@@ -311,7 +311,7 @@ impl ControllerBackend {
         user: Option<RequestUser>,
     ) -> Result<ClientParameters, CaptureApiError> {
         let _ = self
-            .authenticate_guest(&room.id, request.invite_code, request.password)
+            .authenticate_guest(room.id, request.invite_code, request.password)
             .await?;
 
         let display_name = request

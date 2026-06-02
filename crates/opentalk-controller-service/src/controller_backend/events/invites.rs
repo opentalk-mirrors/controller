@@ -14,7 +14,7 @@ use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{
     Event, EventInvite, Inventory, InventoryProvider, NewEventEmailInvite, NewEventInvite,
     NewRoomInvite, Room, RoomSipConfig, Tenant, UpdateEventEmailInvite, UpdateEventInvite, User,
-    transaction,
+    transaction, utils::is_room_guest_access_allowed,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
@@ -33,8 +33,6 @@ use opentalk_types_common::{
         EventId,
         invites::{EmailInviteRole, EventInviteStatus, InviteRole},
     },
-    features::GUESTS_ALLOWED_FEATURE_ID,
-    modules::CORE_MODULE_ID,
     pagination::{ItemCount, Page, PageSize},
     rooms::RoomId,
     shared_folders::SharedFolder,
@@ -137,7 +135,7 @@ impl ControllerBackend {
 
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
         let current_user = inventory.get_user(current_user.id).await?;
-        let room_tariff = self.get_tariff_for_room(event.room).await?;
+        let room_tariff = self.get_room_tariff(event.room).await?;
 
         match create_invite {
             PostEventInviteBody::User(user_invite) => {
@@ -811,7 +809,7 @@ async fn create_invite_to_non_matching_email(
 
     if invitee_user.is_some()
         || (settings.endpoints.event_invite_external_email_address
-            && room_tariff.has_feature_enabled(&CORE_MODULE_ID, &GUESTS_ALLOWED_FEATURE_ID))
+            && is_room_guest_access_allowed(&room, room_tariff))
     {
         let inviter = current_user.clone();
         let invitee_email = email.clone();
@@ -881,6 +879,7 @@ async fn create_invite_to_non_matching_email(
                         .apply_change(&AuthorizationChange::AddInviteCodeToRoom {
                             room: room.id,
                             invite_code: invite.invite_code,
+                            expiration: invite.expiration,
                         })
                         .await
                         .map_err(|e| {

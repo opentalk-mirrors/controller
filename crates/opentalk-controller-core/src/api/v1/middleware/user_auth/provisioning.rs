@@ -20,6 +20,7 @@ use opentalk_inventory::{
 use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use opentalk_types_common::{
     events::{EventId, invites::InviteRole},
+    features::GUESTS_ALLOWED_MODULE_FEATURE_ID,
     rooms::RoomId,
     tariffs::TariffStatus,
     tenants::TenantId,
@@ -126,6 +127,7 @@ pub(super) async fn provision_user(
         .into_iter()
         .map(|g| g.id)
         .collect::<Vec<GroupId>>();
+    let is_guest_feature_enabled = !tariff.is_feature_disabled(&GUESTS_ALLOWED_MODULE_FEATURE_ID);
 
     let login_result = {
         let tenant = tenant.clone();
@@ -145,6 +147,13 @@ pub(super) async fn provision_user(
     };
 
     let user = update_core_user_permissions(authorizer, login_result).await?;
+
+    authorizer
+        .apply_change(&AuthorizationChange::UpdateUserTariffAssignment {
+            user: user.id,
+            is_guest_feature_enabled,
+        })
+        .await;
 
     Ok((tenant, user))
 }

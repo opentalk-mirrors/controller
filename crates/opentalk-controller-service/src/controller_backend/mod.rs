@@ -213,7 +213,6 @@ impl OpenTalkControllerService for ControllerBackend {
 
     async fn patch_room(
         &self,
-        current_user: RequestUser,
         room_id: RoomId,
         password: Option<Option<RoomPassword>>,
         waiting_room: Option<bool>,
@@ -222,7 +221,6 @@ impl OpenTalkControllerService for ControllerBackend {
     ) -> Result<RoomResource, ApiError> {
         Ok(self
             .patch_room(
-                current_user,
                 room_id,
                 password,
                 waiting_room,
@@ -251,20 +249,12 @@ impl OpenTalkControllerService for ControllerBackend {
         Ok(self.get_room(room_id).await?)
     }
 
-    async fn get_room_tariff(
-        &self,
-        room_id: &RoomId,
-        invite_code: Option<InviteCode>,
-    ) -> Result<TariffResource, ApiError> {
-        Ok(self.get_room_tariff(*room_id, invite_code).await?)
+    async fn get_room_tariff(&self, room_id: &RoomId) -> Result<TariffResource, ApiError> {
+        Ok(self.get_room_tariff(*room_id).await?)
     }
 
-    async fn get_room_event(
-        &self,
-        room_id: &RoomId,
-        invite_code: Option<InviteCode>,
-    ) -> Result<GetRoomEventResponseBody, ApiError> {
-        Ok(self.get_room_event(room_id, invite_code).await?)
+    async fn get_room_event(&self, room_id: &RoomId) -> Result<GetRoomEventResponseBody, ApiError> {
+        Ok(self.get_room_event(room_id).await?)
     }
 
     async fn start_room_session(

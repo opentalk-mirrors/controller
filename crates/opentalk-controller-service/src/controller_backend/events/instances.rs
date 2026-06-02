@@ -716,6 +716,7 @@ impl ControllerBackend {
                 .apply_change(&AuthorizationChange::AddInviteCodeToRoom {
                     room: room.id,
                     invite_code: invite_for_room.invite_code,
+                    expiration: invite_for_room.expiration,
                 })
                 .await
                 .map_err(|e| {
@@ -1136,7 +1137,7 @@ mod tests {
                     "room": {
                         "id": "00000000-0000-0000-0000-000000000000",
                         "waiting_room": false,
-                        "guest_access": "direct_access",
+                        "guest_access": "waiting_room",
                         "e2e_encryption": false
                     },
                     "invitees_truncated": false,

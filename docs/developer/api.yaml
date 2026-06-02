@@ -1702,6 +1702,7 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
+        - InviteCode: []
     delete:
       tags:
         - "api::v1::rooms"
@@ -3577,7 +3578,7 @@ components:
             password: "9876543210"
             tel: +555-12345-67890
           e2e_encryption: false
-          guest_access: direct_access
+          guest_access: waiting_room
           id: 00000000-0000-0000-0000-0000abadcafe
           password: v3rys3cr3t
           waiting_room: false
@@ -3741,7 +3742,7 @@ components:
             password: "9876543210"
             tel: +555-12345-67890
           e2e_encryption: false
-          guest_access: direct_access
+          guest_access: waiting_room
           id: 00000000-0000-0000-0000-0000abadcafe
           password: v3rys3cr3t
           waiting_room: false
@@ -3916,7 +3917,7 @@ components:
             password: "9876543210"
             tel: +555-12345-67890
           e2e_encryption: false
-          guest_access: direct_access
+          guest_access: waiting_room
           id: 00000000-0000-0000-0000-0000abadcafe
           password: v3rys3cr3t
           waiting_room: false
@@ -4118,7 +4119,7 @@ components:
           password: "9876543210"
           tel: +555-12345-67890
         e2e_encryption: false
-        guest_access: direct_access
+        guest_access: waiting_room
         id: 00000000-0000-0000-0000-0000abadcafe
         password: v3rys3cr3t
         waiting_room: false
@@ -4228,7 +4229,7 @@ components:
               password: "9876543210"
               tel: +555-12345-67890
             e2e_encryption: false
-            guest_access: direct_access
+            guest_access: waiting_room
             id: 00000000-0000-0000-0000-0000abadcafe
             password: v3rys3cr3t
             waiting_room: false
@@ -4397,7 +4398,7 @@ components:
         - disabled
         - waiting_room
         - direct_access
-      example: direct_access
+      example: waiting_room
     InstanceId:
       type: string
       description: An event instance id
@@ -5169,7 +5170,7 @@ components:
         ends_at:
           datetime: "2002-04-01T11:41:35Z"
           timezone: Europe/Berlin
-        guest_access: direct_access
+        guest_access: waiting_room
         has_shared_folder: false
         is_adhoc: false
         is_all_day: true
@@ -5577,7 +5578,7 @@ components:
           id: 00000000-0000-0000-0000-0000000a11c3
           lastname: Adams
           title: ""
-        guest_access: direct_access
+        guest_access: waiting_room
         id: 00000000-0000-0000-0000-000000000000
         password: v3rys3cr3t
         waiting_room: false

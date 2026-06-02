@@ -75,7 +75,7 @@ impl ControllerBackend {
         if let Some(mail_service) = &mail_service {
             let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
             let current_user = inventory.get_user(current_user.id).await?;
-            let room_tariff = self.get_tariff_for_room(room_id).await?;
+            let room_tariff = self.get_room_tariff(room_id).await?;
 
             notify_event_invitees_by_room_about_update(
                 &self.user_search_client,
@@ -224,7 +224,7 @@ impl ControllerBackend {
         if let Some(mail_service) = &mail_service {
             let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
             let current_user = inventory.get_user(current_user.id).await?;
-            let room_tariff = self.get_tariff_for_room(room_id).await?;
+            let room_tariff = self.get_room_tariff(room_id).await?;
 
             notify_event_invitees_by_room_about_update(
                 &self.user_search_client,
@@ -265,7 +265,7 @@ impl ControllerBackend {
         if let Some(mail_service) = &mail_service {
             let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
             let current_user = inventory.get_user(current_user.id).await?;
-            let room_tariff = self.get_tariff_for_room(room_id).await?;
+            let room_tariff = self.get_room_tariff(room_id).await?;
 
             notify_event_invitees_by_room_about_update(
                 &self.user_search_client,

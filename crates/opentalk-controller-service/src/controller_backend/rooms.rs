@@ -10,18 +10,19 @@ use opentalk_controller_utils::{
     CaptureApiError, TariffResourceExt as _,
     deletion::{Deleter, RoomDeleter},
 };
-use opentalk_inventory::{NewRoom, NewRoomSipConfig, Room, UpdateRoom, utils::build_event_info};
+use opentalk_inventory::{
+    NewRoom, NewRoomSipConfig, Room, UpdateRoom,
+    utils::{build_event_info, is_invite_valid},
+};
 use opentalk_types_api_v1::{
     error::ApiError,
     pagination::PagePaginationQuery,
     rooms::{GetRoomsResponseBody, RoomResource, by_room_id::GetRoomEventResponseBody},
 };
 use opentalk_types_common::{
-    features::{self, GUESTS_ALLOWED_FEATURE_ID},
-    modules::CORE_MODULE_ID,
+    features::{CALL_IN_MODULE_FEATURE_ID, GUESTS_ALLOWED_MODULE_FEATURE_ID},
     pagination::ItemCount,
     rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
-    tariffs::TariffResource,
     users::UserId,
 };
 
@@ -74,12 +75,12 @@ impl ControllerBackend {
         let tariff = self.get_tariff_for_user(current_user.id).await?;
 
         if enable_sip {
-            tariff.require_feature(&features::CALL_IN_MODULE_FEATURE_ID)?;
+            tariff.require_feature(&CALL_IN_MODULE_FEATURE_ID)?;
         }
 
         let guest_access = guest_access.unwrap_or(GuestAccess::WaitingRoom);
         if guest_access != GuestAccess::Disabled {
-            tariff.require_feature(&features::GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
+            tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
         }
 
         let room = inventory
@@ -110,10 +111,17 @@ impl ControllerBackend {
             guest_access: room.guest_access,
         };
 
+        let is_guest_feature_enabled = tariff.has_feature_enabled(
+            &GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
+            &GUESTS_ALLOWED_MODULE_FEATURE_ID.feature,
+        );
         self.authorizer
             .apply_change(&AuthorizationChange::CreateRoom {
                 room: room_resource.id,
                 creator: current_user.id,
+                is_guest_feature_enabled,
+                guest_access: room_resource.guest_access,
+                e2e_encryption,
             })
             .await
             .map_err(|e| {
@@ -126,22 +134,57 @@ impl ControllerBackend {
 
     pub(crate) async fn patch_room(
         &self,
-        current_user: RequestUser,
         room_id: RoomId,
         password: Option<Option<RoomPassword>>,
         waiting_room: Option<bool>,
         guest_access: Option<GuestAccess>,
         e2e_encryption: Option<bool>,
     ) -> Result<RoomResource, CaptureApiError> {
+        let room = self
+            .update_room(
+                room_id,
+                password,
+                waiting_room,
+                guest_access,
+                e2e_encryption,
+            )
+            .await?;
+
         let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
+        let created_by = inventory
+            .get_user(room.created_by)
+            .await?
+            .to_public_user_profile(&settings);
 
-        let tariff = self.get_tariff_for_user(current_user.id).await?;
+        let room_resource = RoomResource {
+            id: room.id,
+            created_by,
+            created_at: room.created_at,
+            password: room.password,
+            waiting_room: room.waiting_room,
+            guest_access: room.guest_access,
+        };
+
+        Ok(room_resource)
+    }
+
+    /// Updates a room in the database and applies the necessary changes in the authorization middleware.
+    pub(crate) async fn update_room(
+        &self,
+        room_id: RoomId,
+        password: Option<Option<RoomPassword>>,
+        waiting_room: Option<bool>,
+        guest_access: Option<GuestAccess>,
+        e2e_encryption: Option<bool>,
+    ) -> Result<Room, CaptureApiError> {
+        let tariff = self.get_room_tariff(room_id).await?;
 
         if guest_access != Some(GuestAccess::Disabled) {
-            tariff.require_feature(&features::GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
+            tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
         }
 
+        let mut inventory = self.inventory_provider.get_inventory().await?;
         let room = inventory
             .update_room(
                 room_id,
@@ -154,16 +197,15 @@ impl ControllerBackend {
             )
             .await?;
 
-        let room_resource = RoomResource {
-            id: room.id,
-            created_by: current_user.to_public_user_profile(&settings),
-            created_at: room.created_at,
-            password: room.password,
-            waiting_room: room.waiting_room,
-            guest_access: room.guest_access,
-        };
+        self.authorizer
+            .apply_change(&AuthorizationChange::UpdateRoomConfiguration {
+                room: room_id,
+                guest_access,
+                e2e_encryption,
+            })
+            .await?;
 
-        Ok(room_resource)
+        Ok(room)
     }
 
     pub(crate) async fn delete_room(
@@ -209,26 +251,9 @@ impl ControllerBackend {
         Ok(room_resource)
     }
 
-    pub(crate) async fn get_room_tariff(
-        &self,
-        room_id: RoomId,
-        invite_code: Option<InviteCode>,
-    ) -> Result<TariffResource, CaptureApiError> {
-        let tariff = self.get_tariff_for_room(room_id).await?;
-
-        if invite_code.is_some()
-            && !tariff.has_feature_enabled(&CORE_MODULE_ID, &GUESTS_ALLOWED_FEATURE_ID)
-        {
-            return Err(ApiError::not_found().into());
-        }
-
-        Ok(tariff)
-    }
-
     pub(crate) async fn get_room_event(
         &self,
         room_id: &RoomId,
-        invite_code: Option<InviteCode>,
     ) -> Result<GetRoomEventResponseBody, CaptureApiError> {
         let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
@@ -244,13 +269,6 @@ impl ControllerBackend {
         }
 
         let tariff = self.get_tariff_for_user(room.created_by).await?;
-
-        if invite_code.is_some()
-            && !tariff.has_feature_enabled(&CORE_MODULE_ID, &GUESTS_ALLOWED_FEATURE_ID)
-        {
-            return Err(ApiError::not_found().into());
-        }
-
         match event.as_ref() {
             Some(event) => {
                 let call_in_tel = settings.call_in.as_ref().map(|call_in| call_in.tel.clone());
@@ -270,7 +288,7 @@ impl ControllerBackend {
     /// Returns the associated room
     pub(crate) async fn authenticate_guest(
         &self,
-        room_id: &RoomId,
+        room_id: RoomId,
         invite_code: Option<InviteCode>,
         password: Option<RoomPassword>,
     ) -> Result<Room, CaptureApiError> {
@@ -279,20 +297,14 @@ impl ControllerBackend {
         };
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
-
+        let (room, created_by) = inventory.get_room_with_creator(room_id).await?;
+        let tariff = self.get_tariff_for_user(created_by.id).await?;
         let invite = inventory.get_room_invite(invite_code).await?;
 
-        if !invite.active {
+        if !is_invite_valid(&invite, &room, &tariff) {
+            // Don't leak the existence of the room
             return Err(ApiError::not_found().into());
         }
-
-        if invite.room != *room_id {
-            return Err(ApiError::bad_request()
-                .with_message("Room id mismatch")
-                .into());
-        }
-
-        let room = inventory.get_room(invite.room).await?;
 
         drop(inventory);
 

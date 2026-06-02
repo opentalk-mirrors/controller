@@ -25,7 +25,7 @@ impl ControllerBackend {
         self.build_tariff_resource(&tariff)
     }
 
-    pub(super) async fn get_tariff_for_room(
+    pub(super) async fn get_room_tariff(
         &self,
         room_id: RoomId,
     ) -> Result<TariffResource, CaptureApiError> {

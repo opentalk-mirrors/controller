@@ -8,21 +8,31 @@ use diesel::{dsl::not, prelude::*};
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{
+    features::GUESTS_ALLOWED_MODULE_FEATURE_ID,
     pagination::{ItemCount, Page, PageSize},
-    rooms::RoomId,
+    rooms::{GuestAccess, RoomId},
     users::UserId,
 };
 
 use crate::{
     self as db,
     paginate::Paginate,
-    schema::{event_invites, events, rooms, users},
+    schema::{event_invites, events, rooms, tariffs, users},
     tables::{
         rooms::{NewRoom, Room, UpdateRoom},
         tariffs::Tariff,
         users::User,
     },
 };
+
+#[derive(diesel::Queryable)]
+pub struct RoomAuthProperties {
+    pub room_id: RoomId,
+    pub created_by: UserId,
+    pub guest_access: GuestAccess,
+    pub e2e_encryption: bool,
+    pub guests_allowed_by_tariff: bool,
+}
 
 /// Select a room using the given id
 #[tracing::instrument(err(level = "debug"), skip_all)]
@@ -138,14 +148,21 @@ pub async fn get_tariff(conn: &mut DbConnection, room: Room) -> Result<Tariff> {
     db::queries::tariffs::get_tariff(conn, user.tariff_id).await
 }
 
-/// Select all room ids and their creator
+/// Select all room ids with all properties relevant for authorization
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_all_room_and_creator_ids(
+pub async fn get_all_room_ids_with_auth_properties(
     conn: &mut DbConnection,
-) -> Result<Vec<(RoomId, UserId)>> {
+) -> Result<Vec<RoomAuthProperties>> {
     rooms::table
-        .select((rooms::id, rooms::created_by))
-        .load::<(RoomId, UserId)>(conn)
+        .inner_join(users::table.inner_join(tariffs::table))
+        .select((
+            rooms::id,
+            rooms::created_by,
+            rooms::guest_access,
+            rooms::e2e_encryption,
+            not(tariffs::disabled_features.contains(vec![GUESTS_ALLOWED_MODULE_FEATURE_ID])),
+        ))
+        .load(conn)
         .await
         .map_err(DatabaseError::from)
 }

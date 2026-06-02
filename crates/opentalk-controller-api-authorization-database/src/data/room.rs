@@ -2,28 +2,43 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use opentalk_controller_api_authorization::authorization::{
     AccessMethod, Admission, Subject, SubjectCollection,
 };
 use opentalk_types_common::{
-    events::invites::InviteRole, rooms::invite_codes::InviteCode, users::UserId,
+    events::invites::InviteRole,
+    rooms::{GuestAccess, invite_codes::InviteCode},
+    time::Timestamp,
+    users::UserId,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Room {
     pub owner: UserId,
     pub invited_users: BTreeMap<UserId, InviteRole>,
-    pub invite_codes: BTreeSet<InviteCode>,
+    pub is_guest_feature_enabled: bool,
+    // The active flag is not stored for invite codes, as the invite code is removed when it is deactivated.
+    pub invite_codes: BTreeMap<InviteCode, Option<Timestamp>>,
+    pub guest_access: GuestAccess,
+    pub e2e_encryption: bool,
 }
 
 impl Room {
-    pub fn new(owner: UserId) -> Self {
+    pub fn new(
+        owner: UserId,
+        is_guest_feature_enabled: bool,
+        guest_access: GuestAccess,
+        e2e_encryption: bool,
+    ) -> Self {
         Self {
             owner,
             invited_users: BTreeMap::new(),
-            invite_codes: BTreeSet::new(),
+            is_guest_feature_enabled,
+            invite_codes: BTreeMap::new(),
+            guest_access,
+            e2e_encryption,
         }
     }
 
@@ -35,12 +50,26 @@ impl Room {
         let _ = self.invited_users.remove(user);
     }
 
-    pub fn add_invite_code(&mut self, invite_code: &InviteCode) {
-        let _ = self.invite_codes.insert(*invite_code);
+    pub fn add_invite_code(&mut self, invite_code: &InviteCode, expiration: &Option<Timestamp>) {
+        let _ = self.invite_codes.insert(*invite_code, *expiration);
     }
 
     pub fn remove_invite_code(&mut self, invite_code: &InviteCode) {
         let _ = self.invite_codes.remove(invite_code);
+    }
+
+    pub fn update_room_configuration(
+        &mut self,
+        guest_access: &Option<GuestAccess>,
+        e2e_encryption: &Option<bool>,
+    ) {
+        if let Some(guest_access) = guest_access {
+            self.guest_access = *guest_access;
+        }
+
+        if let Some(e2e_encryption) = e2e_encryption {
+            self.e2e_encryption = *e2e_encryption;
+        }
     }
 
     pub fn authorize(
@@ -62,7 +91,10 @@ impl Room {
 
         // Invite codes are only allowed to read
         if method.is_read_only()
-            && authenticated_subjects.contains_any_invite_code(&self.invite_codes)
+            && self.is_guest_feature_enabled
+            && !self.guest_access.is_disabled()
+            && !self.e2e_encryption
+            && authenticated_subjects.contains_any_valid_invite_code(&self.invite_codes)
         {
             return Admission::Allowed;
         }
@@ -92,7 +124,7 @@ impl Room {
             return Admission::Denied;
         }
 
-        if authenticated_subjects.contains_any_invite_code(&self.invite_codes) {
+        if authenticated_subjects.contains_any_valid_invite_code(&self.invite_codes) {
             return Admission::Allowed;
         }
 
