@@ -180,7 +180,7 @@ impl ControllerBackend {
     ) -> Result<Room, CaptureApiError> {
         let tariff = self.get_room_tariff(room_id).await?;
 
-        if guest_access != Some(GuestAccess::Disabled) {
+        if guest_access.is_some_and(|guest_access| !guest_access.is_disabled()) {
             tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
         }
 

@@ -31,7 +31,7 @@ pub async fn build_event_info(
         };
 
         let call_in = if let Some(call_in_tel) = call_in_tel {
-            if is_call_in_allowed(tariff, room) {
+            if is_call_in_allowed(room, tariff) {
                 inventory
                     .get_room_sip_config(room.id)
                     .await?
@@ -69,7 +69,7 @@ pub async fn build_event_info(
 }
 
 /// Checks if call-in is allowed for a given room and tariff.
-pub fn is_call_in_allowed(tariff: &TariffResource, room: &Room) -> bool {
+pub fn is_call_in_allowed(room: &Room, tariff: &TariffResource) -> bool {
     !room.e2e_encryption
         && tariff.has_feature_enabled(
             &CALL_IN_MODULE_FEATURE_ID.module,
@@ -105,7 +105,7 @@ mod tests {
     use std::collections::{BTreeMap, BTreeSet};
 
     use opentalk_types_common::{
-        features::GUESTS_ALLOWED_MODULE_FEATURE_ID,
+        features::{CALL_IN_MODULE_FEATURE_ID, GUESTS_ALLOWED_MODULE_FEATURE_ID},
         rooms::{GuestAccess, RoomId, invite_codes::InviteCode},
         tariffs::{TariffId, TariffModuleResource, TariffResource},
         tenants::TenantId,
@@ -114,7 +114,61 @@ mod tests {
     };
 
     use super::{is_invite_valid, is_room_guest_access_allowed};
-    use crate::{Room, RoomInvite};
+    use crate::{Room, RoomInvite, utils::is_call_in_allowed};
+
+    #[test]
+    fn call_in() {
+        let allowed_room = Room {
+            id: RoomId::nil(),
+            id_serial: 0,
+            created_by: UserId::nil(),
+            created_at: Timestamp::unix_epoch(),
+            password: None,
+            waiting_room: true,
+            guest_access: GuestAccess::Disabled,
+            tenant_id: TenantId::nil(),
+            e2e_encryption: false,
+        };
+        let allowed_tariff = TariffResource {
+            id: TariffId::nil(),
+            name: "Guest Feature Enabled".to_owned(),
+            quotas: BTreeMap::new(),
+            modules: BTreeMap::from_iter([(
+                CALL_IN_MODULE_FEATURE_ID.module,
+                TariffModuleResource {
+                    features: BTreeSet::from([CALL_IN_MODULE_FEATURE_ID.feature]),
+                },
+            )]),
+        };
+        assert!(is_call_in_allowed(&allowed_room, &allowed_tariff));
+
+        let encrypted_room = Room {
+            id: RoomId::nil(),
+            id_serial: 0,
+            created_by: UserId::nil(),
+            created_at: Timestamp::unix_epoch(),
+            password: None,
+            waiting_room: true,
+            guest_access: GuestAccess::Disabled,
+            tenant_id: TenantId::nil(),
+            e2e_encryption: true,
+        };
+        assert!(!is_call_in_allowed(&encrypted_room, &allowed_tariff));
+
+        let call_in_feature_disabled_tariff = TariffResource {
+            id: TariffId::nil(),
+            name: "Call-In Feature Disabled".to_owned(),
+            quotas: BTreeMap::new(),
+            modules: BTreeMap::from_iter([(
+                CALL_IN_MODULE_FEATURE_ID.module,
+                TariffModuleResource::default(),
+            )]),
+        };
+        assert!(!is_call_in_allowed(
+            &allowed_room,
+            &call_in_feature_disabled_tariff
+        ));
+    }
 
     #[test]
     fn invite_valid() {
