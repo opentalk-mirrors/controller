@@ -96,7 +96,7 @@ mod tests {
     use chrono::{DateTime, Days, Utc};
     use log::logger;
     use opentalk_controller_api_authorization::authorization::Authorizer;
-    use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
+    use opentalk_controller_api_authorization_memory::OpenTalkAuthorizerBackend;
     use opentalk_controller_settings::SettingsProvider;
     use opentalk_inventory::{
         Event, Inventory, InventoryProvider as _, UpdateEvent, UpdateUser, User,

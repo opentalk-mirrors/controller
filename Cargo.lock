@@ -5350,7 +5350,7 @@ dependencies = [
  "log",
  "nix",
  "opentalk-controller-api-authorization",
- "opentalk-controller-api-authorization-database",
+ "opentalk-controller-api-authorization-memory",
  "opentalk-controller-core",
  "opentalk-controller-service",
  "opentalk-controller-settings",
@@ -5414,7 +5414,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "opentalk-controller-api-authorization-database"
+name = "opentalk-controller-api-authorization-memory"
 version = "0.33.0"
 dependencies = [
  "async-trait",
@@ -5465,7 +5465,7 @@ dependencies = [
  "opentalk-asset-storage",
  "opentalk-controller-api-actix-web",
  "opentalk-controller-api-authorization",
- "opentalk-controller-api-authorization-database",
+ "opentalk-controller-api-authorization-memory",
  "opentalk-controller-service",
  "opentalk-controller-service-facade",
  "opentalk-controller-settings",
@@ -5808,7 +5808,7 @@ dependencies = [
  "log",
  "opentalk-asset-storage",
  "opentalk-controller-api-authorization",
- "opentalk-controller-api-authorization-database",
+ "opentalk-controller-api-authorization-memory",
  "opentalk-controller-settings",
  "opentalk-controller-utils",
  "opentalk-inventory",
@@ -6850,7 +6850,7 @@ dependencies = [
  "fern",
  "log",
  "opentalk-controller-api-authorization",
- "opentalk-controller-api-authorization-database",
+ "opentalk-controller-api-authorization-memory",
  "opentalk-controller-service",
  "opentalk-database",
  "opentalk-db-storage",

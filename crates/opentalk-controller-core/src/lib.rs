@@ -22,7 +22,7 @@ use opentalk_controller_api_actix_web::{v1, well_known};
 use opentalk_controller_api_authorization::{
     authorization::Authorizer, middleware::AuthorizationTransform,
 };
-use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
+use opentalk_controller_api_authorization_memory::OpenTalkAuthorizerBackend;
 use opentalk_controller_service::{
     ControllerBackend, RedisConnection, Whatever,
     controller_backend::roomserver::{self, SignalingProxyBackend},

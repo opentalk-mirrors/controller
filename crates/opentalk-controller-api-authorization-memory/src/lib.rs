@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! WebAPI endpoint authorization based on the OpenTalk database
+//! WebAPI endpoint authorization based on permissions stored in memory
 
 #![deny(
     bad_style,
