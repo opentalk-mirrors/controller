@@ -56,6 +56,8 @@ Inside the `crates` folder, the following crates can be found:
     - Core Web API authorization interfaces and middleware-level abstractions.
 - [opentalk-controller-api-authorization-memory](crates/opentalk-controller-api-authorization-memory)
     - Implementation of controller Web API authorization logic backed by in-memory data.
+- [opentalk-controller-api-authorization-database](crates/opentalk-controller-api-authorization-database)
+    - Implementation of controller Web API authorization logic backed by database data.
 - [opentalk-controller-api-authorization-synchronization](crates/opentalk-controller-api-authorization-synchronization)
     - Synchronization components for keeping authorization information in sync across controller parts.
 - [opentalk-controller-core](crates/opentalk-controller-core)

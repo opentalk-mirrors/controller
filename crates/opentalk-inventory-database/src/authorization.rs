@@ -1,0 +1,139 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
+use std::collections::{BTreeMap, BTreeSet};
+
+use opentalk_db_storage as db;
+use opentalk_inventory::{
+    AuthorizationInventory, AuthorizationInviteCodeValidity as Validity,
+    AuthorizationUserRole as Role, Room, RoomInvite, Tariff, utils,
+};
+use opentalk_types_common::{
+    events::EventId,
+    features::{FeatureId, ModuleFeatureId},
+    modules::ModuleId,
+    rooms::{RoomId, invite_codes::InviteCode},
+    users::UserId,
+};
+use snafu::ResultExt as _;
+
+use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
+
+#[async_trait::async_trait]
+impl AuthorizationInventory for DatabaseConnection {
+    async fn get_event_user_role(&mut self, event_id: EventId, user_id: UserId) -> Result<Role> {
+        let is_owner =
+            db::queries::authorization::events::is_event_owner(&mut self.inner, event_id, user_id)
+                .await
+                .context(DatabaseSnafu)?;
+
+        if is_owner {
+            return Ok(Role::Owner);
+        }
+
+        let role = db::queries::authorization::events::get_event_user_role(
+            &mut self.inner,
+            event_id,
+            user_id,
+        )
+        .await
+        .context(DatabaseSnafu)?;
+
+        if let Some(role) = role {
+            return Ok(Role::Invited(role));
+        }
+
+        Ok(Role::Unrelated)
+    }
+
+    async fn get_event_invite_code_validity(
+        &mut self,
+        event_id: EventId,
+        invite_code: InviteCode,
+        disabled_features: BTreeSet<ModuleFeatureId>,
+        module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
+    ) -> Result<Validity> {
+        let room_invite_and_tariff =
+            db::queries::authorization::events::get_event_room_invite_and_tariff(
+                &mut self.inner,
+                event_id,
+                invite_code,
+            )
+            .await
+            .context(DatabaseSnafu)?;
+
+        let Some((room, invite, tariff)) = room_invite_and_tariff else {
+            return Ok(Validity::Invalid);
+        };
+
+        let room = Room::from(room);
+        let invite = RoomInvite::from(invite);
+        let tariff = Tariff::from(tariff).to_tariff_resource(disabled_features, module_features);
+
+        if utils::is_room_guest_access_allowed(&room, &tariff)
+            && utils::is_invite_valid(&invite, &room, &tariff)
+        {
+            return Ok(Validity::Valid);
+        }
+
+        Ok(Validity::Invalid)
+    }
+
+    async fn get_room_user_role(&mut self, room_id: RoomId, user_id: UserId) -> Result<Role> {
+        let is_owner =
+            db::queries::authorization::rooms::is_room_owner(&mut self.inner, room_id, user_id)
+                .await
+                .context(DatabaseSnafu)?;
+
+        if is_owner {
+            return Ok(Role::Owner);
+        }
+
+        let role = db::queries::authorization::rooms::get_room_user_role(
+            &mut self.inner,
+            room_id,
+            user_id,
+        )
+        .await
+        .context(DatabaseSnafu)?;
+
+        if let Some(role) = role {
+            return Ok(Role::Invited(role));
+        }
+
+        Ok(Role::Unrelated)
+    }
+
+    async fn get_room_invite_code_validity(
+        &mut self,
+        room_id: RoomId,
+        invite_code: InviteCode,
+        disabled_features: BTreeSet<ModuleFeatureId>,
+        module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
+    ) -> Result<Validity> {
+        let room_invite_and_tariff = db::queries::authorization::rooms::get_room_invite_and_tariff(
+            &mut self.inner,
+            room_id,
+            invite_code,
+        )
+        .await
+        .context(DatabaseSnafu)?;
+
+        let Some((room, invite, tariff)) = room_invite_and_tariff else {
+            return Ok(Validity::Invalid);
+        };
+
+        let room = Room::from(room);
+        let invite = RoomInvite::from(invite);
+        let tariff = Tariff::from(tariff).to_tariff_resource(disabled_features, module_features);
+
+        if utils::is_room_guest_access_allowed(&room, &tariff)
+            && utils::is_invite_valid(&invite, &room, &tariff)
+        {
+            return Ok(Validity::Valid);
+        }
+
+        Ok(Validity::Invalid)
+    }
+}

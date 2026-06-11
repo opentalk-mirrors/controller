@@ -25,6 +25,7 @@
 )]
 
 mod asset;
+mod authorization;
 mod event;
 mod event_invite;
 mod event_shared_folder;
@@ -49,6 +50,9 @@ mod user;
 pub mod utils;
 
 pub use asset::{Asset, AssetInventory, NewAsset, UpdateAsset};
+pub use authorization::{
+    AuthorizationInventory, AuthorizationInviteCodeValidity, AuthorizationUserRole,
+};
 pub use event::{
     Event, EventDate, EventException, EventExceptionId, EventExceptionKind, EventInventory,
     EventRecurrence, GetEventExceptionsCursor, GetEventsCursor, NewEvent, NewEventDate,
@@ -101,3 +105,5 @@ pub use transaction::transaction;
 pub use transaction_manager::TransactionManager;
 pub use upsert::UpsertOutcome;
 pub use user::{NewUser, UpdateUser, User, UserInventory};
+#[cfg(feature = "mockall")]
+pub use {authorization::MockAuthorizationInventory, inventory_provider::MockInventoryProvider};

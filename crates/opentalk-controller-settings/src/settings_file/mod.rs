@@ -61,9 +61,10 @@ pub(crate) use rabbit_mq_config::RabbitMqConfig;
 pub(crate) use redis_config::RedisConfig;
 pub(crate) use reports_typst::ReportsTypst;
 pub(crate) use roomserver::{RoomServer, RoomServerKind, WebSocketRateLimit};
-pub use settings_raw::SettingsRaw;
 #[cfg(test)]
-pub(crate) use settings_raw::{SETTINGS_RAW_MINIMAL_CONFIG_TOML, settings_raw_minimal_example};
+pub(crate) use settings_raw::SETTINGS_RAW_MINIMAL_CONFIG_TOML;
+pub use settings_raw::SettingsRaw;
+pub(crate) use settings_raw::settings_raw_minimal_example;
 pub(crate) use shared_folder::SharedFolder;
 pub(crate) use tariff_assignment::TariffAssignment;
 pub(crate) use tariff_status_mapping::TariffStatusMapping;

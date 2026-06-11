@@ -21,6 +21,7 @@
 )]
 
 mod asset;
+mod authorization;
 mod database_connection;
 mod database_connection_pool;
 mod error;

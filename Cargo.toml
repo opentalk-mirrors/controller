@@ -17,6 +17,7 @@ opentalk-asset-storage = { path = "crates/opentalk-asset-storage", version = "0.
 opentalk-cache = { path = "crates/opentalk-cache", version = "0.33.0" }
 opentalk-controller-api-actix-web = { path = "crates/opentalk-controller-api-actix-web", version = "0.33.0" }
 opentalk-controller-api-authorization = { path = "crates/opentalk-controller-api-authorization", version = "0.33.0" }
+opentalk-controller-api-authorization-database = { path = "crates/opentalk-controller-api-authorization-database", version = "0.33.0" }
 opentalk-controller-api-authorization-memory = { path = "crates/opentalk-controller-api-authorization-memory", version = "0.33.0" }
 opentalk-controller-api-authorization-synchronization = { path = "crates/opentalk-controller-api-authorization-synchronization", version = "0.33.0" }
 opentalk-controller-core = { path = "crates/opentalk-controller-core", version = "0.33.0" }
@@ -129,6 +130,7 @@ reqwest = { version = "0.13", default-features = false }
 ring = "0.17"
 rkyv = "0.8.15"
 rrule = "0.14"
+rstest = "0.26.1"
 rustc-hash = "2.1"
 rustls = "0.23"
 scoped-futures = "0.1.4"
