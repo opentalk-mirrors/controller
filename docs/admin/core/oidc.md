@@ -97,3 +97,45 @@ The list of known service roles is:
 
 - `"opentalk-call-in"`: The service is allowed to provide a meeting [phone call-in service](../advanced/call_in.md).
 - `"opentalk-recorder"`: The service is allowed to provide a meeting [recording service](../advanced/additional_services/recorder.md).
+
+## Back-channel logout
+
+Starting with controller version 0.33.0 (OpenTalk 26.1.0), the controller implements
+[OIDC Back-Channel Logout 1.0](https://openid.net/specs/openid-connect-backchannel-1_0.html).
+When a user's session is terminated at the OIDC provider, the provider notifies the
+controller so that the affected sessions are invalidated.
+
+### Callback endpoint
+
+The controller exposes the back-channel logout callback at:
+
+```text
+POST https://<controller-host>/v1/auth/logout
+```
+
+The request body uses the `application/x-www-form-urlencoded` content type and contains
+a single `logout_token` parameter holding the logout token issued by the OIDC provider.
+The controller validates the token (signature, expiration and the
+`http://schemas.openid.net/event/backchannel-logout` event) and responds with
+`204 No Content` on success, or `400 Bad Request` if the token is invalid.
+
+The OIDC provider must be configured to call this URL on logout, i.e. the controller's
+`…/v1/auth/logout` endpoint has to be registered as the client's back-channel logout URL.
+See the [Keycloak section](keycloak.md#configuring-back-channel-logout) for a concrete
+setup example.
+
+### Token introspection requirement
+
+The controller uses stateless authentication and does not maintain server-side sessions
+keyed by a session ID. Therefore the controller resolves the affected session via the
+`sub` (subject) claim of the logout token, and the `sid` (session ID) claim is
+intentionally ignored.
+
+To invalidate the affected sessions, the controller has to match the logged-out `sub`
+against the access tokens it has cached, which means it must be able to determine the
+`sub` of an access token. This requires the OIDC provider to **support [token
+introspection](https://datatracker.ietf.org/doc/html/rfc7662)** or to issue access tokens
+in JWT format — the same requirement that already applies to regular authentication (see
+the [OIDC Authentication Flow](../under_the_hood/oidc_auth.md)). If the provider supports
+neither introspection nor JWT access tokens, the `sub` cannot be resolved and
+back-channel logout, like authentication itself, does not work.

@@ -31,3 +31,36 @@ This manual describes the configuration for the {{ product_name }} Controller on
 In the past, the OIDC and user search section in the [configuration file](./configuration.md) was called [`keycloak`](./keycloak_deprecated.md#deprecated-keycloak-configuration).
 Starting with controller version 0.21.0, this is deprecated, support will be removed in the future.
 Use the separate [`oidc`](./oidc.md#configuration) and [`user_search`](./user_search.md#user-search-configuration) sections instead.
+
+## Token introspection
+
+To authenticate WebAPI requests, the {{ product_name }} Controller must verify the access
+tokens it receives. It uses [token introspection](https://datatracker.ietf.org/doc/html/rfc7662)
+whenever the OIDC provider offers an introspection endpoint, and only falls back to verifying
+access tokens locally as JWTs when introspection is unavailable.
+
+Introspection is preferred because it additionally reveals whether a token is still active, for
+example whether it has been revoked. Local JWT verification can only check the token's signature
+and expiration and therefore cannot detect revoked tokens.
+
+Keycloak exposes the introspection endpoint for confidential clients out of the box. A client
+configured with **Client authentication** enabled (as described above) therefore supports
+introspection without further configuration.
+it as well.
+
+!!! warning
+
+    If the identity provider supports neither token introspection nor JWT access tokens, the
+    controller cannot verify access tokens and rejects every request. See the
+    [OIDC Authentication Flow](../under_the_hood/oidc_auth.md) for details.
+
+## Configuring back-channel logout
+
+The {{ product_name }} Controller implements [OIDC back-channel logout](./oidc.md#back-channel-logout).
+To let Keycloak notify the controller when a user logs out, configure the controller's
+client accordingly.
+
+1. Open the [OpenID Connect client](https://www.keycloak.org/docs/latest/server_admin/index.html#proc-creating-oidc-client_server_administration_guide) you created for the controller.
+2. In the client's **Logout settings**, set the **Backchannel logout URL** to the controller's callback endpoint `https://<controller-host>/v1/auth/logout`. Replace `<controller-host>` with the public host (and path prefix, if any) under which the controller's API is reachable.
+3. Leave **Backchannel logout session required** at whatever value you prefer. The controller resolves sessions via the `sub` claim and ignores `sid`, so this setting does not affect logout on the controller side.
+4. Make sure [token introspection](#token-introspection) is available for the client. The controller resolves the affected session from the access token's `sub` claim, so it relies on the same token verification as regular authentication.
