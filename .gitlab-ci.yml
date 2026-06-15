@@ -396,7 +396,7 @@ package:read-tags:
     - if: $CI_PIPELINE_SOURCE == "pipeline"
       when: never
   image:
-    name: alpine/git:v2.52.0
+    name: alpine/git:v2.54.0
     entrypoint: ['']
     pull_policy: if-not-present
   artifacts:
