@@ -22,7 +22,7 @@ use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
     module_settings::ModuleSettings,
     public_user_profile::PublicUserProfile,
-    room_parameters::{EventContext, RoomParameters},
+    room_parameters::{EventContext, RoomParameters, WaitingRoom},
     room_parameters_patch::RoomParametersPatch,
     signaling::{signaling_context::SignalingClientContext, websocket::SignalingSocketMessage},
     tariff_details::TariffDetails,
@@ -39,7 +39,7 @@ use opentalk_types_api_v1::{
 use opentalk_types_common::{
     call_in::CallInInfo,
     events::invites::InviteRole,
-    rooms::RoomId,
+    rooms::{GuestAccess, RoomId},
     roomserver::Token,
     shared_folders::{SharedFolder, SharedFolderAccess},
     tariffs::QuotaType,
@@ -428,10 +428,13 @@ pub(crate) async fn build_room_parameters(
             ]
         });
 
+    let waiting_room = build_waiting_room(room_resource.waiting_room, room_resource.guest_access);
+
     let parameters = RoomParameters {
         created_by,
         password: room_resource.password,
-        waiting_room: room_resource.waiting_room,
+        guest_access: !room_resource.guest_access.is_disabled(),
+        waiting_room,
         call_in,
         event,
         invite_code,
@@ -526,4 +529,19 @@ pub(crate) async fn override_module_settings(
     }
 
     Ok(())
+}
+
+fn build_waiting_room(enabled: bool, guest_access: GuestAccess) -> WaitingRoom {
+    if enabled {
+        return WaitingRoom::ForEveryone;
+    }
+
+    match guest_access {
+        // Waiting room is disabled and guests are prevented from joining by the controller
+        GuestAccess::Disabled => WaitingRoom::Disabled,
+        // Waiting room is enabled for guests only
+        GuestAccess::WaitingRoom => WaitingRoom::ForGuests,
+        // Waiting room is disabled for everyone
+        GuestAccess::DirectAccess => WaitingRoom::Disabled,
+    }
 }

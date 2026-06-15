@@ -75,6 +75,16 @@ impl RoomServerBackend for ExternalRoomServer {
                 log::debug!("attempted to request a token for a banned user");
                 Err(ApiError::forbidden().with_message("you are banned from this room"))
             }
+            Err(Error::ApiError(opentalk_roomserver_client::ApiError {
+                code: RequestTokenError::GuestAccessDisabled,
+                ..
+            })) => {
+                log::debug!(
+                    "guest attempted to request a token for a room with guest access disabled"
+                );
+                // Do not leak the existence of the room when guest access is disabled
+                Err(ApiError::not_found())
+            }
             Err(
                 err @ (Error::TokenError(_)
                 | Error::UrlParse(_)

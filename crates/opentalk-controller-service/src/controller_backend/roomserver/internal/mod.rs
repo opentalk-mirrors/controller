@@ -156,7 +156,32 @@ impl RoomServerBackend for InternalRoomServer {
             if let Some(user_id) = client_parameters.kind.user_id() {
                 task_handle.reject_if_banned(user_id).await?;
             }
+
+            if client_parameters.kind.is_guest_or_callin() {
+                match task_handle.is_guest_access_allowed().await {
+                    Some(true) => {}
+                    Some(false) => {
+                        log::debug!(
+                            "Guest access is disabled for room {room_id}, rejecting access"
+                        );
+                        // Do not leak the existence of the room to guests if guest access is disabled
+                        return Err(ApiError::not_found());
+                    }
+                    None => {
+                        log::error!(
+                            "Failed to check guest access for room {room_id}, rejecting access"
+                        );
+                        // Do not leak the existence of the room
+                        return Err(ApiError::not_found());
+                    }
+                }
+            }
         } else {
+            if client_parameters.kind.is_guest_or_callin() && room.guest_access.is_disabled() {
+                // Do not leak the existence of the room to guests if guest access is disabled
+                return Err(ApiError::not_found());
+            }
+
             // Room needs to be created
             let room_parameters = build_room_parameters(inventory, settings, room).await?;
             let ctx = self.room_task_context(room_parameters.created_by.id);
