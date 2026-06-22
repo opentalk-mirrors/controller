@@ -60,6 +60,9 @@ include:
   - project: opentalk/ci/templates/collect-commit-evidence
     ref: v2
     file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/rust-lint
+    ref: v1
+    file: .gitlab-ci-template.yml
   - project: opentalk/ci/templates/release-creation
     inputs:
       version: $[[ inputs.release_version ]]
@@ -75,61 +78,6 @@ include:
       additional_labels: team-dashboard
     ref: v2
     file: .gitlab-ci-template.yml
-
-lint:fmt:
-  stage: lint
-  <<: *default_job_condition
-  script:
-    - cargo +nightly fmt -- --check
-
-lint:clippy:
-  stage: lint
-  <<: *default_job_condition
-  script:
-    - cargo clippy --workspace --all-features --tests -- --deny warnings
-
-lint:doc:
-  stage: lint
-  <<: *default_job_condition
-  variables:
-    RUSTDOCFLAGS: -Dwarnings
-  script: cargo doc --workspace --no-deps
-
-lint:shellcheck:
-  image:
-    name: koalaman/shellcheck-alpine:v0.11.0
-    pull_policy: if-not-present
-  stage: lint
-  <<: *default_job_condition
-  before_script:
-    - apk update
-    - apk add git
-  script: git ls-files "*.sh" -z | xargs -0r shellcheck
-
-lint:dependency_check:
-  stage: lint
-  needs: []
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-      changes:
-        - Cargo.lock
-        - deny.toml
-    - if: $CI_PIPELINE_SOURCE == 'schedule'
-  script:
-    - >
-      cargo-deny --all-features --workspace check
-      --deny unmatched-skip
-      --deny license-not-encountered
-      --deny advisory-not-detected
-      --hide-inclusion-graph
-
-lint:unnecessary_dependencies:
-  stage: lint
-  needs: []
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-  before_script: if ! cargo machete --version; then cargo install cargo-machete; fi
-  script: cargo machete --with-metadata
 
 lint:yaml:
   stage: lint
@@ -200,14 +148,6 @@ lint:commit:
     - npm install -g @commitlint/cli @commitlint/config-conventional
   script:
     - npx commitlint --from $CI_MERGE_REQUEST_DIFF_BASE_SHA --to HEAD --verbose
-
-lint:justfile:
-  stage: lint
-  <<: *default_job_condition
-  before_script: if ! just --version; then cargo install just; fi
-  script:
-    # The `--fmt` command-line parameter is still unstable, but valuable anyway.
-    - just --unstable --fmt --check
 
 test:load_typst_plugins:
   stage: test
