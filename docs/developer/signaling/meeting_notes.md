@@ -61,6 +61,7 @@ Each participant receives an access url. Depending if they were selected as a wr
 either a [WriteUrl](#writeurl) or [ReadUrl](#readurl).
 
 ---
+
 ### DeselectWriter
 
 The `DeselectWriter` message can be sent by a moderator to deselect a number of writers.

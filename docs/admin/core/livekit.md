@@ -80,4 +80,4 @@ This endpoint is available since:
 
 #### Reverse proxy configuration
 
-Since the versions listed [here](#using-built-in-livekit-proxy) LiveKit signaling should only be exposed via the controller proxy endpoint.
+Since the versions listed under [Using built-in LiveKit proxy](#using-built-in-livekit-proxy), LiveKit signaling should only be exposed via the controller proxy endpoint.

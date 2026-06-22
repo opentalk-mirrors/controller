@@ -3,30 +3,43 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 # Enable all rules by default
-all
+---
+default: true
 
 # All unordered lists must use '-' consistently at all levels
-rule 'MD004', :style => :dash
-rule 'MD007', :indent => 4
+MD004:
+  style: dash
 
-rule 'MD029', :style => :ordered
+MD007:
+  indent: 4
+
+MD029:
+  style: ordered
 
 # We want to allow a few specific HTML tags
-rule 'MD033', :allowed_elements => 'swagger-ui'
+MD033:
+  allowed_elements:
+    - swagger-ui
 
 # Disable duplicate heading check
-exclude_rule 'MD024'
+MD024: false
 
 # Disable check that first line must be top level header as its incompatible with docusaurus
-exclude_rule 'MD041'
+MD041: false
 
 # Disable line length limit because markdown tables can't have linebreaks in them
-exclude_rule 'MD013'
+MD013: false
 
 # Allow code block identation to make tera templates more "readable"
-exclude_rule 'MD046'
+MD046: false
 
 # These are triggered as false positives when used inside blockquoste
 # See also https://github.com/markdownlint/markdownlint/issues/472
-exclude_rule 'MD055'
-exclude_rule 'MD057'
+MD055: false
+MD057: false
+MD025: false
+
+# Disable link fragment validation because mkdocs/python-markdown uses an '_N'
+# suffix for duplicate heading anchors (e.g. `#credentials_1`), which is
+# incompatible with the GitHub-style fragment validation used by this rule
+MD051: false

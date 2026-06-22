@@ -13,7 +13,6 @@ SPDX-License-Identifier = "EUPL-1.2"
 path = [
   ".commitlintrc.json",
   ".gitlab/issue_templates/**.md",
-  ".mdlrc",
   "CHANGELOG.md",
   "Cargo.lock",
   "ci/spectral/**.yml",
