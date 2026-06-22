@@ -12,7 +12,7 @@ must be run in order to update ACLs to match the newest version whenever
 new endpoints were added for already present resources. However, even if no
 endpoints were added, simply running the command does no harm.
 
-## Unreleased
+## Updating to {{ product_name }} Controller `v0.30.0`
 
 ### Change to the OpenID Connect integration
 
