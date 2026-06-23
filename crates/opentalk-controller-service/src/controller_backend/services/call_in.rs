@@ -113,9 +113,7 @@ impl ControllerBackend {
 
         let client_parameters = ClientParameters {
             device_secret,
-            kind: ClientKind::CallIn {
-                display_name: request.display_name,
-            },
+            kind: ClientKind::CallIn,
             role: Role::User,
         };
 
