@@ -4,7 +4,10 @@
 
 //! Provides roomserver-related implementation
 
-use std::{collections::BTreeMap, sync::Arc};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+};
 
 use actix_ws::{Message, ProtocolError};
 use external::ExternalRoomServer;
@@ -14,7 +17,7 @@ use opentalk_controller_settings::{
     RoomServerKind, Settings, SettingsProvider, common::HttpCorsAllowedOrigin,
 };
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_inventory::{Event, Inventory, InventoryProvider};
+use opentalk_inventory::{Event, Inventory, InventoryProvider, Room, utils::is_call_in_allowed};
 use opentalk_roomserver_client::Client;
 use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry, settings::Internal};
 use opentalk_roomserver_types::{
@@ -39,10 +42,12 @@ use opentalk_types_api_v1::{
 use opentalk_types_common::{
     call_in::CallInInfo,
     events::invites::InviteRole,
+    features::{FeatureId, ModuleFeatureId},
+    modules::ModuleId,
     rooms::{GuestAccess, RoomId},
     roomserver::Token,
     shared_folders::{SharedFolder, SharedFolderAccess},
-    tariffs::QuotaType,
+    tariffs::{QuotaType, TariffResource},
     users::{UserId, UserInfo},
 };
 use tokio::sync::{broadcast::Receiver, mpsc};
@@ -139,6 +144,7 @@ pub trait RoomServerBackend: Send + Sync {
         &self,
         inventory: &mut dyn Inventory,
         settings: Arc<Settings>,
+        module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
         room: RoomResource,
         client_parameters: ClientParameters,
         host: Url,
@@ -219,7 +225,14 @@ impl ControllerBackend {
 
         let access = self
             .roomserver
-            .request_access(inventory.as_mut(), settings, room, client_parameters, host)
+            .request_access(
+                inventory.as_mut(),
+                settings,
+                self.module_features.clone(),
+                room,
+                client_parameters,
+                host,
+            )
             .await?;
 
         Ok(RoomserverStartResponseBody {
@@ -331,8 +344,8 @@ pub(crate) async fn build_room_parameters(
     inventory: &mut dyn Inventory,
     settings: Arc<Settings>,
     room_resource: RoomResource,
+    module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
 ) -> Result<RoomParameters, CaptureApiError> {
-    let call_in = get_call_in_info(inventory, &settings, room_resource.id).await?;
     let room = inventory.get_room(room_resource.id).await?;
 
     let db_event = inventory.get_event_for_room(room_resource.id).await?;
@@ -377,11 +390,21 @@ pub(crate) async fn build_room_parameters(
         let _ = used_quota.insert(quota_type.clone(), used);
     }
 
-    let disabled_features = tariff
+    let disabled_features: BTreeSet<ModuleFeatureId> = tariff
         .disabled_features()
         .into_iter()
         .chain(settings.defaults.disabled_features.iter().cloned())
         .collect();
+
+    let call_in = get_call_in_info(
+        inventory,
+        &settings,
+        room_resource.id,
+        &room,
+        &tariff.to_tariff_resource(disabled_features.clone(), module_features),
+    )
+    .await?;
+
     let tariff = TariffDetails {
         id: tariff.id,
         name: tariff.name,
@@ -457,7 +480,13 @@ pub(crate) async fn get_call_in_info(
     inventory: &mut dyn Inventory,
     settings: &Settings,
     room_id: RoomId,
+    room: &Room,
+    tariff: &TariffResource,
 ) -> Result<Option<CallInInfo>, CaptureApiError> {
+    if !is_call_in_allowed(room, tariff) {
+        return Ok(None);
+    }
+
     let Some(tel) = settings.call_in.as_ref().map(|call_in| call_in.tel.clone()) else {
         return Ok(None);
     };

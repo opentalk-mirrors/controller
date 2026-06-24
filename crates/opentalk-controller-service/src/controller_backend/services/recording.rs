@@ -35,6 +35,7 @@ impl ControllerBackend {
             .request_access(
                 inventory.as_mut(),
                 settings,
+                self.module_features.clone(),
                 room_resource,
                 client_parameters,
                 host,

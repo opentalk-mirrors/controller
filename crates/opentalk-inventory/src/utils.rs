@@ -7,7 +7,8 @@
 use opentalk_types_common::{
     call_in::CallInInfo,
     events::{EventInfo, MeetingDetails},
-    features::{CALL_IN_MODULE_FEATURE_ID, GUESTS_ALLOWED_MODULE_FEATURE_ID},
+    features::{CALL_IN_MODULE_FEATURE_ID, GUESTS_ALLOWED_MODULE_FEATURE_ID, ModuleFeatureId},
+    rooms::GuestAccess,
     streaming::get_public_urls_from_room_streaming_targets,
     tariffs::TariffResource,
     time::Timestamp,
@@ -68,13 +69,56 @@ pub async fn build_event_info(
     Ok(event_info)
 }
 
+/// Why call-in is unavailable for a room
+#[derive(Debug)]
+pub enum CallInUnavailable {
+    /// The room is end-to-end encrypted.
+    E2eEnabled,
+    /// Guest access is disabled for the room.
+    GuestAccessDisabled,
+    /// A feature required for call-in is disabled by tariff or configuration.
+    FeatureDisabled(ModuleFeatureId),
+}
+
+/// Checks whether call-in is available for the given room configuration and
+/// tariff, reporting a structured [`CallInUnavailable`] reason on failure.
+pub fn check_call_in(
+    e2e_encryption: bool,
+    guest_access: GuestAccess,
+    tariff: &TariffResource,
+) -> std::result::Result<(), CallInUnavailable> {
+    if e2e_encryption {
+        return Err(CallInUnavailable::E2eEnabled);
+    }
+
+    if guest_access.is_disabled() {
+        return Err(CallInUnavailable::GuestAccessDisabled);
+    }
+
+    if !tariff.has_feature_enabled(
+        &CALL_IN_MODULE_FEATURE_ID.module,
+        &CALL_IN_MODULE_FEATURE_ID.feature,
+    ) {
+        return Err(CallInUnavailable::FeatureDisabled(
+            CALL_IN_MODULE_FEATURE_ID,
+        ));
+    }
+
+    if !tariff.has_feature_enabled(
+        &GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
+        &GUESTS_ALLOWED_MODULE_FEATURE_ID.feature,
+    ) {
+        return Err(CallInUnavailable::FeatureDisabled(
+            GUESTS_ALLOWED_MODULE_FEATURE_ID,
+        ));
+    }
+
+    Ok(())
+}
+
 /// Checks if call-in is allowed for a given room and tariff.
 pub fn is_call_in_allowed(room: &Room, tariff: &TariffResource) -> bool {
-    !room.e2e_encryption
-        && tariff.has_feature_enabled(
-            &CALL_IN_MODULE_FEATURE_ID.module,
-            &CALL_IN_MODULE_FEATURE_ID.feature,
-        )
+    check_call_in(room.e2e_encryption, room.guest_access, tariff).is_ok()
 }
 
 /// Checks if the given `invite` is valid for the given `room` and `tariff`.
@@ -125,7 +169,7 @@ mod tests {
             created_at: Timestamp::unix_epoch(),
             password: None,
             waiting_room: true,
-            guest_access: GuestAccess::Disabled,
+            guest_access: GuestAccess::WaitingRoom,
             tenant_id: TenantId::nil(),
             e2e_encryption: false,
         };
@@ -133,25 +177,29 @@ mod tests {
             id: TariffId::nil(),
             name: "Guest Feature Enabled".to_owned(),
             quotas: BTreeMap::new(),
-            modules: BTreeMap::from_iter([(
-                CALL_IN_MODULE_FEATURE_ID.module,
-                TariffModuleResource {
-                    features: BTreeSet::from([CALL_IN_MODULE_FEATURE_ID.feature]),
-                },
-            )]),
+            modules: {
+                // Both features live in the same module (`core`), so the entries
+                // must be merged instead of collected directly into a map, where
+                // a shared key would cause one feature to overwrite the other.
+                let mut modules = BTreeMap::<_, TariffModuleResource>::new();
+                let _ = modules
+                    .entry(CALL_IN_MODULE_FEATURE_ID.module)
+                    .or_default()
+                    .features
+                    .insert(CALL_IN_MODULE_FEATURE_ID.feature);
+                let _ = modules
+                    .entry(GUESTS_ALLOWED_MODULE_FEATURE_ID.module)
+                    .or_default()
+                    .features
+                    .insert(GUESTS_ALLOWED_MODULE_FEATURE_ID.feature);
+                modules
+            },
         };
         assert!(is_call_in_allowed(&allowed_room, &allowed_tariff));
 
         let encrypted_room = Room {
-            id: RoomId::nil(),
-            id_serial: 0,
-            created_by: UserId::nil(),
-            created_at: Timestamp::unix_epoch(),
-            password: None,
-            waiting_room: true,
-            guest_access: GuestAccess::Disabled,
-            tenant_id: TenantId::nil(),
             e2e_encryption: true,
+            ..allowed_room.clone()
         };
         assert!(!is_call_in_allowed(&encrypted_room, &allowed_tariff));
 
@@ -167,6 +215,15 @@ mod tests {
         assert!(!is_call_in_allowed(
             &allowed_room,
             &call_in_feature_disabled_tariff
+        ));
+
+        let guest_access_disabled_room = Room {
+            guest_access: GuestAccess::Disabled,
+            ..allowed_room
+        };
+        assert!(!is_call_in_allowed(
+            &guest_access_disabled_room,
+            &allowed_tariff
         ));
     }
 

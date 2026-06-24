@@ -3,7 +3,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_controller_utils::{CaptureApiError, TariffResourceExt as _};
-use opentalk_inventory::{NewRoomSipConfig, UpdateRoomSipConfig};
+use opentalk_inventory::{
+    NewRoomSipConfig, UpdateRoomSipConfig,
+    utils::{self, CallInUnavailable},
+};
 use opentalk_types_api_v1::{
     error::ApiError,
     rooms::by_room_id::sip::{PutSipConfigRequestBody, SipConfigResource},
@@ -21,15 +24,18 @@ impl ControllerBackend {
 
         let room = inventory.get_room(room_id).await?;
 
-        if room.e2e_encryption {
-            return Err(ApiError::not_found()
-                .with_code("service_unavailable")
-                .with_message("Call-in not available for end-to-end encrypted room".to_string())
-                .into());
-        }
-
         let tariff = self.get_tariff_for_user(room.created_by).await?;
-        tariff.require_feature(&features::CALL_IN_MODULE_FEATURE_ID)?;
+        // Unlike the other call-in checks, reading the SIP config historically
+        // returns `404 Not Found` (not `403 Forbidden`) for encrypted rooms.
+        // Preserve that contract while sharing the remaining checks.
+        utils::check_call_in(room.e2e_encryption, room.guest_access, &tariff).map_err(
+            |reason| match reason {
+                CallInUnavailable::E2eEnabled => ApiError::not_found()
+                    .with_code("service_unavailable")
+                    .with_message("Call-in not available for end-to-end encrypted room"),
+                other => Self::call_in_unavailable_error(other),
+            },
+        )?;
 
         let config = inventory
             .get_room_sip_config(room_id)
@@ -53,15 +59,8 @@ impl ControllerBackend {
 
         let room = inventory.get_room(room_id).await?;
 
-        if room.e2e_encryption {
-            return Err(ApiError::forbidden()
-                .with_code("service_unavailable")
-                .with_message("Call-in not available for end-to-end encrypted room".to_string())
-                .into());
-        }
-
         let tariff = self.get_tariff_for_user(room.created_by).await?;
-        tariff.require_feature(&features::CALL_IN_MODULE_FEATURE_ID)?;
+        Self::ensure_call_in_permission(room.e2e_encryption, room.guest_access, &tariff)?;
 
         let changeset = UpdateRoomSipConfig {
             password: modify_sip_config.password.clone(),
