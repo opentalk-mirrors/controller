@@ -8,6 +8,8 @@ use opentalk_types_common::{
     time::Timestamp,
 };
 
+use super::SharedFolderProvider;
+
 /// The representation of an event shared folder in the inventory.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EventSharedFolder {
@@ -23,23 +25,20 @@ pub struct EventSharedFolder {
     /// The path of the shared folder.
     pub path: String,
 
-    /// The share id for the write share.
-    pub write_share_id: String,
-
     /// The url for the write share.
     pub write_url: String,
 
     /// The password for the write share.
     pub write_password: String,
 
-    /// The share id for the read share.
-    pub read_share_id: String,
-
     /// The url for the read share.
     pub read_url: String,
 
     /// The password for the read share.
     pub read_password: String,
+
+    /// The provider-specific reference data for the shared folder.
+    pub provider: SharedFolderProvider,
 }
 
 impl From<EventSharedFolder> for SharedFolder {

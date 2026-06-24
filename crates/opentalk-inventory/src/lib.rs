@@ -64,7 +64,8 @@ pub use event_invite::{
     NewEventInvite, UpdateEventEmailInvite, UpdateEventInvite,
 };
 pub use event_shared_folder::{
-    EventSharedFolder, EventSharedFolderInventory, NewEventSharedFolder,
+    EventSharedFolder, EventSharedFolderInventory, NewEventSharedFolder, OpencloudShareReference,
+    SharedFolderProvider,
 };
 pub use event_training_participation_report::{
     EventTrainingParticipationReportInventory, EventTrainingParticipationReportParameterSet,

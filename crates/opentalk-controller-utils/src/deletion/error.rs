@@ -58,6 +58,13 @@ pub enum Error {
         source: opentalk_nextcloud_client::Error,
     },
 
+    /// OpenCloud client error
+    #[snafu(display("OpenCloud client error: {source}"), context(false))]
+    OpencloudClient {
+        /// the cause of the error
+        source: opentalk_opencloud_client::Error,
+    },
+
     /// Race condition during database commit preparation detected
     #[snafu(display("Race condition detected during database commit preparation"))]
     RaceCondition,
@@ -94,6 +101,9 @@ impl From<Error> for CaptureApiError {
                 .into(),
             Error::NextcloudClient { .. } => ApiError::internal()
                 .with_message("Error performing actions on the NextCloud")
+                .into(),
+            Error::OpencloudClient { .. } => ApiError::internal()
+                .with_message("Error performing actions on the OpenCloud")
                 .into(),
             Error::RaceCondition => {
                 log::error!("Race condition detected during deletion");

@@ -29,8 +29,10 @@ opentalk-database.workspace = true
 opentalk-inventory.workspace = true
 opentalk-log.workspace = true
 opentalk-nextcloud-client.workspace = true
+opentalk-opencloud-client.workspace = true
 opentalk-types-api-common = { workspace = true, features = ["actix"] }
 opentalk-types-common = { workspace = true }
 rand.workspace = true
 rrule.workspace = true
 snafu.workspace = true
+url.workspace = true

@@ -320,6 +320,9 @@ exceptions = [
   ], name = "opentalk-nextcloud-client" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-opencloud-client" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-orchestrator-client" },
   { allow = [
     "EUPL-1.2",

@@ -45,6 +45,7 @@ opentalk-inventory.workspace = true
 opentalk-keycloak-admin.workspace = true
 opentalk-mail-worker-protocol = { workspace = true, features = ["client"] }
 opentalk-nextcloud-client.workspace = true
+opentalk-opencloud-client.workspace = true
 opentalk-roomserver-client.workspace = true
 opentalk-roomserver-room.workspace = true
 opentalk-roomserver-types = { workspace = true, features = ["actix"] }

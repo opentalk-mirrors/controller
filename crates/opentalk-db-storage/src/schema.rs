@@ -130,12 +130,11 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         path -> Text,
-        write_share_id -> Text,
         write_url -> Text,
         write_password -> Text,
-        read_share_id -> Text,
         read_url -> Text,
         read_password -> Text,
+        provider_data -> Jsonb,
     }
 }
 

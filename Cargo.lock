@@ -5533,6 +5533,7 @@ dependencies = [
  "opentalk-keycloak-admin",
  "opentalk-mail-worker-protocol",
  "opentalk-nextcloud-client",
+ "opentalk-opencloud-client",
  "opentalk-roomserver-client",
  "opentalk-roomserver-room",
  "opentalk-roomserver-types",
@@ -5633,11 +5634,13 @@ dependencies = [
  "opentalk-inventory",
  "opentalk-log",
  "opentalk-nextcloud-client",
+ "opentalk-opencloud-client",
  "opentalk-types-api-common",
  "opentalk-types-common",
  "rand 0.10.1",
  "rrule",
  "snafu 0.9.1",
+ "url",
 ]
 
 [[package]]
@@ -5864,6 +5867,25 @@ dependencies = [
  "serde",
  "snafu 0.8.9",
  "strum 0.27.2",
+ "url",
+]
+
+[[package]]
+name = "opentalk-opencloud-client"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29897da100012694625a8b12f7756958a2249729296b9295434799b1f6e8290c"
+dependencies = [
+ "chrono",
+ "derive_more",
+ "futures",
+ "log",
+ "percent-encoding",
+ "rand 0.10.1",
+ "reqwest 0.13.4",
+ "serde",
+ "snafu 0.9.1",
+ "strum 0.28.0",
  "url",
 ]
 
