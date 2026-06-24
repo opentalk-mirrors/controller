@@ -327,13 +327,6 @@ mod tests {
                 },
             )]),
         };
-        println!(
-            "guest_feature_enabled={}",
-            allowed_tariff.has_feature_enabled(
-                &GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
-                &GUESTS_ALLOWED_MODULE_FEATURE_ID.feature
-            )
-        );
         assert!(is_room_guest_access_allowed(&allowed_room, &allowed_tariff));
 
         let encrypted_room = Room {
