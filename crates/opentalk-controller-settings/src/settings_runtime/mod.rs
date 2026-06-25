@@ -18,7 +18,6 @@
     unused_results
 )]
 
-mod authorization;
 mod avatar;
 mod call_in;
 mod database;
@@ -53,7 +52,6 @@ mod tenants;
 mod user_search_backend;
 mod user_search_backend_keycloak;
 
-pub use authorization::Authorization;
 pub use avatar::{Avatar, DEFAULT_LIBRAVATAR_URL};
 pub use call_in::CallIn;
 pub use database::Database;

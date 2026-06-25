@@ -5,9 +5,9 @@
 use serde::Deserialize;
 
 use super::{
-    Authorization, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Frontend, Http, Keycloak,
-    Logging, Metrics, MinIO, MonitoringSettings, Oidc, OperatorInformation, RabbitMqConfig,
-    RedisConfig, SharedFolder, Tariffs, Tenants, UserSearch,
+    Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Frontend, Http, Keycloak, Logging,
+    Metrics, MinIO, MonitoringSettings, Oidc, OperatorInformation, RabbitMqConfig, RedisConfig,
+    SharedFolder, Tariffs, Tenants, UserSearch,
 };
 use crate::settings_file::RoomServer;
 
@@ -37,9 +37,6 @@ pub struct SettingsRaw {
 
     #[serde(default)]
     pub(crate) logging: Option<Logging>,
-
-    #[serde(default)]
-    pub(crate) authorization: Option<Authorization>,
 
     #[serde(default)]
     pub(crate) avatar: Option<Avatar>,
@@ -139,7 +136,6 @@ pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
         redis: None,
         rabbit_mq: None,
         logging: None,
-        authorization: None,
         avatar: None,
         metrics: None,
         etcd: None,
