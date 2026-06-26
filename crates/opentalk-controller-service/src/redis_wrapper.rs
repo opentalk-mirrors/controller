@@ -8,9 +8,7 @@ use opentelemetry::{
     Key, KeyValue,
     metrics::{Histogram, Meter},
 };
-use opentelemetry_sdk::metrics::{
-    Aggregation, Instrument, MeterProviderBuilder, MetricError, Stream, new_view,
-};
+use opentelemetry_sdk::metrics::{Aggregation, Instrument, MeterProviderBuilder, Stream};
 use redis::{Arg, RedisFuture, aio::ConnectionLike};
 
 const COMMAND_KEY: Key = Key::from_static_str("command");
@@ -24,16 +22,20 @@ pub struct RedisMetrics {
 
 impl RedisMetrics {
     /// Appends views for Redis metrics to the provided [`MeterProviderBuilder`].
-    pub fn append_views(
-        provider_builder: MeterProviderBuilder,
-    ) -> Result<MeterProviderBuilder, MetricError> {
-        Ok(provider_builder.with_view(new_view(
-            Instrument::new().name(EXEC_TIME),
-            Stream::new().aggregation(Aggregation::ExplicitBucketHistogram {
-                boundaries: vec![0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5],
-                record_min_max: false,
-            }),
-        )?))
+    pub fn append_views(provider_builder: MeterProviderBuilder) -> MeterProviderBuilder {
+        provider_builder.with_view(|instrument: &Instrument| {
+            if instrument.name() == EXEC_TIME {
+                Stream::builder()
+                    .with_aggregation(Aggregation::ExplicitBucketHistogram {
+                        boundaries: vec![0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5],
+                        record_min_max: false,
+                    })
+                    .build()
+                    .ok()
+            } else {
+                None
+            }
+        })
     }
 
     /// Creates a new [`RedisMetrics`].

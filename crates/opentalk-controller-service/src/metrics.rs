@@ -9,9 +9,7 @@ use opentelemetry::{
     Key, KeyValue,
     metrics::{Counter, Histogram, Meter},
 };
-use opentelemetry_sdk::metrics::{
-    Aggregation, Instrument, MeterProviderBuilder, MetricError, Stream, new_view,
-};
+use opentelemetry_sdk::metrics::{Aggregation, Instrument, MeterProviderBuilder, Stream};
 
 const MAIL_TASK_KIND: Key = Key::from_static_str("mail_task_kind");
 const REQ_DURATION_SECS: &str = "web.request_duration_seconds";
@@ -30,25 +28,35 @@ pub struct EndpointMetrics {
 }
 
 impl EndpointMetrics {
-    /// Appends [`View`](opentelemetry_sdk::metrics::View)s to the meter provider builder
-    pub fn append_views(
-        provider_builder: MeterProviderBuilder,
-    ) -> Result<MeterProviderBuilder, MetricError> {
-        Ok(provider_builder
-            .with_view(new_view(
-                Instrument::new().name(REQ_DURATION_SECS),
-                Stream::new().aggregation(Aggregation::ExplicitBucketHistogram {
-                    boundaries: vec![0.005, 0.01, 0.25, 0.5, 1.0, 2.0],
-                    record_min_max: false,
-                }),
-            )?)
-            .with_view(new_view(
-                Instrument::new().name(RESP_SIZE_BYTES),
-                Stream::new().aggregation(Aggregation::ExplicitBucketHistogram {
-                    boundaries: vec![100.0, 1_000.0, 10_000.0, 100_000.0],
-                    record_min_max: false,
-                }),
-            )?))
+    /// Appends views to the meter provider builder
+    pub fn append_views(provider_builder: MeterProviderBuilder) -> MeterProviderBuilder {
+        provider_builder
+            .with_view(|instrument: &Instrument| {
+                if instrument.name() == REQ_DURATION_SECS {
+                    Stream::builder()
+                        .with_aggregation(Aggregation::ExplicitBucketHistogram {
+                            boundaries: vec![0.005, 0.01, 0.25, 0.5, 1.0, 2.0],
+                            record_min_max: false,
+                        })
+                        .build()
+                        .ok()
+                } else {
+                    None
+                }
+            })
+            .with_view(|instrument: &Instrument| {
+                if instrument.name() == RESP_SIZE_BYTES {
+                    Stream::builder()
+                        .with_aggregation(Aggregation::ExplicitBucketHistogram {
+                            boundaries: vec![100.0, 1_000.0, 10_000.0, 100_000.0],
+                            record_min_max: false,
+                        })
+                        .build()
+                        .ok()
+                } else {
+                    None
+                }
+            })
     }
 
     /// Creates new [`EndpointMetrics`]

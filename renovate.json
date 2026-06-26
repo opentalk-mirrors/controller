@@ -9,7 +9,7 @@
   "packageRules": [
     {
       "matchPackageNames": [
-        "opentelemetry*"
+        "/opentelemetry/"
       ],
       "groupName": "opentelemetry-rs",
       "groupSlug": "opentelemetry-rs"
