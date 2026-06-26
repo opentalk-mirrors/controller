@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use opentalk_database::Db;
-use opentalk_inventory::{Inventory, InventoryProvider};
+use opentalk_inventory::{AuthorizationInventory, Inventory, InventoryProvider};
 use snafu::ResultExt as _;
 
 use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
@@ -22,6 +22,12 @@ impl InventoryProvider for DatabaseConnectionPool {
     async fn get_inventory(&self) -> Result<Box<dyn Inventory>> {
         let connection = self.get_connection().await?;
         Ok(Box::new(connection))
+    }
+
+    #[tracing::instrument(skip_all)]
+    async fn get_authorization_inventory(&self) -> Result<Box<dyn AuthorizationInventory>> {
+        let inventory = self.get_inventory().await?;
+        Ok(inventory)
     }
 }
 

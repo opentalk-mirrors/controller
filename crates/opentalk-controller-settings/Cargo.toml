@@ -31,6 +31,7 @@ openidconnect.workspace = true
 opentalk-roomserver-modules.workspace = true
 opentalk-roomserver-room.workspace = true
 opentalk-roomserver-types.workspace = true
+opentalk-roomserver-types-livekit.workspace = true
 opentalk-service-auth = { workspace = true, features = ["actix"] }
 opentalk-types-common = { workspace = true, features = ["serde"] }
 owo-colors.workspace = true
@@ -46,7 +47,6 @@ url.workspace = true
 uuid = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
-opentalk-roomserver-types-livekit.workspace = true
 pretty_assertions = { workspace = true, features = [
   # assert_matches! is still considered unstable, but it should be fairly
   # straight forward to adjust when it changes

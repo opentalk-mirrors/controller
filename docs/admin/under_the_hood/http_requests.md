@@ -103,16 +103,11 @@ handlers.
 In addition, it can authenticate through an invite code header for guest
 participants when no OIDC token is provided.
 
-### ACL middleware
+### Authorization middleware
 
-The ACL middleware enforces access rules to the authenticated endpoints. The
-rules are stored in the
-[`casbin_rule` database table](https://docs.opentalk.eu/developer/controller/database/).
-This is enforced by the
-[Casbin rule enforcement engine](https://docs.rs/casbin/), which is the base for
-the {{ product_name }} Controller rule enforcement system called `kustos`. When an
-endpoint is not allowed for access, the corresponding HTTP error status code
-is returned.
+The authorization middleware enforces access rules to the authenticated
+endpoints. When an endpoint is not allowed for access, the corresponding HTTP
+error status code is returned.
 
 ### Authenticated API endpoint handlers
 

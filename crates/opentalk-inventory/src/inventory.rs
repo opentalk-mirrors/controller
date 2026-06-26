@@ -3,17 +3,18 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use crate::{
-    AssetInventory, EventInventory, EventInviteInventory, EventSharedFolderInventory,
-    EventTrainingParticipationReportInventory, GroupInventory, JobExecutionInventory,
-    ModuleResourceInventory, RoomInventory, RoomInviteInventory, RoomSipConfigInventory,
-    RoomStreamingTargetInventory, TariffInventory, TenantInventory, TransactionManager,
-    UserInventory,
+    AssetInventory, AuthorizationInventory, EventInventory, EventInviteInventory,
+    EventSharedFolderInventory, EventTrainingParticipationReportInventory, GroupInventory,
+    JobExecutionInventory, ModuleResourceInventory, RoomInventory, RoomInviteInventory,
+    RoomSipConfigInventory, RoomStreamingTargetInventory, TariffInventory, TenantInventory,
+    TransactionManager, UserInventory,
 };
 
 /// A connection to the inventory backend.
 pub trait Inventory:
     Send
     + AssetInventory
+    + AuthorizationInventory
     + EventInviteInventory
     + EventSharedFolderInventory
     + EventInventory

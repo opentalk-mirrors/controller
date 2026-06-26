@@ -9,6 +9,7 @@ use opentalk_controller_api_authorization::authorization::AuthorizationChange;
 use opentalk_database::{DatabaseError, Db};
 use opentalk_db_storage::queries::rooms::RoomAuthProperties;
 
+#[allow(dead_code)]
 pub(super) async fn load_authorization_changes(
     db: &Db,
 ) -> Result<Vec<AuthorizationChange>, DatabaseError> {

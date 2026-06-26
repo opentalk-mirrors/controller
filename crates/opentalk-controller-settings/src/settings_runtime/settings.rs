@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use super::{
-    Authorization, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Frontend, Http, Logging,
-    Metrics, MinIO, Monitoring, Oidc, OperatorInformation, RabbitMq, Redis, SharedFolder, Tariffs,
-    Tenants, UserSearchBackend, oidc_and_user_search_builder::OidcAndUserSearchBuilder,
+    Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Frontend, Http, Logging, Metrics, MinIO,
+    Monitoring, Oidc, OperatorInformation, RabbitMq, Redis, SharedFolder, Tariffs, Tenants,
+    UserSearchBackend, oidc_and_user_search_builder::OidcAndUserSearchBuilder,
 };
 use crate::{Result, RoomServer, SettingsError, SettingsRaw, settings_file::UsersFindBehavior};
 
@@ -35,9 +35,6 @@ pub struct Settings {
 
     /// The RabbitMQ connection settings.
     pub rabbit_mq: Option<RabbitMq>,
-
-    /// The Authorization settings.
-    pub authorization: Authorization,
 
     /// The logging settings.
     pub logging: Logging,
@@ -114,7 +111,6 @@ impl TryFrom<SettingsRaw> for Settings {
             redis,
             rabbit_mq,
             logging,
-            authorization,
             avatar,
             metrics,
             etcd,
@@ -147,7 +143,6 @@ impl TryFrom<SettingsRaw> for Settings {
         let database = database.into();
         let redis = redis.map(Into::into);
         let rabbit_mq = rabbit_mq.map(Into::into);
-        let authorization = Authorization::from_settings_file(authorization, rabbit_mq.is_some());
         let logging = logging.map(Into::into).unwrap_or_default();
         let avatar = avatar.map(Into::into).unwrap_or_default();
         let metrics = metrics.map(Into::into).unwrap_or_default();
@@ -176,7 +171,6 @@ impl TryFrom<SettingsRaw> for Settings {
             database,
             redis,
             rabbit_mq,
-            authorization,
             logging,
             avatar,
             metrics,
@@ -267,9 +261,6 @@ pub(crate) fn minimal_example() -> Settings {
         },
         redis: None,
         rabbit_mq: None,
-        authorization: Authorization {
-            synchronize_controllers: false,
-        },
         logging: Logging {
             default_directives: None,
             otlp_tracing: None,

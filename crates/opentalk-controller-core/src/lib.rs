@@ -216,29 +216,6 @@ impl Controller {
         db.set_metrics(metrics.database.clone());
         let db = Arc::new(db);
 
-        // TODO: move this into a location that does not block http service instantiation
-        let authorization_changes = authorization::load_authorization_changes(&db)
-            .await
-            .unwrap();
-
-        let authorizer = Authorizer::new(if settings.authorization.synchronize_controllers {
-            tracing::warn!(
-                "no auth synchronization between controllers happens for now, this needs to be implemented"
-            );
-            OpenTalkAuthorizerBackend::new_from_changeset(&authorization_changes)
-            // TODO: this will become something like this:
-            //
-            // OpenTalkAuthorizer::new_with_autoload_and_metrics(
-            //     self.db.clone(),
-            //     self.rabbitmq_pool.clone(),
-            //     self.metrics.kustos.clone(),
-            // )
-            // .await
-            // .whatever_context("Failed to initialize OpenTalkAuthorizer")?
-        } else {
-            OpenTalkAuthorizerBackend::new_from_changeset(&authorization_changes)
-        });
-
         // Connect to MinIO
         let storage = Arc::new(
             ObjectStorage::new(&settings.minio)
@@ -328,6 +305,13 @@ impl Controller {
             registry,
             shutdown.subscribe(),
         )?;
+
+        let authorizer_backend = OpenTalkAuthorizerBackend::new(
+            inventory_provider.clone(),
+            settings_provider.clone(),
+            module_features.clone(),
+        );
+        let authorizer = Authorizer::new(authorizer_backend);
 
         let backend = {
             let oidc_provider = OidcProvider {

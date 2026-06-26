@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "WebAPI endpoint authorization based on permissions stored in memory"
+documentation = "https://docs.rs/opentalk-controller-api-authorization-memory"
+edition = "2024"
+homepage.workspace = true
+license = "EUPL-1.2"
+name = "opentalk-controller-api-authorization-memory"
+publish = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+async-trait.workspace = true
+opentalk-controller-api-authorization.workspace = true
+opentalk-types-common.workspace = true
+tracing.workspace = true

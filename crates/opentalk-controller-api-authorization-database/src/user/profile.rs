@@ -1,0 +1,105 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
+use opentalk_controller_api_authorization::authorization::{
+    AccessMethod, Admission, SubjectCollection,
+};
+
+use crate::OpenTalkAuthorizerBackend;
+
+impl OpenTalkAuthorizerBackend {
+    /// Authorize access to the [`UserProfile`] resource.
+    ///
+    /// # Access Control List
+    ///
+    /// Access rights for the [`UserProfile`] resource. This endpoint exposes another user's
+    /// public profile and is open to any registered user. The `user_id` argument is
+    /// intentionally ignored here — visibility of any specific profile is enforced by the
+    /// service layer, not by the authorizer.
+    ///
+    /// ```text
+    /// | Subject                 | Access |
+    /// | ----------------------- | ------ |
+    /// | **User**                | r-     |
+    /// | **Invite-Code**         | --     |
+    /// ```
+    ///
+    /// [`UserProfile`]: opentalk_controller_api_authorization::authorization::Resource::UserProfile
+    pub(crate) fn authorize_user_profile(
+        &self,
+        subjects: SubjectCollection,
+        method: AccessMethod,
+    ) -> Admission {
+        Self::require_read_user(subjects, method)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use opentalk_controller_api_authorization::authorization::{
+        AccessMethod::{self, Get, Post},
+        Admission::{self, Allowed, Denied},
+        AuthorizationTarget, AuthorizerBackend, Resource, Subject, SubjectCollection,
+    };
+    use opentalk_controller_settings::settings_provider_from_example_raw_settings;
+    use opentalk_inventory::MockInventoryProvider;
+    use opentalk_types_common::{rooms::invite_codes::InviteCode, users::UserId};
+    use pretty_assertions::assert_eq;
+    use rstest::rstest;
+
+    use crate::{OpenTalkAuthorizerBackend, event::test_utils::MODULE_FEATURES};
+
+    const USER_ID: UserId = UserId::from_u128(0x0001);
+    const TARGET_USER_ID: UserId = UserId::from_u128(0x0003);
+    const INVITE_CODE: InviteCode = InviteCode::from_u128(0x0002);
+
+    #[tokio::test]
+    #[rstest]
+    #[case::user_get(Get, Allowed)]
+    #[case::user_post(Post, Denied)]
+    async fn user(#[case] access_method: AccessMethod, #[case] expected_admission: Admission) {
+        let inventory_provider = MockInventoryProvider::new();
+        let authorizer = OpenTalkAuthorizerBackend::new(
+            Arc::new(inventory_provider),
+            settings_provider_from_example_raw_settings(),
+            MODULE_FEATURES,
+        );
+        let admission = authorizer
+            .authorize(AuthorizationTarget {
+                authenticated_subjects: SubjectCollection::from_iter([Subject::from(USER_ID)]),
+                resource: Resource::UserProfile(TARGET_USER_ID),
+                access_method,
+            })
+            .await
+            .unwrap();
+        assert_eq!(expected_admission, admission);
+    }
+
+    #[tokio::test]
+    #[rstest]
+    #[case::invite_code_get(Get, Denied)]
+    #[case::invite_code_post(Post, Denied)]
+    async fn invite_code(
+        #[case] access_method: AccessMethod,
+        #[case] expected_admission: Admission,
+    ) {
+        let inventory_provider = MockInventoryProvider::new();
+        let authorizer = OpenTalkAuthorizerBackend::new(
+            Arc::new(inventory_provider),
+            settings_provider_from_example_raw_settings(),
+            MODULE_FEATURES,
+        );
+        let admission = authorizer
+            .authorize(AuthorizationTarget {
+                authenticated_subjects: SubjectCollection::from_iter([Subject::from(INVITE_CODE)]),
+                resource: Resource::UserProfile(TARGET_USER_ID),
+                access_method,
+            })
+            .await
+            .unwrap();
+        assert_eq!(expected_admission, admission);
+    }
+}

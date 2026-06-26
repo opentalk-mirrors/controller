@@ -9,7 +9,7 @@ use snafu::Snafu;
 ///
 /// These match a set of well-known HTTP methods, unknown methods are not
 /// represented by this type.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AccessMethod {
     /// GET request access to the resource.
     Get,
@@ -86,11 +86,11 @@ impl AccessMethod {
     }
 
     /// Get the required invite role for accessing a resource.
-    pub const fn required_invite_role(&self) -> InviteRole {
+    pub const fn required_invite_role(&self) -> Option<InviteRole> {
         if self.is_read_only() {
-            InviteRole::User
+            Some(InviteRole::User)
         } else {
-            InviteRole::Moderator
+            None
         }
     }
 }

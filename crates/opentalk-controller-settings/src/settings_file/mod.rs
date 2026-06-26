@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-mod authorization;
 mod avatar;
 mod call_in;
 mod database;
@@ -37,7 +36,6 @@ mod user_search;
 mod user_search_backend;
 mod users_find_behavior;
 
-pub(crate) use authorization::Authorization;
 pub(crate) use avatar::Avatar;
 pub(crate) use call_in::CallIn;
 pub(crate) use database::Database;
@@ -61,9 +59,10 @@ pub(crate) use rabbit_mq_config::RabbitMqConfig;
 pub(crate) use redis_config::RedisConfig;
 pub(crate) use reports_typst::ReportsTypst;
 pub(crate) use roomserver::{RoomServer, RoomServerKind, WebSocketRateLimit};
-pub use settings_raw::SettingsRaw;
 #[cfg(test)]
-pub(crate) use settings_raw::{SETTINGS_RAW_MINIMAL_CONFIG_TOML, settings_raw_minimal_example};
+pub(crate) use settings_raw::SETTINGS_RAW_MINIMAL_CONFIG_TOML;
+pub use settings_raw::SettingsRaw;
+pub(crate) use settings_raw::settings_raw_minimal_example;
 pub(crate) use shared_folder::SharedFolder;
 pub(crate) use tariff_assignment::TariffAssignment;
 pub(crate) use tariff_status_mapping::TariffStatusMapping;

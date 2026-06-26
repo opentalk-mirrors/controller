@@ -7,7 +7,7 @@ use std::{path::Path, sync::Arc, time::Duration};
 use clap::Subcommand;
 use log::Log;
 use opentalk_controller_api_authorization::authorization::Authorizer;
-use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
+use opentalk_controller_api_authorization_memory::OpenTalkAuthorizerBackend;
 use opentalk_controller_core::load_settings_provider;
 use opentalk_controller_settings::Settings;
 use opentalk_database::Db;

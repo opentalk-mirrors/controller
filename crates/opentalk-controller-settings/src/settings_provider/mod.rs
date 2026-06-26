@@ -173,6 +173,16 @@ impl ConfigSearchPath {
     }
 }
 
+/// Construct a [`SettingsProvider`] from the bundled minimal example raw
+/// settings.
+///
+/// Intended for tests in this crate and downstream consumers that need a
+/// ready-to-use [`SettingsProvider`] without touching the filesystem.
+pub fn settings_provider_from_example_raw_settings() -> SettingsProvider {
+    let raw_settings = crate::settings_file::settings_raw_minimal_example();
+    SettingsProvider::new_raw(raw_settings).unwrap()
+}
+
 #[cfg(test)]
 mod tests {
     use std::{collections::BTreeMap, env, fs::File, io::Write as _, path::Path};

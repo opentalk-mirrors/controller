@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! WebAPI endpoint authorization based on the OpenTalk database
+//! WebAPI endpoint authorization based on permissions stored in the database
 
 #![deny(
     bad_style,
@@ -20,7 +20,12 @@
     unused_results
 )]
 
-mod data;
-mod opentalk_authorizer_backend;
+mod authorizer_backend;
+mod common;
+mod error;
+mod event;
+mod room;
+mod user;
 
-pub use opentalk_authorizer_backend::OpenTalkAuthorizerBackend;
+pub use authorizer_backend::OpenTalkAuthorizerBackend;
+pub use error::Result;

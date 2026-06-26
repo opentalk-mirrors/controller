@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_controller_api_authorization::authorization::Authorizer;
-use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
+use opentalk_controller_api_authorization_memory::OpenTalkAuthorizerBackend;
 use opentalk_inventory::User;
 use opentalk_types_common::{rooms::RoomId, users::DisplayName};
 use opentalk_types_signaling::ParticipantId;

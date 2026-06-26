@@ -42,11 +42,12 @@ impl Event {
         }
 
         // Attempt authorization against invited users
-        if authenticated_subjects
-            .any_user_has_role_or_higher(&self.invited_users, method.required_invite_role())
+        if let Some(require_invite_role) = method.required_invite_role()
+            && authenticated_subjects
+                .any_user_has_role_or_higher(&self.invited_users, require_invite_role)
         {
             return Admission::Allowed;
-        }
+        };
 
         Admission::Denied
     }

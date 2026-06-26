@@ -16,6 +16,7 @@ use crate::{Group, Result, UpsertOutcome};
 
 /// A trait for retrieving and storing user entities.
 #[async_trait::async_trait]
+#[cfg_attr(feature = "mockall", mockall::automock)]
 pub trait UserInventory {
     /// Create a new user.
     async fn create_user(&mut self, new_user: NewUser) -> Result<User>;

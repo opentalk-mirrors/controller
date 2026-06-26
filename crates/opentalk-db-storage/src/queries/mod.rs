@@ -5,6 +5,7 @@
 //! Contains database queries
 
 pub mod assets;
+pub mod authorization;
 pub mod events;
 pub mod groups;
 pub mod invites;

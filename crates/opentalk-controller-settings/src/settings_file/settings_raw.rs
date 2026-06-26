@@ -5,9 +5,9 @@
 use serde::Deserialize;
 
 use super::{
-    Authorization, Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Frontend, Http, Keycloak,
-    Logging, Metrics, MinIO, MonitoringSettings, Oidc, OperatorInformation, RabbitMqConfig,
-    RedisConfig, SharedFolder, Tariffs, Tenants, UserSearch,
+    Avatar, CallIn, Database, Defaults, Endpoints, Etcd, Frontend, Http, Keycloak, Logging,
+    Metrics, MinIO, MonitoringSettings, Oidc, OperatorInformation, RabbitMqConfig, RedisConfig,
+    SharedFolder, Tariffs, Tenants, UserSearch,
 };
 use crate::settings_file::RoomServer;
 
@@ -37,9 +37,6 @@ pub struct SettingsRaw {
 
     #[serde(default)]
     pub(crate) logging: Option<Logging>,
-
-    #[serde(default)]
-    pub(crate) authorization: Option<Authorization>,
 
     #[serde(default)]
     pub(crate) avatar: Option<Avatar>,
@@ -79,15 +76,31 @@ pub struct SettingsRaw {
     pub(crate) operator_information: Option<OperatorInformation>,
 }
 
-#[cfg(test)]
 pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
     use openidconnect::{ClientId, ClientSecret};
+    use opentalk_roomserver_modules::ECHO_MODULE_ID;
     use opentalk_roomserver_types::module_settings::ModuleSettings;
-    use opentalk_service_auth::ApiKey;
+    use opentalk_roomserver_types_livekit::LiveKitSettings;
+    use opentalk_service_auth::{ApiKey, service::ApiKeys};
     use url::Url;
 
-    use super::{OidcController, OidcFrontend};
+    use super::{Http, OidcController, OidcFrontend};
     use crate::settings_file::RoomServerKind;
+
+    // Keep this in sync with `SETTINGS_RAW_MINIMAL_CONFIG_TOML` below: the
+    // `livekit` and `echo` modules are mandatory at the runtime conversion
+    // step (see `settings_runtime::roomserver::MANDATORY_MODULES`), and the
+    // HTTP service API keys are mandatory as well.
+    let mut modules = ModuleSettings::new();
+    modules.insert_empty(ECHO_MODULE_ID);
+    modules
+        .insert(&LiveKitSettings {
+            api_key: "devkey".to_string(),
+            api_secret: "secret".to_string(),
+            public_url: "ws://localhost:7880".to_string(),
+            service_url: "http://localhost:7880/".parse().expect("URL must be valid"),
+        })
+        .expect("LiveKitSettings must be valid");
 
     SettingsRaw {
         frontend: Frontend {
@@ -116,11 +129,13 @@ pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
             backend: None,
             users_find_behavior: None,
         }),
-        http: None,
+        http: Some(Http {
+            service_api_keys: Some(ApiKeys::new(vec![ApiKey::new("controller", "secret")])),
+            ..Default::default()
+        }),
         redis: None,
         rabbit_mq: None,
         logging: None,
-        authorization: None,
         avatar: None,
         metrics: None,
         etcd: None,
@@ -148,7 +163,7 @@ pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
                     .expect("must be a valid url"),
                 api_key: ApiKey::new("roomserver", "secret"),
             },
-            modules: ModuleSettings::new(),
+            modules,
             websocket_rate_limit: None,
             room_idle_timeout: Some(60),
         },
