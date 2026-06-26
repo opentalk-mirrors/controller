@@ -20,7 +20,7 @@ use opentalk_types_api_v1::{
     rooms::{GetRoomsResponseBody, RoomResource, by_room_id::GetRoomEventResponseBody},
 };
 use opentalk_types_common::{
-    features::{CALL_IN_MODULE_FEATURE_ID, GUESTS_ALLOWED_MODULE_FEATURE_ID},
+    features::GUESTS_ALLOWED_MODULE_FEATURE_ID,
     pagination::ItemCount,
     rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
     users::UserId,
@@ -73,12 +73,12 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let tariff = self.get_tariff_for_user(current_user.id).await?;
+        let guest_access = guest_access.unwrap_or(GuestAccess::WaitingRoom);
 
         if enable_sip {
-            tariff.require_feature(&CALL_IN_MODULE_FEATURE_ID)?;
+            Self::ensure_call_in_permission(e2e_encryption, guest_access, &tariff)?
         }
 
-        let guest_access = guest_access.unwrap_or(GuestAccess::WaitingRoom);
         if guest_access != GuestAccess::Disabled {
             tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
         }

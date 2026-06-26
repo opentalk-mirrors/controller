@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::sync::Arc;
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+};
 
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::Inventory;
@@ -11,11 +14,10 @@ use opentalk_roomserver_types::{
     room_parameters_patch::RoomParametersPatch,
 };
 use opentalk_types_api_v1::{error::ApiError, rooms::RoomResource};
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::{features::FeatureId, modules::ModuleId, rooms::RoomId};
 use url::Url;
 
-use super::build_room_parameters;
-use crate::controller_backend::roomserver::RoomServerBackend;
+use crate::controller_backend::roomserver::{RoomServerBackend, build_room_parameters};
 
 /// A roomserver backend that forwards token requests to an external roomserver.
 #[derive(Debug)]
@@ -37,6 +39,7 @@ impl RoomServerBackend for ExternalRoomServer {
         &self,
         inventory: &mut dyn Inventory,
         settings: Arc<Settings>,
+        module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
         room: RoomResource,
         client_parameters: ClientParameters,
         _host: Url,
@@ -54,7 +57,8 @@ impl RoomServerBackend for ExternalRoomServer {
                 ..
             })) => {
                 // The room is unknown to the roomserver — resubmit the token request but include the room parameter
-                let room_parameters = build_room_parameters(inventory, settings, room).await?;
+                let room_parameters =
+                    build_room_parameters(inventory, settings, room, module_features).await?;
 
                 let access = self
                     .client

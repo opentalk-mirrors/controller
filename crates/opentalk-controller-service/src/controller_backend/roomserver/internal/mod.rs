@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{sync::Arc, time::Duration};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+    time::Duration,
+};
 
 use actix_ws::{Message, ProtocolError};
 use http::{
@@ -24,7 +28,9 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_web_api::livekit_proxy::LiveKitProxyBackend;
 use opentalk_types_api_v1::{error::ApiError, rooms::RoomResource};
-use opentalk_types_common::{rooms::RoomId, roomserver::Token, users::UserId};
+use opentalk_types_common::{
+    features::FeatureId, modules::ModuleId, rooms::RoomId, roomserver::Token, users::UserId,
+};
 use snafu::ResultExt;
 use tokio::sync::{Mutex, broadcast, mpsc, watch, watch::Sender};
 use url::Url;
@@ -137,6 +143,7 @@ impl RoomServerBackend for InternalRoomServer {
         &self,
         inventory: &mut dyn Inventory,
         settings: Arc<Settings>,
+        module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
         room: RoomResource,
         client_parameters: ClientParameters,
         host: Url,
@@ -183,7 +190,8 @@ impl RoomServerBackend for InternalRoomServer {
             }
 
             // Room needs to be created
-            let room_parameters = build_room_parameters(inventory, settings, room).await?;
+            let room_parameters =
+                build_room_parameters(inventory, settings, room, module_features).await?;
             let ctx = self.room_task_context(room_parameters.created_by.id);
             self.room_tasks
                 .create_if_not_exists(ctx, room_id, room_parameters.into())
