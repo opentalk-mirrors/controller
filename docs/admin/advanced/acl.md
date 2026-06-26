@@ -7,8 +7,8 @@ its database. Controllers will synchronize changes to the ACL by sending changes
 
 The section in the [configuration file](../core/configuration.md) is called `authz`.
 
-| Field                    | Type   | Required | Default value | Description                                                                                                                              |
-| ------------------------ | ------ | -------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Field                     | Type   | Required | Default value | Description                                                                                                                              |
+| ------------------------- | ------ | -------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `synchronize_controllers` | `bool` | no       | `true`        | Must `true` when usin multiple controllers. This should be set to `false` to avoid unnessecary work, when only using a single controller |
 
 ## `opentalk-controller acl` subcommand

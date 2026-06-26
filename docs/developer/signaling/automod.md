@@ -98,7 +98,7 @@ When joining a room, the `join_success` control event contains the module-specif
 | `config`  | `PublicConfig` | yes    | Configuration of the auto-moderation |
 | `speaker` | `string`       | no     | The currently active speaker         |
 
-__`PublicConfig` fields__:
+**`PublicConfig` fields**:
 
 | Field                    | Type       | Required | Description                           |
 | ------------------------ | ---------- | -------- | ------------------------------------- |
@@ -512,7 +512,7 @@ that can happen at any time. (e.g. an `internal` error may occur at any time to 
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `invalid_selection`        | The selection made by the frontend was invalid. Can originate from the `"start"`, `"yield"` or `"select"` command. |
 | `insufficient_permissions` | The issued command can only be issued by a moderator, but the issuer isn't one.                                    |
-| `session_already_running`  | Attempted to start a new session when another active session is already running.                                    |
+| `session_already_running`  | Attempted to start a new session when another active session is already running.                                   |
 
 #### Example
 

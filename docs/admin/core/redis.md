@@ -14,9 +14,9 @@ section out to operate the controller in *standalone* mode.
 
 The section in the [configuration file](./configuration.md) is called `redis`.
 
-| Field      | Type     | Required | Default value             | Description                                                                                                                            |
-| ---------- | -------- | -------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `url`      | `string` | no       | "redis://localhost:6379/" | TCP port number where the Redis server can be reached                                                                               |
+| Field | Type     | Required | Default value             | Description                                           |
+| ----- | -------- | -------- | ------------------------- | ----------------------------------------------------- |
+| `url` | `string` | no       | "redis://localhost:6379/" | TCP port number where the Redis server can be reached |
 
 ### Examples
 

@@ -40,6 +40,7 @@ Creates a new whisper group with the targeted participants. The group creator is
 [WhisperGroupCreated](#whispergroupcreated) for the creator and [WhisperInvite](#whisperinvite) for the invitees.
 
 ---
+
 ### InviteToWhisperGroup
 
 Invite participants to an existing whisper group.

@@ -114,11 +114,11 @@ The `EnablePresenceLogging` action can be sent by the room creator to enable the
 
 #### Fields
 
-| Field                | Type     | Required | Description                         |
-| -------------------- | -------- | -------- | ----------------------------------- |
-| `action`             | `enum`   | yes      | Must be `"enable_presence_logging"` |
-| `initial_checkpoint_delay` | `TimeRange` | no | The range for the number of minutes before the initial checkpoint is triggered (default: `{ "after": 600, "within": 1200 }`) |
-| `checkpoint_interval` | `TimeRange` | no | The range for the number of minutes between the subsequent checkpoint is triggered (default: `{ "after": 6300, "within": 1800 }`) |
+| Field                      | Type        | Required | Description                                                                                                                       |
+| -------------------------- | ----------- | -------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `action`                   | `enum`      | yes      | Must be `"enable_presence_logging"`                                                                                               |
+| `initial_checkpoint_delay` | `TimeRange` | no       | The range for the number of minutes before the initial checkpoint is triggered (default: `{ "after": 600, "within": 1200 }`)      |
+| `checkpoint_interval`      | `TimeRange` | no       | The range for the number of minutes between the subsequent checkpoint is triggered (default: `{ "after": 6300, "within": 1800 }`) |
 
 ##### `TimeRange`
 

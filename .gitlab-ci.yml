@@ -60,6 +60,12 @@ include:
   - project: opentalk/ci/templates/collect-commit-evidence
     ref: v2
     file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/rust-lint
+    ref: v1
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/common-lint
+    ref: v1
+    file: .gitlab-ci-template.yml
   - project: opentalk/ci/templates/release-creation
     inputs:
       version: $[[ inputs.release_version ]]
@@ -75,76 +81,6 @@ include:
       additional_labels: team-dashboard
     ref: v2
     file: .gitlab-ci-template.yml
-
-lint:fmt:
-  stage: lint
-  <<: *default_job_condition
-  script:
-    - cargo +nightly fmt -- --check
-
-lint:clippy:
-  stage: lint
-  <<: *default_job_condition
-  script:
-    - cargo clippy --workspace --all-features --tests -- --deny warnings
-
-lint:doc:
-  stage: lint
-  <<: *default_job_condition
-  variables:
-    RUSTDOCFLAGS: -Dwarnings
-  script: cargo doc --workspace --no-deps
-
-lint:shellcheck:
-  image:
-    name: koalaman/shellcheck-alpine:v0.11.0
-    pull_policy: if-not-present
-  stage: lint
-  <<: *default_job_condition
-  before_script:
-    - apk update
-    - apk add git
-  script: git ls-files "*.sh" -z | xargs -0r shellcheck
-
-lint:dependency_check:
-  stage: lint
-  needs: []
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-      changes:
-        - Cargo.lock
-        - deny.toml
-    - if: $CI_PIPELINE_SOURCE == 'schedule'
-  script:
-    - >
-      cargo-deny --all-features --workspace check
-      --deny unmatched-skip
-      --deny license-not-encountered
-      --deny advisory-not-detected
-      --hide-inclusion-graph
-
-lint:unnecessary_dependencies:
-  stage: lint
-  needs: []
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-  before_script: if ! cargo machete --version; then cargo install cargo-machete; fi
-  script: cargo machete --with-metadata
-
-lint:yaml:
-  stage: lint
-  <<: *default_job_condition
-  image:
-    name: alpine:3.24
-    pull_policy: if-not-present
-  before_script:
-    - apk add --no-cache yamllint
-  script: yamllint .
-
-lint:toml:
-  stage: lint
-  <<: *default_job_condition
-  script: taplo fmt --check
 
 lint:openapi:
   stage: lint
@@ -165,49 +101,6 @@ lint:openapi-spectral:
     pull_policy: if-not-present
   script:
     - spectral lint --ruleset ci/spectral/openapi.yml lint docs/developer/api.yaml
-
-lint:markdown:
-  stage: lint
-  <<: *default_job_condition
-  image:
-    name: registry.gitlab.com/pipeline-components/markdownlint:0.14.15
-    pull_policy: if-not-present
-  script:
-    - mdl --warnings .
-
-lint:licensing:
-  stage: lint
-  <<: *default_job_condition
-  image:
-    name: fsfe/reuse:6.2
-    entrypoint: ['']
-    pull_policy: if-not-present
-  script:
-    - reuse lint
-
-lint:commit:
-  cache: {}
-  image:
-    name: node:lts-alpine
-    pull_policy: if-not-present
-  stage: lint
-  needs: []
-  rules:
-    # Run in merge requests only.
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-  before_script:
-    - apk add --no-cache git
-    - npm install -g @commitlint/cli @commitlint/config-conventional
-  script:
-    - npx commitlint --from $CI_MERGE_REQUEST_DIFF_BASE_SHA --to HEAD --verbose
-
-lint:justfile:
-  stage: lint
-  <<: *default_job_condition
-  before_script: if ! just --version; then cargo install just; fi
-  script:
-    # The `--fmt` command-line parameter is still unstable, but valuable anyway.
-    - just --unstable --fmt --check
 
 test:load_typst_plugins:
   stage: test
