@@ -14,7 +14,7 @@ use opentalk_controller_api_authorization::authorization::AuthorizationChange;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::{
-    CaptureApiError, TariffResourceExt,
+    CaptureApiError,
     deletion::{Deleter, EventDeleter},
 };
 use opentalk_inventory::{
@@ -58,7 +58,8 @@ use snafu::Report;
 use crate::{
     ControllerBackend, ToUserProfile as _,
     controller_backend::{
-        delete_shared_folders, put_shared_folder, utils::interweave_result_streams,
+        delete_shared_folders, put_shared_folder,
+        utils::{ensure_guest_access_valid, interweave_result_streams},
     },
     email_to_libravatar_url,
     events::{
@@ -1452,9 +1453,7 @@ async fn create_time_independent_event(
     training_participation_report: Option<TrainingParticipationReportParameterSet>,
 ) -> Result<(EventResource, Option<MailResource>), CaptureApiError> {
     let guest_access = guest_access.unwrap_or(GuestAccess::WaitingRoom);
-    if guest_access != GuestAccess::Disabled {
-        user_tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
-    }
+    ensure_guest_access_valid(guest_access, e2e_encryption, user_tariff)?;
 
     let room = inventory
         .create_room(NewRoom {
@@ -1557,9 +1556,7 @@ async fn create_time_dependent_event(
         parse_event_dt_params(is_all_day, starts_at, ends_at, &recurrence_pattern)?;
 
     let guest_access = guest_access.unwrap_or(GuestAccess::WaitingRoom);
-    if guest_access != GuestAccess::Disabled {
-        user_tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
-    }
+    ensure_guest_access_valid(guest_access, e2e_encryption, user_tariff)?;
 
     let room = inventory
         .create_room(NewRoom {
