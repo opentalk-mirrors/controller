@@ -87,9 +87,13 @@ pub async fn get_all_for_room_paginated(
         .map_err(DatabaseError::from)
 }
 
-/// Returns a valid invite for a given room, if there is any.
+/// Returns an active (enabled and not expired) invite for a given room, if there is any.
+///
+/// Note: this does not check whether guest access is actually permitted for the
+/// room. Use [`opentalk_inventory::utils::get_valid_invite_for_room`] when a
+/// room-valid invite is required.
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_valid_invite_for_room(
+pub async fn get_active_invite_for_room(
     conn: &mut DbConnection,
     room_id: RoomId,
     now: DateTime<Utc>,
@@ -176,7 +180,7 @@ pub async fn get_or_create_valid_invite_for_room(
     room_id: RoomId,
     user_id: UserId,
 ) -> Result<Invite> {
-    let invite_for_room = get_valid_invite_for_room(conn, room_id, Utc::now()).await?;
+    let invite_for_room = get_active_invite_for_room(conn, room_id, Utc::now()).await?;
 
     if let Some(invite) = invite_for_room {
         return Ok(invite);

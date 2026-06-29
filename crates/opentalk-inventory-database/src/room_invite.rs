@@ -49,9 +49,9 @@ impl RoomInviteInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_valid_invite_for_room(&mut self, room_id: RoomId) -> Result<Option<RoomInvite>> {
+    async fn get_active_invite_for_room(&mut self, room_id: RoomId) -> Result<Option<RoomInvite>> {
         Ok(
-            db::queries::invites::get_valid_invite_for_room(&mut self.inner, room_id, Utc::now())
+            db::queries::invites::get_active_invite_for_room(&mut self.inner, room_id, Utc::now())
                 .await
                 .context(DatabaseSnafu)?
                 .map(Into::into),
