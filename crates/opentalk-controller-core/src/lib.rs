@@ -64,7 +64,6 @@ use crate::{
     trace::ReducedSpanBuilder,
 };
 
-mod authorization;
 mod exchange_task;
 mod metrics;
 mod swagger;

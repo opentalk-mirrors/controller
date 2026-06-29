@@ -2,8 +2,11 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::collections::BTreeMap;
+
 use opentalk_controller_api_authorization::authorization::Authorizer;
-use opentalk_controller_api_authorization_memory::OpenTalkAuthorizerBackend;
+use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
+use opentalk_controller_settings::test_util::settings_provider_from_example_raw_settings;
 use opentalk_inventory::User;
 use opentalk_types_common::{rooms::RoomId, users::DisplayName};
 use opentalk_types_signaling::ParticipantId;
@@ -57,7 +60,13 @@ impl TestContext {
 
         let (shutdown, _) = tokio::sync::broadcast::channel(10);
 
-        let authorizer = Authorizer::new(OpenTalkAuthorizerBackend::new());
+        // Tests don't exercise tariff-gated module feature checks, so an empty
+        // module feature map is sufficient for the database-backed authorizer.
+        let authorizer = Authorizer::new(OpenTalkAuthorizerBackend::new(
+            db_ctx.inventory_provider.clone(),
+            settings_provider_from_example_raw_settings(),
+            BTreeMap::new(),
+        ));
 
         TestContext {
             db_ctx,

@@ -18,8 +18,14 @@ pub trait AuthorizerBackend: Send + Sync {
     -> Result<Admission, AuthorizationError>;
 
     /// Apply a changeset to the authorization backend data
+    ///
+    /// This takes `&self` so the [`Authorizer`](super::Authorizer) can hold the
+    /// backend behind a plain `Arc` instead of a lock. If a future backend
+    /// implementation ever needs interior mutability to update a cache on
+    /// change, it must provide its own synchronization (e.g. `Mutex`,
+    /// `RwLock`, ...), and this signature may need to be reconsidered.
     async fn apply_changes(
-        &mut self,
+        &self,
         changeset: &[AuthorizationChange],
     ) -> Result<(), AuthorizationChangeError>;
 }

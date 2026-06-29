@@ -91,12 +91,12 @@ fn default_days_since_user_has_been_disabled() -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::{collections::BTreeMap, path::Path};
 
     use chrono::{DateTime, Days, Utc};
     use log::logger;
     use opentalk_controller_api_authorization::authorization::Authorizer;
-    use opentalk_controller_api_authorization_memory::OpenTalkAuthorizerBackend;
+    use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
     use opentalk_controller_settings::SettingsProvider;
     use opentalk_inventory::{
         Event, Inventory, InventoryProvider as _, UpdateEvent, UpdateUser, User,
@@ -207,8 +207,11 @@ mod tests {
             .any(|u| u.id == updated_by.id);
         assert!(user_exists);
 
-        // TODO: load the auth data from the inventory
-        let authorizer = Authorizer::new(OpenTalkAuthorizerBackend::new());
+        let authorizer = Authorizer::new(OpenTalkAuthorizerBackend::new(
+            db_ctx.inventory_provider.clone(),
+            settings_provider.clone(),
+            BTreeMap::new(),
+        ));
 
         UserCleanup::execute(
             logger(),
@@ -259,8 +262,11 @@ mod tests {
             .any(|u| u.id == inviter.id);
         assert!(user_exists);
 
-        // TODO: load the auth data from the inventory
-        let authorizer = Authorizer::new(OpenTalkAuthorizerBackend::new());
+        let authorizer = Authorizer::new(OpenTalkAuthorizerBackend::new(
+            db_ctx.inventory_provider.clone(),
+            settings_provider.clone(),
+            BTreeMap::new(),
+        ));
 
         UserCleanup::execute(
             logger(),

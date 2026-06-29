@@ -121,7 +121,7 @@ impl AuthorizerBackend for OpenTalkAuthorizerBackend {
     }
 
     async fn apply_changes(
-        &mut self,
+        &self,
         _changeset: &[AuthorizationChange],
     ) -> Result<(), AuthorizationChangeError> {
         // This implementation should remain empty, because we don't need to update or invalidate

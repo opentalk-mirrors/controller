@@ -2859,7 +2859,6 @@ checksum = "da0e4dd2a88388a1f4ccc7c9ce104604dab68d9f408dc34cd45823d5a9069095"
 dependencies = [
  "futures-core",
  "futures-sink",
- "nanorand",
  "spin 0.9.8",
 ]
 
@@ -4893,15 +4892,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e94e1e6445d314f972ff7395df2de295fe51b71821694f0b0e1e79c4f12c8577"
 
 [[package]]
-name = "nanorand"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a51313c5820b0b02bd422f4b44776fbf47961755c74ce64afc73bfad10226c3"
-dependencies = [
- "getrandom 0.2.17",
-]
-
-[[package]]
 name = "nix"
 version = "0.31.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5356,7 +5346,7 @@ dependencies = [
  "log",
  "nix",
  "opentalk-controller-api-authorization",
- "opentalk-controller-api-authorization-memory",
+ "opentalk-controller-api-authorization-database",
  "opentalk-controller-core",
  "opentalk-controller-service",
  "opentalk-controller-settings",
@@ -5416,7 +5406,6 @@ dependencies = [
  "serde",
  "serde_json",
  "snafu 0.9.1",
- "tokio",
  "tracing",
 ]
 
@@ -5437,31 +5426,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "opentalk-controller-api-authorization-memory"
-version = "0.33.0"
-dependencies = [
- "async-trait",
- "opentalk-controller-api-authorization",
- "opentalk-types-common",
- "tracing",
-]
-
-[[package]]
-name = "opentalk-controller-api-authorization-synchronization"
-version = "0.33.0"
-dependencies = [
- "async-trait",
- "flume",
- "mockall",
- "opentalk-controller-api-authorization",
- "opentalk-types-common",
- "pretty_assertions",
- "snafu 0.9.1",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "opentalk-controller-core"
 version = "0.33.0"
 dependencies = [
@@ -5476,7 +5440,6 @@ dependencies = [
  "bytes",
  "bytestring",
  "chrono",
- "diesel-async",
  "futures",
  "http 1.4.2",
  "itertools 0.14.0",
@@ -5832,7 +5795,7 @@ dependencies = [
  "log",
  "opentalk-asset-storage",
  "opentalk-controller-api-authorization",
- "opentalk-controller-api-authorization-memory",
+ "opentalk-controller-api-authorization-database",
  "opentalk-controller-settings",
  "opentalk-controller-utils",
  "opentalk-inventory",
@@ -6874,7 +6837,7 @@ dependencies = [
  "fern",
  "log",
  "opentalk-controller-api-authorization",
- "opentalk-controller-api-authorization-memory",
+ "opentalk-controller-api-authorization-database",
  "opentalk-controller-service",
  "opentalk-controller-settings",
  "opentalk-database",
