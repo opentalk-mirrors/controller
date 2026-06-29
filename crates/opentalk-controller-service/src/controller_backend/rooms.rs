@@ -7,7 +7,7 @@
 use opentalk_controller_api_authorization::authorization::AuthorizationChange;
 use opentalk_controller_service_facade::{RequestUser, StartRoomError};
 use opentalk_controller_utils::{
-    CaptureApiError, TariffResourceExt as _,
+    CaptureApiError,
     deletion::{Deleter, RoomDeleter},
 };
 use opentalk_inventory::{
@@ -26,7 +26,9 @@ use opentalk_types_common::{
     users::UserId,
 };
 
-use crate::{ControllerBackend, ToUserProfile};
+use crate::{
+    ControllerBackend, ToUserProfile, controller_backend::utils::ensure_guest_access_valid,
+};
 
 impl ControllerBackend {
     pub(crate) async fn get_rooms(
@@ -78,10 +80,7 @@ impl ControllerBackend {
         if enable_sip {
             Self::ensure_call_in_permission(e2e_encryption, guest_access, &tariff)?
         }
-
-        if guest_access != GuestAccess::Disabled {
-            tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
-        }
+        ensure_guest_access_valid(guest_access, e2e_encryption, &tariff)?;
 
         let room = inventory
             .create_room(NewRoom {
@@ -178,13 +177,17 @@ impl ControllerBackend {
         guest_access: Option<GuestAccess>,
         e2e_encryption: Option<bool>,
     ) -> Result<Room, CaptureApiError> {
-        let tariff = self.get_room_tariff(room_id).await?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
+        if guest_access.is_some() || e2e_encryption.is_some() {
+            let room = inventory.get_room(room_id).await?;
+            let tariff = self.get_tariff_for_user(room.created_by).await?;
 
-        if guest_access.is_some_and(|guest_access| !guest_access.is_disabled()) {
-            tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
+            let guest_access = guest_access.unwrap_or(room.guest_access);
+            let e2e_encryption = e2e_encryption.unwrap_or(room.e2e_encryption);
+
+            ensure_guest_access_valid(guest_access, e2e_encryption, &tariff)?;
         }
 
-        let mut inventory = self.inventory_provider.get_inventory().await?;
         let room = inventory
             .update_room(
                 room_id,
