@@ -16,7 +16,7 @@ use actix_web::{
     HttpMessage, ResponseError,
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
     error::{Error, PayloadError},
-    http::{Method, header::Header},
+    http::{Method, header, header::Header},
     web::Data,
 };
 use actix_web_httpauth::headers::authorization::Authorization;
@@ -122,6 +122,14 @@ where
         );
 
         let _enter = parse_match_span.enter();
+
+        // Unauthenticated requests are allowed through without setting any
+        // subject on the request; the downstream authorization middleware
+        // decides whether the target resource admits unauthenticated callers.
+        if req.headers().get(header::AUTHORIZATION).is_none() {
+            return Box::pin(service.call(req));
+        }
+
         let auth = match Authorization::<BearerOrInviteCode>::parse(&req) {
             Ok(a) => a,
             Err(e) => {

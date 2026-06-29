@@ -6,6 +6,7 @@
 
 mod asset;
 mod asset_download;
+mod asset_download_proxy;
 mod assets;
 mod event;
 mod invite_code;
@@ -15,6 +16,7 @@ mod room;
 mod rooms;
 mod sip;
 mod start;
+mod start_invited;
 mod streaming_target;
 mod streaming_targets;
 mod tariff;

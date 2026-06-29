@@ -34,6 +34,7 @@ use opentalk_types_common::rooms::RoomId;
 #[post("/rooms/{room_id}/start_invited")]
 pub async fn post(room_id: Path<RoomId>) -> HttpResponse {
     let room_id = room_id.into_inner();
+    // This endpoint is currently public; if re-implementing, please adjust the permissions.
     HttpResponse::PermanentRedirect()
         .insert_header((header::LOCATION, format!("/v1/rooms/{}/start", room_id)))
         .finish()

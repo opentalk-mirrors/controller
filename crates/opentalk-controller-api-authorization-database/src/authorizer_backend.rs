@@ -37,6 +37,9 @@ impl AuthorizerBackend for OpenTalkAuthorizerBackend {
         }: AuthorizationTarget,
     ) -> Result<Admission> {
         match resource {
+            Resource::AuthLogin => Ok(Self::authorize_auth_login()),
+            Resource::AuthLogout => Ok(Self::authorize_auth_logout()),
+            Resource::Turn => Ok(Self::authorize_turn()),
             Resource::Events => Ok(self.authorize_events(subjects)),
             Resource::EventsInstances => Ok(self.authorize_events_instances(subjects, method)),
             Resource::Event(event_id) => self.authorize_event(subjects, method, event_id).await,
@@ -101,6 +104,12 @@ impl AuthorizerBackend for OpenTalkAuthorizerBackend {
             Resource::RoomSip(room_id) => self.authorize_room_sip(subjects, method, room_id).await,
             Resource::RoomStart(room_id) => {
                 self.authorize_room_start(subjects, method, room_id).await
+            }
+            Resource::RoomStartInvited(_) => Ok(Self::authorize_room_start_invited()),
+            Resource::InviteVerify => Ok(Self::authorize_invite_verify()),
+            Resource::Signaling(_) => Ok(Self::authorize_signaling()),
+            Resource::RoomAssetDownloadProxy(_, _) => {
+                Ok(Self::authorize_room_asset_download_proxy())
             }
             Resource::RoomTariff(room_id) => {
                 self.authorize_room_tariff(subjects, method, room_id).await
