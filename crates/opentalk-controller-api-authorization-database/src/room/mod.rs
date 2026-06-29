@@ -24,7 +24,7 @@ pub(crate) mod test_utils {
     use std::sync::Arc;
 
     use mockall::predicate::eq;
-    use opentalk_controller_settings::settings_provider_from_example_raw_settings;
+    use opentalk_controller_settings::test_util;
     use opentalk_inventory::{
         AuthorizationInventory, AuthorizationInviteCodeValidity as Validity,
         AuthorizationUserRole as Role, MockAuthorizationInventory, MockInventoryProvider,
@@ -47,7 +47,7 @@ pub(crate) mod test_utils {
         let inventory_provider = get_mock_inventory_provider_returning_role(role);
         OpenTalkAuthorizerBackend::new(
             Arc::new(inventory_provider),
-            settings_provider_from_example_raw_settings(),
+            test_util::settings_provider_from_example_raw_settings(),
             MODULE_FEATURES,
         )
     }
@@ -56,7 +56,7 @@ pub(crate) mod test_utils {
         let inventory_provider = get_mock_inventory_provider_returning_validity(validity);
         OpenTalkAuthorizerBackend::new(
             Arc::new(inventory_provider),
-            settings_provider_from_example_raw_settings(),
+            test_util::settings_provider_from_example_raw_settings(),
             MODULE_FEATURES,
         )
     }

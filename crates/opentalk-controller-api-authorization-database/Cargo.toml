@@ -26,6 +26,7 @@ opentalk-types-common.workspace = true
 
 [dev-dependencies]
 mockall.workspace = true
+opentalk-controller-settings = { workspace = true, features = ["test-util"] }
 opentalk-inventory = { workspace = true, features = ["mockall"] }
 opentalk-types-api-v1.workspace = true
 pretty_assertions.workspace = true

@@ -34,7 +34,7 @@ impl SettingsProvider {
     }
 
     /// Create a new [`SettingsProvider`] with settings that are already loaded.
-    fn new_raw(settings_raw: SettingsRaw) -> Result<Self> {
+    pub(crate) fn new_raw(settings_raw: SettingsRaw) -> Result<Self> {
         let settings = Settings::try_from(settings_raw)?;
         Ok(Self {
             settings: Arc::new(ArcSwap::new(Arc::new(settings))),
@@ -171,16 +171,6 @@ impl ConfigSearchPath {
         }
         Some(format!("\"{}\"", self.path.to_string_lossy()))
     }
-}
-
-/// Construct a [`SettingsProvider`] from the bundled minimal example raw
-/// settings.
-///
-/// Intended for tests in this crate and downstream consumers that need a
-/// ready-to-use [`SettingsProvider`] without touching the filesystem.
-pub fn settings_provider_from_example_raw_settings() -> SettingsProvider {
-    let raw_settings = crate::settings_file::settings_raw_minimal_example();
-    SettingsProvider::new_raw(raw_settings).unwrap()
 }
 
 #[cfg(test)]

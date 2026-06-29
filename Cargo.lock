@@ -6876,6 +6876,7 @@ dependencies = [
  "opentalk-controller-api-authorization",
  "opentalk-controller-api-authorization-memory",
  "opentalk-controller-service",
+ "opentalk-controller-settings",
  "opentalk-database",
  "opentalk-db-storage",
  "opentalk-inventory",
