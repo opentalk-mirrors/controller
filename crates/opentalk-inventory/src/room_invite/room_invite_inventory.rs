@@ -24,8 +24,13 @@ pub trait RoomInviteInventory {
     /// Get all room invites.
     async fn get_all_room_invites(&mut self) -> Result<Vec<RoomInvite>>;
 
-    /// Get a valid invite for a room.
-    async fn get_valid_invite_for_room(&mut self, room_id: RoomId) -> Result<Option<RoomInvite>>;
+    /// Returns an active (enabled and not expired) invite for a given room, if there is any.
+    ///
+    /// Note: this does not check whether guest access is actually permitted for the
+    /// room. Use [`get_valid_invite_for_room`] when a room-valid invite is required.
+    ///
+    /// [`get_valid_invite_for_room`]: crate::utils::get_valid_invite_for_room
+    async fn get_active_invite_for_room(&mut self, room_id: RoomId) -> Result<Option<RoomInvite>>;
 
     /// Get a valid invite for a room, or create one if none exists.
     ///

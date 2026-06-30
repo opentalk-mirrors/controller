@@ -17,7 +17,10 @@ use opentalk_controller_settings::{
     RoomServerKind, Settings, SettingsProvider, common::HttpCorsAllowedOrigin,
 };
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_inventory::{Event, Inventory, InventoryProvider, Room, utils::is_call_in_allowed};
+use opentalk_inventory::{
+    Event, Inventory, InventoryProvider, Room,
+    utils::{get_valid_invite_for_room, is_call_in_allowed},
+};
 use opentalk_roomserver_client::Client;
 use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry, settings::Internal};
 use opentalk_roomserver_types::{
@@ -362,11 +365,6 @@ pub(crate) async fn build_room_parameters(
         .get_room_streaming_targets(room_resource.id)
         .await?;
 
-    let invite_code = inventory
-        .get_valid_invite_for_room(room_resource.id)
-        .await?
-        .map(|invite| invite.invite_code);
-
     let tariff = inventory
         .get_tariff_for_user(room_resource.created_by.id)
         .await?;
@@ -396,14 +394,19 @@ pub(crate) async fn build_room_parameters(
         .chain(settings.defaults.disabled_features.iter().cloned())
         .collect();
 
+    let tariff_resource = tariff.to_tariff_resource(disabled_features.clone(), module_features);
     let call_in = get_call_in_info(
         inventory,
         &settings,
         room_resource.id,
         &room,
-        &tariff.to_tariff_resource(disabled_features.clone(), module_features),
+        &tariff_resource,
     )
     .await?;
+
+    let invite_code = get_valid_invite_for_room(inventory, &room, &tariff_resource)
+        .await?
+        .map(|invite| invite.invite_code);
 
     let tariff = TariffDetails {
         id: tariff.id,

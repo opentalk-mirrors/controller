@@ -25,11 +25,9 @@ pub async fn build_event_info(
     tariff: &TariffResource,
 ) -> Result<EventInfo> {
     let event_info = if event.show_meeting_details {
-        let invite = if is_room_guest_access_allowed(room, tariff) {
-            inventory.get_valid_invite_for_room(room.id).await?
-        } else {
-            None
-        };
+        let invite_code_id = get_valid_invite_for_room(inventory, room, tariff)
+            .await?
+            .map(|invite| invite.invite_code);
 
         let call_in = if let Some(call_in_tel) = call_in_tel {
             if is_call_in_allowed(room, tariff) {
@@ -57,7 +55,7 @@ pub async fn build_event_info(
 
         EventInfo::from(EventAndEncryption(event, room.e2e_encryption)).with_meeting_details(
             MeetingDetails {
-                invite_code_id: invite.map(|invite| invite.invite_code),
+                invite_code_id,
                 call_in,
                 streaming_links,
             },
@@ -142,6 +140,26 @@ pub fn is_room_guest_access_allowed(room: &Room, tariff: &TariffResource) -> boo
             &GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
             &GUESTS_ALLOWED_MODULE_FEATURE_ID.feature,
         )
+}
+
+/// Get a valid invite for a room.
+///
+/// Returns `Ok(Some(RoomInvite))` when guest access is allowed for the room and a valid invite exists.
+/// Returns `Ok(None)` when guest access is not allowed or no valid invite exists.
+///
+/// # Errors
+///
+/// Returns an [`Error`](crate::Error) if querying the inventory for the room's active invite fails (database error).
+pub async fn get_valid_invite_for_room(
+    inventory: &mut dyn Inventory,
+    room: &Room,
+    tariff: &TariffResource,
+) -> Result<Option<RoomInvite>> {
+    if is_room_guest_access_allowed(room, tariff) {
+        inventory.get_active_invite_for_room(room.id).await
+    } else {
+        Ok(None)
+    }
 }
 
 #[cfg(test)]
