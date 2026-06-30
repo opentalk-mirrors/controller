@@ -11,7 +11,7 @@ use opentalk_controller_service::{RedisMetrics, metrics::EndpointMetrics};
 use opentalk_controller_settings::SettingsProvider;
 use opentalk_database::DatabaseMetrics;
 use opentelemetry::{global, otel_error};
-use opentelemetry_sdk::metrics::{MetricError, SdkMeterProvider};
+use opentelemetry_sdk::{error::OTelSdkError, metrics::SdkMeterProvider};
 use prometheus::{Encoder, Registry, TextEncoder};
 use snafu::{Backtrace, Snafu};
 
@@ -20,7 +20,7 @@ use crate::Result;
 #[derive(Debug, Snafu)]
 #[snafu(context(false))]
 pub struct MetricViewError {
-    source: MetricError,
+    source: OTelSdkError,
     backtrace: Backtrace,
 }
 
@@ -39,9 +39,9 @@ impl CombinedMetrics {
             .build()?;
 
         let provider_builder = SdkMeterProvider::builder().with_reader(exporter);
-        let provider_builder = EndpointMetrics::append_views(provider_builder)?;
-        let provider_builder = DatabaseMetrics::append_views(provider_builder)?;
-        let provider_builder = RedisMetrics::append_views(provider_builder)?;
+        let provider_builder = EndpointMetrics::append_views(provider_builder);
+        let provider_builder = DatabaseMetrics::append_views(provider_builder);
+        let provider_builder = RedisMetrics::append_views(provider_builder);
 
         global::set_meter_provider(provider_builder.build());
         let meter = global::meter("ot-controller");

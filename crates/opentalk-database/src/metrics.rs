@@ -27,7 +27,7 @@ use opentelemetry::{
     metrics::{Counter, Histogram, Meter},
 };
 use opentelemetry_sdk::metrics::{
-    Aggregation, Instrument as OtlInstrument, MeterProviderBuilder, MetricError, Stream, new_view,
+    Aggregation, Instrument as OtlInstrument, MeterProviderBuilder, Stream,
 };
 
 type Parent = Object<AsyncPgConnection>;
@@ -47,25 +47,41 @@ pub struct DatabaseMetrics {
 }
 
 impl DatabaseMetrics {
-    pub fn append_views(
-        provider_builder: MeterProviderBuilder,
-    ) -> Result<MeterProviderBuilder, MetricError> {
-        Ok(provider_builder
-            .with_view(new_view(
-                OtlInstrument::new().name(EXEC_TIME),
-                Stream::new().aggregation(Aggregation::ExplicitBucketHistogram {
-                    boundaries: vec![0.01, 0.05, 0.1, 0.25, 0.5],
-                    record_min_max: false,
-                }),
-            )?)
-            .with_view(new_view(
-                OtlInstrument::new().name(POOL_CONNECTIONS),
-                Stream::new().aggregation(Aggregation::Default),
-            )?)
-            .with_view(new_view(
-                OtlInstrument::new().name(POOL_CONNECTIONS_IDLE),
-                Stream::new().aggregation(Aggregation::Default),
-            )?))
+    pub fn append_views(provider_builder: MeterProviderBuilder) -> MeterProviderBuilder {
+        provider_builder
+            .with_view(|instrument: &OtlInstrument| {
+                if instrument.name() == EXEC_TIME {
+                    Stream::builder()
+                        .with_aggregation(Aggregation::ExplicitBucketHistogram {
+                            boundaries: vec![0.01, 0.05, 0.1, 0.25, 0.5],
+                            record_min_max: false,
+                        })
+                        .build()
+                        .ok()
+                } else {
+                    None
+                }
+            })
+            .with_view(|instrument: &OtlInstrument| {
+                if instrument.name() == POOL_CONNECTIONS {
+                    Stream::builder()
+                        .with_aggregation(Aggregation::Default)
+                        .build()
+                        .ok()
+                } else {
+                    None
+                }
+            })
+            .with_view(|instrument: &OtlInstrument| {
+                if instrument.name() == POOL_CONNECTIONS_IDLE {
+                    Stream::builder()
+                        .with_aggregation(Aggregation::Default)
+                        .build()
+                        .ok()
+                } else {
+                    None
+                }
+            })
     }
 
     pub fn new(meter: &Meter) -> Self {
