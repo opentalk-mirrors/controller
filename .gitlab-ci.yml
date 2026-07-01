@@ -31,6 +31,7 @@ stages:
   - package
   - trigger
   - release
+  - scan
 
 variables:
   OPENTALK_CONTROLLER_PROJECT: opentalk-controller
@@ -81,6 +82,9 @@ include:
       additional_labels: team-dashboard
     ref: v2
     file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/container-scanning
+    file: .gitlab-ci-template.yml
+    ref: v2
 
 lint:openapi:
   stage: lint
