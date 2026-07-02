@@ -65,6 +65,7 @@ pub async fn delete_shared_folders(
                         whatever!("{message}");
                     }
                     warn!(log: logger, "{}", message);
+                    continue;
                 }
                 let user_path = format!("files/{username}/{path}");
                 if let Err(e) = client
