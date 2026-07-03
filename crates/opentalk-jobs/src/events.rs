@@ -41,10 +41,10 @@ pub(crate) async fn perform_deletion(
     let mut inventory = inventory_provider.get_inventory().await?;
     let object_storage = ObjectStorage::new(&settings.minio).await?;
 
-    let orphaned_rooms = delete_events(
+    delete_events(
         logger,
         inventory.as_mut(),
-        authorizer.clone(),
+        authorizer,
         stop_room_backend,
         settings,
         &object_storage,
@@ -53,25 +53,10 @@ pub(crate) async fn perform_deletion(
     )
     .await?;
 
-    delete_orphaned_rooms(
-        logger,
-        inventory.as_mut(),
-        authorizer,
-        stop_room_backend,
-        settings,
-        &object_storage,
-        orphaned_rooms,
-        fail_on_shared_folder_deletion_error,
-    )
-    .await?;
-
     Ok(())
 }
 
 /// Identify and delete events according to the specified delete selector
-///
-/// Returns the rooms which are orphaned as a result of the event deletion, so
-/// they can be cleaned up afterwards
 #[allow(clippy::too_many_arguments)]
 async fn delete_events(
     logger: &dyn Log,
@@ -82,13 +67,13 @@ async fn delete_events(
     object_storage: &ObjectStorage,
     fail_on_shared_folder_deletion_error: bool,
     delete_selector: DeleteSelector,
-) -> Result<HashSet<RoomId>, Error> {
+) -> Result<(), Error> {
     info!(log: logger, "");
     debug!(log: logger, "Retrieving list of events that should be deleted");
 
     let candidates = retrieve_deletion_candidate_events(logger, inventory, delete_selector).await?;
 
-    let orphaned_rooms = delete_event_candidates(
+    delete_event_candidates(
         logger,
         inventory,
         authorizer,
@@ -100,7 +85,7 @@ async fn delete_events(
     )
     .await;
 
-    Ok(orphaned_rooms)
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -112,16 +97,14 @@ pub(crate) async fn delete_event_candidates(
     settings: &Settings,
     object_storage: &ObjectStorage,
     fail_on_shared_folder_deletion_error: bool,
-    candidates: Vec<(EventId, RoomId)>,
-) -> HashSet<RoomId> {
+    candidates: Vec<EventId>,
+) {
     let candidate_count = candidates.len();
 
     info!(log: logger, "Identified {candidate_count} events for deletion");
 
-    let mut orphaned_rooms = HashSet::new();
-
     let mut deleter_failures = 0usize;
-    for (event_id, room_id) in candidates {
+    for event_id in candidates {
         info!(log: logger, "Deleting event {event_id}");
         let deleter = EventDeleter::new(event_id, fail_on_shared_folder_deletion_error);
 
@@ -139,17 +122,6 @@ pub(crate) async fn delete_event_candidates(
         {
             warn!(log: logger, "Failed deletion: {}", Report::from_error(e));
             deleter_failures += 1;
-            continue;
-        }
-
-        match inventory.get_event_for_room(room_id).await {
-            Ok(Some(_)) => {}
-            Ok(None) => {
-                let _ = orphaned_rooms.insert(room_id);
-            }
-            Err(e) => {
-                warn!(log: logger, "Failed to retrieve events connected to room: {}", Report::from_error(e));
-            }
         }
     }
 
@@ -157,7 +129,6 @@ pub(crate) async fn delete_event_candidates(
     if deleter_failures > 0 {
         warn!(log: logger, "{deleter_failures} events could not be deleted due to errors");
     }
-    orphaned_rooms
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -209,20 +180,18 @@ pub(crate) async fn retrieve_deletion_candidate_events(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     delete_selector: DeleteSelector,
-) -> Result<Vec<(EventId, RoomId)>, Error> {
+) -> Result<Vec<EventId>, Error> {
     let events = match delete_selector {
         DeleteSelector::AdHocCreatedBefore(delete_before) => {
             inventory
-                .get_all_adhoc_event_ids_with_room_ids_created_before(delete_before)
+                .get_all_adhoc_event_ids_created_before(delete_before)
                 .await?
         }
         DeleteSelector::ScheduledThatEndedBefore(delete_before) => {
             get_scheduled_events_that_ended_before(logger, inventory, delete_before).await?
         }
         DeleteSelector::BelongingToUser(user_id) => {
-            inventory
-                .get_all_event_ids_with_room_ids_created_by_user(user_id)
-                .await?
+            inventory.get_all_event_ids_created_by_user(user_id).await?
         }
     };
 
@@ -233,11 +202,11 @@ async fn get_scheduled_events_that_ended_before(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     date: Timestamp,
-) -> Result<Vec<(EventId, RoomId)>, Error> {
+) -> Result<Vec<EventId>, Error> {
     // Using BTreeSet to guarantee uniqeness
     let mut to_be_deleted = BTreeSet::from_iter(
         inventory
-            .get_all_scheduled_event_ids_with_room_ids_ended_before(date)
+            .get_all_scheduled_event_ids_ended_before(date)
             .await?,
     );
     to_be_deleted
@@ -249,12 +218,12 @@ async fn get_recurring_events_that_ended_before(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     date: Timestamp,
-) -> Result<BTreeSet<(EventId, RoomId)>, Error> {
+) -> Result<BTreeSet<EventId>, Error> {
     Ok(inventory.get_all_finite_recurring_events().await?
         .into_iter()
         .filter_map(
             |event| match event.has_last_occurrence_before(date.into()) {
-                Ok(true) => Some((event.id, event.room)),
+                Ok(true) => Some(event.id),
                 Ok(false) => None,
                 Err(e) => {
                     warn!(log: logger, "Not considering event {} for deletion, because last occurrence date could not be determined: {e}", event.id);

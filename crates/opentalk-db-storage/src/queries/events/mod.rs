@@ -91,17 +91,17 @@ pub async fn get_all_events_with_creator(
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_all_events_that_ended_before_including_rooms(
+pub async fn get_all_events_that_ended_before(
     conn: &mut DbConnection,
     date: DateTime<Utc>,
-) -> Result<Vec<(EventId, RoomId)>> {
+) -> Result<Vec<EventId>> {
     events::table
         .inner_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
         .inner_join(
             event_recurrences::table.on(event_recurrences::event_id.eq(event_dates::event_id)),
         )
         .inner_join(users::table.on(users::id.eq(events::created_by)))
-        .select((events::id, events::room))
+        .select(events::id)
         .filter(event_dates::ends_at.le(date))
         .filter(users::disabled_since.is_null())
         .load(conn)
@@ -110,13 +110,13 @@ pub async fn get_all_events_that_ended_before_including_rooms(
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_all_events_adhoc_created_before_including_rooms(
+pub async fn get_all_events_adhoc_created_before(
     conn: &mut DbConnection,
     date: DateTime<Utc>,
-) -> Result<Vec<(EventId, RoomId)>> {
+) -> Result<Vec<EventId>> {
     events::table
         .inner_join(users::table.on(users::id.eq(events::created_by)))
-        .select((events::id, events::room))
+        .select(events::id)
         .filter(events::created_at.le(date))
         .filter(events::is_adhoc.eq(true))
         .filter(users::disabled_since.is_null())
@@ -126,13 +126,13 @@ pub async fn get_all_events_adhoc_created_before_including_rooms(
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_all_events_for_creator_including_rooms(
+pub async fn get_all_events_for_creator(
     conn: &mut DbConnection,
     created_by: UserId,
-) -> Result<Vec<(EventId, RoomId)>> {
+) -> Result<Vec<EventId>> {
     events::table
         .inner_join(users::table.on(users::id.eq(events::created_by)))
-        .select((events::id, events::room))
+        .select(events::id)
         .filter(events::created_by.eq(created_by))
         .filter(users::disabled_since.is_null())
         .load(conn)

@@ -24,12 +24,30 @@ pub use user_cleanup::UserCleanup;
 
 #[cfg(test)]
 mod test_utils {
+    use std::sync::Mutex;
+
+    use async_trait::async_trait;
+    use opentalk_controller_utils::deletion::{StopRoomBackend, StopRoomError};
     use opentalk_inventory::{
         Event, Inventory, InventoryProvider as _, NewEvent, NewRoom, NewRoomInvite, Room,
         RoomInvite, User,
     };
     use opentalk_test_util::database::DatabaseContext;
-    use opentalk_types_common::rooms::GuestAccess;
+    use opentalk_types_common::rooms::{GuestAccess, RoomId};
+
+    /// A [`StopRoomBackend`] that records the ids of all rooms it is asked to delete.
+    #[derive(Default)]
+    pub(super) struct RecordingStopRoomBackend {
+        pub(super) deleted_rooms: Mutex<Vec<RoomId>>,
+    }
+
+    #[async_trait]
+    impl StopRoomBackend for RecordingStopRoomBackend {
+        async fn stop_room(&self, room_id: RoomId) -> Result<(), StopRoomError> {
+            self.deleted_rooms.lock().unwrap().push(room_id);
+            Ok(())
+        }
+    }
 
     pub(super) async fn create_events_and_independent_rooms(
         db_ctx: &DatabaseContext,
@@ -41,7 +59,7 @@ mod test_utils {
         let mut inventory = db_ctx.inventory_provider.get_inventory().await.unwrap();
 
         for _ in 0..event_count {
-            create_generic_test_event(inventory.as_mut(), &user).await;
+            create_generic_test_event(inventory.as_mut(), &user, true).await;
         }
 
         for _ in 0..independent_room_count {
@@ -69,6 +87,7 @@ mod test_utils {
     pub(super) async fn create_generic_test_event(
         inventory: &mut dyn Inventory,
         user: &User,
+        is_adhoc: bool,
     ) -> Event {
         let room = create_generic_test_room(inventory, user).await;
 
@@ -82,7 +101,7 @@ mod test_utils {
                 created_by: user.id,
                 updated_by: user.id,
                 date: None,
-                is_adhoc: true,
+                is_adhoc,
                 tenant_id: user.tenant_id,
                 show_meeting_details: true,
             })

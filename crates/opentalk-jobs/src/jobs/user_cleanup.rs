@@ -191,7 +191,7 @@ mod tests {
         let updated_by = db_ctx.create_test_user(2, vec![]).await.unwrap();
 
         let room = create_generic_test_room(inventory.as_mut(), &inviter).await;
-        let event = create_generic_test_event(inventory.as_mut(), &inviter).await;
+        let event = create_generic_test_event(inventory.as_mut(), &inviter, true).await;
         update_event(inventory.as_mut(), updated_by.id, event.id).await;
 
         create_generic_test_invite(inventory.as_mut(), &inviter, Some(&updated_by), &room).await;
