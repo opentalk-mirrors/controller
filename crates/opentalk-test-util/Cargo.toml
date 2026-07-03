@@ -26,8 +26,9 @@ fern = "0.7"
 pretty_assertions.workspace = true
 
 opentalk-controller-api-authorization.workspace = true
-opentalk-controller-api-authorization-memory.workspace = true
+opentalk-controller-api-authorization-database.workspace = true
 opentalk-controller-service.workspace = true
+opentalk-controller-settings = { workspace = true, features = ["test-util"] }
 opentalk-database = { workspace = true, optional = true }
 opentalk-db-storage = { workspace = true, optional = true }
 opentalk-inventory.workspace = true

@@ -28,7 +28,6 @@ opentalk-types-api-v1.workspace = true
 opentalk-types-common.workspace = true
 serde = { workspace = true, optional = true }
 snafu.workspace = true
-tokio = { workspace = true, features = ["sync"] }
 tracing.workspace = true
 
 [features]

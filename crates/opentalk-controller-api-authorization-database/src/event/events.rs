@@ -38,7 +38,7 @@ mod tests {
         Admission::{self, Allowed, Denied},
         AuthorizationTarget, AuthorizerBackend, Resource, Subject, SubjectCollection,
     };
-    use opentalk_controller_settings::settings_provider_from_example_raw_settings;
+    use opentalk_controller_settings::test_util;
     use opentalk_inventory::MockInventoryProvider;
     use opentalk_types_common::{rooms::invite_codes::InviteCode, users::UserId};
     use pretty_assertions::assert_eq;
@@ -57,7 +57,7 @@ mod tests {
         let inventory_provider = MockInventoryProvider::new();
         let authorizer = OpenTalkAuthorizerBackend::new(
             Arc::new(inventory_provider),
-            settings_provider_from_example_raw_settings(),
+            test_util::settings_provider_from_example_raw_settings(),
             MODULE_FEATURES,
         );
         let admission = authorizer
@@ -82,7 +82,7 @@ mod tests {
         let inventory_provider = MockInventoryProvider::new();
         let authorizer = OpenTalkAuthorizerBackend::new(
             Arc::new(inventory_provider),
-            settings_provider_from_example_raw_settings(),
+            test_util::settings_provider_from_example_raw_settings(),
             MODULE_FEATURES,
         );
         let admission = authorizer

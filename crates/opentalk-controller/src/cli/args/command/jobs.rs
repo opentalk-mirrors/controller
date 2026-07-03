@@ -7,7 +7,7 @@ use std::{path::Path, sync::Arc, time::Duration};
 use clap::Subcommand;
 use log::Log;
 use opentalk_controller_api_authorization::authorization::Authorizer;
-use opentalk_controller_api_authorization_memory::OpenTalkAuthorizerBackend;
+use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
 use opentalk_controller_core::load_settings_provider;
 use opentalk_controller_settings::Settings;
 use opentalk_database::Db;
@@ -86,7 +86,8 @@ async fn execute_job(
     timeout: u64,
     hide_duration: bool,
 ) -> Result<()> {
-    let settings = load_settings_provider(optional_config_path)?.get();
+    let settings_provider = load_settings_provider(optional_config_path)?;
+    let settings = settings_provider.get();
     let db = Arc::new(
         Db::connect(&settings.database).whatever_context("Failed to connect to database")?,
     );
@@ -100,10 +101,17 @@ async fn execute_job(
         serde_json::from_str(&parameters).whatever_context("Failed to serialize parameter")?;
     ensure_whatever!(parameters.is_object(), "Parameters must be a JSON object");
 
-    let inventory_provider = Arc::new(DatabaseConnectionPool::new(db));
+    let inventory_provider: Arc<dyn InventoryProvider> = Arc::new(DatabaseConnectionPool::new(db));
 
-    // TODO: load the auth data from the inventory
-    let authorizer = Authorizer::new(OpenTalkAuthorizerBackend::new());
+    // The database-backed authorizer reads permissions from the inventory on
+    // every request, so the registry is only consulted for the tariff-level
+    // module/feature gate evaluation.
+    let registry = opentalk_roomserver_modules::setup_registry();
+    let authorizer = Authorizer::new(OpenTalkAuthorizerBackend::new(
+        inventory_provider.clone(),
+        settings_provider,
+        registry.module_features(),
+    ));
 
     let data = JobExecutionData {
         logger: &logger,

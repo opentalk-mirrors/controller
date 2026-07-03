@@ -25,7 +25,6 @@ actix-ws.workspace = true
 bytes.workspace = true
 bytestring.workspace = true
 chrono.workspace = true
-diesel-async.workspace = true
 futures.workspace = true
 http.workspace = true
 itertools.workspace = true
