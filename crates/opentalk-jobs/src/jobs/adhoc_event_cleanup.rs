@@ -9,6 +9,7 @@ use chrono::{Duration, Utc};
 use log::Log;
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
+use opentalk_controller_utils::deletion::StopRoomBackend;
 use opentalk_inventory::InventoryProvider;
 use opentalk_log::{debug, error, info};
 use serde::{Deserialize, Serialize};
@@ -51,6 +52,7 @@ impl Job for AdhocEventCleanup {
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
         authorizer: Authorizer,
+        stop_room_backend: &dyn StopRoomBackend,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {
@@ -64,6 +66,7 @@ impl Job for AdhocEventCleanup {
             logger,
             inventory_provider.clone(),
             authorizer,
+            stop_room_backend,
             settings,
             parameters.fail_on_shared_folder_deletion_error,
             DeleteSelector::AdHocCreatedBefore(delete_before.into()),

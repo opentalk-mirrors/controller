@@ -14,6 +14,7 @@ use http::{
 };
 use opentalk_asset_storage::{ObjectStorage, StorageNotifier};
 use opentalk_controller_settings::{Settings, SettingsProvider};
+use opentalk_controller_utils::deletion::{StopRoomBackend, StopRoomError};
 use opentalk_inventory::{Inventory, InventoryProvider};
 use opentalk_roomserver_room::{
     ApplicationState, ModuleRegistry, RoomTaskApiError, RoomTaskContext, RoomTaskHandleError,
@@ -223,6 +224,15 @@ impl RoomServerBackend for InternalRoomServer {
                 Err(err.into())
             }
         }
+    }
+}
+
+#[async_trait::async_trait]
+impl StopRoomBackend for InternalRoomServer {
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn stop_room(&self, room_id: RoomId) -> Result<(), StopRoomError> {
+        self.room_tasks.delete_room(room_id).await;
+        Ok(())
     }
 }
 

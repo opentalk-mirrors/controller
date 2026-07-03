@@ -8,6 +8,7 @@ use async_trait::async_trait;
 use opentalk_asset_storage::{ObjectStorage, asset_key};
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
+use opentalk_controller_utils::deletion::StopRoomBackend;
 use opentalk_inventory::{Inventory, InventoryProvider, UpdateAsset};
 use opentalk_log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
@@ -54,6 +55,7 @@ impl Job for SyncStorageFiles {
         logger: &dyn log::Log,
         inventory_provider: Arc<dyn InventoryProvider>,
         _authorizer: Authorizer,
+        _stop_room_backend: &dyn StopRoomBackend,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {

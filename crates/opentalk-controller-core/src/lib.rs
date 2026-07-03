@@ -34,6 +34,7 @@ use opentalk_controller_settings::{
     HttpTls, Monitoring, Settings, SettingsProvider, UserSearchBackend, UserSearchBackendKeycloak,
     common::{HttpCorsAllowedOrigin, HttpCorsAllowedOrigins},
 };
+use opentalk_controller_utils::deletion::StopRoomBackend;
 use opentalk_database::Db;
 use opentalk_inventory::InventoryProvider;
 use opentalk_inventory_database::DatabaseConnectionPool;
@@ -131,6 +132,8 @@ pub struct Controller {
     user_search_client: Arc<Option<KeycloakAdminClient>>,
 
     authorizer: Authorizer,
+
+    stop_room_backend: Arc<dyn StopRoomBackend>,
 
     /// RabbitMQ connection pool, can be used to create connections and channels
     pub rabbitmq_pool: Arc<Option<Arc<RabbitMqPool>>>,
@@ -328,7 +331,7 @@ impl Controller {
                 mail_service.clone(),
                 user_search_client.clone(),
                 module_features,
-                roomserver.backend,
+                Arc::clone(&roomserver.backend),
             )
         };
 
@@ -346,6 +349,7 @@ impl Controller {
             oidc,
             user_search_client,
             authorizer,
+            stop_room_backend: roomserver.backend,
             rabbitmq_pool,
             exchange_handle,
             shutdown,
@@ -368,6 +372,7 @@ impl Controller {
         JobRunner::start(
             self.inventory_provider.clone(),
             self.authorizer.clone(),
+            Arc::clone(&self.stop_room_backend),
             self.shutdown.subscribe(),
             self.startup_settings.clone(),
         )

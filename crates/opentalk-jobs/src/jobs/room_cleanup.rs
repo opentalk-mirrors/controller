@@ -9,6 +9,7 @@ use log::Log;
 use opentalk_asset_storage::ObjectStorage;
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
+use opentalk_controller_utils::deletion::StopRoomBackend;
 use opentalk_inventory::{Inventory, InventoryProvider};
 use opentalk_log::{debug, info};
 use opentalk_types_common::rooms::RoomId;
@@ -48,6 +49,7 @@ impl Job for RoomCleanup {
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
         authorizer: Authorizer,
+        stop_room_backend: &dyn StopRoomBackend,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {
@@ -69,6 +71,7 @@ impl Job for RoomCleanup {
             logger,
             inventory.as_mut(),
             authorizer,
+            stop_room_backend,
             settings,
             &object_storage,
             orphaned_rooms,

@@ -6,6 +6,7 @@ use std::{sync::Arc, time::Duration};
 
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
+use opentalk_controller_utils::deletion::StopRoomBackend;
 use opentalk_inventory::{Inventory, InventoryProvider};
 use snafu::{ResultExt, Snafu};
 use tokio::{
@@ -72,6 +73,7 @@ impl JobRunner {
     pub async fn start(
         inventory_provider: Arc<dyn InventoryProvider>,
         authorizer: Authorizer,
+        stop_room_backend: Arc<dyn StopRoomBackend>,
         shutdown: broadcast::Receiver<()>,
         settings: Arc<Settings>,
     ) -> Result<(), JobRunnerError> {
@@ -104,6 +106,7 @@ impl JobRunner {
             etcd_urls.clone(),
             inventory_provider.clone(),
             authorizer.clone(),
+            stop_room_backend,
             settings.clone(),
         )
         .await;

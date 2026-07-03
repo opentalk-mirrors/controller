@@ -8,7 +8,7 @@ use log::Log;
 use opentalk_asset_storage::ObjectStorage;
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
-use opentalk_controller_utils::deletion::{Deleter, user::UserDeleter};
+use opentalk_controller_utils::deletion::{Deleter, StopRoomBackend, user::UserDeleter};
 use opentalk_inventory::{Inventory, InventoryProvider, UpdateEvent, UpdateRoomInvite};
 use opentalk_log::{debug, info, warn};
 use opentalk_types_common::{events::EventId, rooms::RoomId, time::Timestamp, users::UserId};
@@ -25,6 +25,7 @@ pub(crate) async fn perform_deletion(
     logger: &dyn Log,
     inventory_provider: Arc<dyn InventoryProvider>,
     authorizer: Authorizer,
+    stop_room_backend: &dyn StopRoomBackend,
     settings: &Settings,
     fail_on_shared_folder_deletion_error: bool,
     delete_selector: DeleteSelector,
@@ -36,6 +37,7 @@ pub(crate) async fn perform_deletion(
         logger,
         inventory.as_mut(),
         authorizer,
+        stop_room_backend,
         settings,
         &object_storage,
         fail_on_shared_folder_deletion_error,
@@ -52,6 +54,7 @@ async fn delete_users(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     authorizer: Authorizer,
+    stop_room_backend: &dyn StopRoomBackend,
     settings: &Settings,
     object_storage: &ObjectStorage,
     fail_on_shared_folder_deletion_error: bool,
@@ -71,6 +74,7 @@ async fn delete_users(
         logger,
         inventory,
         authorizer.clone(),
+        stop_room_backend,
         settings,
         object_storage,
         fail_on_shared_folder_deletion_error,
@@ -82,6 +86,7 @@ async fn delete_users(
         logger,
         inventory,
         authorizer.clone(),
+        stop_room_backend,
         settings,
         object_storage,
         orphaned_rooms,
@@ -93,6 +98,7 @@ async fn delete_users(
         logger,
         inventory,
         authorizer,
+        stop_room_backend,
         settings,
         object_storage,
         &user_candidates,
@@ -109,6 +115,7 @@ pub(crate) async fn delete_users_internal(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     authorizer: Authorizer,
+    stop_room_backend: &dyn StopRoomBackend,
     settings: &Settings,
     object_storage: &ObjectStorage,
     user_ids: &[UserId],
@@ -125,6 +132,7 @@ pub(crate) async fn delete_users_internal(
                 logger,
                 inventory,
                 authorizer.clone(),
+                stop_room_backend,
                 None,
                 settings,
                 object_storage,
@@ -151,6 +159,7 @@ async fn delete_user_events(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     authorizer: Authorizer,
+    stop_room_backend: &dyn StopRoomBackend,
     settings: &Settings,
     object_storage: &ObjectStorage,
     fail_on_shared_folder_deletion_error: bool,
@@ -176,6 +185,7 @@ async fn delete_user_events(
         logger,
         inventory,
         authorizer,
+        stop_room_backend,
         settings,
         object_storage,
         fail_on_shared_folder_deletion_error,

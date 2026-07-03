@@ -13,7 +13,7 @@ use opentalk_controller_settings::Settings;
 use opentalk_database::Db;
 use opentalk_inventory::{InventoryProvider, JobType};
 use opentalk_inventory_database::DatabaseConnectionPool;
-use opentalk_jobs::Job;
+use opentalk_jobs::{Job, NoOpStopRoomBackend};
 use serde_json::json;
 use snafu::{ResultExt, ensure_whatever};
 
@@ -220,6 +220,9 @@ impl JobExecutionData<'_> {
             self.logger,
             self.inventory_provider,
             self.authorizer,
+            // TODO: deleting roomserver rooms from the CLI is not supported yet,
+            // see https://git.opentalk.dev/opentalk/backend/services/controller/-/work_items/1407
+            &NoOpStopRoomBackend,
             self.settings,
             self.parameters,
             self.timeout,

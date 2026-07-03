@@ -16,7 +16,7 @@ use opentalk_controller_service_facade::{RequestUser, StartRoomError};
 use opentalk_controller_settings::{
     RoomServerKind, Settings, SettingsProvider, common::HttpCorsAllowedOrigin,
 };
-use opentalk_controller_utils::CaptureApiError;
+use opentalk_controller_utils::{CaptureApiError, deletion::StopRoomBackend};
 use opentalk_inventory::{
     Event, Inventory, InventoryProvider, Room,
     utils::{get_valid_invite_for_room, is_call_in_allowed},
@@ -141,7 +141,7 @@ pub fn build(
 
 /// A trait for roomserver backends that can be used by the controller.
 #[async_trait::async_trait]
-pub trait RoomServerBackend: Send + Sync {
+pub trait RoomServerBackend: StopRoomBackend + Send + Sync {
     /// Request a room access token from the roomserver.
     async fn request_access(
         &self,

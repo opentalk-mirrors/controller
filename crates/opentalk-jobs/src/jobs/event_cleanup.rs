@@ -9,6 +9,7 @@ use chrono::{Days, Utc};
 use log::Log;
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
+use opentalk_controller_utils::deletion::StopRoomBackend;
 use opentalk_inventory::InventoryProvider;
 use opentalk_log::{debug, error, info};
 use serde::{Deserialize, Serialize};
@@ -51,6 +52,7 @@ impl Job for EventCleanup {
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
         authorizer: Authorizer,
+        stop_room_backend: &dyn StopRoomBackend,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {
@@ -76,6 +78,7 @@ impl Job for EventCleanup {
             logger,
             inventory_provider.clone(),
             authorizer,
+            stop_room_backend,
             settings,
             parameters.fail_on_shared_folder_deletion_error,
             DeleteSelector::ScheduledThatEndedBefore(delete_before.into()),

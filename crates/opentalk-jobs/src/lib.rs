@@ -39,6 +39,8 @@ pub use error::Error;
 use log::Log;
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
+pub use opentalk_controller_utils::deletion::NoOpStopRoomBackend;
+use opentalk_controller_utils::deletion::StopRoomBackend;
 use opentalk_inventory::InventoryProvider;
 use opentalk_log::{error, info};
 use serde_json::json;
@@ -50,6 +52,7 @@ pub async fn execute<J: Job>(
     logger: &dyn Log,
     inventory_provider: Arc<dyn InventoryProvider>,
     authorizer: Authorizer,
+    stop_room_backend: &dyn StopRoomBackend,
     settings: &Settings,
     parameters: serde_json::Value,
     timeout: Duration,
@@ -70,7 +73,14 @@ pub async fn execute<J: Job>(
 
     match tokio::time::timeout(
         timeout,
-        J::execute(logger, inventory_provider, authorizer, settings, parameters),
+        J::execute(
+            logger,
+            inventory_provider,
+            authorizer,
+            stop_room_backend,
+            settings,
+            parameters,
+        ),
     )
     .await
     {
@@ -134,6 +144,7 @@ pub trait Job {
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
         authorizer: Authorizer,
+        stop_room_backend: &dyn StopRoomBackend,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error>;

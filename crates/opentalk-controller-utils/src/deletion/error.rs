@@ -7,7 +7,7 @@ use opentalk_controller_api_authorization::authorization::AuthorizationError;
 use opentalk_types_api_common::error::ApiError;
 use snafu::Snafu;
 
-use crate::CaptureApiError;
+use crate::{CaptureApiError, deletion::StopRoomError};
 
 /// Errors returned when deleting an event
 #[derive(Debug, Snafu)]
@@ -65,6 +65,13 @@ pub enum Error {
         source: opentalk_opencloud_client::Error,
     },
 
+    /// Room deletion error
+    #[snafu(display("Room deletion error: {source}"))]
+    RoomDelete {
+        /// the cause of the error
+        source: StopRoomError,
+    },
+
     /// Race condition during database commit preparation detected
     #[snafu(display("Race condition detected during database commit preparation"))]
     RaceCondition,
@@ -104,6 +111,9 @@ impl From<Error> for CaptureApiError {
                 .into(),
             Error::OpencloudClient { .. } => ApiError::internal()
                 .with_message("Error performing actions on the OpenCloud")
+                .into(),
+            Error::RoomDelete { .. } => ApiError::internal()
+                .with_message("Failed to delete roomserver room")
                 .into(),
             Error::RaceCondition => {
                 log::error!("Race condition detected during deletion");

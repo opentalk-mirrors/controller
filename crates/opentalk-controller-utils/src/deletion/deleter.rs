@@ -10,6 +10,7 @@ use opentalk_inventory::Inventory;
 use opentalk_types_common::users::UserId;
 
 use super::Error;
+use crate::deletion::StopRoomBackend;
 
 /// A trait for performing multi-stage deletion of database elements according
 /// to this sequence:
@@ -33,6 +34,7 @@ pub trait Deleter: Sync {
         logger: &dyn Log,
         inventory: &mut dyn Inventory,
         authorizer: Authorizer,
+        stop_room_backend: &dyn StopRoomBackend,
         user_id: Option<UserId>,
         settings: &Settings,
         object_storage: &ObjectStorage,
@@ -40,8 +42,14 @@ pub trait Deleter: Sync {
         let prepared_commit = self.prepare_commit(logger, inventory).await?;
         self.check_permissions(&prepared_commit, logger, authorizer.clone(), user_id)
             .await?;
-        self.pre_commit(&prepared_commit, logger, inventory, settings)
-            .await?;
+        self.pre_commit(
+            &prepared_commit,
+            logger,
+            inventory,
+            stop_room_backend,
+            settings,
+        )
+        .await?;
         let commit_output = self
             .commit_to_inventory(prepared_commit, logger, inventory)
             .await?;
@@ -91,6 +99,7 @@ pub trait Deleter: Sync {
         _prepared_commit: &Self::PreparedCommit,
         _logger: &dyn Log,
         _inventory: &mut dyn Inventory,
+        _stop_room_backend: &dyn StopRoomBackend,
         _settings: &Settings,
     ) -> Result<(), Error> {
         Ok(())
