@@ -187,12 +187,12 @@ ignore = [
   "RUSTSEC-2026-0173",
 
   # ttf-parser
-  # 
-  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0192.html 
+  #
+  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0192.html
   # | The author of `ttf-parser` has stated that the crate is unmaintained and will not receive further fixes (see the referenced issue).
-  # | 
+  # |
   # | ## Alternative(s)
-  # | 
+  # |
   # | - [`skrifa`](https://crates.io/crates/skrifa), an actively maintained TrueType and OpenType font parsing crate, part of the Google Fonts "oxidize" (`fontations`) project.
   #
   # typst-pdf v0.14.2 depends on ttf-parser v0.25.1, which is curretnlty unmaintained.
@@ -318,6 +318,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-nextcloud-client" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-opencloud-client" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-orchestrator-client" },

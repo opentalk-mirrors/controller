@@ -4,10 +4,10 @@
 
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
-use opentalk_inventory as inventory;
+use opentalk_inventory::{self as inventory, SharedFolderProvider};
 use opentalk_types_common::events::EventId;
 
-use crate::{schema::event_shared_folders, tables::events::Event};
+use crate::{schema::event_shared_folders, tables::events::Event, utils::Jsonb};
 
 #[derive(Clone, Debug, PartialEq, Eq, Associations, Identifiable, Queryable)]
 #[diesel(table_name = event_shared_folders)]
@@ -18,12 +18,13 @@ pub struct EventSharedFolder {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub path: String,
-    pub write_share_id: String,
     pub write_url: String,
     pub write_password: String,
-    pub read_share_id: String,
     pub read_url: String,
     pub read_password: String,
+    /// The provider-specific reference data, stored as self-describing
+    /// internally-tagged JSON.
+    pub provider_data: Jsonb<SharedFolderProvider>,
 }
 
 impl From<EventSharedFolder> for inventory::EventSharedFolder {
@@ -33,12 +34,11 @@ impl From<EventSharedFolder> for inventory::EventSharedFolder {
             created_at,
             updated_at,
             path,
-            write_share_id,
             write_url,
             write_password,
-            read_share_id,
             read_url,
             read_password,
+            provider_data,
         }: EventSharedFolder,
     ) -> Self {
         Self {
@@ -46,12 +46,11 @@ impl From<EventSharedFolder> for inventory::EventSharedFolder {
             created_at: created_at.into(),
             updated_at: updated_at.into(),
             path,
-            write_share_id,
             write_url,
             write_password,
-            read_share_id,
             read_url,
             read_password,
+            provider: provider_data.0,
         }
     }
 }
@@ -63,12 +62,11 @@ impl From<inventory::EventSharedFolder> for EventSharedFolder {
             created_at,
             updated_at,
             path,
-            write_share_id,
             write_url,
             write_password,
-            read_share_id,
             read_url,
             read_password,
+            provider,
         }: inventory::EventSharedFolder,
     ) -> Self {
         Self {
@@ -76,12 +74,11 @@ impl From<inventory::EventSharedFolder> for EventSharedFolder {
             created_at: created_at.into(),
             updated_at: updated_at.into(),
             path,
-            write_share_id,
             write_url,
             write_password,
-            read_share_id,
             read_url,
             read_password,
+            provider_data: Jsonb(provider),
         }
     }
 }

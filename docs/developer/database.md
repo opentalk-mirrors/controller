@@ -81,12 +81,11 @@ event_shared_folders {
     uuid event_id PK,FK
     timestamp_with_time_zone created_at
     text path
+    jsonb provider_data
     text read_password
-    text read_share_id
     text read_url
     timestamp_with_time_zone updated_at
     text write_password
-    text write_share_id
     text write_url
 }
 event_training_participation_report_parameter_sets {

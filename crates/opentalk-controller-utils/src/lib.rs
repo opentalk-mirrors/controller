@@ -25,6 +25,7 @@ mod module_features;
 
 pub mod deletion;
 pub mod event;
+pub mod opencloud;
 
 pub use capture_api_error::CaptureApiError;
 pub use module_features::{

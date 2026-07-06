@@ -16,6 +16,15 @@ pub(crate) enum SharedFolder {
         #[serde(default)]
         expiry: Option<u64>,
     },
+    Opencloud {
+        url: url::Url,
+        username: String,
+        password: String,
+        #[serde(default)]
+        directory: String,
+        #[serde(default)]
+        expiry: Option<u64>,
+    },
 }
 
 #[cfg(test)]
@@ -37,6 +46,30 @@ mod tests {
         let json = json!({
             "provider": "nextcloud",
             "url": "https://nextcloud.example.org/",
+            "username": "exampleuser",
+            "password": "v3rys3cr3t",
+            "directory": "meetings/opentalk",
+            "expiry": 34,
+        });
+
+        assert_eq!(
+            serde_json::from_value::<SharedFolder>(json).unwrap(),
+            shared_folder
+        );
+    }
+
+    #[test]
+    fn shared_folder_provider_opencloud() {
+        let shared_folder = SharedFolder::Opencloud {
+            url: "https://opencloud.example.org/".parse().unwrap(),
+            username: "exampleuser".to_string(),
+            password: "v3rys3cr3t".to_string(),
+            directory: "meetings/opentalk".to_string(),
+            expiry: Some(34),
+        };
+        let json = json!({
+            "provider": "opencloud",
+            "url": "https://opencloud.example.org/",
             "username": "exampleuser",
             "password": "v3rys3cr3t",
             "directory": "meetings/opentalk",
