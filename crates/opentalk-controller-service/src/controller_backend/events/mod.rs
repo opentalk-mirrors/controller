@@ -1199,7 +1199,11 @@ impl ControllerBackend {
             .chain(std::iter::once(created_by_mail_recipient))
             .collect::<Vec<_>>();
 
-        let deleter = EventDeleter::new(event_id, force_delete_reference_if_external_services_fail);
+        let deleter = EventDeleter::new(
+            event_id,
+            event.room,
+            force_delete_reference_if_external_services_fail,
+        );
         deleter
             .perform(
                 log::logger(),

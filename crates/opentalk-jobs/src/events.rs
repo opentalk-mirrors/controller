@@ -97,16 +97,16 @@ pub(crate) async fn delete_event_candidates(
     settings: &Settings,
     object_storage: &ObjectStorage,
     fail_on_shared_folder_deletion_error: bool,
-    candidates: Vec<EventId>,
+    candidates: Vec<(EventId, RoomId)>,
 ) {
     let candidate_count = candidates.len();
 
     info!(log: logger, "Identified {candidate_count} events for deletion");
 
     let mut deleter_failures = 0usize;
-    for event_id in candidates {
+    for (event_id, room_id) in candidates {
         info!(log: logger, "Deleting event {event_id}");
-        let deleter = EventDeleter::new(event_id, fail_on_shared_folder_deletion_error);
+        let deleter = EventDeleter::new(event_id, room_id, fail_on_shared_folder_deletion_error);
 
         if let Err(e) = deleter
             .perform(
@@ -180,18 +180,20 @@ pub(crate) async fn retrieve_deletion_candidate_events(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     delete_selector: DeleteSelector,
-) -> Result<Vec<EventId>, Error> {
+) -> Result<Vec<(EventId, RoomId)>, Error> {
     let events = match delete_selector {
         DeleteSelector::AdHocCreatedBefore(delete_before) => {
             inventory
-                .get_all_adhoc_event_ids_created_before(delete_before)
+                .get_all_adhoc_event_and_room_ids_created_before(delete_before)
                 .await?
         }
         DeleteSelector::ScheduledThatEndedBefore(delete_before) => {
             get_scheduled_events_that_ended_before(logger, inventory, delete_before).await?
         }
         DeleteSelector::BelongingToUser(user_id) => {
-            inventory.get_all_event_ids_created_by_user(user_id).await?
+            inventory
+                .get_all_event_and_room_ids_created_by_user(user_id)
+                .await?
         }
     };
 
@@ -202,11 +204,11 @@ async fn get_scheduled_events_that_ended_before(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     date: Timestamp,
-) -> Result<Vec<EventId>, Error> {
+) -> Result<Vec<(EventId, RoomId)>, Error> {
     // Using BTreeSet to guarantee uniqeness
     let mut to_be_deleted = BTreeSet::from_iter(
         inventory
-            .get_all_scheduled_event_ids_ended_before(date)
+            .get_all_scheduled_event_and_room_ids_ended_before(date)
             .await?,
     );
     to_be_deleted
@@ -218,12 +220,12 @@ async fn get_recurring_events_that_ended_before(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     date: Timestamp,
-) -> Result<BTreeSet<EventId>, Error> {
+) -> Result<BTreeSet<(EventId, RoomId)>, Error> {
     Ok(inventory.get_all_finite_recurring_events().await?
         .into_iter()
         .filter_map(
             |event| match event.has_last_occurrence_before(date.into()) {
-                Ok(true) => Some(event.id),
+                Ok(true) => Some((event.id, event.room)),
                 Ok(false) => None,
                 Err(e) => {
                     warn!(log: logger, "Not considering event {} for deletion, because last occurrence date could not be determined: {e}", event.id);
