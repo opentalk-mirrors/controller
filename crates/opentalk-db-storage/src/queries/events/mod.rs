@@ -126,7 +126,7 @@ pub async fn get_all_event_and_room_ids_adhoc_created_before(
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_all_events_and_room_ids_for_creator(
+pub async fn get_all_events_and_room_ids_for_creator_including_disabled(
     conn: &mut DbConnection,
     created_by: UserId,
 ) -> Result<Vec<(EventId, RoomId)>> {
@@ -134,7 +134,6 @@ pub async fn get_all_events_and_room_ids_for_creator(
         .inner_join(users::table.on(users::id.eq(events::created_by)))
         .select((events::id, events::room))
         .filter(events::created_by.eq(created_by))
-        .filter(users::disabled_since.is_null())
         .load(conn)
         .await
         .map_err(Into::into)

@@ -81,7 +81,7 @@ pub trait EventInventory {
     ) -> Result<Vec<(EventId, RoomId)>>;
 
     /// Get the event ids for all events created by a specific user.
-    async fn get_all_event_and_room_ids_created_by_user(
+    async fn get_all_event_and_room_ids_created_by_user_including_disabled(
         &mut self,
         user_id: UserId,
     ) -> Result<Vec<(EventId, RoomId)>>;

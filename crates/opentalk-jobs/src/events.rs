@@ -192,7 +192,7 @@ pub(crate) async fn retrieve_deletion_candidate_events(
         }
         DeleteSelector::BelongingToUser(user_id) => {
             inventory
-                .get_all_event_and_room_ids_created_by_user(user_id)
+                .get_all_event_and_room_ids_created_by_user_including_disabled(user_id)
                 .await?
         }
     };

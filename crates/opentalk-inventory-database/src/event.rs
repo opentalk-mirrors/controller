@@ -171,14 +171,17 @@ impl EventInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_all_event_and_room_ids_created_by_user(
+    async fn get_all_event_and_room_ids_created_by_user_including_disabled(
         &mut self,
         user_id: UserId,
     ) -> Result<Vec<(EventId, RoomId)>> {
         Ok(
-            db::queries::events::get_all_events_and_room_ids_for_creator(&mut self.inner, user_id)
-                .await
-                .context(DatabaseSnafu)?,
+            db::queries::events::get_all_events_and_room_ids_for_creator_including_disabled(
+                &mut self.inner,
+                user_id,
+            )
+            .await
+            .context(DatabaseSnafu)?,
         )
     }
 
