@@ -79,7 +79,7 @@ lapin-pool = "0.1"
 livekit-api = { version = "0.5.0", features = ["rustls-tls-native-roots"] }
 log = "0.4"
 md5 = "0.8"
-mockall = "0.14"
+mockall = "0.15"
 oauth2 = "5.0.0"
 openidconnect = "4"
 opentalk-diesel-newtype = "0.13"
