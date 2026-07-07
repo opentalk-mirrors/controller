@@ -10,27 +10,27 @@ resolver = "2"
 authors = ["OpenTalk Team <mail@opentalk.eu>"]
 homepage = "https://opentalk.eu/"
 repository = "https://gitlab.opencode.de/opentalk/controller"
-version = "0.34.0"
+version = "0.35.0-alpha"
 
 [workspace.dependencies]
-opentalk-asset-storage = { path = "crates/opentalk-asset-storage", version = "0.34.0" }
-opentalk-cache = { path = "crates/opentalk-cache", version = "0.34.0" }
-opentalk-controller-api-actix-web = { path = "crates/opentalk-controller-api-actix-web", version = "0.34.0" }
-opentalk-controller-api-authorization = { path = "crates/opentalk-controller-api-authorization", version = "0.34.0" }
-opentalk-controller-api-authorization-database = { path = "crates/opentalk-controller-api-authorization-database", version = "0.34.0" }
-opentalk-controller-core = { path = "crates/opentalk-controller-core", version = "0.34.0" }
-opentalk-controller-service = { path = "crates/opentalk-controller-service", version = "0.34.0" }
-opentalk-controller-service-facade = { path = "crates/opentalk-controller-service-facade", version = "0.34.0" }
-opentalk-controller-settings = { path = "crates/opentalk-controller-settings", version = "0.34.0" }
-opentalk-controller-utils = { path = "crates/opentalk-controller-utils", version = "0.34.0" }
-opentalk-database = { path = "crates/opentalk-database", version = "0.34.0" }
-opentalk-db-storage = { path = "crates/opentalk-db-storage", version = "0.34.0" }
-opentalk-inventory = { path = "crates/opentalk-inventory", version = "0.34.0" }
-opentalk-inventory-common = { path = "crates/opentalk-inventory-common", version = "0.34.0" }
-opentalk-inventory-database = { path = "crates/opentalk-inventory-database", version = "0.34.0" }
-opentalk-jobs = { path = "crates/opentalk-jobs", version = "0.34.0" }
-opentalk-log = { path = "crates/opentalk-log", version = "0.34.0" }
-opentalk-test-util = { path = "crates/opentalk-test-util", version = "0.34.0" }
+opentalk-asset-storage = { path = "crates/opentalk-asset-storage", version = "0.35.0-alpha" }
+opentalk-cache = { path = "crates/opentalk-cache", version = "0.35.0-alpha" }
+opentalk-controller-api-actix-web = { path = "crates/opentalk-controller-api-actix-web", version = "0.35.0-alpha" }
+opentalk-controller-api-authorization = { path = "crates/opentalk-controller-api-authorization", version = "0.35.0-alpha" }
+opentalk-controller-api-authorization-database = { path = "crates/opentalk-controller-api-authorization-database", version = "0.35.0-alpha" }
+opentalk-controller-core = { path = "crates/opentalk-controller-core", version = "0.35.0-alpha" }
+opentalk-controller-service = { path = "crates/opentalk-controller-service", version = "0.35.0-alpha" }
+opentalk-controller-service-facade = { path = "crates/opentalk-controller-service-facade", version = "0.35.0-alpha" }
+opentalk-controller-settings = { path = "crates/opentalk-controller-settings", version = "0.35.0-alpha" }
+opentalk-controller-utils = { path = "crates/opentalk-controller-utils", version = "0.35.0-alpha" }
+opentalk-database = { path = "crates/opentalk-database", version = "0.35.0-alpha" }
+opentalk-db-storage = { path = "crates/opentalk-db-storage", version = "0.35.0-alpha" }
+opentalk-inventory = { path = "crates/opentalk-inventory", version = "0.35.0-alpha" }
+opentalk-inventory-common = { path = "crates/opentalk-inventory-common", version = "0.35.0-alpha" }
+opentalk-inventory-database = { path = "crates/opentalk-inventory-database", version = "0.35.0-alpha" }
+opentalk-jobs = { path = "crates/opentalk-jobs", version = "0.35.0-alpha" }
+opentalk-log = { path = "crates/opentalk-log", version = "0.35.0-alpha" }
+opentalk-test-util = { path = "crates/opentalk-test-util", version = "0.35.0-alpha" }
 
 actix-http = "3"
 actix-rt = "2"

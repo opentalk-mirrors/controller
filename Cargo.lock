@@ -5318,7 +5318,7 @@ checksum = "7c87def4c32ab89d880effc9e097653c8da5d6ef28e6b539d313baaacfbafcbe"
 
 [[package]]
 name = "opentalk-asset-storage"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "actix-http",
  "async-trait",
@@ -5341,7 +5341,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-cache"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "async-trait",
  "moka",
@@ -5354,7 +5354,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-controller"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "actix-web",
  "chrono",
@@ -5394,7 +5394,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-controller-api-actix-web"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "actix-web",
  "either",
@@ -5412,7 +5412,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-controller-api-authorization"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "actix-router",
  "actix-web",
@@ -5431,7 +5431,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-controller-api-authorization-database"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "async-trait",
  "mockall",
@@ -5447,7 +5447,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-controller-core"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "actix",
  "actix-cors",
@@ -5521,7 +5521,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-controller-service"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "actix-ws",
  "async-stream",
@@ -5585,7 +5585,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-controller-service-facade"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "async-trait",
  "bytes",
@@ -5602,7 +5602,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-controller-settings"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "anstream",
  "arc-swap",
@@ -5638,7 +5638,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-controller-utils"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "actix-web",
  "async-trait",
@@ -5665,7 +5665,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-database"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "deadpool-runtime",
  "diesel",
@@ -5682,7 +5682,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-db-storage"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "actix-rt",
  "async-stream",
@@ -5758,7 +5758,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-inventory"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "async-trait",
  "bigdecimal",
@@ -5780,14 +5780,14 @@ dependencies = [
 
 [[package]]
 name = "opentalk-inventory-common"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "snafu 0.9.1",
 ]
 
 [[package]]
 name = "opentalk-inventory-database"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -5806,7 +5806,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-jobs"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -5854,7 +5854,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-log"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "log",
  "serial_test",
@@ -6872,7 +6872,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-test-util"
-version = "0.34.0"
+version = "0.35.0-alpha"
 dependencies = [
  "diesel",
  "diesel-async",
