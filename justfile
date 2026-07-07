@@ -33,10 +33,10 @@ _check_opentalk_git_cliff:
     fi
 
 # Prepare a release
-prepare-release VERSION: (set-version VERSION) update-openapi (update-changelog VERSION)
+prepare-release VERSION: (set-version VERSION) (update-changelog VERSION)
 
 # Sets the version in the Cargo.toml and updates the Cargo.lock
-set-version VERSION: _check_cargo_set_version
+set-version VERSION: _check_cargo_set_version && update-openapi
     # Set the version number for all packages in the workspace
     cargo set-version --workspace {{ VERSION }} --exclude xtask
     # Regenerate the lockfile
