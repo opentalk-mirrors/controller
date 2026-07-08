@@ -221,7 +221,7 @@ impl JobExecutor {
     async fn run(mut self) -> Result<(), ExecutorError> {
         self.wait_for_running_jobs().await?;
 
-        let (mut watcher, mut watch_stream) = self
+        let mut watch_stream = self
             .client
             .watch(
                 JOB_QUEUE_PREFIX.as_bytes(),
@@ -245,7 +245,7 @@ impl JobExecutor {
         log::debug!("current_jobs: {current_job_queue:?}");
 
         // start watching the job queue
-        watcher
+        watch_stream
             .request_progress()
             .await
             .context(WatchProgressSnafu)?;

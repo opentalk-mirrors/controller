@@ -136,13 +136,13 @@ impl ElectionTask {
     async fn run_inner(&mut self) -> Result<(), ElectionTaskError> {
         self.try_become_leader().await?;
 
-        let (mut watcher, mut watch_stream) = self
+        let mut watch_stream = self
             .client
             .watch(ELECTION_KEY, None)
             .await
             .context(CreateWatchSnafu)?;
 
-        watcher
+        watch_stream
             .request_progress()
             .await
             .context(WatchProgressSnafu)?;
