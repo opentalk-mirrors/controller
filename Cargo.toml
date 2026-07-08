@@ -115,7 +115,7 @@ opentelemetry_sdk = { version = "0.32.0", features = [
 owo-colors = "4"
 parking_lot = "0.12"
 parse-size = "1.1.0"
-pdf-extract = "0.10"
+pdf-extract = "0.12"
 percent-encoding = "2.3"
 phonenumber = "0.3"
 pretty_assertions = "1"
