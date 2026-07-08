@@ -9,6 +9,7 @@ use log::Log;
 use opentalk_asset_storage::ObjectStorage;
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
+use opentalk_controller_utils::deletion::StopRoomBackend;
 use opentalk_inventory::{Inventory, InventoryProvider};
 use opentalk_log::{debug, info};
 use opentalk_types_common::rooms::RoomId;
@@ -48,6 +49,7 @@ impl Job for RoomCleanup {
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
         authorizer: Authorizer,
+        stop_room_backend: &dyn StopRoomBackend,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {
@@ -69,6 +71,7 @@ impl Job for RoomCleanup {
             logger,
             inventory.as_mut(),
             authorizer,
+            stop_room_backend,
             settings,
             &object_storage,
             orphaned_rooms,
@@ -88,9 +91,23 @@ async fn find_orphaned_rooms(inventory: &mut dyn Inventory) -> Result<HashSet<Ro
 
 #[cfg(test)]
 mod tests {
+    use std::{collections::BTreeMap, path::Path};
+
+    use log::logger;
+    use opentalk_controller_api_authorization::authorization::Authorizer;
+    use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
+    use opentalk_controller_settings::SettingsProvider;
+    use opentalk_inventory::InventoryProvider as _;
     use opentalk_test_util::database::DatabaseContext;
 
-    use crate::jobs::test_utils::create_events_and_independent_rooms;
+    use super::RoomCleanup;
+    use crate::{
+        Job as _,
+        jobs::test_utils::{
+            RecordingStopRoomBackend, create_events_and_independent_rooms,
+            create_generic_test_event, create_generic_test_room,
+        },
+    };
 
     /// Test to fill the database with events and independent rooms. Is ignored by the CI
     ///
@@ -106,5 +123,54 @@ mod tests {
         let db_ctx = DatabaseContext::new(false).await;
 
         create_events_and_independent_rooms(&db_ctx, 50, 100).await;
+    }
+
+    /// The room cleanup job must notify the room delete backend for orphaned rooms
+    /// only, leaving rooms that still belong to an event untouched.
+    #[ignore = "database and minio/s3 storage are required for this test"]
+    #[actix_rt::test]
+    #[serial_test::serial]
+    async fn room_cleanup_only_deletes_orphaned_rooms() {
+        let settings_provider = SettingsProvider::load_from_path_or_standard_paths(Some(
+            Path::new("../../example/controller.toml"),
+        ))
+        .unwrap();
+        let settings = settings_provider.get();
+
+        let db_ctx = DatabaseContext::new(false).await;
+        let mut inventory = db_ctx.inventory_provider.get_inventory().await.unwrap();
+
+        let user = db_ctx.create_test_user(0, vec![]).await.unwrap();
+
+        // A room without an associated event is orphaned and should be cleaned up.
+        let orphaned_room = create_generic_test_room(inventory.as_mut(), &user).await;
+        // A room that still belongs to an event is not orphaned and must be left alone.
+        create_generic_test_event(inventory.as_mut(), &user, true).await;
+
+        let authorizer = Authorizer::new(OpenTalkAuthorizerBackend::new(
+            db_ctx.inventory_provider.clone(),
+            settings_provider.clone(),
+            BTreeMap::new(),
+        ));
+        let room_delete_backend = RecordingStopRoomBackend::default();
+
+        RoomCleanup::execute(
+            logger(),
+            db_ctx.inventory_provider.clone(),
+            authorizer,
+            &room_delete_backend,
+            &settings,
+            serde_json::from_str("{}").unwrap(),
+        )
+        .await
+        .unwrap();
+
+        let deleted_rooms = room_delete_backend.deleted_rooms.lock().unwrap();
+
+        assert_eq!(
+            *deleted_rooms,
+            vec![orphaned_room.id],
+            "RoomCleanup should delete the orphaned room and leave the room with an event untouched"
+        );
     }
 }

@@ -8,6 +8,7 @@ use async_trait::async_trait;
 use log::Log;
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::{Settings, UserSearchBackend, UserSearchBackendKeycloak};
+use opentalk_controller_utils::deletion::StopRoomBackend;
 use opentalk_inventory::InventoryProvider;
 use opentalk_keycloak_admin::{AuthorizedClient, KeycloakAdminClient};
 use opentalk_log::{debug, info};
@@ -57,6 +58,7 @@ impl Job for KeycloakAccountSync {
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
         _authorizer: Authorizer,
+        _stop_room_backend: &dyn StopRoomBackend,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {

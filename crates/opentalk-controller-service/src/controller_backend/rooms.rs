@@ -227,6 +227,7 @@ impl ControllerBackend {
                 log::logger(),
                 inventory.as_mut(),
                 self.authorizer.clone(),
+                self.roomserver.as_ref(),
                 Some(current_user.id),
                 &settings,
                 &self.storage,

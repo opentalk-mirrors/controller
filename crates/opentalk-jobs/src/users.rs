@@ -2,16 +2,16 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{collections::HashSet, sync::Arc};
+use std::sync::Arc;
 
 use log::Log;
 use opentalk_asset_storage::ObjectStorage;
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
-use opentalk_controller_utils::deletion::{Deleter, user::UserDeleter};
+use opentalk_controller_utils::deletion::{Deleter, StopRoomBackend, user::UserDeleter};
 use opentalk_inventory::{Inventory, InventoryProvider, UpdateEvent, UpdateRoomInvite};
 use opentalk_log::{debug, info, warn};
-use opentalk_types_common::{events::EventId, rooms::RoomId, time::Timestamp, users::UserId};
+use opentalk_types_common::{time::Timestamp, users::UserId};
 use snafu::Report;
 
 use crate::Error;
@@ -25,6 +25,7 @@ pub(crate) async fn perform_deletion(
     logger: &dyn Log,
     inventory_provider: Arc<dyn InventoryProvider>,
     authorizer: Authorizer,
+    stop_room_backend: &dyn StopRoomBackend,
     settings: &Settings,
     fail_on_shared_folder_deletion_error: bool,
     delete_selector: DeleteSelector,
@@ -36,6 +37,7 @@ pub(crate) async fn perform_deletion(
         logger,
         inventory.as_mut(),
         authorizer,
+        stop_room_backend,
         settings,
         &object_storage,
         fail_on_shared_folder_deletion_error,
@@ -52,6 +54,7 @@ async fn delete_users(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     authorizer: Authorizer,
+    stop_room_backend: &dyn StopRoomBackend,
     settings: &Settings,
     object_storage: &ObjectStorage,
     fail_on_shared_folder_deletion_error: bool,
@@ -67,10 +70,11 @@ async fn delete_users(
     invite_replace_updated_by(logger, inventory, &user_candidates).await?;
     event_replace_updated_by(logger, inventory, &user_candidates).await?;
 
-    let orphaned_rooms = delete_user_events(
+    delete_user_events(
         logger,
         inventory,
         authorizer.clone(),
+        stop_room_backend,
         settings,
         object_storage,
         fail_on_shared_folder_deletion_error,
@@ -78,21 +82,11 @@ async fn delete_users(
     )
     .await?;
 
-    super::events::delete_orphaned_rooms(
-        logger,
-        inventory,
-        authorizer.clone(),
-        settings,
-        object_storage,
-        orphaned_rooms,
-        fail_on_shared_folder_deletion_error,
-    )
-    .await?;
-
     delete_users_internal(
         logger,
         inventory,
         authorizer,
+        stop_room_backend,
         settings,
         object_storage,
         &user_candidates,
@@ -109,6 +103,7 @@ pub(crate) async fn delete_users_internal(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     authorizer: Authorizer,
+    stop_room_backend: &dyn StopRoomBackend,
     settings: &Settings,
     object_storage: &ObjectStorage,
     user_ids: &[UserId],
@@ -125,6 +120,7 @@ pub(crate) async fn delete_users_internal(
                 logger,
                 inventory,
                 authorizer.clone(),
+                stop_room_backend,
                 None,
                 settings,
                 object_storage,
@@ -143,22 +139,20 @@ pub(crate) async fn delete_users_internal(
 }
 
 /// Identify and delete events for the specified users
-///
-/// Returns the rooms which are orphaned as a result of the event deletion, so
-/// they can be cleaned up afterwards
 #[allow(clippy::too_many_arguments)]
 async fn delete_user_events(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
     authorizer: Authorizer,
+    stop_room_backend: &dyn StopRoomBackend,
     settings: &Settings,
     object_storage: &ObjectStorage,
     fail_on_shared_folder_deletion_error: bool,
     user_candidates: &[UserId],
-) -> Result<HashSet<RoomId>, Error> {
+) -> Result<(), Error> {
     debug!(log: logger, "Retrieving list of events that should be deleted");
 
-    let mut event_candidates: Vec<(EventId, RoomId)> = Vec::new();
+    let mut event_candidates = Vec::new();
 
     for &user_id in user_candidates {
         let event_delete_selector = super::events::DeleteSelector::BelongingToUser(user_id);
@@ -172,10 +166,11 @@ async fn delete_user_events(
         event_candidates.append(&mut candidates);
     }
 
-    let orphaned_rooms = super::events::delete_event_candidates(
+    super::events::delete_event_candidates(
         logger,
         inventory,
         authorizer,
+        stop_room_backend,
         settings,
         object_storage,
         fail_on_shared_folder_deletion_error,
@@ -183,7 +178,7 @@ async fn delete_user_events(
     )
     .await;
 
-    Ok(orphaned_rooms)
+    Ok(())
 }
 
 async fn invite_replace_updated_by(

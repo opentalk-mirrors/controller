@@ -10,6 +10,7 @@ use etcd_client::{
 use log::Log;
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
+use opentalk_controller_utils::deletion::StopRoomBackend;
 use opentalk_inventory::{
     InventoryProvider, JobId, JobStatus, JobType, NewJobExecution, UpdateJobExecution,
 };
@@ -90,9 +91,7 @@ pub struct JobExecutorHandle {
     settings: Arc<Settings>,
     inventory_provider: Arc<dyn InventoryProvider>,
     authorizer: Authorizer,
-    // TODO: add roomserver connection
-    // See: https://git.opentalk.dev/opentalk/backend/services/controller/-/work_items/1340
-    //
+    stop_room_backend: Arc<dyn StopRoomBackend>,
     /// Handle to the inner JobExecutor task
     inner_handle: Option<InnerHandle>,
 }
@@ -109,6 +108,7 @@ impl JobExecutorHandle {
         etcd_urls: Vec<String>,
         inventory_provider: Arc<dyn InventoryProvider>,
         authorizer: Authorizer,
+        stop_room_backend: Arc<dyn StopRoomBackend>,
         settings: Arc<Settings>,
     ) -> Self {
         Self {
@@ -116,6 +116,7 @@ impl JobExecutorHandle {
             settings,
             inventory_provider,
             authorizer,
+            stop_room_backend,
             inner_handle: None,
         }
     }
@@ -131,8 +132,9 @@ impl JobExecutorHandle {
 
         let handle = JobExecutor::start(
             self.etcd_urls.clone(),
-            self.inventory_provider.clone(),
+            Arc::clone(&self.inventory_provider),
             self.authorizer.clone(),
+            Arc::clone(&self.stop_room_backend),
             self.settings.clone(),
         )
         .await?;
@@ -177,8 +179,7 @@ pub(crate) struct JobExecutor {
     settings: Arc<Settings>,
     inventory_provider: Arc<dyn InventoryProvider>,
     authorizer: Authorizer,
-    // TODO: add roomserver connection
-    // See: https://git.opentalk.dev/opentalk/backend/services/controller/-/work_items/1340
+    stop_room_backend: Arc<dyn StopRoomBackend>,
     client: Client,
     lease_id: i64,
     keep_alive_handle: JoinHandle<Result<(), ExecutorError>>,
@@ -190,6 +191,7 @@ impl JobExecutor {
         etcd_urls: Vec<String>,
         inventory_provider: Arc<dyn InventoryProvider>,
         authorizer: Authorizer,
+        stop_room_backend: Arc<dyn StopRoomBackend>,
         settings: Arc<Settings>,
     ) -> Result<InnerHandle, ExecutorError> {
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
@@ -204,6 +206,7 @@ impl JobExecutor {
             settings,
             inventory_provider,
             authorizer,
+            stop_room_backend,
             client,
             lease_id,
             keep_alive_handle,
@@ -358,6 +361,7 @@ impl JobExecutor {
             logger: &logger,
             inventory_provider: self.inventory_provider.clone(),
             authorizer: self.authorizer.clone(),
+            stop_room_backend: Arc::clone(&self.stop_room_backend),
             settings: self.settings.clone(),
             parameters: job.parameters,
             timeout: Duration::from_secs(job.timeout_secs.max(0) as u64),
@@ -567,8 +571,7 @@ struct JobExecutionData<'a> {
     logger: &'a ExecutionLogger,
     inventory_provider: Arc<dyn InventoryProvider>,
     authorizer: Authorizer,
-    // TODO: add roomserver connection
-    // See: https://git.opentalk.dev/opentalk/backend/services/controller/-/work_items/1340
+    stop_room_backend: Arc<dyn StopRoomBackend>,
     settings: Arc<Settings>,
     parameters: serde_json::Value,
     timeout: Duration,
@@ -581,6 +584,7 @@ impl JobExecutionData<'_> {
             self.logger,
             self.inventory_provider,
             self.authorizer,
+            self.stop_room_backend.as_ref(),
             &self.settings,
             self.parameters,
             self.timeout,

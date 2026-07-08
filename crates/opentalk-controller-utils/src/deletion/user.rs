@@ -13,6 +13,7 @@ use opentalk_log::debug;
 use opentalk_types_common::users::UserId;
 
 use super::{Deleter, Error};
+use crate::deletion::StopRoomBackend;
 /// Delete a user by id including the corresponding room and resources it
 /// references.
 #[derive(Debug)]
@@ -55,6 +56,7 @@ impl Deleter for UserDeleter {
         _prepared_commit: &Self::PreparedCommit,
         _logger: &dyn Log,
         _inventory: &mut dyn Inventory,
+        _stop_room_backend: &dyn StopRoomBackend,
         _settings: &Settings,
     ) -> Result<(), Error> {
         Ok(())

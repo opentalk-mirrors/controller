@@ -141,47 +141,37 @@ impl EventInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_all_adhoc_event_ids_with_room_ids_created_before(
+    async fn get_all_adhoc_event_ids_created_before(
         &mut self,
         created_before: Timestamp,
-    ) -> Result<Vec<(EventId, RoomId)>> {
-        Ok(
-            db::queries::events::get_all_events_adhoc_created_before_including_rooms(
-                &mut self.inner,
-                created_before.into(),
-            )
-            .await
-            .context(DatabaseSnafu)?,
+    ) -> Result<Vec<EventId>> {
+        Ok(db::queries::events::get_all_events_adhoc_created_before(
+            &mut self.inner,
+            created_before.into(),
         )
+        .await
+        .context(DatabaseSnafu)?)
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_all_scheduled_event_ids_with_room_ids_ended_before(
+    async fn get_all_scheduled_event_ids_ended_before(
         &mut self,
         ended_before: Timestamp,
-    ) -> Result<Vec<(EventId, RoomId)>> {
-        Ok(
-            db::queries::events::get_all_events_that_ended_before_including_rooms(
-                &mut self.inner,
-                ended_before.into(),
-            )
-            .await
-            .context(DatabaseSnafu)?,
+    ) -> Result<Vec<EventId>> {
+        Ok(db::queries::events::get_all_events_that_ended_before(
+            &mut self.inner,
+            ended_before.into(),
         )
+        .await
+        .context(DatabaseSnafu)?)
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_all_event_ids_with_room_ids_created_by_user(
-        &mut self,
-        user_id: UserId,
-    ) -> Result<Vec<(EventId, RoomId)>> {
+    async fn get_all_event_ids_created_by_user(&mut self, user_id: UserId) -> Result<Vec<EventId>> {
         Ok(
-            db::queries::events::get_all_events_for_creator_including_rooms(
-                &mut self.inner,
-                user_id,
-            )
-            .await
-            .context(DatabaseSnafu)?,
+            db::queries::events::get_all_events_for_creator(&mut self.inner, user_id)
+                .await
+                .context(DatabaseSnafu)?,
         )
     }
 

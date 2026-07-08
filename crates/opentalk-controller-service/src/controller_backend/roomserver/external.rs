@@ -7,6 +7,7 @@ use std::{
 };
 
 use opentalk_controller_settings::Settings;
+use opentalk_controller_utils::deletion::{StopRoomBackend, StopRoomError};
 use opentalk_inventory::Inventory;
 use opentalk_roomserver_client::{Client, Error, PatchRoomError, RequestTokenError};
 use opentalk_roomserver_types::{
@@ -134,5 +135,16 @@ impl RoomServerBackend for ExternalRoomServer {
                 Err(ApiError::internal().with_message("Failed to patch roomserver room parameters"))
             }
         }
+    }
+}
+
+#[async_trait::async_trait]
+impl StopRoomBackend for ExternalRoomServer {
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn stop_room(&self, room_id: RoomId) -> Result<(), StopRoomError> {
+        self.client
+            .delete_room(room_id)
+            .await
+            .map_err(|err| StopRoomError(Box::new(err)))
     }
 }

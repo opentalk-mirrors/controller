@@ -8,6 +8,7 @@ use async_trait::async_trait;
 use opentalk_asset_storage::{ObjectStorage, asset_key};
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
+use opentalk_controller_utils::deletion::StopRoomBackend;
 use opentalk_inventory::{Inventory, InventoryProvider, UpdateAsset};
 use opentalk_log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
@@ -54,6 +55,7 @@ impl Job for SyncStorageFiles {
         logger: &dyn log::Log,
         inventory_provider: Arc<dyn InventoryProvider>,
         _authorizer: Authorizer,
+        _stop_room_backend: &dyn StopRoomBackend,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {
@@ -308,10 +310,25 @@ mod tests {
             .unwrap();
         let assets = inventory.get_all_assets_with_size().await.unwrap();
 
-        assert_eq!(assets.len(), valid_asset_count);
+        match missing_file_handling {
+            MissingStorageFileHandling::DeleteAssetEntry => {
+                assert_eq!(assets.len(), valid_asset_count);
 
-        // ensure that the asset without the storage file was deleted
-        assert!(!assets.iter().any(|asset| asset.0 == LOST_ASSET_ID))
+                // ensure that the asset without the storage file was deleted
+                assert!(!assets.iter().any(|asset| asset.0 == LOST_ASSET_ID));
+            }
+            MissingStorageFileHandling::SetFileSizeToZero => {
+                // the asset without a storage file is retained, so it is still counted
+                assert_eq!(assets.len(), valid_asset_count + 1);
+
+                // ensure that the asset without the storage file had its size set to zero
+                let lost_asset = assets
+                    .iter()
+                    .find(|asset| asset.0 == LOST_ASSET_ID)
+                    .expect("asset without a storage file should be retained");
+                assert_eq!(lost_asset.1, 0);
+            }
+        }
     }
 
     /// Creates multiple valid database assets with their associated storage object as well as one invalid database asset.

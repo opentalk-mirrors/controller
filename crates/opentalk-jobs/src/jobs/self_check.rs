@@ -8,6 +8,7 @@ use async_trait::async_trait;
 use log::Log;
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
+use opentalk_controller_utils::deletion::StopRoomBackend;
 use opentalk_inventory::InventoryProvider;
 use opentalk_log::{debug, error, info, trace, warn};
 
@@ -25,6 +26,7 @@ impl Job for SelfCheck {
         logger: &dyn Log,
         _inventory_provider: Arc<dyn InventoryProvider>,
         _authorizer: Authorizer,
+        _stop_room_backend: &dyn StopRoomBackend,
         _settings: &Settings,
         _parameters: Self::Parameters,
     ) -> Result<(), Error> {

@@ -9,6 +9,7 @@ use chrono::{Days, Utc};
 use log::Log;
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
+use opentalk_controller_utils::deletion::StopRoomBackend;
 use opentalk_inventory::InventoryProvider;
 use opentalk_log::{debug, error, info};
 use serde::{Deserialize, Serialize};
@@ -51,6 +52,7 @@ impl Job for UserCleanup {
         logger: &dyn Log,
         inventory_provider: Arc<dyn InventoryProvider>,
         authorizer: Authorizer,
+        stop_room_backend: &dyn StopRoomBackend,
         settings: &Settings,
         parameters: Self::Parameters,
     ) -> Result<(), Error> {
@@ -71,6 +73,7 @@ impl Job for UserCleanup {
             logger,
             inventory_provider,
             authorizer,
+            stop_room_backend,
             settings,
             parameters.fail_on_shared_folder_deletion_error,
             DeleteSelector::DisabledBefore(delete_before.into()),
@@ -98,6 +101,7 @@ mod tests {
     use opentalk_controller_api_authorization::authorization::Authorizer;
     use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
     use opentalk_controller_settings::SettingsProvider;
+    use opentalk_controller_utils::deletion::NoOpStopRoomBackend;
     use opentalk_inventory::{
         Event, Inventory, InventoryProvider as _, UpdateEvent, UpdateUser, User,
     };
@@ -187,7 +191,7 @@ mod tests {
         let updated_by = db_ctx.create_test_user(2, vec![]).await.unwrap();
 
         let room = create_generic_test_room(inventory.as_mut(), &inviter).await;
-        let event = create_generic_test_event(inventory.as_mut(), &inviter).await;
+        let event = create_generic_test_event(inventory.as_mut(), &inviter, true).await;
         update_event(inventory.as_mut(), updated_by.id, event.id).await;
 
         create_generic_test_invite(inventory.as_mut(), &inviter, Some(&updated_by), &room).await;
@@ -217,6 +221,7 @@ mod tests {
             logger(),
             db_ctx.inventory_provider.clone(),
             authorizer,
+            &NoOpStopRoomBackend,
             &settings,
             serde_json::from_str("{}").unwrap(),
         )
@@ -272,6 +277,7 @@ mod tests {
             logger(),
             db_ctx.inventory_provider.clone(),
             authorizer,
+            &NoOpStopRoomBackend,
             &settings,
             serde_json::from_str("{}").unwrap(),
         )

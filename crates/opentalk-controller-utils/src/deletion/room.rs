@@ -21,6 +21,7 @@ use snafu::{ResultExt, ensure};
 
 use super::{Deleter, Error, error::AuthorizationSnafu};
 use crate::deletion::{
+    StopRoomBackend,
     error::{ObjectDeletionSnafu, RaceConditionSnafu},
     shared_folders::delete_shared_folders,
 };
@@ -159,10 +160,10 @@ impl Deleter for RoomDeleter {
         prepared_commit: &Self::PreparedCommit,
         logger: &dyn Log,
         _inventory: &mut dyn Inventory,
+        stop_room_backend: &dyn StopRoomBackend,
         settings: &Settings,
     ) -> Result<(), Error> {
-        // TODO: send RoomDeleted to roomserver API
-        // See: https://git.opentalk.dev/opentalk/backend/services/controller/-/work_items/1340
+        stop_room_backend.stop_room(self.room_id).await?;
 
         delete_shared_folders(
             logger,
