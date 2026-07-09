@@ -4292,15 +4292,6 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
@@ -6127,8 +6118,7 @@ dependencies = [
 [[package]]
 name = "opentalk-mail-worker-protocol"
 version = "0.49.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac2fb9b4e3c1f53c76b49d9a92adac0e2d385b73773dd9d561a1ac24c83156e2"
+source = "git+https://git.opentalk.dev/a.weiche/opentalk-types.git?branch=61-opentalktypes-remove-the-invite-code-from-the-code-base#bbef3d21cf953fd4e2180109e106b792bce021df"
 dependencies = [
  "chrono",
  "opentalk-types-common",
@@ -6227,8 +6217,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-client"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "115d2dc2f11b272933c0196f8501172da81903d1abe207dfe0a817948bff3741"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "bytes",
@@ -6273,8 +6262,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-common"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbf11cab49d69dcc65b826a711172f639125874ae7bcee226a2d00b60334548b"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anstream",
  "anyhow",
@@ -6297,8 +6285,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-livekit-proxy"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07294c40327879ebbf1d49de9b3b3b1ea35f58a964f9dc09989223935f47bbf3"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "futures",
@@ -6312,8 +6299,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-automod"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b1847cd5e11d51c80eb5a6ef3635bebb4d35b8acdbc70e07021ba01e3bcafc3"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "opentalk-roomserver-module-livekit",
@@ -6331,8 +6317,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-chat"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e1eef73db15e017672e49dd0930aff38df1539fdf7fadc60e2d345a85cdbafe"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "opentalk-roomserver-signaling",
@@ -6347,8 +6332,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-e2ee"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "680bdfe23524caf39340e7c6c3c31407beb382b648c30998536df6aef2e8b371"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -6361,8 +6345,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-echo"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57d8672fceb45d4df3a418eb72db0ccdba668a19ba8e45289cff6f608aacb429"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -6375,8 +6358,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-excalidraw"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "456210ec20cc45cdd07a174008f502b510e6d06520942214e5cd10576d02e129"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "opentalk-roomserver-signaling",
@@ -6392,8 +6374,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-legal-vote"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c7558910e012b93b7febe278ef3d6a6e1330b6bdd7325754b59ab550d8f978d"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "chrono",
@@ -6416,8 +6397,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-livekit"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e75215dfaff6957b6815567e282be1556450c2c30bb1631496f2cbf624b64890"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "futures",
@@ -6437,8 +6417,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-meeting-notes"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6dd41361db918f523e508c4cf93194f16af464c874a9b1c4bf4234bcec1f2341"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "chrono",
@@ -6458,8 +6437,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-meeting-report"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8790a2fad9398dcda5053b8f98a92c5148ea9c4cad037eafbf153ee828277c1"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -6479,8 +6457,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-moderation"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97811cd1193dbcfa1392b606c3a8fc855d2e1d535652ae41d94f58a4ef94f954"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "itertools 0.15.0",
@@ -6499,8 +6476,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-polls"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a827c7493ee8ce77f6d82f63e1318ba899503f0e74c1577a6681d893ee8647ca"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "opentalk-roomserver-signaling",
@@ -6515,8 +6491,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-raise-hands"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bde3644cb511945ea7b080110ffe0b723fd46fd360ec5ad95e12a27bd02343d4"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -6528,8 +6503,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-reaction"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fa6524dd4796d3ea8de402b145ba56d69ccabec5d0ccd7db0d83e0c02d48883"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "opentalk-roomserver-signaling",
@@ -6542,8 +6516,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-recording"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4919e6430f2f5362a9d3191583ecb399cc231f1ead1eb919353705dace755fd9"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "opentalk-roomserver-signaling",
@@ -6559,8 +6532,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-shared-folder"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10a89499b229fce5befdb4f803e6a0f59515264c2a6318fec0f4739ef527861d"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -6574,8 +6546,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-subroom-audio"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7c830d5f5451df5398981def62b6f8d0d77df18832de0dfe17ab75ae5fbd61f"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "livekit-api",
@@ -6595,8 +6566,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-timer"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ad76b43feb0a8946431028042ef1b4c0405c9d28bd03aa20067ffd8d30d4935"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "chrono",
@@ -6612,8 +6582,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-training-participation-report"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd1925c7a6a8999fb7f33d5cff28ae425df031a5ff1c80b23b50a65fd2bba3d2"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "chrono",
@@ -6635,8 +6604,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-transcription"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a06364cdac5b0e4d1c83a01166084d0af5230aaf73b38835afafbd8ca7daf6ca"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "opentalk-roomserver-signaling",
@@ -6652,8 +6620,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-module-whiteboard"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6dfe4439a364b1dbbe0c878ab35f11b11de5d19c1b2cf70fadc1311e6817c87d"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "bytes",
@@ -6672,8 +6639,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-modules"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "222fc54dd99bead042f769c8e41024a33c9c6814ab02bfe097374152e34553fd"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "itertools 0.15.0",
  "opentalk-roomserver-module-automod",
@@ -6723,8 +6689,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-room"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5a2fc97bee8aaaf3b406c2ee62acb72abbee2d37f30ac3c13062bb6dd9ece92"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6760,8 +6725,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-signaling"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "237ce4442e0677d86a5d86ff0251abe153735f8aaa46fdad622d0e6839294d5f"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6786,8 +6750,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e080182d5cc8d0f1e0c75aac837e2f07caf2ae69e57724d9e86e8431a9b21c77"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "actix-ws",
  "anyhow",
@@ -6815,8 +6778,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-automod"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed83d3708faf765133d27429c963064a62d91f4d9b9210de8eec14e17c75fde7"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -6828,8 +6790,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-chat"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e5c66136213c1a99827b8f0602e3af59e8cbec6cb9b18bf91795f95068b82bc"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "derive_more",
  "opentalk-roomserver-signaling",
@@ -6843,8 +6804,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-e2ee"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f55181a1c1fad739346c68db71171258fff1dd31cc634bd1649c8bae9ec27854"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "bytes",
  "opentalk-roomserver-signaling",
@@ -6856,8 +6816,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-echo"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc5b14bdc9776957b34d39e68b18b7bda1e9698b8306df5f75c41720bf788d1b"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-types-common",
@@ -6867,8 +6826,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-excalidraw"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "feca22d62ea6b1bb51e4d367b9cd837cbfc9d228a62343170c41ec0c1a4c37eb"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -6881,8 +6839,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-legal-vote"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8a61137cd59036c0af200d2e941b86a673e02f272d5eacef11d0e695dba1d60"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "basen",
  "chrono",
@@ -6901,8 +6858,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-livekit"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d630c82e92c9a7f1a5caa8300f31392b59f89d1614e3357111b8b44064e08c4c"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -6916,8 +6872,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-meeting-notes"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61ea999bac4d8fcf3329172bc8bb9de0bc9e57ec55c95e2db8308d14e54634c8"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -6930,8 +6885,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-meeting-report"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "353f0accb845a42a829efc89116a40197b32a97e2d70abb4241d91a53d67ddc0"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -6942,8 +6896,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-moderation"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1bf306e8752f1b8bd8bbae8cccc03cbced513d966cbcff81d0f225262b414f5"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "chrono",
  "opentalk-roomserver-signaling",
@@ -6957,8 +6910,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-polls"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53e3af9905ef837cfded2f7f70472018fdace9a51e83457144af8317d4e4f84a"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "chrono",
  "derive_more",
@@ -6973,8 +6925,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-raise-hands"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7f7c8fdea0a4b43d248fcee58fe1a16482e847f5b5e22642afbfe902bba6f2b"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -6986,8 +6937,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-reaction"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "467a28114db2ad2bedd1e742d40774089c5860ac36d9d05c5a9c05af78dbcad0"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -6999,8 +6949,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-recording"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3a43799aa409bcb310a028334eea17ef28f16a5c1cde8a172849be610cca7e1"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -7014,8 +6963,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-shared-folder"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa273330164420905d522ce5acbf7e1c2ddc6d629fb5152200c38918c95d1f47"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-types-common",
@@ -7026,8 +6974,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-subroom-audio"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f250d64ee2c94c3945e00d58f074172547abd445f5fdaa2413c66d66caca2dc"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "derive_more",
  "opentalk-roomserver-signaling",
@@ -7042,8 +6989,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-timer"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "809b8c33f7f63b16beedd02c2ce028ede43d16b762bf521502659cdf16c19b54"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -7056,8 +7002,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-training-participation-report"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62796baa18b2e0631eacaae818370cccf25c6660048b5b9dbac664f7072204aa"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -7070,8 +7015,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-transcription"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09100bec9a7945b946909725388fa676ba80d90e14ac4181c02323138f64786f"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -7085,8 +7029,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-types-whiteboard"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d7bb5f3918bca9a1fb859ea9baadc265c1354dbd0888bd980fc261f50f3d83c"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -7099,8 +7042,7 @@ dependencies = [
 [[package]]
 name = "opentalk-roomserver-web-api"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af595be3e67d3218f8edc60919b565f1935a19e03dafff6cadeecabcd9796304"
+source = "git+https://git.opentalk.dev/a.weiche/roomserver.git?branch=300-roomserver-remove-the-invite-code-from-the-code-base#022ef6b1a4f80c8c536ec8fa4fd3f564b6fd3668"
 dependencies = [
  "async-trait",
  "axum",
@@ -7180,8 +7122,7 @@ dependencies = [
 [[package]]
 name = "opentalk-types-api-common"
 version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aabc0e49a634c3bbb9ff835afd9bcf6bb106d5ac984446be7ec923747a5acd47"
+source = "git+https://git.opentalk.dev/a.weiche/opentalk-types.git?branch=61-opentalktypes-remove-the-invite-code-from-the-code-base#bbef3d21cf953fd4e2180109e106b792bce021df"
 dependencies = [
  "actix-web",
  "axum",
@@ -7203,8 +7144,7 @@ dependencies = [
 [[package]]
 name = "opentalk-types-api-internal"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9102084cece8f1c1a7d3c2b06daec69eb4bcff8cc6bb89e3706fb53852dcf23"
+source = "git+https://git.opentalk.dev/a.weiche/opentalk-types.git?branch=61-opentalktypes-remove-the-invite-code-from-the-code-base#bbef3d21cf953fd4e2180109e106b792bce021df"
 dependencies = [
  "chrono",
  "opentalk-types-api-common",
@@ -7217,8 +7157,7 @@ dependencies = [
 [[package]]
 name = "opentalk-types-api-v1"
 version = "0.65.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eece1550b7683151aed8aa1790172be4d90a1893fe121f35aba8f8d469812317"
+source = "git+https://git.opentalk.dev/a.weiche/opentalk-types.git?branch=61-opentalktypes-remove-the-invite-code-from-the-code-base#bbef3d21cf953fd4e2180109e106b792bce021df"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -7235,8 +7174,7 @@ dependencies = [
 [[package]]
 name = "opentalk-types-common"
 version = "0.49.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2dbd049228a6a8839600600d859e3521c3375c49e064f13cc1c070da84f507d2"
+source = "git+https://git.opentalk.dev/a.weiche/opentalk-types.git?branch=61-opentalktypes-remove-the-invite-code-from-the-code-base#bbef3d21cf953fd4e2180109e106b792bce021df"
 dependencies = [
  "actix-http",
  "actix-web-httpauth",
@@ -7268,8 +7206,7 @@ dependencies = [
 [[package]]
 name = "opentalk-types-common-identifiers"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36d700a6111121551fa2a357077097fa28e6f8d1baf97dd435420971ac10c343"
+source = "git+https://git.opentalk.dev/a.weiche/opentalk-types.git?branch=61-opentalktypes-remove-the-invite-code-from-the-code-base#bbef3d21cf953fd4e2180109e106b792bce021df"
 dependencies = [
  "derive_more",
  "diesel",
@@ -7284,21 +7221,19 @@ dependencies = [
 [[package]]
 name = "opentalk-types-common-macros"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4db3542ad75eaca20ff237188eb424256d43f099f7db94b35d734fce11e08158"
+source = "git+https://git.opentalk.dev/a.weiche/opentalk-types.git?branch=61-opentalktypes-remove-the-invite-code-from-the-code-base#bbef3d21cf953fd4e2180109e106b792bce021df"
 dependencies = [
  "opentalk-types-common-identifiers",
  "proc-macro-crate",
  "proc-macro2",
  "quote",
- "syn 2.0.119",
+ "syn 3.0.3",
 ]
 
 [[package]]
 name = "opentalk-types-signaling"
 version = "0.50.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84a2e41db4df12124c6f653f983673626f9edd018934b7736edeb7726bcb05ce"
+source = "git+https://git.opentalk.dev/a.weiche/opentalk-types.git?branch=61-opentalktypes-remove-the-invite-code-from-the-code-base#bbef3d21cf953fd4e2180109e106b792bce021df"
 dependencies = [
  "derive_more",
  "opentalk-types-common",
@@ -8185,7 +8120,7 @@ checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes",
  "heck 0.5.0",
- "itertools 0.12.1",
+ "itertools 0.11.0",
  "log",
  "multimap",
  "once_cell",
@@ -8226,7 +8161,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.11.0",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
@@ -12049,7 +11984,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

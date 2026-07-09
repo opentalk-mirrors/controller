@@ -10,7 +10,9 @@ use opentalk_controller_utils::{
     CaptureApiError,
     deletion::{Deleter, RoomDeleter},
 };
-use opentalk_inventory::{NewRoom, NewRoomSipConfig, Room, UpdateRoom, utils::is_invite_valid};
+use opentalk_inventory::{
+    NewRoom, NewRoomSipConfig, Room, UpdateRoom, utils::is_room_guest_access_allowed,
+};
 use opentalk_types_api_v1::{
     error::ApiError,
     pagination::PagePaginationQuery,
@@ -23,10 +25,7 @@ use opentalk_types_common::{
     events::EventInfo,
     features::GUESTS_ALLOWED_MODULE_FEATURE_ID,
     pagination::ItemCount,
-    rooms::{
-        GuestAccess, RoomAlias, RoomId, RoomIdOrAlias, RoomName, RoomPassword,
-        invite_codes::InviteCode,
-    },
+    rooms::{GuestAccess, RoomAlias, RoomId, RoomIdOrAlias, RoomName, RoomPassword},
     users::UserId,
 };
 
@@ -344,25 +343,19 @@ impl ControllerBackend {
         Ok(GetRoomEventResponseBody(event_info))
     }
 
-    /// Check the provided invite code and room password
+    /// Check the room password and guest access
     ///
     /// Returns the associated room
     pub(crate) async fn authenticate_guest(
         &self,
         room_id: RoomId,
-        invite_code: Option<InviteCode>,
         password: Option<RoomPassword>,
     ) -> Result<Room, CaptureApiError> {
-        let Some(invite_code) = invite_code else {
-            return Err(ApiError::not_found().into());
-        };
-
         let mut inventory = self.inventory_provider.get_inventory().await?;
         let (room, created_by) = inventory.get_room_with_creator(&room_id.into()).await?;
         let tariff = self.get_tariff_for_user(created_by.id).await?;
-        let invite = inventory.get_room_invite(invite_code).await?;
 
-        if !is_invite_valid(&invite, &room, &tariff) {
+        if !is_room_guest_access_allowed(&room, &tariff) {
             // Don't leak the existence of the room
             return Err(ApiError::not_found().into());
         }

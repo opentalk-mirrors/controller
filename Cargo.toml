@@ -157,3 +157,20 @@ yaml-rust2 = "0.11.0"
 
 [workspace.lints.clippy]
 self_named_module_files = "deny"
+
+[patch.crates-io]
+# opentalk-types (branch: 61-opentalktypes-remove-the-invite-code-from-the-code-base)
+opentalk-mail-worker-protocol = { git = "https://git.opentalk.dev/a.weiche/opentalk-types.git", branch = "61-opentalktypes-remove-the-invite-code-from-the-code-base" }
+opentalk-types-api-common = { git = "https://git.opentalk.dev/a.weiche/opentalk-types.git", branch = "61-opentalktypes-remove-the-invite-code-from-the-code-base" }
+opentalk-types-api-internal = { git = "https://git.opentalk.dev/a.weiche/opentalk-types.git", branch = "61-opentalktypes-remove-the-invite-code-from-the-code-base" }
+opentalk-types-api-v1 = { git = "https://git.opentalk.dev/a.weiche/opentalk-types.git", branch = "61-opentalktypes-remove-the-invite-code-from-the-code-base" }
+opentalk-types-common = { git = "https://git.opentalk.dev/a.weiche/opentalk-types.git", branch = "61-opentalktypes-remove-the-invite-code-from-the-code-base" }
+opentalk-types-signaling = { git = "https://git.opentalk.dev/a.weiche/opentalk-types.git", branch = "61-opentalktypes-remove-the-invite-code-from-the-code-base" }
+# roomserver (branch: 300-roomserver-remove-the-invite-code-from-the-code-base)
+opentalk-roomserver-client = { git = "https://git.opentalk.dev/a.weiche/roomserver.git", branch = "300-roomserver-remove-the-invite-code-from-the-code-base" }
+opentalk-roomserver-modules = { git = "https://git.opentalk.dev/a.weiche/roomserver.git", branch = "300-roomserver-remove-the-invite-code-from-the-code-base" }
+opentalk-roomserver-room = { git = "https://git.opentalk.dev/a.weiche/roomserver.git", branch = "300-roomserver-remove-the-invite-code-from-the-code-base" }
+opentalk-roomserver-types = { git = "https://git.opentalk.dev/a.weiche/roomserver.git", branch = "300-roomserver-remove-the-invite-code-from-the-code-base" }
+opentalk-roomserver-types-livekit = { git = "https://git.opentalk.dev/a.weiche/roomserver.git", branch = "300-roomserver-remove-the-invite-code-from-the-code-base" }
+opentalk-roomserver-types-training-participation-report = { git = "https://git.opentalk.dev/a.weiche/roomserver.git", branch = "300-roomserver-remove-the-invite-code-from-the-code-base" }
+opentalk-roomserver-web-api = { git = "https://git.opentalk.dev/a.weiche/roomserver.git", branch = "300-roomserver-remove-the-invite-code-from-the-code-base" }

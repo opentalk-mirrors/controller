@@ -12,9 +12,9 @@ use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{
-    Event, EventInvite, Inventory, InventoryProvider, NewEventEmailInvite, NewEventInvite,
-    NewRoomInvite, Room, RoomSipConfig, Tenant, UpdateEventEmailInvite, UpdateEventInvite, User,
-    transaction, utils::is_room_guest_access_allowed,
+    Event, EventInvite, Inventory, InventoryProvider, NewEventEmailInvite, NewEventInvite, Room,
+    RoomSipConfig, Tenant, UpdateEventEmailInvite, UpdateEventInvite, User, transaction,
+    utils::is_room_guest_access_allowed,
 };
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
@@ -753,7 +753,6 @@ async fn create_email_event_invite(
             create_invite_to_non_matching_email(
                 settings,
                 inventory_provider,
-                authorizer,
                 user_search_client,
                 mail_service,
                 current_tenant,
@@ -779,7 +778,6 @@ async fn create_email_event_invite(
 async fn create_invite_to_non_matching_email(
     settings: &Settings,
     inventory_provider: &dyn InventoryProvider,
-    authorizer: Authorizer,
     user_search_client: &Option<KeycloakAdminClient>,
     mail_service: &Option<MailService>,
     current_tenant: &Tenant,
@@ -865,30 +863,6 @@ async fn create_invite_to_non_matching_email(
                     // but in the meantime this check **cannot** be removed.
                     verify_invite_write(room_tariff, &room)?;
 
-                    let invite = inventory
-                        .create_room_invite(NewRoomInvite {
-                            active: true,
-                            created_by: current_user.id,
-                            updated_by: current_user.id,
-                            room: room.id,
-                            expiration: None,
-                        })
-                        .await?;
-
-                    authorizer
-                        .apply_change(&AuthorizationChange::AddInviteCodeToRoom {
-                            room: room.id,
-                            invite_code: invite.invite_code,
-                            expiration: invite.expiration,
-                        })
-                        .await
-                        .map_err(|e| {
-                            log::error!(
-                                "Could not apply changes in the authorization database: {e:?}"
-                            );
-                            ApiError::internal()
-                        })?;
-
                     if let Some(mail_service) = mail_service {
                         mail_service
                             .send_external_invite(
@@ -899,7 +873,6 @@ async fn create_invite_to_non_matching_email(
                                 room_tariff,
                                 sip_config,
                                 invitee_email.as_ref(),
-                                invite.invite_code.to_string(),
                                 shared_folder,
                                 streaming_targets,
                             )

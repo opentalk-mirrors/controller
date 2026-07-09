@@ -2052,202 +2052,6 @@ paths:
       security:
         - BearerAuth: []
         - InviteCode: []
-  "/rooms/{room_id_or_alias}/invites":
-    get:
-      tags:
-        - "api::v1::invites"
-      summary: Get all invites for a room
-      description: |-
-        This returns all invites that are available for a room. If no
-        pagination query is added, the default page size is used.
-      operationId: get_invites
-      parameters:
-        - name: room_id_or_alias
-          in: path
-          description: Either the id or the alias of the room
-          required: true
-          schema:
-            $ref: "#/components/schemas/RoomIdOrAlias"
-        - name: per_page
-          in: query
-          description: The number of entries per page
-          required: false
-          schema:
-            $ref: "#/components/schemas/PageSize"
-        - name: page
-          in: query
-          description: The number of the page
-          required: false
-          schema:
-            $ref: "#/components/schemas/Page"
-      responses:
-        "200":
-          description: The invites could be loaded successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GetRoomsInvitesResponseBody"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-      security:
-        - BearerAuth: []
-    post:
-      tags:
-        - "api::v1::invites"
-      summary: Create a new invite
-      description: A new invite to the room is created with the information in the body.
-      operationId: add_invite
-      parameters:
-        - name: room_id_or_alias
-          in: path
-          description: Either the id or the alias of the room
-          required: true
-          schema:
-            $ref: "#/components/schemas/RoomIdOrAlias"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PostInviteRequestBody"
-        required: true
-      responses:
-        "200":
-          description: Successfully create a new invite
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InviteResource"
-        "400":
-          description: |-
-            Could not create a new invite due to wrong syntax or
-                            bad values, for example an invalid owner id.
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-      security:
-        - BearerAuth: []
-  "/rooms/{room_id_or_alias}/invites/{invite_code}":
-    get:
-      tags:
-        - "api::v1::invites"
-      summary: Get a room invite
-      description: Returns the room invite resource
-      operationId: get_invite
-      parameters:
-        - name: room_id_or_alias
-          in: path
-          description: The room id or alias for the invite
-          required: true
-          schema:
-            $ref: "#/components/schemas/RoomIdOrAlias"
-        - name: invite_code
-          in: path
-          description: The invite code id
-          required: true
-          schema:
-            $ref: "#/components/schemas/InviteCode"
-      responses:
-        "200":
-          description: Successfully retrieved the room invite
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InviteResource"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-      security:
-        - BearerAuth: []
-    put:
-      tags:
-        - "api::v1::invites"
-      summary: Update an invite code
-      description: Updates the field values as set in the request body.
-      operationId: update_invite
-      parameters:
-        - name: room_id_or_alias
-          in: path
-          description: The room id or alias for the invite
-          required: true
-          schema:
-            $ref: "#/components/schemas/RoomIdOrAlias"
-        - name: invite_code
-          in: path
-          description: The invite code id
-          required: true
-          schema:
-            $ref: "#/components/schemas/InviteCode"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PutInviteRequestBody"
-        required: true
-      responses:
-        "200":
-          description: Successfully updated the room invite
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InviteResource"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-      security:
-        - BearerAuth: []
-    delete:
-      tags:
-        - "api::v1::invites"
-      summary: Delete an invite code
-      description: The invite code will no longer be usable once it is deleted.
-      operationId: delete_invite
-      parameters:
-        - name: room_id_or_alias
-          in: path
-          description: The room id or alias for the invite
-          required: true
-          schema:
-            $ref: "#/components/schemas/RoomIdOrAlias"
-        - name: invite_code
-          in: path
-          description: The invite code id
-          required: true
-          schema:
-            $ref: "#/components/schemas/InviteCode"
-      responses:
-        "204":
-          description: Successfully deleted the room invite
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-      security:
-        - BearerAuth: []
   "/rooms/{room_id_or_alias}/sip":
     get:
       tags:
@@ -2442,7 +2246,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PostRoomsRoomserverStartInvitedRequestBody"
+              default: ~
         required: true
       responses:
         "308":
@@ -4368,34 +4172,6 @@ components:
           public_url: "https://streaming.example.com/livestream123"
           streaming_endpoint: "https://ingress.streaming.example.com/"
           streaming_key: aabbccddeeff
-    GetRoomsInvitesResponseBody:
-      type: array
-      items:
-        $ref: "#/components/schemas/InviteResource"
-      description: "Response for *GET /rooms/{room_id}/invites*"
-      example:
-        - active: true
-          created: "2024-06-18T11:22:33Z"
-          created_by:
-            avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
-            display_name: Alice Adams
-            email: alice@example.com
-            firstname: Alice
-            id: 00000000-0000-0000-0000-0000000a11c3
-            lastname: Adams
-            title: ""
-          expiration: ~
-          invite_code: 00000000-0000-0000-0000-0000deadbeef
-          room_id: 00000000-0000-0000-0000-0000abadcafe
-          updated: "2024-06-20T14:16:19Z"
-          updated_by:
-            avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
-            display_name: Alice Adams
-            email: alice@example.com
-            firstname: Alice
-            id: 00000000-0000-0000-0000-0000000a11c3
-            lastname: Adams
-            title: ""
     GetRoomsResponseBody:
       type: array
       items:
@@ -4447,70 +4223,6 @@ components:
       format: uuid
       description: An invite code
       example: 00000000-0000-0000-0000-0000deadbeef
-    InviteResource:
-      type: object
-      description: A room invite code with associated information.
-      required:
-        - invite_code
-        - created
-        - created_by
-        - updated
-        - updated_by
-        - room_id
-        - active
-      properties:
-        active:
-          type: boolean
-          description: If the invite is active
-        created:
-          type: string
-          format: date-time
-          description: The timestamp this invite was created at
-        created_by:
-          $ref: "#/components/schemas/PublicUserProfile"
-          description: The user who created the invite
-        expiration:
-          type:
-            - string
-            - "null"
-          format: date-time
-          description: Optional expiration date of the invite
-        invite_code:
-          $ref: "#/components/schemas/InviteCode"
-          description: The invite code id
-        room_id:
-          $ref: "#/components/schemas/RoomId"
-          description: The room id for the invite
-        updated:
-          type: string
-          format: date-time
-          description: The timestamp this invite was updated at
-        updated_by:
-          $ref: "#/components/schemas/PublicUserProfile"
-          description: The user who updated the invite
-      example:
-        active: true
-        created: "2024-06-18T11:22:33Z"
-        created_by:
-          avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
-          display_name: Alice Adams
-          email: alice@example.com
-          firstname: Alice
-          id: 00000000-0000-0000-0000-0000000a11c3
-          lastname: Adams
-          title: ""
-        expiration: ~
-        invite_code: 00000000-0000-0000-0000-0000deadbeef
-        room_id: 00000000-0000-0000-0000-0000abadcafe
-        updated: "2024-06-20T14:16:19Z"
-        updated_by:
-          avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
-          display_name: Alice Adams
-          email: alice@example.com
-          firstname: Alice
-          id: 00000000-0000-0000-0000-0000000a11c3
-          lastname: Adams
-          title: ""
     InviteRole:
       type: string
       enum:
@@ -5231,18 +4943,6 @@ components:
             after: 100
             within: 200
         waiting_room: false
-    PostInviteRequestBody:
-      type: object
-      description: "Body for *POST /rooms/{room_id}/invites*"
-      properties:
-        expiration:
-          type:
-            - string
-            - "null"
-          format: date-time
-          description: Optional expiration date of the invite
-      example:
-        expiration: "2024-06-20T14:16:19Z"
     PostInviteVerifyRequestBody:
       type: object
       description: Verify body for *POST /invite/verify*
@@ -5347,26 +5047,6 @@ components:
         name: personal-room-name
         password: ~
         waiting_room: true
-    PostRoomsRoomserverStartInvitedRequestBody:
-      type: object
-      description: "The JSON body expected when making a *POST /rooms/{room_id}/start_invited* request"
-      required:
-        - device_secret
-        - invite_code
-      properties:
-        device_secret:
-          $ref: "#/components/schemas/DeviceSecret"
-          description: The clients device secret. Used to identify the client across sessions
-        invite_code:
-          type: string
-          description: The invite code
-        password:
-          $ref: "#/components/schemas/RoomPassword"
-          description: "The invited user's password to the room"
-      example:
-        device_secret: v3rys3cr3tD3v1ce5tr1ng
-        invite_code: 00000000-0000-0000-0000-0000deadbeef
-        password: v3rys3cr3t
     PostRoomsRoomserverStartRequestBody:
       type: object
       description: "The JSON body expected when making a *POST /rooms/{room_id}/start* request"
@@ -5376,9 +5056,6 @@ components:
         device_secret:
           $ref: "#/components/schemas/DeviceSecret"
           description: The clients device secret. Used to identify the client across sessions
-        invite_code:
-          $ref: "#/components/schemas/InviteCode"
-          description: The invite code
         password:
           $ref: "#/components/schemas/RoomPassword"
           description: "The invited user's password to the room"
@@ -5494,18 +5171,6 @@ components:
         id: 00000000-0000-0000-0000-0000000a11c3
         lastname: Adams
         title: ""
-    PutInviteRequestBody:
-      type: object
-      description: "Body for *PUT /rooms/{room_id}/invites/{invite_code}*"
-      properties:
-        expiration:
-          type:
-            - string
-            - "null"
-          format: date-time
-          description: Optional expiration date of the invite
-      example:
-        expiration: "2024-06-20T14:16:19Z"
     PutSipConfigRequestBody:
       type: object
       description: "Body for the `PUT /rooms/{room_id}/sip` endpoint"

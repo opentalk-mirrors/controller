@@ -17,10 +17,7 @@ use opentalk_controller_settings::{
     RoomServerKind, Settings, SettingsProvider, common::HttpCorsAllowedOrigin,
 };
 use opentalk_controller_utils::{CaptureApiError, deletion::StopRoomBackend};
-use opentalk_inventory::{
-    Event, Inventory, InventoryProvider, Room,
-    utils::{get_valid_invite_for_room, is_call_in_allowed},
-};
+use opentalk_inventory::{Event, Inventory, InventoryProvider, Room, utils::is_call_in_allowed};
 use opentalk_roomserver_client::Client;
 use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry, settings::Internal};
 use opentalk_roomserver_types::{
@@ -325,9 +322,7 @@ impl ControllerBackend {
         request: PostRoomsRoomserverStartRequestBody,
         room: &RoomResource,
     ) -> Result<ClientParameters, CaptureApiError> {
-        let _ = self
-            .authenticate_guest(room.id, request.invite_code, request.password)
-            .await?;
+        let _ = self.authenticate_guest(room.id, request.password).await?;
 
         Ok(ClientParameters {
             device_secret: request.device_secret,
@@ -400,10 +395,6 @@ pub(crate) async fn build_room_parameters(
     )
     .await?;
 
-    let invite_code = get_valid_invite_for_room(inventory, &room, &tariff_resource)
-        .await?
-        .map(|invite| invite.invite_code);
-
     let tariff = TariffDetails {
         id: tariff.id,
         name: tariff.name,
@@ -459,7 +450,6 @@ pub(crate) async fn build_room_parameters(
         waiting_room,
         call_in,
         event,
-        invite_code,
         tariff,
         streaming_targets,
         show_meeting_details,

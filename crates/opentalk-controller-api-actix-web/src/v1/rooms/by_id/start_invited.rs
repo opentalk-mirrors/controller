@@ -5,7 +5,6 @@
 //! API endpoints under `v1/rooms/{room_id_or_alias}/start_invited`
 
 use actix_web::{HttpResponse, http::header, post, web::Path};
-use opentalk_types_api_v1::rooms::by_room_id::PostRoomsRoomserverStartInvitedRequestBody;
 use opentalk_types_common::rooms::{RoomId, RoomIdOrAlias};
 
 /// Start a signaling session with the roomserver with an invitation code
@@ -19,7 +18,7 @@ use opentalk_types_common::rooms::{RoomId, RoomIdOrAlias};
     params(
         ("room_id_or_alias" = RoomId, description = "Either the id or the alias of the room"),
     ),
-    request_body = PostRoomsRoomserverStartInvitedRequestBody,
+    request_body = (),
     responses(
         (
             status = StatusCode::PERMANENT_REDIRECT,

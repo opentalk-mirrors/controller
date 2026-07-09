@@ -102,7 +102,6 @@ use opentalk_types_common::{
     users::UserId,
 };
 use url::Url;
-use utils::{verify_invite_read, verify_invite_write};
 
 pub use crate::controller_backend::events::shared_folder::{
     delete_shared_folders, put_shared_folder,

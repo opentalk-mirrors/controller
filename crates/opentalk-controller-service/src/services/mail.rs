@@ -382,7 +382,6 @@ impl MailService {
         room_tariff: &TariffResource,
         sip_config: Option<RoomSipConfig>,
         invitee: &str,
-        invite_code: String,
         shared_folder: Option<SharedFolder>,
         streaming_targets: Vec<RoomStreamingTarget>,
     ) -> Result<()> {
@@ -401,7 +400,6 @@ impl MailService {
                 streaming_targets,
             ),
             invitee.to_string(),
-            invite_code,
         );
 
         self.send_to_rabbitmq(settings, mail_task).await?;
@@ -420,7 +418,6 @@ impl MailService {
         room_tariff: &TariffResource,
         sip_config: Option<RoomSipConfig>,
         invitee: MailRecipient,
-        invite_code: String,
         shared_folder: Option<SharedFolder>,
         streaming_targets: Vec<RoomStreamingTarget>,
     ) -> Result<()> {
@@ -489,7 +486,6 @@ impl MailService {
                 v1::ExternalUser {
                     email: v1::Email::new(invitee.email),
                 },
-                invite_code,
             ),
         };
 

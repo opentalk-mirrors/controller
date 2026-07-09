@@ -6,8 +6,7 @@ use std::collections::BTreeSet;
 
 use opentalk_types_common::{
     events::{EventId, invites::InviteRole},
-    rooms::{GuestAccess, RoomId, invite_codes::InviteCode},
-    time::Timestamp,
+    rooms::{GuestAccess, RoomId},
     users::{GroupId, UserId},
 };
 
@@ -130,27 +129,6 @@ pub enum AuthorizationChange {
         events: BTreeSet<EventId>,
     },
 
-    /// Add an invite code to a room.
-    AddInviteCodeToRoom {
-        /// The room to which the invite code should be added.
-        room: RoomId,
-
-        /// The invite code that should be added to the room.
-        invite_code: InviteCode,
-
-        /// The optional expiration timestamp of the invite code.
-        expiration: Option<Timestamp>,
-    },
-
-    /// Remove an invite code from a room.
-    RemoveInviteCodeFromRoom {
-        /// The room from which the invite code should be removed.
-        room: RoomId,
-
-        /// The invite code that should be removed from the room.
-        invite_code: InviteCode,
-    },
-
     /// Update the configuration of a room.
     UpdateRoomConfiguration {
         /// The room for which the guest access should be patched.
@@ -179,8 +157,7 @@ mod serde_tests {
 
     use opentalk_types_common::{
         events::{EventId, invites::InviteRole},
-        rooms::{GuestAccess, RoomId, invite_codes::InviteCode},
-        time::Timestamp,
+        rooms::{GuestAccess, RoomId},
         users::{GroupId, UserId},
     };
     use pretty_assertions::assert_eq;
@@ -462,50 +439,6 @@ mod serde_tests {
                 "00000000-0000-0000-0000-000000987654",
                 "00000000-0000-0000-0000-000000997744"
             ]
-        });
-
-        let serialized = serde_json::to_value(c.clone()).expect("Must be serializable");
-        assert_eq!(serialized, json);
-
-        let deserialized: AuthorizationChange =
-            serde_json::from_value(json).expect("Must be deserializable");
-        assert_eq!(deserialized, c);
-    }
-
-    #[test]
-    fn add_invite_code_to_room() {
-        let c = AuthorizationChange::AddInviteCodeToRoom {
-            invite_code: InviteCode::from_u128(0x11335577),
-            room: RoomId::from_u128(0x987654),
-            expiration: Some(Timestamp::unix_epoch()),
-        };
-
-        let json = json!({
-            "change": "add_invite_code_to_room",
-            "invite_code": "00000000-0000-0000-0000-000011335577",
-            "room": "00000000-0000-0000-0000-000000987654",
-            "expiration": "1970-01-01T00:00:00Z",
-        });
-
-        let serialized = serde_json::to_value(c.clone()).expect("Must be serializable");
-        assert_eq!(serialized, json);
-
-        let deserialized: AuthorizationChange =
-            serde_json::from_value(json).expect("Must be deserializable");
-        assert_eq!(deserialized, c);
-    }
-
-    #[test]
-    fn remove_invite_code_from_room() {
-        let c = AuthorizationChange::RemoveInviteCodeFromRoom {
-            invite_code: InviteCode::from_u128(0x11335577),
-            room: RoomId::from_u128(0x987654),
-        };
-
-        let json = json!({
-            "change": "remove_invite_code_from_room",
-            "invite_code": "00000000-0000-0000-0000-000011335577",
-            "room": "00000000-0000-0000-0000-000000987654",
         });
 
         let serialized = serde_json::to_value(c.clone()).expect("Must be serializable");
