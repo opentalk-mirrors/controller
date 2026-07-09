@@ -249,7 +249,7 @@ async fn delete_tariff(settings: &Settings, name: String) -> Result<(), CliExecu
     .await
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 async fn edit_tariff(
     settings: &Settings,
     name: String,

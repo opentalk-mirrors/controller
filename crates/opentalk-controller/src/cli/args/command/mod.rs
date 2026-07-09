@@ -21,7 +21,6 @@ mod tenants;
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
-#[allow(clippy::large_enum_variant)]
 pub enum Command {
     /// Migrate the db. This is done automatically during start of the controller,
     /// but can be done without starting the controller using this command.

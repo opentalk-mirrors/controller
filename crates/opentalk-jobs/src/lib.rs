@@ -47,7 +47,7 @@ use serde_json::json;
 use snafu::Report;
 
 /// Execute a job
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub async fn execute<J: Job>(
     logger: &dyn Log,
     inventory_provider: Arc<dyn InventoryProvider>,

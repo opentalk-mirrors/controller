@@ -5,7 +5,7 @@
 //! Authorization handlers for event-related resources.
 
 mod email_invite;
-#[allow(clippy::module_inception)]
+#[expect(clippy::module_inception)]
 mod event;
 mod events;
 mod events_instances;

@@ -11,7 +11,7 @@ mod assets;
 mod event;
 mod invite_code;
 mod invites;
-#[allow(clippy::module_inception)]
+#[expect(clippy::module_inception)]
 mod room;
 mod rooms;
 mod sip;

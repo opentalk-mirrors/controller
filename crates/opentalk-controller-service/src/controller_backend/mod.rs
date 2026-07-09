@@ -129,7 +129,7 @@ pub struct ControllerBackend {
 
 impl ControllerBackend {
     /// Create a new [`ControllerBackend`].
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub fn new(
         settings_provider: SettingsProvider,
         authorizer: Authorizer,

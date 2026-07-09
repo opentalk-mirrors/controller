@@ -205,7 +205,7 @@ pub async fn get_all_events_with_invitee(
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
-#[allow(clippy::type_complexity)]
+#[expect(clippy::type_complexity)]
 pub async fn get_with_related_items(
     conn: &mut DbConnection,
     user_id: UserId,
@@ -266,7 +266,6 @@ pub async fn get_with_related_items(
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
-#[allow(clippy::type_complexity)]
 pub async fn get_with_room(
     conn: &mut DbConnection,
     event_id: EventId,
@@ -296,7 +295,7 @@ pub async fn get_with_room(
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
-#[allow(clippy::too_many_arguments, clippy::type_complexity)]
+#[expect(clippy::too_many_arguments)]
 pub async fn get_all_events_for_user_paginated_as_stream(
     conn: &mut DbConnection,
     user: User,
@@ -487,7 +486,7 @@ pub async fn get_all_events_for_user_paginated_as_stream(
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
-#[allow(clippy::too_many_arguments, clippy::type_complexity)]
+#[expect(clippy::too_many_arguments)]
 pub async fn get_all_events_exceptions_for_user_paginated_as_stream(
     conn: &mut DbConnection,
     user: User,
@@ -705,7 +704,7 @@ pub async fn get_all_events_for_user(
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
-#[allow(clippy::too_many_arguments, clippy::type_complexity)]
+#[expect(clippy::too_many_arguments, clippy::type_complexity)]
 pub async fn get_all_events_for_user_paginated(
     conn: &mut DbConnection,
     user: User,

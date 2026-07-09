@@ -80,7 +80,7 @@ pub(crate) mod shared_folder;
 const LOCAL_DT_FORMAT: &str = "%Y%m%dT%H%M%S";
 const ONE_HUNDRED_YEARS_IN_DAYS: usize = 36525;
 
-#[allow(clippy::large_enum_variant, clippy::type_complexity)]
+#[expect(clippy::large_enum_variant, clippy::type_complexity)]
 enum InternalEventOrException {
     Event(
         (
@@ -424,7 +424,7 @@ impl ControllerBackend {
         Ok(items)
     }
 
-    #[allow(clippy::type_complexity)]
+    #[expect(clippy::type_complexity)]
     async fn build_event_resource(
         &self,
         inventory: &mut dyn Inventory,
@@ -1439,7 +1439,7 @@ struct MailResource {
 }
 
 /// Part of `POST /events` endpoint
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 async fn create_time_independent_event(
     settings: &Settings,
     inventory: &mut dyn Inventory,
@@ -1533,7 +1533,7 @@ async fn create_time_independent_event(
 }
 
 /// Part of `POST /events` endpoint
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 async fn create_time_dependent_event(
     settings: &Settings,
     inventory: &mut dyn Inventory,

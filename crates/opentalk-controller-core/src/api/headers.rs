@@ -19,7 +19,7 @@ pub(crate) enum WebsocketUpgrade {
 #[into_params(
     parameter_in = Header,
 )]
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) struct SignalingProtocolHeaders {
     #[param(
         rename = "Sec-WebSocket-Protocol",

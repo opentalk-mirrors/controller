@@ -509,7 +509,7 @@ impl ControllerBackend {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 async fn create_user_event_invite(
     settings: &Settings,
     mut inventory: Box<dyn Inventory>,
@@ -600,7 +600,7 @@ async fn create_user_event_invite(
 /// Checks first if a user exists with the email address in our database and creates a regular invite,
 /// else checks if the email is registered with the Keycloak (or external invitee support is configured)
 /// and then creates an email invite
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 async fn create_email_event_invite(
     settings: &Settings,
     inventory_provider: &dyn InventoryProvider,
@@ -613,7 +613,7 @@ async fn create_email_event_invite(
     email_invite: EmailInvite,
     mail_service: &Option<MailService>,
 ) -> Result<bool, CaptureApiError> {
-    #[allow(clippy::large_enum_variant)]
+    #[expect(clippy::large_enum_variant)]
     enum UserState {
         ExistsAndIsAlreadyInvited,
         ExistsAndWasInvited {
@@ -775,7 +775,7 @@ async fn create_email_event_invite(
 /// Invite a given email to the event.
 /// Will check if the email exists in Keycloak and sends an "unregistered" email invite
 /// or (if configured) sends an "external" email invite to the given email address
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 async fn create_invite_to_non_matching_email(
     settings: &Settings,
     inventory_provider: &dyn InventoryProvider,

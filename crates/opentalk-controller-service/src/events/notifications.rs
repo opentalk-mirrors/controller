@@ -46,7 +46,7 @@ pub struct UpdateNotificationValues {
 }
 
 /// Notifies the invitees of an event belonging to the specified room
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub async fn notify_event_invitees_by_room_about_update(
     user_search_client: &Option<KeycloakAdminClient>,
     settings: &Settings,
@@ -98,7 +98,7 @@ pub async fn notify_event_invitees_by_room_about_update(
 }
 
 /// Notifies the invitees of an event about updates
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub async fn notify_event_invitees_about_update(
     user_search_client: &Option<KeycloakAdminClient>,
     settings: &Settings,

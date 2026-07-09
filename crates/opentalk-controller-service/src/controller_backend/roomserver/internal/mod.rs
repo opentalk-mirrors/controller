@@ -69,7 +69,7 @@ pub(crate) struct InternalRoomServer {
 
 impl InternalRoomServer {
     /// Create a new internal roomserver backend
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub fn new(
         room_tasks: RoomTaskRegistry<WebSocketAdapter>,
         settings_provider: SettingsProvider,

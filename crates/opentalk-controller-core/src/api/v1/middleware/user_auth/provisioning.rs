@@ -171,7 +171,6 @@ fn map_tariff_status_name(mapping: &TariffStatusMapping, name: &String) -> Tarif
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 async fn create_or_update_user(
     inventory: &mut dyn Inventory,
     tenant: Tenant,

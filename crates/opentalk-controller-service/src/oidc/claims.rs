@@ -48,26 +48,26 @@ impl jwt::VerifyClaims for OnlyExpiryClaim {
 #[derive(Deserialize, Debug)]
 pub struct JWTAccessTokenClaims {
     /// Issuer (URL to the OIDC Provider)
-    #[allow(unused)]
+    #[expect(unused)]
     pub iss: String,
     /// Expires at
     #[serde(with = "time")]
     pub exp: DateTime<Utc>,
     /// Audience claim
-    #[allow(unused)]
+    #[expect(unused)]
     pub aud: String,
     /// Subject
     pub sub: String,
     /// Client identifier
     /// For some reason Keycloak does not include this claim in the JWT access token
-    // #[allow(unused)]
+    // #[expect(unused)]
     // pub client_id: String,
     /// Issued at
-    #[allow(unused)]
+    #[expect(unused)]
     #[serde(with = "time")]
     pub iat: DateTime<Utc>,
     // JWT ID
-    #[allow(unused)]
+    #[expect(unused)]
     pub jti: String,
 }
 
@@ -85,22 +85,22 @@ impl jwt::VerifyClaims for JWTAccessTokenClaims {
 #[derive(Deserialize, Debug)]
 pub struct JWTLogoutTokenClaims {
     /// Issuer (URL to the OIDC Provider)
-    #[allow(unused)]
+    #[expect(unused)]
     pub iss: String,
     /// Expires at
     #[serde(with = "time")]
     pub exp: DateTime<Utc>,
     /// Audience claim
-    #[allow(unused)]
+    #[expect(unused)]
     pub aud: String,
     /// Subject
     pub sub: String,
     /// Issued at
-    #[allow(unused)]
+    #[expect(unused)]
     #[serde(with = "time")]
     pub iat: DateTime<Utc>,
     // JWT ID
-    #[allow(unused)]
+    #[expect(unused)]
     pub jti: String,
     // Events claim
     pub events: HashMap<String, serde_json::Value>,
@@ -119,11 +119,11 @@ pub struct ServiceClaims {
     #[serde(with = "time")]
     pub exp: DateTime<Utc>,
     /// Issued at
-    #[allow(unused)]
+    #[expect(unused)]
     #[serde(with = "time")]
     pub iat: DateTime<Utc>,
     /// Issuer (URL to the OIDC Provider)
-    #[allow(unused)]
+    #[expect(unused)]
     pub iss: String,
     /// Keycloak realm management
     pub realm_access: RealmAccess,
