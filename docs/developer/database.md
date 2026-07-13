@@ -18,16 +18,6 @@ assets {
     bigint size
     timestamp_with_time_zone updated_at
 }
-casbin_rule {
-    integer id PK
-    character_varying ptype
-    character_varying v0
-    character_varying v1
-    character_varying v2
-    character_varying v3
-    character_varying v4
-    character_varying v5
-}
 event_dates {
     uuid event_id PK,FK
     integer duration_secs

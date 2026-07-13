@@ -21,22 +21,6 @@ diesel::table! {
 diesel::table! {
     use crate::sql_types::*;
 
-    casbin_rule (id) {
-        id -> Int4,
-        #[max_length = 12]
-        ptype -> Varchar,
-        v0 -> Varchar,
-        v1 -> Varchar,
-        v2 -> Varchar,
-        v3 -> Varchar,
-        v4 -> Varchar,
-        v5 -> Varchar,
-    }
-}
-
-diesel::table! {
-    use crate::sql_types::*;
-
     event_dates (event_id) {
         event_id -> Uuid,
         starts_at -> Timestamptz,
@@ -438,7 +422,6 @@ diesel::joinable!(users -> tenants (tenant_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     assets,
-    casbin_rule,
     event_dates,
     event_email_invites,
     event_exceptions,

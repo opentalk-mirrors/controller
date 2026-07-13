@@ -96,7 +96,7 @@ pub fn setup_logging() -> Result<(), Whatever> {
         .whatever_context("Failed to setup logging utility")
 }
 
-/// Creates a new [`ModuleTester`] with two users
+/// Creates a new tuple with two users
 pub async fn setup_users(test_ctx: &TestContext) -> (User, User) {
     let waiting_room = false;
 
