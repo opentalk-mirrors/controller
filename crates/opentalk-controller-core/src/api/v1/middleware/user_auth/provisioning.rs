@@ -316,6 +316,6 @@ fn build_info_display_name(info: &OpenIdConnectUserInfo) -> DisplayName {
         &info
             .display_name
             .clone()
-            .unwrap_or_else(|| format!("{} {}", &info.firstname, &info.lastname)),
+            .unwrap_or_else(|| format!("{} {}", info.firstname, info.lastname)),
     )
 }

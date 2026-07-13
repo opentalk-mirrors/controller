@@ -232,6 +232,9 @@ ignore = [
   # (via syntect -> plist -> two-face). We have to wait until typst-library
   # updates its dependency tree to receive a compatible version.
   "RUSTSEC-2026-0195",
+
+  # `rustybuzz` is unmaintained
+  "RUSTSEC-2026-0206",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
