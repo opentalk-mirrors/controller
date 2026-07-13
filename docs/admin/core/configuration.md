@@ -16,7 +16,6 @@ environment. It reads the settings in this order:
 
 Functionality that can be configured through the configuration file:
 
-- [Authz](../advanced/acl.md)
 - [Call-in](../advanced/call_in.md)
 - [Database](./database.md)
 - [Default and Fallback Values](../advanced/defaults.md)
@@ -381,10 +380,6 @@ service_url = "http://localhost:7880"
 
 #[stun]
 #uris = ["stun:127.0.0.1:3478"]
-
-#[authorization]
-# Should the controller publish/receive ACL changes via RabbitMQ to/from other controllers
-#synchronize_controllers = true
 
 #[call_in]
 # Set a phone number which will be displayed to the user

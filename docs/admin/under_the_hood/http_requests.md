@@ -21,8 +21,8 @@ flowchart TD;
   IsService -- yes --> ServiceAuth>Service authentication middleware];
   ServiceAuth --> ServiceEndpoints[[Service endpoint handlers]];
   IsService -- no --> OIDC>OIDC middleware];
-  OIDC --> ACL>ACL middleware];
-  ACL--> AuthenticatedApiEndpoints[[Authenticated API endpoint handlers]];
+  OIDC --> Authorization>Authorization middleware];
+  Authorization--> AuthenticatedApiEndpoints[[Authenticated API endpoint handlers]];
 ```
 
 ## Details
@@ -106,8 +106,14 @@ participants when no OIDC token is provided.
 ### Authorization middleware
 
 The authorization middleware enforces access rules to the authenticated
-endpoints. When an endpoint is not allowed for access, the corresponding HTTP
-error status code is returned.
+endpoints. For each request it classifies the target endpoint as a resource
+(e.g. a specific event or room) and asks the controller whether any of the
+authenticated subjects — the logged-in user, a guest presenting an invite
+code, or both — is allowed to access it with the requested HTTP method.
+Decisions are computed on demand from the controller database, so no ACL
+cache is kept and no synchronisation between controllers is required. When an
+endpoint is not allowed for access, the corresponding HTTP error status code
+is returned.
 
 ### Authenticated API endpoint handlers
 

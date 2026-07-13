@@ -14,7 +14,7 @@ title: Controller
 - [Configuration of Different Tariffs and Their Capabilities](./advanced/tariffs.md)
 - [Execution of Maintenance Jobs](./cli/jobs.md)
 - [Modules That can be Used in Meetings](./advanced/modules.md)
-- [ACL Management](./advanced/acl.md)
+- [Access Control](./advanced/acl.md)
 - [Call-In](./advanced/call_in.md)
 - [Default and Fallback Values](./advanced/defaults.md)
 - [Endpoints](./core/endpoints.md)

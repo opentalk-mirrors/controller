@@ -58,5 +58,3 @@ The metrics can be accessed via the `/metrics` endpoint in the [OpenMetrics Text
 | sql_execution_time_seconds_bucket                | histogram |                         | SQL query execution time for whole queries during web operation |
 | sql_errors_total_bucket                          | counter   |                         | Counter of SQL errors                                           |
 | redis_command_execution_time_seconds_bucket      | histogram | command                 | Redis command execution time                                    |
-| kustos_enforce_execution_time_seconds_bucket     | histogram |                         | Kustos enforce execution time                                   |
-| kustos_load_policy_execution_time_seconds_bucket | histogram |                         | Kustos load policy execution time                               |

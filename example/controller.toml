@@ -296,10 +296,6 @@ service_url = "http://localhost:7880"
 #[stun]
 #uris = ["stun:127.0.0.1:3478"]
 
-#[authorization]
-# Should the controller publish/receive ACL changes via RabbitMQ to/from other controllers
-#synchronize_controllers = true
-
 #[call_in]
 # Set a phone number which will be displayed to the user
 # for the call-in service

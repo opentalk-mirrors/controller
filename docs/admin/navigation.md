@@ -26,7 +26,7 @@
         - [OIDC Authentication Flow](under_the_hood/oidc_auth.md)
         - [Participant Lifecycle and States](under_the_hood/participant_states.md)
 - Advanced Configuration
-    - [ACL Management](advanced/acl.md)
+    - [Access Control](advanced/acl.md)
     - Additional Services
         - [Meeting Minutes (EtherPad)](advanced/additional_services/etherpad.md)
         - [Whiteboard (Spacedeck)](advanced/additional_services/spacedeck.md)
