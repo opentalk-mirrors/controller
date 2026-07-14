@@ -111,8 +111,12 @@ mod tests {
     use super::{UserCleanup, default_days_since_user_has_been_disabled};
     use crate::{
         Job as _,
-        jobs::test_utils::{
-            create_generic_test_event, create_generic_test_invite, create_generic_test_room,
+        jobs::{
+            test_utils::{
+                RecordingStopRoomBackend, create_generic_test_event, create_generic_test_invite,
+                create_generic_test_room,
+            },
+            user_cleanup::UserCleanupParameters,
         },
     };
 
@@ -291,5 +295,57 @@ mod tests {
             .iter()
             .any(|u| u.id == inviter.id);
         assert!(!user_exists, "User was not successfully cleaned up");
+    }
+
+    #[ignore = "database and minio/s3 storage are required for this test"]
+    #[actix_rt::test]
+    #[serial_test::serial]
+    async fn user_cleanup_deletes_events_and_rooms() {
+        let settings_provider = SettingsProvider::load_from_path_or_standard_paths(Some(
+            Path::new("../../example/controller.toml"),
+        ))
+        .unwrap();
+        let settings = settings_provider.get();
+
+        let db_ctx = DatabaseContext::new(false).await;
+        let mut inventory = db_ctx.inventory_provider.get_inventory().await.unwrap();
+
+        let user = db_ctx.create_test_user(0, vec![]).await.unwrap();
+        let event = create_generic_test_event(inventory.as_mut(), &user, false).await;
+
+        let disabled_since = Utc::now()
+            .checked_sub_days(Days::new(default_days_since_user_has_been_disabled() + 1))
+            .unwrap();
+        let user = set_disabled_since(inventory.as_mut(), user.id, disabled_since).await;
+
+        let authorizer = Authorizer::new(OpenTalkAuthorizerBackend::new(
+            db_ctx.inventory_provider.clone(),
+            settings_provider.clone(),
+            BTreeMap::new(),
+        ));
+        let room_delete_backend = RecordingStopRoomBackend::default();
+
+        UserCleanup::execute(
+            logger(),
+            db_ctx.inventory_provider.clone(),
+            authorizer,
+            &room_delete_backend,
+            &settings,
+            UserCleanupParameters {
+                days_since_user_has_been_disabled: 0,
+                fail_on_shared_folder_deletion_error: false,
+            },
+        )
+        .await
+        .unwrap();
+
+        let events = inventory
+            .get_all_event_and_room_ids_created_by_user_including_disabled(user.id)
+            .await
+            .unwrap();
+        assert_eq!(events, vec![]);
+
+        let deleted_rooms = room_delete_backend.deleted_rooms.lock().unwrap();
+        assert_eq!(*deleted_rooms, vec![event.room]);
     }
 }

@@ -28,6 +28,7 @@ use crate::deletion::{
 #[derive(Debug)]
 pub struct EventDeleter {
     event_id: EventId,
+    room_id: RoomId,
     fail_on_shared_folder_deletion_error: bool,
 }
 
@@ -38,9 +39,14 @@ impl EventDeleter {
     /// as a shared folder can not be deleted from the external storage system.
     ///
     /// Otherwise just warnings will be logged, but the deletion is considered successful.
-    pub fn new(event_id: EventId, fail_on_shared_folder_deletion_error: bool) -> Self {
+    pub fn new(
+        event_id: EventId,
+        room_id: RoomId,
+        fail_on_shared_folder_deletion_error: bool,
+    ) -> Self {
         Self {
             event_id,
+            room_id,
             fail_on_shared_folder_deletion_error,
         }
     }
@@ -126,14 +132,11 @@ impl Deleter for EventDeleter {
         &self,
         prepared_commit: &Self::PreparedCommit,
         logger: &dyn Log,
-        inventory: &mut dyn Inventory,
+        _inventory: &mut dyn Inventory,
         stop_room_backend: &dyn StopRoomBackend,
         settings: &Settings,
     ) -> Result<(), Error> {
-        let event = inventory.get_event(self.event_id).await?;
-        let room_id = event.room;
-
-        stop_room_backend.stop_room(room_id).await?;
+        stop_room_backend.stop_room(self.room_id).await?;
 
         delete_shared_folders(
             logger,
@@ -154,8 +157,7 @@ impl Deleter for EventDeleter {
         debug!(log: logger, "Deleting all database resources");
 
         let event_id = self.event_id;
-        let event = inventory.get_event(event_id).await?;
-        let room_id = event.room;
+        let room_id = self.room_id;
 
         let transaction_result: Result<Vec<AssetId>, Error> =
             transaction(inventory, async |inventory| {

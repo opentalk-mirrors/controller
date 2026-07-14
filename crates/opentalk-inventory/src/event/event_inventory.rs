@@ -69,19 +69,22 @@ pub trait EventInventory {
     async fn get_all_events_updated_by_user(&mut self, user: UserId) -> Result<Vec<Event>>;
 
     /// Get the ids of all ad-hoc events that were created before a timestamp.
-    async fn get_all_adhoc_event_ids_created_before(
+    async fn get_all_adhoc_event_and_room_ids_created_before(
         &mut self,
         created_before: Timestamp,
-    ) -> Result<Vec<EventId>>;
+    ) -> Result<Vec<(EventId, RoomId)>>;
 
     /// Get all scheduled events that ended before a specific timestamp.
-    async fn get_all_scheduled_event_ids_ended_before(
+    async fn get_all_scheduled_event_and_room_ids_ended_before(
         &mut self,
         ended_before: Timestamp,
-    ) -> Result<Vec<EventId>>;
+    ) -> Result<Vec<(EventId, RoomId)>>;
 
     /// Get the event ids for all events created by a specific user.
-    async fn get_all_event_ids_created_by_user(&mut self, user_id: UserId) -> Result<Vec<EventId>>;
+    async fn get_all_event_and_room_ids_created_by_user_including_disabled(
+        &mut self,
+        user_id: UserId,
+    ) -> Result<Vec<(EventId, RoomId)>>;
 
     /// Get all finite recurring events.
     async fn get_all_finite_recurring_events(&mut self) -> Result<Vec<Event>>;
