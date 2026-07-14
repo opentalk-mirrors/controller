@@ -2,7 +2,11 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! API endpoints under `v1/rooms/{room_id_or_alias}/start_invited`
+//! API endpoints under `v1/rooms/{room_id}/start_invited`
+//!
+//! Starting a session with an invitation code has been removed. This endpoint
+//! is kept for backwards compatibility and permanently redirects to
+//! `v1/rooms/{room_id}/start`.
 
 use actix_web::{HttpResponse, http::header, post, web::Path};
 use opentalk_types_common::rooms::{RoomId, RoomIdOrAlias};

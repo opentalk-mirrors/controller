@@ -41,3 +41,15 @@ impl Responder for NotModified {
         HttpResponse::NotModified().finish()
     }
 }
+
+/// Represents a 410 Gone HTTP Response for endpoints that have been removed
+#[derive(Debug)]
+pub struct Gone;
+
+impl Responder for Gone {
+    type Body = BoxBody;
+
+    fn respond_to(self, _: &actix_web::HttpRequest) -> HttpResponse {
+        HttpResponse::Gone().finish()
+    }
+}

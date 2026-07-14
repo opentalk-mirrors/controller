@@ -8,10 +8,9 @@ use opentalk_types_common::{
     features::{CALL_IN_MODULE_FEATURE_ID, GUESTS_ALLOWED_MODULE_FEATURE_ID, ModuleFeatureId},
     rooms::GuestAccess,
     tariffs::TariffResource,
-    time::Timestamp,
 };
 
-use crate::{Inventory, Result, Room, RoomInvite};
+use crate::Room;
 
 /// Why call-in is unavailable for a room
 #[derive(Debug)]
@@ -30,7 +29,7 @@ pub fn check_call_in(
     e2e_encryption: bool,
     guest_access: GuestAccess,
     tariff: &TariffResource,
-) -> std::result::Result<(), CallInUnavailable> {
+) -> Result<(), CallInUnavailable> {
     if e2e_encryption {
         return Err(CallInUnavailable::E2eEnabled);
     }
@@ -65,20 +64,9 @@ pub fn is_call_in_allowed(room: &Room, tariff: &TariffResource) -> bool {
     check_call_in(room.e2e_encryption, room.guest_access, tariff).is_ok()
 }
 
-/// Checks if the given `invite` is valid for the given `room` and `tariff`.
-pub fn is_invite_valid(invite: &RoomInvite, room: &Room, tariff: &TariffResource) -> bool {
-    invite.active
-        && invite.room == room.id
-        && invite
-            .expiration
-            .is_none_or(|expiration| expiration > Timestamp::now())
-        && is_room_guest_access_allowed(room, tariff)
-}
-
 /// Checks if guest access is allowed for a given `room` and `tariff`.
 ///
-/// This only checks if guests are allowed in the room in general. For verifying access with an invite code use
-/// [`is_invite_valid`] instead.
+/// This only checks if guests are allowed in the room in general.
 pub fn is_room_guest_access_allowed(room: &Room, tariff: &TariffResource) -> bool {
     !room.e2e_encryption
         && !room.guest_access.is_disabled()
@@ -88,41 +76,21 @@ pub fn is_room_guest_access_allowed(room: &Room, tariff: &TariffResource) -> boo
         )
 }
 
-/// Get a valid invite for a room.
-///
-/// Returns `Ok(Some(RoomInvite))` when guest access is allowed for the room and a valid invite exists.
-/// Returns `Ok(None)` when guest access is not allowed or no valid invite exists.
-///
-/// # Errors
-///
-/// Returns an [`Error`](crate::Error) if querying the inventory for the room's active invite fails (database error).
-pub async fn get_valid_invite_for_room(
-    inventory: &mut dyn Inventory,
-    room: &Room,
-    tariff: &TariffResource,
-) -> Result<Option<RoomInvite>> {
-    if is_room_guest_access_allowed(room, tariff) {
-        inventory.get_active_invite_for_room(room.id).await
-    } else {
-        Ok(None)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::{BTreeMap, BTreeSet};
 
     use opentalk_types_common::{
         features::{CALL_IN_MODULE_FEATURE_ID, GUESTS_ALLOWED_MODULE_FEATURE_ID},
-        rooms::{GuestAccess, RoomId, invite_codes::InviteCode},
+        rooms::{GuestAccess, RoomId},
         tariffs::{TariffId, TariffModuleResource, TariffResource},
         tenants::TenantId,
         time::Timestamp,
         users::UserId,
     };
 
-    use super::{is_invite_valid, is_room_guest_access_allowed};
-    use crate::{Room, RoomInvite, utils::is_call_in_allowed};
+    use super::is_room_guest_access_allowed;
+    use crate::{Room, utils::is_call_in_allowed};
 
     #[test]
     fn call_in() {
@@ -188,83 +156,6 @@ mod tests {
         };
         assert!(!is_call_in_allowed(
             &guest_access_disabled_room,
-            &allowed_tariff
-        ));
-    }
-
-    #[test]
-    fn invite_valid() {
-        let allowed_room = Room {
-            id: RoomId::nil(),
-            id_serial: 0,
-            created_by: UserId::nil(),
-            created_at: Timestamp::unix_epoch(),
-            password: None,
-            waiting_room: true,
-            guest_access: GuestAccess::WaitingRoom,
-            tenant_id: TenantId::nil(),
-            e2e_encryption: false,
-            alias: None,
-        };
-        let allowed_tariff = TariffResource {
-            id: TariffId::nil(),
-            name: "Guest Feature Enabled".to_owned(),
-            quotas: BTreeMap::new(),
-            modules: BTreeMap::from_iter([(
-                GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
-                TariffModuleResource {
-                    features: BTreeSet::from([GUESTS_ALLOWED_MODULE_FEATURE_ID.feature]),
-                },
-            )]),
-        };
-        let valid_invite = RoomInvite {
-            invite_code: InviteCode::nil(),
-            id_serial: 0,
-            created_by: UserId::nil(),
-            created_at: Timestamp::unix_epoch(),
-            updated_by: UserId::nil(),
-            updated_at: Timestamp::unix_epoch(),
-            room: RoomId::nil(),
-            active: true,
-            expiration: None,
-        };
-        assert!(is_invite_valid(
-            &valid_invite,
-            &allowed_room,
-            &allowed_tariff
-        ));
-
-        let valid_invite = RoomInvite {
-            invite_code: InviteCode::nil(),
-            id_serial: 0,
-            created_by: UserId::nil(),
-            created_at: Timestamp::unix_epoch(),
-            updated_by: UserId::nil(),
-            updated_at: Timestamp::unix_epoch(),
-            room: RoomId::nil(),
-            active: false,
-            expiration: None,
-        };
-        assert!(!is_invite_valid(
-            &valid_invite,
-            &allowed_room,
-            &allowed_tariff
-        ));
-
-        let expired_invite = RoomInvite {
-            invite_code: InviteCode::nil(),
-            id_serial: 0,
-            created_by: UserId::nil(),
-            created_at: Timestamp::unix_epoch(),
-            updated_by: UserId::nil(),
-            updated_at: Timestamp::unix_epoch(),
-            room: RoomId::nil(),
-            active: true,
-            expiration: Some(Timestamp::unix_epoch()),
-        };
-        assert!(!is_invite_valid(
-            &expired_invite,
-            &allowed_room,
             &allowed_tariff
         ));
     }

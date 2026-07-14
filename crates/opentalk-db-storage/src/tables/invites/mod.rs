@@ -6,10 +6,6 @@
 
 mod invite;
 mod invite_code_serial_id;
-mod new_invite;
-mod update_invite;
 
 pub use invite::Invite;
 pub use invite_code_serial_id::InviteCodeSerialId;
-pub use new_invite::NewInvite;
-pub use update_invite::UpdateInvite;

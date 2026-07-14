@@ -4,9 +4,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use opentalk_types_common::{
-    events::invites::InviteRole, rooms::invite_codes::InviteCode, time::Timestamp, users::UserId,
-};
+use opentalk_types_common::{events::invites::InviteRole, users::UserId};
 
 use crate::authorization::Subject;
 
@@ -31,28 +29,9 @@ impl SubjectCollection {
             .iter()
             .filter_map(|s| match s {
                 Subject::User(id) => Some(id),
-                Subject::InviteCode(_) => None,
+                Subject::Unauthenticated => None,
             })
             .any(|id| users.contains_key(id))
-    }
-
-    /// Query whether the subject collection contains any of the invite codes that are not expired in a `BTreeMap`.
-    pub fn contains_any_valid_invite_code(
-        &self,
-        invites: &BTreeMap<InviteCode, Option<Timestamp>>,
-    ) -> bool {
-        let now = Timestamp::now();
-        self.0
-            .iter()
-            .filter_map(|s| match s {
-                Subject::User(_) => None,
-                Subject::InviteCode(code) => Some(code),
-            })
-            .any(|code| {
-                invites
-                    .get(code)
-                    .is_some_and(|expiration| expiration.is_none_or(|expiration| expiration > now))
-            })
     }
 
     /// Query whether any of the users in the subject collection has a role equal or higher in a
@@ -78,16 +57,20 @@ impl FromIterator<Subject> for SubjectCollection {
 pub(super) mod actix_web_impls {
 
     use actix_web::{HttpMessage, dev::ServiceRequest};
-    use opentalk_types_common::{rooms::invite_codes::InviteCode, users::UserId};
+    use opentalk_types_common::users::UserId;
 
     use super::*;
 
     impl From<&ServiceRequest> for SubjectCollection {
         fn from(req: &ServiceRequest) -> Self {
-            let maybe_invite_code = req.extensions().get::<InviteCode>().map(Subject::from);
             let maybe_user_id = req.extensions().get::<UserId>().map(Subject::from);
 
-            Self(maybe_invite_code.into_iter().chain(maybe_user_id).collect())
+            Self(
+                [maybe_user_id, Some(Subject::Unauthenticated)]
+                    .into_iter()
+                    .flatten()
+                    .collect(),
+            )
         }
     }
 }

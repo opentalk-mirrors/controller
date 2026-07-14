@@ -19,10 +19,7 @@ use opentalk_types_common::{
 use crate::{
     paginate::Paginate as _,
     schema::{invites, users},
-    tables::{
-        invites::{Invite, NewInvite, UpdateInvite},
-        users::User,
-    },
+    tables::{invites::Invite, users::User},
 };
 
 pub type InviteWithUsers = (Invite, User, User);
@@ -90,8 +87,7 @@ pub async fn get_all_for_room_paginated(
 /// Returns an active (enabled and not expired) invite for a given room, if there is any.
 ///
 /// Note: this does not check whether guest access is actually permitted for the
-/// room. Use [`opentalk_inventory::utils::get_valid_invite_for_room`] when a
-/// room-valid invite is required.
+/// room.
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_active_invite_for_room(
     conn: &mut DbConnection,
@@ -168,35 +164,6 @@ pub async fn get_room_invites_paginated_with_creator_and_updater(
             .collect::<Vec<_>>(),
         total,
     ))
-}
-
-/// Get the first invite for a room or create one.
-///
-/// If no invite is found for the room, a new invite will be created.
-/// The caller of this function must take care to create access rules
-/// because this crate does not have access to that functionality.
-pub async fn get_or_create_valid_invite_for_room(
-    conn: &mut DbConnection,
-    room_id: RoomId,
-    user_id: UserId,
-) -> Result<Invite> {
-    let invite_for_room = get_active_invite_for_room(conn, room_id, Utc::now()).await?;
-
-    if let Some(invite) = invite_for_room {
-        return Ok(invite);
-    }
-
-    diesel::insert_into(invites::table)
-        .values(NewInvite {
-            active: true,
-            created_by: user_id,
-            updated_by: user_id,
-            room: room_id,
-            expiration: None,
-        })
-        .get_result(conn)
-        .await
-        .map_err(DatabaseError::from)
 }
 
 /// Returns a paginated view on invites for the given room
@@ -287,35 +254,6 @@ pub async fn get_room_invites_updated_by(
     invites::table
         .filter(invites::updated_by.eq(user_id))
         .load(conn)
-        .await
-        .map_err(DatabaseError::from)
-}
-
-#[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn create_room_invite(conn: &mut DbConnection, new_invite: NewInvite) -> Result<Invite> {
-    diesel::insert_into(invites::table)
-        .values(new_invite)
-        .get_result(conn)
-        .await
-        .map_err(DatabaseError::from)
-}
-
-#[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn update_room_invite(
-    conn: &mut DbConnection,
-    update_invite: UpdateInvite,
-    room_id: RoomId,
-    invite_code_id: InviteCode,
-) -> Result<Invite> {
-    diesel::update(invites::table)
-        .filter(
-            invites::id
-                .eq(invite_code_id)
-                .and(invites::room.eq(room_id)),
-        )
-        .set(update_invite)
-        .returning(invites::all_columns)
-        .get_result(conn)
         .await
         .map_err(DatabaseError::from)
 }

@@ -70,10 +70,7 @@ use opentalk_types_api_v1::{
             GetRoomEventResponseBody, PostRoomsRoomserverStartRequestBody,
             RoomserverStartResponseBody,
             assets::RoomsByRoomIdAssetsGetResponseBody,
-            invites::{
-                GetRoomsInvitesResponseBody, InviteResource, PostInviteRequestBody,
-                PostInviteVerifyRequestBody, PostInviteVerifyResponseBody, PutInviteRequestBody,
-            },
+            invites::{PostInviteVerifyRequestBody, PostInviteVerifyResponseBody},
             sip::{PutSipConfigRequestBody, SipConfigResource},
             streaming_targets::{
                 GetRoomStreamingTargetResponseBody, GetRoomStreamingTargetsResponseBody,
@@ -95,7 +92,7 @@ use opentalk_types_common::{
     features::FeatureId,
     modules::ModuleId,
     pagination::{ItemCount, Page, PageSize},
-    rooms::{GuestAccess, RoomIdOrAlias, RoomName, RoomPassword, invite_codes::InviteCode},
+    rooms::{GuestAccess, RoomIdOrAlias, RoomName, RoomPassword},
     shared_folders::SharedFolder,
     streaming::StreamingTarget,
     tariffs::TariffResource,
@@ -574,56 +571,6 @@ impl OpenTalkControllerService for ControllerBackend {
         event_id: EventId,
     ) -> Result<(), ApiError> {
         Ok(self.decline_event_invite(user_id, event_id).await?)
-    }
-
-    async fn create_invite(
-        &self,
-        current_user: RequestUser,
-        room_id_or_alias: RoomIdOrAlias,
-        new_invite: PostInviteRequestBody,
-    ) -> Result<InviteResource, ApiError> {
-        Ok(self
-            .create_invite(current_user, room_id_or_alias, new_invite)
-            .await?)
-    }
-
-    async fn get_invites(
-        &self,
-        room_id_or_alias: RoomIdOrAlias,
-        pagination: &PagePaginationQuery,
-    ) -> Result<(GetRoomsInvitesResponseBody, ItemCount), ApiError> {
-        Ok(self.get_invites(room_id_or_alias, pagination).await?)
-    }
-
-    async fn get_invite(
-        &self,
-        room_id_or_alias: RoomIdOrAlias,
-        invite_code: InviteCode,
-    ) -> Result<InviteResource, ApiError> {
-        Ok(self.get_invite(room_id_or_alias, invite_code).await?)
-    }
-
-    async fn update_invite(
-        &self,
-        current_user: RequestUser,
-        room_id_or_alias: RoomIdOrAlias,
-        invite_code: InviteCode,
-        body: PutInviteRequestBody,
-    ) -> Result<InviteResource, ApiError> {
-        Ok(self
-            .update_invite(current_user, room_id_or_alias, invite_code, body)
-            .await?)
-    }
-
-    async fn delete_invite(
-        &self,
-        current_user: RequestUser,
-        room_id_or_alias: RoomIdOrAlias,
-        invite_code: InviteCode,
-    ) -> Result<(), ApiError> {
-        Ok(self
-            .delete_invite(current_user, room_id_or_alias, invite_code)
-            .await?)
     }
 
     async fn verify_invite_code(

@@ -18,12 +18,10 @@ impl OpenTalkAuthorizerBackend {
     /// intentionally ignored here — visibility of any specific profile is enforced by the
     /// service layer, not by the authorizer.
     ///
-    /// ```text
-    /// | Subject                 | Access |
-    /// | ----------------------- | ------ |
-    /// | **User**                | r-     |
-    /// | **Invite-Code**         | --     |
-    /// ```
+    /// | Subject    | Access |
+    /// | ---------- | ------ |
+    /// | **User**   | r-     |
+    /// | **Guest**  | --     |
     ///
     /// [`UserProfile`]: opentalk_controller_api_authorization::authorization::Resource::UserProfile
     pub(crate) fn authorize_user_profile(
@@ -46,7 +44,7 @@ mod tests {
     };
     use opentalk_controller_settings::test_util;
     use opentalk_inventory::MockInventoryProvider;
-    use opentalk_types_common::{rooms::invite_codes::InviteCode, users::UserId};
+    use opentalk_types_common::users::UserId;
     use pretty_assertions::assert_eq;
     use rstest::rstest;
 
@@ -54,12 +52,11 @@ mod tests {
 
     const USER_ID: UserId = UserId::from_u128(0x0001);
     const TARGET_USER_ID: UserId = UserId::from_u128(0x0003);
-    const INVITE_CODE: InviteCode = InviteCode::from_u128(0x0002);
 
     #[tokio::test]
     #[rstest]
-    #[case::user_get(Get, Allowed)]
-    #[case::user_post(Post, Denied)]
+    #[case::get(Get, Allowed)]
+    #[case::post(Post, Denied)]
     async fn user(#[case] access_method: AccessMethod, #[case] expected_admission: Admission) {
         let inventory_provider = MockInventoryProvider::new();
         let authorizer = OpenTalkAuthorizerBackend::new(
@@ -80,9 +77,9 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case::invite_code_get(Get, Denied)]
-    #[case::invite_code_post(Post, Denied)]
-    async fn invite_code(
+    #[case::get(Get, Denied)]
+    #[case::post(Post, Denied)]
+    async fn unauthenticated(
         #[case] access_method: AccessMethod,
         #[case] expected_admission: Admission,
     ) {
@@ -94,7 +91,7 @@ mod tests {
         );
         let admission = authorizer
             .authorize(AuthorizationTarget {
-                authenticated_subjects: SubjectCollection::from_iter([Subject::from(INVITE_CODE)]),
+                authenticated_subjects: SubjectCollection::from_iter([Subject::Unauthenticated]),
                 resource: Resource::UserProfile(TARGET_USER_ID),
                 access_method,
             })

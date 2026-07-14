@@ -9,7 +9,7 @@ use opentalk_asset_storage::ObjectStorage;
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::deletion::{Deleter, StopRoomBackend, user::UserDeleter};
-use opentalk_inventory::{Inventory, InventoryProvider, UpdateEvent, UpdateRoomInvite};
+use opentalk_inventory::{Inventory, InventoryProvider, UpdateEvent};
 use opentalk_log::{debug, info, warn};
 use opentalk_types_common::{time::Timestamp, users::UserId};
 use snafu::Report;
@@ -67,7 +67,6 @@ async fn delete_users(
 
     info!(log: logger, "Identified {user_candidate_count} users for deletion");
 
-    invite_replace_updated_by(logger, inventory, &user_candidates).await?;
     event_replace_updated_by(logger, inventory, &user_candidates).await?;
 
     delete_user_events(
@@ -177,36 +176,6 @@ async fn delete_user_events(
     )
     .await;
 
-    Ok(())
-}
-
-async fn invite_replace_updated_by(
-    logger: &dyn Log,
-    inventory: &mut dyn Inventory,
-    user_candidates: &[UserId],
-) -> Result<(), Error> {
-    let mut touched_invites: usize = 0;
-    for &user_id in user_candidates {
-        let invites = inventory.get_room_invites_updated_by(user_id).await?;
-
-        for invite in invites {
-            inventory
-                .update_room_invite(
-                    invite.room,
-                    invite.invite_code,
-                    UpdateRoomInvite {
-                        updated_by: Some(invite.created_by),
-                        updated_at: None,
-                        room: None,
-                        active: None,
-                        expiration: None,
-                    },
-                )
-                .await?;
-            touched_invites += 1;
-        }
-    }
-    debug!(log: logger, "Reset the updated-by value of {} invites.", touched_invites);
     Ok(())
 }
 

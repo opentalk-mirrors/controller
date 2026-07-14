@@ -26,16 +26,12 @@ impl OpenTalkAuthorizerBackend {
     /// they reach the room through the meeting-time `/rooms/{room_id}/start`
     /// endpoint, not through this metadata resource.
     ///
-    /// ```text
-    /// | Subject               | Access |
-    /// |-----------------------|--------|
-    /// | Owner                 | rw     |
-    /// | Moderator             | r-     |
-    /// | User                  | --     |
-    /// | Unrelated User        | --     |
-    /// | Valid Invite Code     | --     |
-    /// | Invalid Invite Code   | --     |
-    /// ```
+    /// | Subject      | Access |
+    /// |--------------|--------|
+    /// | Owner        | rw     |
+    /// | Moderator    | r-     |
+    /// | Invited User | --     |
+    /// | Guest        | --     |
     ///
     /// [`Room`]: opentalk_controller_api_authorization::authorization::Resource::Room
     pub(crate) async fn authorize_room(
@@ -48,7 +44,7 @@ impl OpenTalkAuthorizerBackend {
             owner: Access::ReadWrite,
             moderator: Access::Read,
             invited_user: Access::None,
-            invite_code: Access::None,
+            guest_user: Access::None,
         };
 
         self.apply_acl_for_room(subjects, method, room_id_or_alias, acl)
@@ -69,7 +65,6 @@ mod tests {
     use opentalk_controller_settings::test_util;
     use opentalk_inventory::{
         AuthorizationInventory,
-        AuthorizationInviteCodeValidity::{self, Invalid, Valid},
         AuthorizationUserRole::{self, Invited, Owner, Unrelated},
         MockAuthorizationInventory, MockInventoryProvider,
     };
@@ -81,7 +76,7 @@ mod tests {
     use rstest::rstest;
 
     use super::super::test_utils::{
-        INVITE_CODE, ROOM_ID, USER_ID, create_authorizer_with_role, create_authorizer_with_validity,
+        ROOM_ID, USER_ID, create_authorizer_with_guest_access, create_authorizer_with_role,
     };
     use crate::{
         OpenTalkAuthorizerBackend,
@@ -96,8 +91,10 @@ mod tests {
     #[case::moderator_patch(Invited(Moderator), Patch, Denied)]
     #[case::user_get(Invited(User), Get, Denied)]
     #[case::user_patch(Invited(User), Patch, Denied)]
-    #[case::unrelated_get(Unrelated, Get, Denied)]
-    #[case::unrelated_patch(Unrelated, Patch, Denied)]
+    #[case::unrelated_get(Unrelated { guest_access: false }, Get, Denied)]
+    #[case::unrelated_get(Unrelated { guest_access: true }, Get, Denied)]
+    #[case::unrelated_patch(Unrelated { guest_access: false }, Patch, Denied)]
+    #[case::unrelated_patch(Unrelated { guest_access: true }, Patch, Denied)]
     async fn user(
         #[case] role: AuthorizationUserRole,
         #[case] access_method: AccessMethod,
@@ -117,19 +114,19 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case::valid_get(Valid, Get, Denied)]
-    #[case::valid_patch(Valid, Patch, Denied)]
-    #[case::invalid_get(Invalid, Get, Denied)]
-    #[case::invalid_patch(Invalid, Patch, Denied)]
-    async fn invite_code(
-        #[case] validity: AuthorizationInviteCodeValidity,
+    #[case::guest_access_get(true, Get, Denied)]
+    #[case::guest_access_patch(true, Patch, Denied)]
+    #[case::non_guest_access_get(false, Get, Denied)]
+    #[case::non_guest_access_patch(false, Patch, Denied)]
+    async fn unauthenticated(
+        #[case] guest_access: bool,
         #[case] access_method: AccessMethod,
         #[case] expected_admission: Admission,
     ) {
-        let authorizer = create_authorizer_with_validity(validity);
+        let authorizer = create_authorizer_with_guest_access(guest_access);
         let admission = authorizer
             .authorize(AuthorizationTarget {
-                authenticated_subjects: SubjectCollection::from_iter([Subject::from(INVITE_CODE)]),
+                authenticated_subjects: SubjectCollection::from_iter([Subject::Unauthenticated]),
                 resource: Resource::Room(ROOM_ID.into()),
                 access_method,
             })
@@ -146,8 +143,13 @@ mod tests {
         let mut inventory = MockAuthorizationInventory::new();
         let _ = inventory
             .expect_get_room_user_role()
-            .with(eq(RoomIdOrAlias::from(ROOM_ID)), eq(USER_ID))
-            .return_once(move |_, _| Ok(Invited(Moderator)));
+            .with(
+                eq(RoomIdOrAlias::from(ROOM_ID)),
+                eq(USER_ID),
+                eq(DISABLED_FEATURES),
+                eq(MODULE_FEATURES),
+            )
+            .return_once(move |_, _, _, _| Ok(Invited(Moderator)));
         let inventory: Box<dyn AuthorizationInventory> = Box::new(inventory);
 
         let mut inventory_provider = MockInventoryProvider::new();
@@ -166,7 +168,7 @@ mod tests {
             .authorize(AuthorizationTarget {
                 authenticated_subjects: SubjectCollection::from_iter([
                     Subject::from(USER_ID),
-                    Subject::from(INVITE_CODE),
+                    Subject::Unauthenticated,
                 ]),
                 resource: Resource::Room(ROOM_ID.into()),
                 access_method: Get,
@@ -181,17 +183,25 @@ mod tests {
         let mut inventory = MockAuthorizationInventory::new();
         let _ = inventory
             .expect_get_room_user_role()
-            .with(eq(RoomIdOrAlias::from(ROOM_ID)), eq(USER_ID))
-            .return_once(move |_, _| Ok(Unrelated));
-        let _ = inventory
-            .expect_get_room_invite_code_validity()
             .with(
                 eq(RoomIdOrAlias::from(ROOM_ID)),
-                eq(INVITE_CODE),
+                eq(USER_ID),
                 eq(DISABLED_FEATURES),
                 eq(MODULE_FEATURES),
             )
-            .return_once(move |_, _, _, _| Ok(Invalid));
+            .return_once(move |_, _, _, _| {
+                Ok(Unrelated {
+                    guest_access: false,
+                })
+            });
+        let _ = inventory
+            .expect_get_room_guest_allowed()
+            .with(
+                eq(RoomIdOrAlias::from(ROOM_ID)),
+                eq(DISABLED_FEATURES),
+                eq(MODULE_FEATURES),
+            )
+            .return_once(move |_, _, _| Ok(false));
         let inventory: Box<dyn AuthorizationInventory> = Box::new(inventory);
 
         let mut inventory_provider = MockInventoryProvider::new();
@@ -210,7 +220,7 @@ mod tests {
             .authorize(AuthorizationTarget {
                 authenticated_subjects: SubjectCollection::from_iter([
                     Subject::from(USER_ID),
-                    Subject::from(INVITE_CODE),
+                    Subject::Unauthenticated,
                 ]),
                 resource: Resource::Room(ROOM_ID.into()),
                 access_method: Get,

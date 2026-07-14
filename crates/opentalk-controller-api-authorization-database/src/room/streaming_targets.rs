@@ -23,16 +23,12 @@ impl OpenTalkAuthorizerBackend {
     /// streaming credentials, so the list endpoint is owner-only as
     /// well.
     ///
-    /// ```text
-    /// | Subject               | Access |
-    /// |-----------------------|--------|
-    /// | Owner                 | rw     |
-    /// | Moderator             | --     |
-    /// | User                  | --     |
-    /// | Unrelated User        | --     |
-    /// | Valid Invite Code     | --     |
-    /// | Invalid Invite Code   | --     |
-    /// ```
+    /// | Subject      | Access |
+    /// |--------------|--------|
+    /// | Owner        | rw     |
+    /// | Moderator    | --     |
+    /// | Invited User | --     |
+    /// | Guest        | --     |
     ///
     /// [`RoomStreamingTargets`]: opentalk_controller_api_authorization::authorization::Resource::RoomStreamingTargets
     /// [`RoomStreamingTarget`]: opentalk_controller_api_authorization::authorization::Resource::RoomStreamingTarget
@@ -46,7 +42,7 @@ impl OpenTalkAuthorizerBackend {
             owner: Access::ReadWrite,
             moderator: Access::None,
             invited_user: Access::None,
-            invite_code: Access::None,
+            guest_user: Access::None,
         };
 
         self.apply_acl_for_room(subjects, method, room_id_or_alias, acl)
@@ -61,16 +57,13 @@ mod tests {
         Admission::{self, Allowed, Denied},
         AuthorizationTarget, AuthorizerBackend, Resource, Subject, SubjectCollection,
     };
-    use opentalk_inventory::{
-        AuthorizationInviteCodeValidity::{self, Invalid, Valid},
-        AuthorizationUserRole::{self, Invited, Owner, Unrelated},
-    };
+    use opentalk_inventory::AuthorizationUserRole::{self, Invited, Owner, Unrelated};
     use opentalk_types_common::events::invites::InviteRole::{Moderator, User};
     use pretty_assertions::assert_eq;
     use rstest::rstest;
 
     use super::super::test_utils::{
-        INVITE_CODE, ROOM_ID, USER_ID, create_authorizer_with_role, create_authorizer_with_validity,
+        ROOM_ID, USER_ID, create_authorizer_with_guest_access, create_authorizer_with_role,
     };
 
     #[tokio::test]
@@ -81,8 +74,10 @@ mod tests {
     #[case::moderator_post(Invited(Moderator), Post, Denied)]
     #[case::user_get(Invited(User), Get, Denied)]
     #[case::user_post(Invited(User), Post, Denied)]
-    #[case::unrelated_get(Unrelated, Get, Denied)]
-    #[case::unrelated_post(Unrelated, Post, Denied)]
+    #[case::unrelated_get(Unrelated { guest_access: false }, Get, Denied)]
+    #[case::unrelated_get(Unrelated { guest_access: true }, Get, Denied)]
+    #[case::unrelated_post(Unrelated { guest_access: false }, Post, Denied)]
+    #[case::unrelated_post(Unrelated { guest_access: true }, Post, Denied)]
     async fn user(
         #[case] role: AuthorizationUserRole,
         #[case] access_method: AccessMethod,
@@ -102,19 +97,19 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case::valid_get(Valid, Get, Denied)]
-    #[case::valid_post(Valid, Post, Denied)]
-    #[case::invalid_get(Invalid, Get, Denied)]
-    #[case::invalid_post(Invalid, Post, Denied)]
-    async fn invite_code(
-        #[case] validity: AuthorizationInviteCodeValidity,
+    #[case::guest_access_get(true, Get, Denied)]
+    #[case::guest_access_post(true, Post, Denied)]
+    #[case::non_guest_access_get(false, Get, Denied)]
+    #[case::non_guest_access_post(false, Post, Denied)]
+    async fn unauthenticated(
+        #[case] guest_access: bool,
         #[case] access_method: AccessMethod,
         #[case] expected_admission: Admission,
     ) {
-        let authorizer = create_authorizer_with_validity(validity);
+        let authorizer = create_authorizer_with_guest_access(guest_access);
         let admission = authorizer
             .authorize(AuthorizationTarget {
-                authenticated_subjects: SubjectCollection::from_iter([Subject::from(INVITE_CODE)]),
+                authenticated_subjects: SubjectCollection::from_iter([Subject::Unauthenticated]),
                 resource: Resource::RoomStreamingTargets(ROOM_ID.into()),
                 access_method,
             })

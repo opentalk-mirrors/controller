@@ -27,16 +27,12 @@ impl OpenTalkAuthorizerBackend {
     /// with the operational behaviour: if a subject is allowed to
     /// join, they are allowed to invoke this endpoint.
     ///
-    /// ```text
     /// | Subject               | Access |
     /// |-----------------------|--------|
     /// | Owner                 | rw     |
     /// | Moderator             | rw     |
-    /// | User                  | rw     |
-    /// | Unrelated User        | --     |
-    /// | Valid Invite Code     | rw     |
-    /// | Invalid Invite Code   | --     |
-    /// ```
+    /// | Invited               | rw     |
+    /// | Guest                 | rw     |
     ///
     /// [`RoomStart`]: opentalk_controller_api_authorization::authorization::Resource::RoomStart
     pub(crate) async fn authorize_room_start(
@@ -49,7 +45,7 @@ impl OpenTalkAuthorizerBackend {
             owner: Access::ReadWrite,
             moderator: Access::ReadWrite,
             invited_user: Access::ReadWrite,
-            invite_code: Access::ReadWrite,
+            guest_user: Access::ReadWrite,
         };
 
         self.apply_acl_for_room(subjects, method, room_id_or_alias, acl)
@@ -64,16 +60,13 @@ mod tests {
         Admission::{self, Allowed, Denied},
         AuthorizationTarget, AuthorizerBackend, Resource, Subject, SubjectCollection,
     };
-    use opentalk_inventory::{
-        AuthorizationInviteCodeValidity::{self, Invalid, Valid},
-        AuthorizationUserRole::{self, Invited, Owner, Unrelated},
-    };
+    use opentalk_inventory::AuthorizationUserRole::{self, Invited, Owner, Unrelated};
     use opentalk_types_common::events::invites::InviteRole::{Moderator, User};
     use pretty_assertions::assert_eq;
     use rstest::rstest;
 
     use super::super::test_utils::{
-        INVITE_CODE, ROOM_ID, USER_ID, create_authorizer_with_role, create_authorizer_with_validity,
+        ROOM_ID, USER_ID, create_authorizer_with_guest_access, create_authorizer_with_role,
     };
 
     #[tokio::test]
@@ -84,8 +77,10 @@ mod tests {
     #[case::moderator_post(Invited(Moderator), Post, Allowed)]
     #[case::user_get(Invited(User), Get, Allowed)]
     #[case::user_post(Invited(User), Post, Allowed)]
-    #[case::unrelated_get(Unrelated, Get, Denied)]
-    #[case::unrelated_post(Unrelated, Post, Denied)]
+    #[case::unrelated_get(Unrelated { guest_access: false }, Get, Denied)]
+    #[case::unrelated_get(Unrelated { guest_access: true }, Get, Allowed)]
+    #[case::unrelated_post(Unrelated { guest_access: false }, Post, Denied)]
+    #[case::unrelated_post(Unrelated { guest_access: true }, Post, Allowed)]
     async fn user(
         #[case] role: AuthorizationUserRole,
         #[case] access_method: AccessMethod,
@@ -105,19 +100,19 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case::valid_get(Valid, Get, Allowed)]
-    #[case::valid_post(Valid, Post, Allowed)]
-    #[case::invalid_get(Invalid, Get, Denied)]
-    #[case::invalid_post(Invalid, Post, Denied)]
-    async fn invite_code(
-        #[case] validity: AuthorizationInviteCodeValidity,
+    #[case::guest_access_get(true, Get, Allowed)]
+    #[case::guest_access_post(true, Post, Allowed)]
+    #[case::non_guest_access_get(false, Get, Denied)]
+    #[case::non_guest_access_post(false, Post, Denied)]
+    async fn unauthenticated(
+        #[case] guest_access: bool,
         #[case] access_method: AccessMethod,
         #[case] expected_admission: Admission,
     ) {
-        let authorizer = create_authorizer_with_validity(validity);
+        let authorizer = create_authorizer_with_guest_access(guest_access);
         let admission = authorizer
             .authorize(AuthorizationTarget {
-                authenticated_subjects: SubjectCollection::from_iter([Subject::from(INVITE_CODE)]),
+                authenticated_subjects: SubjectCollection::from_iter([Subject::Unauthenticated]),
                 resource: Resource::RoomStart(ROOM_ID.into()),
                 access_method,
             })

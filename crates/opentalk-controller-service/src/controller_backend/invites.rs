@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_inventory::utils::is_invite_valid;
+use opentalk_inventory::utils::is_room_guest_access_allowed;
 use opentalk_types_api_v1::{
     error::ApiError,
     rooms::by_room_id::invites::{PostInviteVerifyRequestBody, PostInviteVerifyResponseBody},
@@ -22,7 +22,7 @@ impl ControllerBackend {
         let room = inventory.get_room(&invite.room.into()).await?;
         let tariff = self.get_room_tariff(room.id.into()).await?;
 
-        if !is_invite_valid(&invite, &room, &tariff) {
+        if !is_room_guest_access_allowed(&room, &tariff) {
             // Do not leak the existence of the invite
             return Err(ApiError::not_found().into());
         }

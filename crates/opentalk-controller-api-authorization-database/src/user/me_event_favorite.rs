@@ -21,16 +21,12 @@ impl OpenTalkAuthorizerBackend {
     /// expressed against an `event_id`). Any event member — owner or any invited user — can
     /// favourite or unfavourite an event. Invite codes are denied.
     ///
-    /// ```text
-    /// | Subject                 | Access |
-    /// | ----------------------- | ------ |
-    /// | **Owner**               | rw     |
-    /// | **Moderator**           | rw     |
-    /// | **Invited-User**        | rw     |
-    /// | **Unrelated-User**      | --     |
-    /// | **Valid Invite-Code**   | --     |
-    /// | **Invalid Invite-Code** | --     |
-    /// ```
+    /// | Subject           | Access |
+    /// | ------------------| ------ |
+    /// | **Owner**         | rw     |
+    /// | **Moderator**     | rw     |
+    /// | **Invited-User**  | rw     |
+    /// | **Guest**         | --     |
     ///
     /// Although a "favourite" is conceptually per-user state, the authorization decision is keyed
     /// on event membership and so dispatches to [`require_event_member`], the shared event-resource
@@ -49,7 +45,7 @@ impl OpenTalkAuthorizerBackend {
             owner: Access::ReadWrite,
             moderator: Access::ReadWrite,
             invited_user: Access::ReadWrite,
-            invite_code: Access::None,
+            guest_user: Access::None,
         };
 
         self.apply_acl_for_event(subjects, method, event_id, acl)
@@ -64,17 +60,13 @@ mod tests {
         Admission::{self, Allowed, Denied},
         AuthorizationTarget, AuthorizerBackend, Resource, Subject, SubjectCollection,
     };
-    use opentalk_inventory::{
-        AuthorizationInviteCodeValidity::{self, Invalid, Valid},
-        AuthorizationUserRole::{self, Invited, Owner, Unrelated},
-    };
+    use opentalk_inventory::AuthorizationUserRole::{self, Invited, Owner, Unrelated};
     use opentalk_types_common::events::invites::InviteRole::{Moderator, User};
     use pretty_assertions::assert_eq;
     use rstest::rstest;
 
     use crate::event::test_utils::{
-        EVENT_ID, INVITE_CODE, USER_ID, create_authorizer_with_role,
-        create_authorizer_with_validity,
+        EVENT_ID, USER_ID, create_authorizer_with_guest_access, create_authorizer_with_role,
     };
 
     #[tokio::test]
@@ -85,12 +77,15 @@ mod tests {
     #[case::moderator_get(Invited(Moderator), Get, Allowed)]
     #[case::moderator_put(Invited(Moderator), Put, Allowed)]
     #[case::moderator_delete(Invited(Moderator), Delete, Allowed)]
-    #[case::user_get(Invited(User), Get, Allowed)]
-    #[case::user_put(Invited(User), Put, Allowed)]
-    #[case::user_delete(Invited(User), Delete, Allowed)]
-    #[case::unrelated_get(Unrelated, Get, Denied)]
-    #[case::unrelated_put(Unrelated, Put, Denied)]
-    #[case::unrelated_delete(Unrelated, Delete, Denied)]
+    #[case::invited_get(Invited(User), Get, Allowed)]
+    #[case::invited_put(Invited(User), Put, Allowed)]
+    #[case::invited_delete(Invited(User), Delete, Allowed)]
+    #[case::unrelated_get(Unrelated { guest_access: false }, Get, Denied)]
+    #[case::unrelated_get(Unrelated { guest_access: true }, Get, Denied)]
+    #[case::unrelated_put(Unrelated { guest_access: false }, Put, Denied)]
+    #[case::unrelated_put(Unrelated { guest_access: true }, Put, Denied)]
+    #[case::unrelated_delete(Unrelated { guest_access: false }, Delete, Denied)]
+    #[case::unrelated_delete(Unrelated { guest_access: true }, Delete, Denied)]
     async fn user(
         #[case] role: AuthorizationUserRole,
         #[case] access_method: AccessMethod,
@@ -110,21 +105,21 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case::valid_get(Valid, Get, Denied)]
-    #[case::valid_put(Valid, Put, Denied)]
-    #[case::valid_delete(Valid, Delete, Denied)]
-    #[case::invalid_get(Invalid, Get, Denied)]
-    #[case::invalid_put(Invalid, Put, Denied)]
-    #[case::invalid_delete(Invalid, Delete, Denied)]
-    async fn invite_code(
-        #[case] validity: AuthorizationInviteCodeValidity,
+    #[case::guest_access_get(true, Get, Denied)]
+    #[case::guest_access_put(true, Put, Denied)]
+    #[case::guest_access_delete(true, Delete, Denied)]
+    #[case::non_guest_access_get(false, Get, Denied)]
+    #[case::non_guest_access_put(false, Put, Denied)]
+    #[case::non_guest_access_delete(false, Delete, Denied)]
+    async fn unauthenticated(
+        #[case] guest_access: bool,
         #[case] access_method: AccessMethod,
         #[case] expected_admission: Admission,
     ) {
-        let authorizer = create_authorizer_with_validity(validity);
+        let authorizer = create_authorizer_with_guest_access(guest_access);
         let admission = authorizer
             .authorize(AuthorizationTarget {
-                authenticated_subjects: SubjectCollection::from_iter([Subject::from(INVITE_CODE)]),
+                authenticated_subjects: SubjectCollection::from_iter([Subject::Unauthenticated]),
                 resource: Resource::UserMeEventFavorite(EVENT_ID),
                 access_method,
             })

@@ -112,10 +112,7 @@ mod tests {
     use crate::{
         Job as _,
         jobs::{
-            test_utils::{
-                RecordingStopRoomBackend, create_generic_test_event, create_generic_test_invite,
-                create_generic_test_room,
-            },
+            test_utils::{RecordingStopRoomBackend, create_generic_test_event},
             user_cleanup::UserCleanupParameters,
         },
     };
@@ -178,7 +175,7 @@ mod tests {
     }
 
     #[actix_rt::test]
-    async fn cleanup_user_with_event_and_invites() {
+    async fn cleanup_user_with_event() {
         init_logger();
         let settings_provider = SettingsProvider::load_from_path_or_standard_paths(Some(
             Path::new("../../example/controller.toml"),
@@ -195,11 +192,8 @@ mod tests {
         let inviter = db_ctx.create_test_user(0, vec![]).await.unwrap();
         let updated_by = db_ctx.create_test_user(2, vec![]).await.unwrap();
 
-        let room = create_generic_test_room(inventory.as_mut(), &inviter).await;
         let event = create_generic_test_event(inventory.as_mut(), &inviter, true).await;
         update_event(inventory.as_mut(), updated_by.id, event.id).await;
-
-        create_generic_test_invite(inventory.as_mut(), &inviter, Some(&updated_by), &room).await;
 
         let disabled_since = Utc::now()
             .checked_sub_days(Days::new(default_days_since_user_has_been_disabled() + 1))

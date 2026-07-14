@@ -781,6 +781,9 @@ fn v1_scope(
             .service(v1::auth::logout::post)
             .service(v1::rooms::by_id::roomserver::start_invited::post)
             .service(v1::rooms::by_id::start_invited::post)
+            // The invite-code API has been removed; respond with `410 Gone` instead of `404 Not Found`
+            .service(v1::rooms::by_id::invites::collection())
+            .service(v1::rooms::by_id::invites::by_code())
             .service(v1::turn::get)
             .service(v1::rooms::by_id::assets::by_id::proxy::get)
             .service(v1::users::find::get)

@@ -2,12 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use chrono::Utc;
 use opentalk_database::DatabaseError;
 use opentalk_db_storage as db;
-use opentalk_inventory::{
-    NewRoomInvite, RoomInvite, RoomInviteInventory, RoomInviteWithUsers, UpdateRoomInvite,
-};
+use opentalk_inventory::{RoomInvite, RoomInviteInventory, RoomInviteWithUsers};
 use opentalk_types_common::{
     pagination::{ItemCount, Page, PageSize},
     rooms::{RoomId, invite_codes::InviteCode},
@@ -20,16 +17,6 @@ use crate::{DatabaseConnection, Error, Result, error::DatabaseSnafu};
 
 #[async_trait::async_trait]
 impl RoomInviteInventory for DatabaseConnection {
-    #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn create_room_invite(&mut self, invite: NewRoomInvite) -> Result<RoomInvite> {
-        Ok(
-            db::queries::invites::create_room_invite(&mut self.inner, invite.into())
-                .await
-                .context(DatabaseSnafu)?
-                .into(),
-        )
-    }
-
     #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_room_invite(&mut self, invite_code: InviteCode) -> Result<RoomInvite> {
         match db::queries::invites::get_room_invite(&mut self.inner, invite_code).await {
@@ -46,32 +33,6 @@ impl RoomInviteInventory for DatabaseConnection {
             .into_iter()
             .map(Into::into)
             .collect())
-    }
-
-    #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_active_invite_for_room(&mut self, room_id: RoomId) -> Result<Option<RoomInvite>> {
-        Ok(
-            db::queries::invites::get_active_invite_for_room(&mut self.inner, room_id, Utc::now())
-                .await
-                .context(DatabaseSnafu)?
-                .map(Into::into),
-        )
-    }
-
-    #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_or_create_valid_invite_for_room(
-        &mut self,
-        room_id: RoomId,
-        user_id: UserId,
-    ) -> Result<RoomInvite> {
-        Ok(db::queries::invites::get_or_create_valid_invite_for_room(
-            &mut self.inner,
-            room_id,
-            user_id,
-        )
-        .await
-        .context(DatabaseSnafu)?
-        .into())
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
@@ -130,24 +91,6 @@ impl RoomInviteInventory for DatabaseConnection {
             created_by.into(),
             updated_by.into(),
         ))
-    }
-
-    #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn update_room_invite(
-        &mut self,
-        room_id: RoomId,
-        invite_code: InviteCode,
-        invite: UpdateRoomInvite,
-    ) -> Result<RoomInvite> {
-        Ok(db::queries::invites::update_room_invite(
-            &mut self.inner,
-            invite.into(),
-            room_id,
-            invite_code,
-        )
-        .await
-        .context(DatabaseSnafu)?
-        .into())
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]

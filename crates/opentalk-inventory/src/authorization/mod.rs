@@ -8,4 +8,4 @@ mod types;
 pub use authorization_inventory::AuthorizationInventory;
 #[cfg(feature = "mockall")]
 pub use authorization_inventory::MockAuthorizationInventory;
-pub use types::{AuthorizationInviteCodeValidity, AuthorizationUserRole};
+pub use types::AuthorizationUserRole;

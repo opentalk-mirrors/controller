@@ -17,13 +17,10 @@ impl OpenTalkAuthorizerBackend {
     /// middleware level. Modeling it here makes the "allowed by
     /// default" decision explicit and testable.
     ///
-    /// ```text
     /// | Subject                 | Access |
     /// | ----------------------- | ------ |
-    /// | **Unauthenticated**     | rw     |
     /// | **User**                | rw     |
-    /// | **Invite-Code**         | rw     |
-    /// ```
+    /// | **Guest User**          | rw     |
     ///
     /// [`RoomAssetDownloadProxy`]: opentalk_controller_api_authorization::authorization::Resource::RoomAssetDownloadProxy
     pub(crate) const fn authorize_room_asset_download_proxy() -> Admission {
@@ -49,19 +46,17 @@ mod tests {
     use crate::{
         OpenTalkAuthorizerBackend,
         event::test_utils::MODULE_FEATURES,
-        room::test_utils::{INVITE_CODE, ROOM_ID, USER_ID},
+        room::test_utils::{ROOM_ID, USER_ID},
     };
 
     const ASSET_ID: AssetId = AssetId::from_u128(0x0042);
 
     #[tokio::test]
     #[rstest]
-    #[case::unauth_get(SubjectCollection::default(), Get)]
-    #[case::unauth_post(SubjectCollection::default(), Post)]
     #[case::user_get(SubjectCollection::from_iter([Subject::from(USER_ID)]), Get)]
     #[case::user_post(SubjectCollection::from_iter([Subject::from(USER_ID)]), Post)]
-    #[case::invite_get(SubjectCollection::from_iter([Subject::from(INVITE_CODE)]), Get)]
-    #[case::invite_post(SubjectCollection::from_iter([Subject::from(INVITE_CODE)]), Post)]
+    #[case::invite_get(SubjectCollection::from_iter([Subject::Unauthenticated]), Get)]
+    #[case::invite_post(SubjectCollection::from_iter([Subject::Unauthenticated]), Post)]
     async fn room_asset_download_proxy_is_unconditionally_allowed(
         #[case] subjects: SubjectCollection,
         #[case] access_method: AccessMethod,

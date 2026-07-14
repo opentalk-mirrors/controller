@@ -27,13 +27,11 @@ impl OpenTalkAuthorizerBackend {
     /// Unconditionally allowed: callers are unauthenticated at this point
     /// and the endpoint is the entry point of the login flow.
     ///
-    /// ```text
-    /// | Subject                 | Access |
-    /// | ----------------------- | ------ |
-    /// | **Unauthenticated**     | rw     |
-    /// | **User**                | rw     |
-    /// | **Invite-Code**         | rw     |
-    /// ```
+    /// | Subject              | Access |
+    /// | -------------------- | ------ |
+    /// | **Unauthenticated**  | rw     |
+    /// | **User**             | rw     |
+    /// | **Guest**            | rw     |
     ///
     /// [`AuthLogin`]: opentalk_controller_api_authorization::authorization::Resource::AuthLogin
     pub(crate) const fn authorize_auth_login() -> Admission {
@@ -46,13 +44,11 @@ impl OpenTalkAuthorizerBackend {
     /// logout token in the request body, which the endpoint validates
     /// itself.
     ///
-    /// ```text
-    /// | Subject                 | Access |
-    /// | ----------------------- | ------ |
-    /// | **Unauthenticated**     | rw     |
-    /// | **User**                | rw     |
-    /// | **Invite-Code**         | rw     |
-    /// ```
+    /// | Subject              | Access |
+    /// | -------------------- | ------ |
+    /// | **Unauthenticated**  | rw     |
+    /// | **User**             | rw     |
+    /// | **Guest**            | rw     |
     ///
     /// [`AuthLogout`]: opentalk_controller_api_authorization::authorization::Resource::AuthLogout
     pub(crate) const fn authorize_auth_logout() -> Admission {
@@ -71,14 +67,13 @@ mod tests {
     };
     use opentalk_controller_settings::test_util;
     use opentalk_inventory::MockInventoryProvider;
-    use opentalk_types_common::{rooms::invite_codes::InviteCode, users::UserId};
+    use opentalk_types_common::users::UserId;
     use pretty_assertions::assert_eq;
     use rstest::rstest;
 
     use crate::{OpenTalkAuthorizerBackend, event::test_utils::MODULE_FEATURES};
 
     const USER_ID: UserId = UserId::from_u128(0x0001);
-    const INVITE_CODE: InviteCode = InviteCode::from_u128(0x0002);
 
     fn authorizer() -> OpenTalkAuthorizerBackend {
         OpenTalkAuthorizerBackend::new(
@@ -97,8 +92,8 @@ mod tests {
     #[case::unauth_post(SubjectCollection::default(), Post)]
     #[case::user_get(SubjectCollection::from_iter([Subject::from(USER_ID)]), Get)]
     #[case::user_post(SubjectCollection::from_iter([Subject::from(USER_ID)]), Post)]
-    #[case::invite_get(SubjectCollection::from_iter([Subject::from(INVITE_CODE)]), Get)]
-    #[case::invite_post(SubjectCollection::from_iter([Subject::from(INVITE_CODE)]), Post)]
+    #[case::unauthenticated_get(SubjectCollection::from_iter([Subject::Unauthenticated]), Get)]
+    #[case::unauthenticated_post(SubjectCollection::from_iter([Subject::Unauthenticated]), Post)]
     async fn auth_login_is_unconditionally_allowed(
         #[case] subjects: SubjectCollection,
         #[case] access_method: AccessMethod,
@@ -120,8 +115,8 @@ mod tests {
     #[case::unauth_post(SubjectCollection::default(), Post)]
     #[case::user_get(SubjectCollection::from_iter([Subject::from(USER_ID)]), Get)]
     #[case::user_post(SubjectCollection::from_iter([Subject::from(USER_ID)]), Post)]
-    #[case::invite_get(SubjectCollection::from_iter([Subject::from(INVITE_CODE)]), Get)]
-    #[case::invite_post(SubjectCollection::from_iter([Subject::from(INVITE_CODE)]), Post)]
+    #[case::unauthenticated_get(SubjectCollection::from_iter([Subject::Unauthenticated]), Get)]
+    #[case::unauthenticated_post(SubjectCollection::from_iter([Subject::Unauthenticated]), Post)]
     async fn auth_logout_is_unconditionally_allowed(
         #[case] subjects: SubjectCollection,
         #[case] access_method: AccessMethod,

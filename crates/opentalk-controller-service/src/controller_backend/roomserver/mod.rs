@@ -314,7 +314,6 @@ impl ControllerBackend {
     /// Registered but not invited user are treated as guests
     ///
     /// A guest must provide:
-    /// - a valid invite code
     /// - a password, in case of a password-protected room
     /// - a display name
     async fn build_guest_user(
