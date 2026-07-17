@@ -1033,7 +1033,7 @@ fn setup_cors(settings_provider: SettingsProvider) -> Cors {
 /// from where the TLS configuration is loaded and set up.
 fn setup_rustls(tls: &HttpTls) -> Result<rustls::ServerConfig> {
     let cert_file = File::open(&tls.certificate).with_whatever_context(|_| {
-        format!("Failed to open certificate file {:?}", &tls.certificate)
+        format!("Failed to open certificate file {:?}", tls.certificate)
     })?;
     let certs = rustls_pemfile::certs(&mut BufReader::new(cert_file))
         .collect::<Result<Vec<CertificateDer>, _>>()
@@ -1042,7 +1042,7 @@ fn setup_rustls(tls: &HttpTls) -> Result<rustls::ServerConfig> {
     let private_key_file = File::open(&tls.private_key).with_whatever_context(|_| {
         format!(
             "Failed to open pkcs8 private key file {:?}",
-            &tls.private_key
+            tls.private_key
         )
     })?;
     let mut key = rustls_pemfile::pkcs8_private_keys(&mut BufReader::new(private_key_file))
