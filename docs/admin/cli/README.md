@@ -14,8 +14,6 @@ In addition, some subcommands are available for management tasks.
 
 These subcommands are available:
 
-- [`fix-acl`](../advanced/acl.md#opentalk-controller-fix-acl-subcommand) for recreating all ACL entries of the database.
-- [`acl`](../advanced/acl.md#opentalk-controller-acl-subcommand) for modification of ACL settings.
 - [`migrate-db`](../core/database.md#opentalk-controller-migrate-db-subcommand) for explicit migration of database without starting the controller service
 - [`tenants`](../advanced/tenants.md#opentalk-controller-tenants-subcommand) for managing tenants.
 - [`tariffs`](../advanced/tariffs.md#opentalk-controller-tariffs-subcommand) for managing tariffs.
