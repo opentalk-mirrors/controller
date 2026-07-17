@@ -58,9 +58,8 @@ pub struct JWTAccessTokenClaims {
     pub aud: String,
     /// Subject
     pub sub: String,
-    /// Client identifier
-    /// For some reason Keycloak does not include this claim in the JWT access token
-    // #[expect(unused)]
+    // Client identifier
+    // For some reason Keycloak does not include this claim in the JWT access token
     // pub client_id: String,
     /// Issued at
     #[expect(unused)]
@@ -80,7 +79,7 @@ impl jwt::VerifyClaims for JWTAccessTokenClaims {
 /// Mandatory claims for JWT logout token as specified in
 /// [Logout Token Validation](https://openid.net/specs/openid-connect-backchannel-1_0.html#Validation)
 ///
-/// Note: currenlty we implement only stateless authentification,
+/// Note: currenlty we implement only stateless authentication,
 ///       therefore we completely depend on `sub` and do not need `sid`
 #[derive(Deserialize, Debug)]
 pub struct JWTLogoutTokenClaims {
