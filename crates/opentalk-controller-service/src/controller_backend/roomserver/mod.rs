@@ -12,7 +12,7 @@ use std::{
 use actix_ws::{Message, ProtocolError};
 use external::ExternalRoomServer;
 use opentalk_asset_storage::{ObjectStorage, StorageNotifier};
-use opentalk_controller_service_facade::{RequestUser, StartRoomError};
+use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::{
     RoomServerKind, Settings, SettingsProvider, common::HttpCorsAllowedOrigin,
 };
@@ -223,7 +223,7 @@ impl ControllerBackend {
                 )
                 .await
             }
-            None => self.build_guest_user(request, &room, None).await?,
+            None => self.build_guest_user(request, &room).await?,
         };
 
         let access = self
@@ -303,7 +303,7 @@ impl ControllerBackend {
                         title: user.title,
                         firstname: user.firstname,
                         lastname: user.lastname,
-                        display_name: request.display_name.unwrap_or(user.display_name),
+                        display_name: user.display_name,
                         avatar_url,
                     },
                     timezone,
@@ -324,20 +324,14 @@ impl ControllerBackend {
         &self,
         request: PostRoomsRoomserverStartRequestBody,
         room: &RoomResource,
-        user: Option<RequestUser>,
     ) -> Result<ClientParameters, CaptureApiError> {
         let _ = self
             .authenticate_guest(room.id, request.invite_code, request.password)
             .await?;
 
-        let display_name = request
-            .display_name
-            .or(user.map(|user| user.display_name))
-            .ok_or(CaptureApiError::from(StartRoomError::NoDisplayName))?;
-
         Ok(ClientParameters {
             device_secret: request.device_secret,
-            kind: ClientKind::Guest { display_name },
+            kind: ClientKind::Guest,
             role: Role::User,
         })
     }

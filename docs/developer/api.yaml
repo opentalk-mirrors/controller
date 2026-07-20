@@ -5094,11 +5094,7 @@ components:
       required:
         - id
         - pin
-        - display_name
       properties:
-        display_name:
-          $ref: "#/components/schemas/DisplayName"
-          description: "The caller's display name, as defined by the call-in service."
         id:
           $ref: "#/components/schemas/CallInId"
           description: The call-in ID
@@ -5287,14 +5283,10 @@ components:
       required:
         - device_secret
         - invite_code
-        - display_name
       properties:
         device_secret:
           $ref: "#/components/schemas/DeviceSecret"
           description: The clients device secret. Used to identify the client across sessions
-        display_name:
-          $ref: "#/components/schemas/DisplayName"
-          description: The clients display name
         invite_code:
           type: string
           description: The invite code
@@ -5303,7 +5295,6 @@ components:
           description: "The invited user's password to the room"
       example:
         device_secret: v3rys3cr3tD3v1ce5tr1ng
-        display_name: Alice Adams
         invite_code: 00000000-0000-0000-0000-0000deadbeef
         password: v3rys3cr3t
     PostRoomsRoomserverStartRequestBody:
@@ -5315,9 +5306,6 @@ components:
         device_secret:
           $ref: "#/components/schemas/DeviceSecret"
           description: The clients device secret. Used to identify the client across sessions
-        display_name:
-          $ref: "#/components/schemas/DisplayName"
-          description: The clients display name. Optional because registered users already have a configured display name
         invite_code:
           $ref: "#/components/schemas/InviteCode"
           description: The invite code
@@ -5326,7 +5314,6 @@ components:
           description: "The invited user's password to the room"
       example:
         device_secret: v3rys3cr3tD3v1ce5tr1ng
-        display_name: Alice Adams
     PrivateUserProfile:
       type: object
       description: |-
