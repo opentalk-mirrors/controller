@@ -225,6 +225,8 @@ impl std::fmt::Debug for MailService {
 }
 
 impl MailService {
+    const PERSISTENT: u8 = 2;
+
     /// Creates a new email service
     pub fn new(
         metrics: Arc<EndpointMetrics>,
@@ -261,11 +263,10 @@ impl MailService {
             channel.clone()
         };
 
-        let properties = if let Some(ttl_milliseconds) = rabbitmq_config.message_ttl_milliseconds()
-        {
-            BasicProperties::default().with_expiration(ttl_milliseconds.to_string().into())
-        } else {
-            BasicProperties::default()
+        let mut properties = BasicProperties::default().with_delivery_mode(Self::PERSISTENT);
+
+        if let Some(ttl_milliseconds) = rabbitmq_config.message_ttl_milliseconds() {
+            properties = properties.with_expiration(ttl_milliseconds.to_string().into());
         };
 
         _ = channel
