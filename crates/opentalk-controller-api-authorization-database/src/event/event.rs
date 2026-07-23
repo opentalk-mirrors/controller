@@ -26,7 +26,7 @@ impl OpenTalkAuthorizerBackend {
     /// | **Moderator**           | r-     |
     /// | **Invited-User**        | r-     |
     /// | **Unrelated-User**      | --     |
-    /// | **Valid Invite-Code**   | r-     |
+    /// | **Valid Invite-Code**   | --     |
     /// | **Invalid Invite-Code** | --     |
     /// ```
     ///
@@ -41,7 +41,7 @@ impl OpenTalkAuthorizerBackend {
             owner: Access::ReadWrite,
             moderator: Access::Read,
             invited_user: Access::Read,
-            invite_code: Access::Read,
+            invite_code: Access::None,
         };
 
         self.apply_acl_for_event(subjects, method, event_id, acl)
@@ -108,7 +108,7 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case::valid_get(Valid, GET, Allowed)]
+    #[case::valid_get(Valid, GET, Denied)]
     #[case::valid_post(Valid, POST, Denied)]
     #[case::invalid_get(Invalid, GET, Denied)]
     #[case::invalid_post(Invalid, POST, Denied)]
@@ -135,7 +135,7 @@ mod tests {
         let _ = inventory
             .expect_get_event_user_role()
             .with(eq(EVENT_ID), eq(USER_ID))
-            .return_once(move |_, _| Ok(Unrelated));
+            .return_once(move |_, _| Ok(Invited(User)));
         let _ = inventory
             .expect_get_event_invite_code_validity()
             .with(
@@ -160,8 +160,8 @@ mod tests {
         let admission = authorizer
             .authorize(AuthorizationTarget {
                 authenticated_subjects: SubjectCollection::from_iter([
-                    Subject::from(USER_ID),
                     Subject::from(INVITE_CODE),
+                    Subject::from(USER_ID),
                 ]),
                 resource: Resource::Event(EVENT_ID),
                 access_method: AccessMethod::Get,

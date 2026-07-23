@@ -30,7 +30,7 @@ impl OpenTalkAuthorizerBackend {
     /// | **Moderator**           | r-     |
     /// | **Invited-User**        | r-     |
     /// | **Unrelated-User**      | --     |
-    /// | **Valid Invite-Code**   | r-     |
+    /// | **Valid Invite-Code**   | --     |
     /// | **Invalid Invite-Code** | --     |
     /// ```
     ///
@@ -46,7 +46,7 @@ impl OpenTalkAuthorizerBackend {
             owner: Access::ReadWrite,
             moderator: Access::Read,
             invited_user: Access::Read,
-            invite_code: Access::Read,
+            invite_code: Access::None,
         };
 
         self.apply_acl_for_event(subjects, method, event_id, acl)
@@ -103,7 +103,7 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case::valid_get(Valid, Get, Allowed)]
+    #[case::valid_get(Valid, Get, Denied)]
     #[case::valid_post(Valid, Post, Denied)]
     #[case::invalid_get(Invalid, Get, Denied)]
     #[case::invalid_post(Invalid, Post, Denied)]

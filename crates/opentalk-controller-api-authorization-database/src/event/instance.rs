@@ -22,7 +22,8 @@ impl OpenTalkAuthorizerBackend {
     /// no impact on authorization, only on which instance the request mutates.
     ///
     /// API methods exposed are `GET` and `PATCH`. Only the owner may `PATCH`; any associated
-    /// subject (Owner, Invited(_), Valid invite code) may `GET`.
+    /// user subject (Owner, Invited(_)) may `GET`. Invite codes are denied — they reach the room
+    /// through the meeting-time `/rooms/{room_id}/start` endpoint, not through this resource.
     ///
     /// ```text
     /// | Subject                 | Access |
@@ -31,7 +32,7 @@ impl OpenTalkAuthorizerBackend {
     /// | **Moderator**           | r-     |
     /// | **Invited-User**        | r-     |
     /// | **Unrelated-User**      | --     |
-    /// | **Valid Invite-Code**   | r-     |
+    /// | **Valid Invite-Code**   | --     |
     /// | **Invalid Invite-Code** | --     |
     /// ```
     ///
@@ -47,7 +48,7 @@ impl OpenTalkAuthorizerBackend {
             owner: Access::ReadWrite,
             moderator: Access::Read,
             invited_user: Access::Read,
-            invite_code: Access::Read,
+            invite_code: Access::None,
         };
 
         self.apply_acl_for_event(subjects, method, event_id, acl)
@@ -116,7 +117,7 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case::valid_get(Valid, Get, Allowed)]
+    #[case::valid_get(Valid, Get, Denied)]
     #[case::valid_patch(Valid, Patch, Denied)]
     #[case::invalid_get(Invalid, Get, Denied)]
     #[case::invalid_patch(Invalid, Patch, Denied)]
