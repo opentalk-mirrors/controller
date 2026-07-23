@@ -618,12 +618,10 @@ impl ObjectStorage {
             .whatever_context::<&str, ObjectStorageError>(
                 "Received an invalid URL from the pre-signing request",
             )?;
-        let query = url
-            .query_pairs()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect::<BTreeMap<String, String>>();
+        // Preserve the exact signed query string
+        let raw_query = url.query().unwrap_or_default().to_owned();
 
-        Ok(Cursor(query).to_base64())
+        Ok(Cursor(raw_query).to_base64())
     }
 
     pub async fn get_proxied(
@@ -632,19 +630,11 @@ impl ObjectStorage {
         token: String,
         range_header: Option<String>,
     ) -> Result<DownloadProxyStream, ProxyRequestError> {
-        let Cursor(query_params): Cursor<BTreeMap<String, String>> =
+        let Cursor(raw_query): Cursor<String> =
             Cursor::from_base64(&token).map_err(|_| ForbiddenSnafu.build())?;
 
         let mut url = self.get_base_url(key);
-
-        {
-            let mut query_modifier = url.query_pairs_mut();
-            _ = query_modifier.clear();
-
-            for (k, v) in query_params.iter() {
-                _ = query_modifier.append_pair(k, v);
-            }
-        }
+        url.set_query(Some(&raw_query));
 
         let mut request = self.reqwest_client.get(url);
 
