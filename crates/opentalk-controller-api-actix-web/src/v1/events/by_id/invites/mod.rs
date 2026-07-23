@@ -12,7 +12,7 @@ use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser}
 use opentalk_types_api_v1::{
     error::ApiError,
     events::{
-        EventInvitee, GetEventInstanceResponseBody, PostEventInviteBody, PostEventInviteQuery,
+        EventInvitee, PostEventInviteBody, PostEventInviteQuery,
         by_event_id::invites::GetEventsInvitesQuery,
     },
 };
@@ -104,8 +104,8 @@ pub async fn post(
     responses(
         (
             status = StatusCode::OK,
-            description = "Event instance successfully returned",
-            body = GetEventInstanceResponseBody,
+            description = "Event invite successfully returned",
+            body = EventInvitee,
             headers(
                 (
                     "link" = CursorLink,
