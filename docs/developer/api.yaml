@@ -875,7 +875,7 @@ paths:
             $ref: "#/components/schemas/EventId"
       responses:
         "200":
-          description: Event instance successfully returned
+          description: Event invite successfully returned
           headers:
             link:
               schema:
@@ -884,7 +884,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GetEventInstanceResponseBody"
+                $ref: "#/components/schemas/EventInvitee"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
