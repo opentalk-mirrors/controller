@@ -3029,27 +3029,32 @@ components:
       description: The id of a call-in participation
     CallInInfo:
       type: object
-      description: Information needed to participate in a call-in connection.
+      description: "Data stored inside the `GET /events` query cursor"
       required:
         - tel
         - id
         - password
       properties:
         id:
-          $ref: "#/components/schemas/CallInId"
+          type: string
           description: SIP ID which must transmitted via DTMF (number field on the phone) to identify this room
         password:
-          $ref: "#/components/schemas/CallInPassword"
+          type: string
           description: |-
             SIP password which must be transmitted via DTMF (number field on the phone) after entering the `sip_id`
             to enter the room
         tel:
           type: string
           description: SIP Call-In phone number which must be used to reach the room
+        uri:
+          type:
+            - string
+            - "null"
+          description: SIP Call-In sip uri
       example:
         id: "1234567890"
-        password: "0987654321"
-        tel: +555-123-456-789
+        password: "9876543210"
+        tel: +555-12345-67890
     CallInPassword:
       $ref: "#/components/schemas/NumericId"
       description: The password for authenticating call-in participation
@@ -3396,6 +3401,7 @@ components:
         - title
         - is_adhoc
         - e2e_encryption
+        - password_required
       properties:
         e2e_encryption:
           type: boolean
@@ -3406,9 +3412,9 @@ components:
         is_adhoc:
           type: boolean
           description: True if the event was created ad-hoc
-        meeting_details:
-          $ref: "#/components/schemas/MeetingDetails"
-          description: The meeting details of the event
+        password_required:
+          type: boolean
+          description: Indicates whether the meeting room requires a password to join.
         room_id:
           $ref: "#/components/schemas/RoomId"
           description: The id of the room belonging to the event
@@ -3419,15 +3425,7 @@ components:
         e2e_encryption: false
         id: 00000000-0000-0000-0000-004433221100
         is_adhoc: false
-        meeting_details:
-          call_in:
-            id: "1234567890"
-            password: "0987654321"
-            tel: +555-123-456-789
-          invite_code_id: 00000000-0000-0000-0000-0000deadbeef
-          streaming_links:
-            - name: My OwnCast Stream
-              url: "https://owncast.example.com/mystream"
+        password_required: false
         room_id: 00000000-0000-0000-0000-0000abadcafe
         title: Team Event
     EventInstance:
@@ -5277,6 +5275,12 @@ components:
           description: |-
             Indicates whether the meeting room should have the waiting room enabled.
             When not present, the waiting room will be disabled.
+      example:
+        e2e_encryption: false
+        enable_sip: true
+        guest_access: waiting_room
+        password: ~
+        waiting_room: true
     PostRoomsRoomserverStartInvitedRequestBody:
       type: object
       description: "The JSON body expected when making a *POST /rooms/{room_id}/start_invited* request"
