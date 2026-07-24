@@ -5379,6 +5379,7 @@ dependencies = [
  "actix-http",
  "async-trait",
  "aws-sdk-s3",
+ "axum",
  "bytes",
  "chrono",
  "futures",
@@ -5391,6 +5392,7 @@ dependencies = [
  "pretty_assertions",
  "reqwest 0.13.4",
  "snafu 0.9.2",
+ "tokio",
  "tracing",
  "url",
 ]

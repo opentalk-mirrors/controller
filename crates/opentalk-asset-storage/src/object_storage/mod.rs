@@ -695,3 +695,93 @@ struct MultipartUploadContext {
     upload_id: String,
     parts: BTreeMap<i32, CompletedPart>,
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        sync::{Arc, Mutex},
+        time::Duration,
+    };
+
+    use axum::{Router, extract::RawQuery, routing::get};
+    use tokio::net::TcpListener;
+
+    use super::{AwsCred, Builder, Client, ObjectStorage, Region};
+
+    /// Build an [`ObjectStorage`] whose S3 endpoint and object base URL both point
+    /// at the given mock server. Presigning is performed offline, so real
+    /// credentials are not required.
+    fn storage_pointing_at(mock_base_url: &str) -> ObjectStorage {
+        let credentials = AwsCred::new("test", "test", None, None, "test");
+        let conf = Builder::new()
+            .endpoint_url(mock_base_url)
+            .force_path_style(true)
+            .credentials_provider(credentials)
+            .region(Region::new("unknown"))
+            .build();
+
+        ObjectStorage {
+            client: Client::from_conf(conf),
+            bucket: "test-bucket".into(),
+            base_url: mock_base_url.parse().expect("valid mock url"),
+            reqwest_client: reqwest::Client::new(),
+        }
+    }
+
+    #[tokio::test]
+    async fn proxied_request_forwards_signed_query_raw() {
+        // Shared state to capture the raw query string received by the mock server
+        let captured = Arc::new(Mutex::new(None));
+
+        let app = Router::new().route(
+            "/{*path}",
+            get({
+                let captured = captured.clone();
+                move |RawQuery(query): RawQuery| async move {
+                    *captured.lock().expect("lock not poisoned") = query;
+                    "ok"
+                }
+            }),
+        );
+
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind mock server");
+        let addr = listener.local_addr().expect("local addr");
+        tokio::spawn(async move { axum::serve(listener, app).await.expect("serve mock") });
+
+        let storage = storage_pointing_at(&format!("http://{addr}"));
+
+        // Generate the token (using a filename with spaces to trigger %20 encoding)
+        let token = storage
+            .get_proxy_download_token(
+                "assets/test",
+                Duration::from_secs(30),
+                "attachment; filename=\"my recording.mkv\"".to_owned(),
+            )
+            .await
+            .expect("generate download token");
+
+        // Execute the proxy request against our mock server
+        let _stream = storage
+            .get_proxied("assets/test", token, None)
+            .await
+            .expect("proxied request succeeds");
+
+        // Verify exactly what was transmitted
+        let received = captured
+            .lock()
+            .expect("lock not poisoned")
+            .take()
+            .expect("mock captured a query");
+
+        assert!(
+            received.contains("%20"),
+            "query must contain a percent-encoded space: {received}"
+        );
+        assert!(
+            !received.contains('+'),
+            "space must not be re-encoded as `+`: {received}"
+        );
+    }
+}
