@@ -58,6 +58,9 @@ impl<S: Service<ServiceRequest, Response = ServiceResponse, Error = actix_web::E
             match admission {
                 Ok(Admission::Allowed) => service.call(req).await,
                 Ok(Admission::Denied) => Ok(req.into_response(HttpResponse::Forbidden().finish())),
+                Ok(Admission::AuthenticationRequired) => {
+                    Ok(req.into_response(HttpResponse::Unauthorized().finish()))
+                }
                 Err(e) => {
                     tracing::error!("Attempt to request authorization failed: {e:?}");
                     Ok(req.into_response(HttpResponse::InternalServerError().finish()))

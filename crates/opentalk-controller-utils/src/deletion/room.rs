@@ -143,11 +143,11 @@ impl Deleter for RoomDeleter {
             resource: Resource::Room(self.room_id),
             access_method: AccessMethod::Delete,
         };
-        if authorizer
+        if !authorizer
             .authorize(target)
             .await
             .with_context(|_| AuthorizationSnafu)?
-            .is_denied()
+            .is_allowed()
         {
             return Err(Error::Forbidden);
         }

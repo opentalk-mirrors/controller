@@ -26,6 +26,9 @@ impl OpenTalkAuthorizerBackend {
     /// include the `Rooms` and `Events` listing endpoints, or the `UserMe` and `UserProfile`
     /// resources that expose write paths.
     pub(crate) fn require_read_write_user(subjects: SubjectCollection) -> Admission {
+        if subjects.0.is_empty() {
+            return Admission::AuthenticationRequired;
+        }
         for subject in subjects.0 {
             if let Subject::User(_) = subject {
                 return Admission::Allowed;
@@ -44,6 +47,9 @@ impl OpenTalkAuthorizerBackend {
         subjects: SubjectCollection,
         method: AccessMethod,
     ) -> Admission {
+        if subjects.0.is_empty() {
+            return Admission::AuthenticationRequired;
+        }
         for subject in subjects.0 {
             if let Subject::User(_) = subject
                 && method.is_read_only()
@@ -61,6 +67,10 @@ impl OpenTalkAuthorizerBackend {
         event_id: EventId,
         acl: Acl,
     ) -> Result<Admission> {
+        if subjects.0.is_empty() {
+            return Ok(Admission::AuthenticationRequired);
+        }
+
         let mut inventory = self.inventory.get_authorization_inventory().await?;
 
         for subject in subjects.0 {
@@ -99,6 +109,10 @@ impl OpenTalkAuthorizerBackend {
         room_id: RoomId,
         acl: Acl,
     ) -> Result<Admission> {
+        if subjects.0.is_empty() {
+            return Ok(Admission::AuthenticationRequired);
+        }
+
         let mut inventory = self.inventory.get_authorization_inventory().await?;
 
         for subject in subjects.0 {
@@ -210,10 +224,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::{
-        common::acl::Access,
-        event::test_utils::{INVITE_CODE, USER_ID},
-    };
+    use crate::{common::acl::Access, event, room};
 
     #[rstest]
     #[case::apply_owner(User(Role::Owner), Allowed, Allowed)]
@@ -326,10 +337,10 @@ mod tests {
     }
 
     #[rstest]
-    #[case::user_get(Subject::User(USER_ID), Get, Allowed)]
-    #[case::user_post(Subject::User(USER_ID), Post, Denied)]
-    #[case::invite_code_get(Subject::InviteCode(INVITE_CODE), Get, Denied)]
-    #[case::invite_code_get(Subject::InviteCode(INVITE_CODE), Post, Denied)]
+    #[case::user_get(Subject::User(event::test_utils::USER_ID), Get, Allowed)]
+    #[case::user_post(Subject::User(event::test_utils::USER_ID), Post, Denied)]
+    #[case::invite_code_get(Subject::InviteCode(event::test_utils::INVITE_CODE), Get, Denied)]
+    #[case::invite_code_get(Subject::InviteCode(event::test_utils::INVITE_CODE), Post, Denied)]
     fn require_read_user(
         #[case] sub: Subject,
         #[case] method: AccessMethod,
@@ -343,13 +354,69 @@ mod tests {
     }
 
     #[rstest]
-    #[case::user_get(Subject::User(USER_ID), Allowed)]
-    #[case::invite_code_get(Subject::InviteCode(INVITE_CODE), Denied)]
+    #[case::user_get(Subject::User(event::test_utils::USER_ID), Allowed)]
+    #[case::invite_code_get(Subject::InviteCode(event::test_utils::INVITE_CODE), Denied)]
     fn require_write_user(#[case] sub: Subject, #[case] admission: Admission) {
         let subjects = SubjectCollection::from_iter([sub]);
         assert_eq!(
             OpenTalkAuthorizerBackend::require_read_write_user(subjects),
             admission
         );
+    }
+
+    #[test]
+    fn require_authentication_for_require_read_user() {
+        let empty_subjects = SubjectCollection::from_iter([]);
+        assert_eq!(
+            OpenTalkAuthorizerBackend::require_read_user(empty_subjects, Get),
+            Admission::AuthenticationRequired
+        )
+    }
+
+    #[test]
+    fn require_authentication_for_require_read_write_user() {
+        let empty_subjects = SubjectCollection::from_iter([]);
+        assert_eq!(
+            OpenTalkAuthorizerBackend::require_read_write_user(empty_subjects),
+            Admission::AuthenticationRequired
+        )
+    }
+
+    #[tokio::test]
+    async fn require_authentication_to_apply_acl_for_event() {
+        let empty_subjects = SubjectCollection::from_iter([]);
+        // The validity, acl, method, and event id do not matter for this test.
+        let authorization_backend =
+            event::test_utils::create_authorizer_with_validity(Validity::Invalid);
+        let acl = Acl {
+            owner: Access::None,
+            moderator: Access::None,
+            invited_user: Access::None,
+            invite_code: Access::None,
+        };
+        let admission = authorization_backend
+            .apply_acl_for_event(empty_subjects, Get, event::test_utils::EVENT_ID, acl)
+            .await
+            .unwrap();
+        assert_eq!(admission, Admission::AuthenticationRequired);
+    }
+
+    #[tokio::test]
+    async fn require_authentication_to_apply_acl_for_room() {
+        let empty_subjects = SubjectCollection::from_iter([]);
+        // The validity, acl, method, and event id do not matter for this test.
+        let authorization_backend =
+            room::test_utils::create_authorizer_with_validity(Validity::Invalid);
+        let acl = Acl {
+            owner: Access::None,
+            moderator: Access::None,
+            invited_user: Access::None,
+            invite_code: Access::None,
+        };
+        let admission = authorization_backend
+            .apply_acl_for_room(empty_subjects, Get, room::test_utils::ROOM_ID, acl)
+            .await
+            .unwrap();
+        assert_eq!(admission, Admission::AuthenticationRequired);
     }
 }

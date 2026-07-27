@@ -7,13 +7,46 @@ use opentalk_types_common::{
     assets::AssetId,
     events::EventId,
     rooms::{RoomId, invite_codes::InviteCode},
+    roomserver::Token,
     streaming::StreamingTargetId,
     users::UserId,
 };
 
 /// Specification of a resource provided by the OpenTalk Controller API.
+///
+/// Variants come in two flavours:
+///
+/// * **Authenticated resources** require the caller to be a [`Subject`] (i.e.
+///   an authenticated user or a holder of an invite code) and are checked
+///   against an ACL by the authorization backend.
+/// * **Public resources** are served without authentication and the
+///   authorization backend admits any caller — including unauthenticated
+///   ones. They are still represented here so that the middleware can map
+///   every routed request to a known [`Resource`] and the "allowed by
+///   default" decision is explicit and testable.
+///
+/// [`Subject`]: super::Subject
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Resource {
+    /// The OIDC login endpoint.
+    ///
+    /// Served under `/v1/auth/login`. Public: callers are unauthenticated
+    /// at this point and the endpoint just exchanges an OIDC ID token for
+    /// the controller's own representation of the user.
+    AuthLogin,
+
+    /// The OIDC back-channel logout endpoint.
+    ///
+    /// Served under `/v1/auth/logout`. Public: the logout token in the
+    /// request body is validated by the endpoint itself.
+    AuthLogout,
+
+    /// The (deprecated) TURN credentials endpoint.
+    ///
+    /// Served under `/v1/turn`. Public: the endpoint always returns an
+    /// empty response and only exists for backwards compatibility.
+    Turn,
+
     /// The events list resource.
     ///
     /// Served under `/v1/events`.
@@ -124,6 +157,33 @@ pub enum Resource {
     /// Served under `/v1/rooms/{room_id}/start`.
     RoomStart(RoomId),
 
+    /// The invite-based room start endpoint.
+    ///
+    /// Served under `/v1/rooms/{room_id}/start_invited`. Public: the
+    /// endpoint just issues a permanent redirect to [`Self::RoomStart`] which
+    /// performs the actual authorization.
+    RoomStartInvited(RoomId),
+
+    /// The invite verification endpoint.
+    ///
+    /// Served under `/v1/invite/verify`. Public: the endpoint validates
+    /// the invite code carried in the request body itself.
+    InviteVerify,
+
+    /// The signaling WebSocket endpoint.
+    ///
+    /// Served under `/v1/signaling/{token}`. Public: access is gated by
+    /// the signaling token in the URL, which the endpoint validates
+    /// itself before upgrading the WebSocket.
+    Signaling(Token),
+
+    /// The asset download proxy endpoint.
+    ///
+    /// Served under `/v1/rooms/{room_id}/assets/{asset_id}/proxy`.
+    /// Public: access is gated by the signed download token supplied in
+    /// the query string, which the endpoint validates itself.
+    RoomAssetDownloadProxy(RoomId, AssetId),
+
     /// The room tariff endpoint.
     ///
     /// Served under `/v1/rooms/{room_id}/tariff`.
@@ -201,6 +261,9 @@ pub(super) mod actix_web_impls {
             };
 
             match pattern.as_str() {
+                "/v1/auth/login" => Ok(Resource::AuthLogin),
+                "/v1/auth/logout" => Ok(Resource::AuthLogout),
+                "/v1/turn" => Ok(Resource::Turn),
                 "/v1/events" => Ok(Resource::Events),
                 "/v1/events/instances" => Ok(Resource::EventsInstances),
                 "/v1/events/{event_id}" => {
@@ -271,6 +334,11 @@ pub(super) mod actix_web_impls {
                         extract_path::<(RoomId, AssetId)>(req.path(), &pattern).expect("invalid");
                     Ok(Resource::RoomAssetDownload(room_id, asset_id))
                 }
+                "/v1/rooms/{room_id}/assets/{asset_id}/proxy" => {
+                    let (room_id, asset_id) =
+                        extract_path::<(RoomId, AssetId)>(req.path(), &pattern).expect("invalid");
+                    Ok(Resource::RoomAssetDownloadProxy(room_id, asset_id))
+                }
                 "/v1/rooms/{room_id}/sip" => {
                     let room_id = extract_path::<RoomId>(req.path(), &pattern).expect("invalid");
                     Ok(Resource::RoomSip(room_id))
@@ -288,6 +356,16 @@ pub(super) mod actix_web_impls {
                 "/v1/rooms/{room_id}/start" | "/v1/rooms/{room_id}/roomserver/start" => {
                     let room_id = extract_path::<RoomId>(req.path(), &pattern).expect("invalid");
                     Ok(Resource::RoomStart(room_id))
+                }
+                "/v1/rooms/{room_id}/start_invited"
+                | "/v1/rooms/{room_id}/roomserver/start_invited" => {
+                    let room_id = extract_path::<RoomId>(req.path(), &pattern).expect("invalid");
+                    Ok(Resource::RoomStartInvited(room_id))
+                }
+                "/v1/invite/verify" => Ok(Resource::InviteVerify),
+                "/v1/signaling/{token}" => {
+                    let token = extract_path::<Token>(req.path(), &pattern).expect("invalid");
+                    Ok(Resource::Signaling(token))
                 }
                 "/v1/rooms/{room_id}/tariff" => {
                     let room_id = extract_path::<RoomId>(req.path(), &pattern).expect("invalid");

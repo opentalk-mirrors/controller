@@ -116,11 +116,11 @@ impl Deleter for EventDeleter {
             resource: Resource::Event(self.event_id),
             access_method: AccessMethod::Delete,
         };
-        if authorizer
+        if !authorizer
             .authorize(target)
             .await
             .with_context(|_| AuthorizationSnafu)?
-            .is_denied()
+            .is_allowed()
         {
             return Err(Error::Forbidden);
         }

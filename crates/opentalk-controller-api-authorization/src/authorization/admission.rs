@@ -10,17 +10,15 @@ pub enum Admission {
 
     /// Admission to the requested resource is denied.
     Denied,
+
+    /// Prior authentication is required to request the resource.
+    AuthenticationRequired,
 }
 
 impl Admission {
     /// Check whether the admission is [`Admission::Allowed`].
     pub const fn is_allowed(&self) -> bool {
         matches!(self, Self::Allowed)
-    }
-
-    /// Check whether the admission is [`Admission::Denied`].
-    pub const fn is_denied(&self) -> bool {
-        matches!(self, Self::Denied)
     }
 }
 

@@ -76,11 +76,15 @@
     unused_results
 )]
 
+mod auth;
 mod authorizer_backend;
 mod common;
 mod error;
 mod event;
+mod invite_verify;
 mod room;
+mod signaling;
+mod turn;
 mod user;
 
 pub use authorizer_backend::OpenTalkAuthorizerBackend;
