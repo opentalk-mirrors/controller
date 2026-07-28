@@ -484,7 +484,7 @@ pub(crate) async fn get_call_in_info(
         return Ok(None);
     }
 
-    let Some(tel) = settings.call_in.as_ref().map(|call_in| call_in.tel.clone()) else {
+    let Some(call_in_settings) = settings.call_in() else {
         return Ok(None);
     };
 
@@ -492,9 +492,11 @@ pub(crate) async fn get_call_in_info(
         .get_room_sip_config(room_id)
         .await?
         .map(|sip_config| CallInInfo {
-            tel,
+            tel: call_in_settings.tel().to_string(),
             id: sip_config.sip_id,
             password: sip_config.password,
+            mask_unmapped_phone_numbers: call_in_settings.mask_unmapped_numbers(),
+            default_country_code: call_in_settings.default_country_code().as_ref().to_string(),
         }))
 }
 

@@ -89,10 +89,36 @@ impl Settings {
         // reload avatar
         self.avatar = new.avatar;
 
-        // reload call in
+        // reload call-in
         self.call_in = new.call_in;
 
         Ok(())
+    }
+
+    /// Returns the call-in of this [`Settings`].
+    pub fn call_in(&self) -> Option<&CallIn> {
+        self.call_in.as_ref()
+    }
+
+    /// Returns the call-in tel of this [`Settings`].
+    pub fn call_in_tel(&self) -> Option<&str> {
+        self.call_in().map(|call_in| call_in.tel())
+    }
+
+    /// Returns the call-in enable phone number mapping of this [`Settings`].
+    pub fn call_in_enable_phone_number_mapping(&self) -> Option<bool> {
+        self.call_in().map(|call_in| call_in.enable_phone_mapping())
+    }
+
+    /// Returns the call-in mask unmapped numbers of this [`Settings`].
+    pub fn call_in_mask_unmapped_numbers(&self) -> Option<bool> {
+        self.call_in()
+            .map(|call_in| call_in.mask_unmapped_numbers())
+    }
+
+    /// Returns the call-in default country code of this [`Settings`].
+    pub fn call_in_default_country_code(&self) -> Option<phonenumber::country::Id> {
+        self.call_in().map(|call_in| call_in.default_country_code())
     }
 }
 

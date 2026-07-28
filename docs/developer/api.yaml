@@ -4515,7 +4515,9 @@ components:
           description: The links for accessing the stream
       example:
         call_in:
+          default_country_code: DE
           id: "1234567890"
+          mask_unmapped_phone_numbers: true
           password: "0987654321"
           tel: +555-123-456-789
         invite_code_id: 00000000-0000-0000-0000-0000deadbeef
