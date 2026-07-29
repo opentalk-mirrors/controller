@@ -5,7 +5,6 @@
 #![allow(clippy::module_inception)]
 
 mod event;
-mod event_and_encryption;
 mod event_date;
 mod event_exception;
 mod event_exception_id;
@@ -24,7 +23,6 @@ mod update_event_exception;
 mod update_event_recurrence;
 
 pub use event::Event;
-pub(crate) use event_and_encryption::EventAndEncryption;
 pub use event_date::EventDate;
 pub use event_exception::EventException;
 pub use event_exception_id::EventExceptionId;

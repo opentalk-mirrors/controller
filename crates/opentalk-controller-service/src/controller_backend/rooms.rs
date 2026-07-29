@@ -10,16 +10,14 @@ use opentalk_controller_utils::{
     CaptureApiError,
     deletion::{Deleter, RoomDeleter},
 };
-use opentalk_inventory::{
-    NewRoom, NewRoomSipConfig, Room, UpdateRoom,
-    utils::{build_event_info, is_invite_valid},
-};
+use opentalk_inventory::{NewRoom, NewRoomSipConfig, Room, UpdateRoom, utils::is_invite_valid};
 use opentalk_types_api_v1::{
     error::ApiError,
     pagination::PagePaginationQuery,
     rooms::{GetRoomsResponseBody, RoomResource, by_room_id::GetRoomEventResponseBody},
 };
 use opentalk_types_common::{
+    events::EventInfo,
     features::GUESTS_ALLOWED_MODULE_FEATURE_ID,
     pagination::ItemCount,
     rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
@@ -259,7 +257,6 @@ impl ControllerBackend {
         &self,
         room_id: &RoomId,
     ) -> Result<GetRoomEventResponseBody, CaptureApiError> {
-        let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let event = inventory.get_event_for_room(*room_id).await?;
@@ -272,14 +269,16 @@ impl ControllerBackend {
             return Err(ApiError::forbidden().into());
         }
 
-        let tariff = self.get_tariff_for_user(room.created_by).await?;
         match event.as_ref() {
             Some(event) => {
-                let call_in_tel = settings.call_in.as_ref().map(|call_in| call_in.tel.clone());
-
-                let event_info =
-                    build_event_info(inventory.as_mut(), call_in_tel, &room, event, &tariff)
-                        .await?;
+                let event_info = EventInfo {
+                    id: event.id,
+                    room_id: event.room,
+                    title: event.title.clone(),
+                    is_adhoc: event.is_adhoc,
+                    e2e_encryption: room.e2e_encryption,
+                    password_required: room.password.is_some(),
+                };
 
                 Ok(GetRoomEventResponseBody(event_info))
             }
