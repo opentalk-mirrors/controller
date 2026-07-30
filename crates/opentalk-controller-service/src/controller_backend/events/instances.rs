@@ -65,7 +65,7 @@ enum InternalEventOrInstance {
         (
             Event,
             Option<EventInvite>,
-            Room,
+            Box<Room>,
             Option<RoomSipConfig>,
             bool,
             Option<EventSharedFolder>,
@@ -135,9 +135,20 @@ impl ControllerBackend {
         let mut events_and_instances_streams: Vec<
             Pin<Box<dyn Stream<Item = opentalk_inventory::Result<InternalEventOrInstance>>>>,
         > = Vec::with_capacity(recurring_events.len() + 1);
-        events_and_instances_streams.push(Box::pin(
-            events_stream.map_ok(InternalEventOrInstance::Event),
-        ));
+        events_and_instances_streams.push(Box::pin(events_stream.map_ok(
+            |(event, invite, room, sip_config, is_favorite, shared_folder, tariff, training)| {
+                InternalEventOrInstance::Event((
+                    event,
+                    invite,
+                    Box::new(room),
+                    sip_config,
+                    is_favorite,
+                    shared_folder,
+                    tariff,
+                    training,
+                ))
+            },
+        )));
         for event in recurring_events {
             let cursor_event_starts_at = query.after.and_then(|cursor| cursor.event_starts_at);
 
@@ -215,7 +226,16 @@ impl ControllerBackend {
         let mut items: Vec<EventOrInstance> = Vec::with_capacity(raw_items.len());
         for raw in raw_items {
             let item = match raw {
-                InternalEventOrInstance::Event(event) => {
+                InternalEventOrInstance::Event((
+                    event,
+                    invite,
+                    room,
+                    sip_config,
+                    is_favorite,
+                    shared_folder,
+                    tariff,
+                    training,
+                )) => {
                     let resource = self
                         .build_event_resource(
                             inventory.as_mut(),
@@ -223,7 +243,16 @@ impl ControllerBackend {
                             current_user.clone(),
                             &current_tenant,
                             invitees_max,
-                            event,
+                            (
+                                event,
+                                invite,
+                                *room,
+                                sip_config,
+                                is_favorite,
+                                shared_folder,
+                                tariff,
+                                training,
+                            ),
                         )
                         .await?;
                     EventOrInstance::Event(resource)
@@ -1074,6 +1103,7 @@ mod tests {
                 .expect("valid event description"),
             room: EventRoomInfo {
                 id: RoomId::nil(),
+                alias: None,
                 password: None,
                 waiting_room: false,
                 guest_access: GuestAccess::default(),
@@ -1207,6 +1237,7 @@ mod tests {
                 .expect("valid event description"),
             room: EventRoomInfo {
                 id: RoomId::nil(),
+                alias: None,
                 password: None,
                 waiting_room: false,
                 guest_access: GuestAccess::default(),

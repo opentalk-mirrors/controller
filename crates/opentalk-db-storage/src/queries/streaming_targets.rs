@@ -9,12 +9,13 @@ use diesel_async::{AsyncConnection, RunQueryDsl};
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{
     self as types,
-    rooms::RoomId,
+    rooms::{RoomId, RoomIdOrAlias},
     streaming::{StreamingTarget, StreamingTargetId},
 };
 
 use crate::{
-    schema::room_streaming_targets,
+    queries::room_filter::FilterByRoom as _,
+    schema::{room_streaming_targets, rooms},
     tables::room_streaming_targets::{
         NewRoomStreamingTarget, RoomStreamingTarget, UpdateRoomStreamingTarget,
     },
@@ -112,13 +113,16 @@ pub async fn get_room_streaming_targets(
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_room_streaming_target(
     conn: &mut DbConnection,
-    room_id: RoomId,
+    room: RoomIdOrAlias,
     streaming_target_id: StreamingTargetId,
 ) -> Result<()> {
     _ = diesel::delete(
         room_streaming_targets::table
             .filter(room_streaming_targets::id.eq(streaming_target_id))
-            .filter(room_streaming_targets::room_id.eq(room_id)),
+            .filter(
+                room_streaming_targets::room_id
+                    .eq_any(rooms::table.select(rooms::id).filter_by_room(room)),
+            ),
     )
     .execute(conn)
     .await?;
@@ -154,12 +158,15 @@ pub async fn insert(
 pub async fn update_room_streaming_target(
     conn: &mut DbConnection,
     update_room_streaming_target: UpdateRoomStreamingTarget,
-    room_id: RoomId,
+    room: RoomIdOrAlias,
     streaming_target_id: StreamingTargetId,
 ) -> Result<RoomStreamingTarget> {
     diesel::update(room_streaming_targets::table)
         .filter(room_streaming_targets::id.eq(streaming_target_id))
-        .filter(room_streaming_targets::room_id.eq(room_id))
+        .filter(
+            room_streaming_targets::room_id
+                .eq_any(rooms::table.select(rooms::id).filter_by_room(room)),
+        )
         .set(update_room_streaming_target)
         .returning(room_streaming_targets::all_columns)
         .get_result(conn)

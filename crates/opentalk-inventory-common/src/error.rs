@@ -29,6 +29,9 @@ pub enum Error {
     /// A database constraint was violated.
     ConstraintViolation,
 
+    /// A database unique constraint was violated.
+    UniqueViolation,
+
     /// A custom error with just a message.
     #[snafu(whatever, display("{message}"))]
     Custom {
@@ -48,6 +51,14 @@ impl Error {
     #[must_use]
     pub fn is_not_found(&self) -> bool {
         matches!(self, Self::NotFound)
+    }
+
+    /// Returns `true` if the error is [`UniqueViolation`].
+    ///
+    /// [`UniqueViolation`]: Error::UniqueViolation
+    #[must_use]
+    pub fn is_unique_violation(&self) -> bool {
+        matches!(self, Self::UniqueViolation)
     }
 
     /// Returns `true` if the error is [`ConstraintViolation`].

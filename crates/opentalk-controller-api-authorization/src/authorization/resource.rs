@@ -6,7 +6,7 @@ use opentalk_types_api_v1::events::InstanceId;
 use opentalk_types_common::{
     assets::AssetId,
     events::EventId,
-    rooms::{RoomId, invite_codes::InviteCode},
+    rooms::{RoomId, RoomIdOrAlias, invite_codes::InviteCode},
     roomserver::Token,
     streaming::StreamingTargetId,
     users::UserId,
@@ -104,65 +104,65 @@ pub enum Resource {
 
     /// A room resource.
     ///
-    /// Served under `/v1/rooms/{room_id}`.
-    Room(RoomId),
+    /// Served under `/v1/rooms/{room_id_or_alias}`.
+    Room(RoomIdOrAlias),
 
     /// A room event resource.
     ///
-    /// Served under `/v1/rooms/{room_id}/event`.
-    RoomEvent(RoomId),
+    /// Served under `/v1/rooms/{room_id_or_alias}/event`.
+    RoomEvent(RoomIdOrAlias),
 
     /// The list of invites to a room.
     ///
-    /// Served under `/v1/rooms/{room_id}/invites`.
-    RoomInvites(RoomId),
+    /// Served under `/v1/rooms/{room_id_or_alias}/invites`.
+    RoomInvites(RoomIdOrAlias),
 
     /// A room invite code.
     ///
-    /// Served under `/v1/rooms/{room_id}/invites/{invite_code}`.
+    /// Served under `/v1/rooms/{room_id_or_alias}/invites/{invite_code}`.
     RoomInviteCode(RoomId, InviteCode),
 
     /// The list of assets for a room.
     ///
-    /// Served under `/v1/rooms/{room_id}/assets`.
-    RoomAssets(RoomId),
+    /// Served under `/v1/rooms/{room_id_or_alias}/assets`.
+    RoomAssets(RoomIdOrAlias),
 
     /// An asset stored with a room.
     ///
-    /// Served under `/v1/rooms/{room_id}/assets/{asset_id}`.
-    RoomAsset(RoomId, AssetId),
+    /// Served under `/v1/rooms/{room_id_or_alias}/assets/{asset_id}`.
+    RoomAsset(RoomIdOrAlias, AssetId),
 
     /// An asset download for a room.
     ///
-    /// Served under `/v1/rooms/{room_id}/assets/{asset_id}/download`.
+    /// Served under `/v1/rooms/{room_id_or_alias}/assets/{asset_id}/download`.
     RoomAssetDownload(RoomId, AssetId),
 
     /// The list of streaming targets for a room.
     ///
-    /// Served under `/v1/rooms/{room_id}/streaming_targets`.
-    RoomStreamingTargets(RoomId),
+    /// Served under `/v1/rooms/{room_id_or_alias}/streaming_targets`.
+    RoomStreamingTargets(RoomIdOrAlias),
 
     /// A streaming target for a room.
     ///
-    /// Served under `/v1/rooms/{room_id}/streaming_targets/{streaming_target_id}`.
-    RoomStreamingTarget(RoomId, StreamingTargetId),
+    /// Served under `/v1/rooms/{room_id_or_alias}/streaming_targets/{streaming_target_id}`.
+    RoomStreamingTarget(RoomIdOrAlias, StreamingTargetId),
 
     /// The sip config for a room.
     ///
-    /// Served under `/v1/rooms/{room_id}/sip`.
-    RoomSip(RoomId),
+    /// Served under `/v1/rooms/{room_id_or_alias}/sip`.
+    RoomSip(RoomIdOrAlias),
 
     /// The room start endpoint.
     ///
-    /// Served under `/v1/rooms/{room_id}/start`.
-    RoomStart(RoomId),
+    /// Served under `/v1/rooms/{room_id_or_alias}/start`.
+    RoomStart(RoomIdOrAlias),
 
     /// The invite-based room start endpoint.
     ///
-    /// Served under `/v1/rooms/{room_id}/start_invited`. Public: the
+    /// Served under `/v1/rooms/{room_id_or_alias}/start_invited`. Public: the
     /// endpoint just issues a permanent redirect to [`Self::RoomStart`] which
     /// performs the actual authorization.
-    RoomStartInvited(RoomId),
+    RoomStartInvited(RoomIdOrAlias),
 
     /// The invite verification endpoint.
     ///
@@ -179,15 +179,15 @@ pub enum Resource {
 
     /// The asset download proxy endpoint.
     ///
-    /// Served under `/v1/rooms/{room_id}/assets/{asset_id}/proxy`.
+    /// Served under `/v1/rooms/{room_id_or_alias}/assets/{asset_id}/proxy`.
     /// Public: access is gated by the signed download token supplied in
     /// the query string, which the endpoint validates itself.
-    RoomAssetDownloadProxy(RoomId, AssetId),
+    RoomAssetDownloadProxy(RoomIdOrAlias, AssetId),
 
     /// The room tariff endpoint.
     ///
-    /// Served under `/v1/rooms/{room_id}/tariff`.
-    RoomTariff(RoomId),
+    /// Served under `/v1/rooms/{room_id_or_alias}/tariff`.
+    RoomTariff(RoomIdOrAlias),
 
     /// The user search.
     ///
@@ -229,6 +229,7 @@ pub enum Resource {
 pub(super) mod actix_web_impls {
     use actix_router::{Path, PathDeserializer, ResourceDef};
     use actix_web::{dev::ServiceRequest, error::PathError};
+    use opentalk_types_common::rooms::RoomIdOrAlias;
     use serde::de::DeserializeOwned;
     use snafu::{ResultExt, Snafu, ensure};
 
@@ -306,72 +307,76 @@ pub(super) mod actix_web_impls {
                     Ok(Resource::EventSharedFolder(event_id))
                 }
                 "/v1/rooms" => Ok(Resource::Rooms),
-                "/v1/rooms/{room_id}" => {
-                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
-                    Ok(Resource::Room(room_id))
+                "/v1/rooms/{room_id_or_alias}" => {
+                    let room_id_or_alias = extract_path::<RoomIdOrAlias>(req.path(), pattern)?;
+                    Ok(Resource::Room(room_id_or_alias))
                 }
-                "/v1/rooms/{room_id}/event" => {
-                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
-                    Ok(Resource::RoomEvent(room_id))
+                "/v1/rooms/{room_id_or_alias}/event" => {
+                    let room_id_or_alias = extract_path::<RoomIdOrAlias>(req.path(), pattern)?;
+                    Ok(Resource::RoomEvent(room_id_or_alias))
                 }
-                "/v1/rooms/{room_id}/invites" => {
-                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
-                    Ok(Resource::RoomInvites(room_id))
+                "/v1/rooms/{room_id_or_alias}/invites" => {
+                    let room_id_or_alias = extract_path::<RoomIdOrAlias>(req.path(), pattern)?;
+                    Ok(Resource::RoomInvites(room_id_or_alias))
                 }
-                "/v1/rooms/{room_id}/invites/{invite_code}" => {
+                "/v1/rooms/{room_id_or_alias}/invites/{invite_code}" => {
                     let (room_id, invite_code) =
                         extract_path::<(RoomId, InviteCode)>(req.path(), pattern)?;
                     Ok(Resource::RoomInviteCode(room_id, invite_code))
                 }
-                "/v1/rooms/{room_id}/assets" => {
-                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
-                    Ok(Resource::RoomAssets(room_id))
+                "/v1/rooms/{room_id_or_alias}/assets" => {
+                    let room_id_or_alias = extract_path::<RoomIdOrAlias>(req.path(), pattern)?;
+                    Ok(Resource::RoomAssets(room_id_or_alias))
                 }
-                "/v1/rooms/{room_id}/assets/{asset_id}" => {
-                    let (room_id, asset_id) =
-                        extract_path::<(RoomId, AssetId)>(req.path(), pattern)?;
-                    Ok(Resource::RoomAsset(room_id, asset_id))
+                "/v1/rooms/{room_id_or_alias}/assets/{asset_id}" => {
+                    let (room_id_or_alias, asset_id) =
+                        extract_path::<(RoomIdOrAlias, AssetId)>(req.path(), pattern)?;
+                    Ok(Resource::RoomAsset(room_id_or_alias, asset_id))
                 }
-                "/v1/rooms/{room_id}/assets/{asset_id}/download" => {
+                "/v1/rooms/{room_id_or_alias}/assets/{asset_id}/download" => {
                     let (room_id, asset_id) =
                         extract_path::<(RoomId, AssetId)>(req.path(), pattern)?;
                     Ok(Resource::RoomAssetDownload(room_id, asset_id))
                 }
-                "/v1/rooms/{room_id}/assets/{asset_id}/proxy" => {
-                    let (room_id, asset_id) =
-                        extract_path::<(RoomId, AssetId)>(req.path(), pattern)?;
-                    Ok(Resource::RoomAssetDownloadProxy(room_id, asset_id))
+                "/v1/rooms/{room_id_or_alias}/assets/{asset_id}/proxy" => {
+                    let (room_id_or_alias, asset_id) =
+                        extract_path::<(RoomIdOrAlias, AssetId)>(req.path(), pattern)?;
+                    Ok(Resource::RoomAssetDownloadProxy(room_id_or_alias, asset_id))
                 }
-                "/v1/rooms/{room_id}/sip" => {
-                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
-                    Ok(Resource::RoomSip(room_id))
+                "/v1/rooms/{room_id_or_alias}/sip" => {
+                    let room_id_or_alias = extract_path::<RoomIdOrAlias>(req.path(), pattern)?;
+                    Ok(Resource::RoomSip(room_id_or_alias))
                 }
-                "/v1/rooms/{room_id}/streaming_targets" => {
-                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
-                    Ok(Resource::RoomStreamingTargets(room_id))
+                "/v1/rooms/{room_id_or_alias}/streaming_targets" => {
+                    let room_id_or_alias = extract_path::<RoomIdOrAlias>(req.path(), pattern)?;
+                    Ok(Resource::RoomStreamingTargets(room_id_or_alias))
                 }
-                "/v1/rooms/{room_id}/streaming_targets/{streaming_target_id}" => {
-                    let (room_id, streaming_target_id) =
-                        extract_path::<(RoomId, StreamingTargetId)>(req.path(), pattern)?;
-                    Ok(Resource::RoomStreamingTarget(room_id, streaming_target_id))
+                "/v1/rooms/{room_id_or_alias}/streaming_targets/{streaming_target_id}" => {
+                    let (room_id_or_alias, streaming_target_id) =
+                        extract_path::<(RoomIdOrAlias, StreamingTargetId)>(req.path(), pattern)?;
+                    Ok(Resource::RoomStreamingTarget(
+                        room_id_or_alias,
+                        streaming_target_id,
+                    ))
                 }
-                "/v1/rooms/{room_id}/start" | "/v1/rooms/{room_id}/roomserver/start" => {
-                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
-                    Ok(Resource::RoomStart(room_id))
+                "/v1/rooms/{room_id_or_alias}/start"
+                | "/v1/rooms/{room_id_or_alias}/roomserver/start" => {
+                    let room_id_or_alias = extract_path::<RoomIdOrAlias>(req.path(), pattern)?;
+                    Ok(Resource::RoomStart(room_id_or_alias))
                 }
-                "/v1/rooms/{room_id}/start_invited"
-                | "/v1/rooms/{room_id}/roomserver/start_invited" => {
-                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
-                    Ok(Resource::RoomStartInvited(room_id))
+                "/v1/rooms/{room_id_or_alias}/start_invited"
+                | "/v1/rooms/{room_id_or_alias}/roomserver/start_invited" => {
+                    let room_id_or_alias = extract_path::<RoomIdOrAlias>(req.path(), pattern)?;
+                    Ok(Resource::RoomStartInvited(room_id_or_alias))
                 }
                 "/v1/invite/verify" => Ok(Resource::InviteVerify),
                 "/v1/signaling/{token}" => {
                     let token = extract_path::<Token>(req.path(), pattern)?;
                     Ok(Resource::Signaling(token))
                 }
-                "/v1/rooms/{room_id}/tariff" => {
-                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
-                    Ok(Resource::RoomTariff(room_id))
+                "/v1/rooms/{room_id_or_alias}/tariff" => {
+                    let room_id_or_alias = extract_path::<RoomIdOrAlias>(req.path(), pattern)?;
+                    Ok(Resource::RoomTariff(room_id_or_alias))
                 }
                 "/v1/users/find" => Ok(Resource::UserFind),
                 "/v1/users/me" => Ok(Resource::UserMe),

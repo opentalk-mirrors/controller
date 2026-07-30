@@ -37,6 +37,10 @@ impl Error {
             } if source.is_check_violation()
         )
     }
+
+    pub fn is_unique_violation(&self) -> bool {
+        matches!(self, Error::Database { source, .. } if source.is_unique_violation())
+    }
 }
 
 impl From<Error> for InventoryBackendError {
@@ -53,6 +57,9 @@ impl From<Error> for opentalk_inventory::Error {
         }
         if e.is_check_violation() {
             return Self::ConstraintViolation;
+        }
+        if e.is_unique_violation() {
+            return Self::UniqueViolation;
         }
         Self::InventoryBackend {
             source: InventoryBackendError::from(e),

@@ -6,7 +6,7 @@ use opentalk_db_storage as db;
 use opentalk_inventory::{NewRoom, Room, RoomInventory, UpdateRoom, User};
 use opentalk_types_common::{
     pagination::{ItemCount, Page, PageSize},
-    rooms::RoomId,
+    rooms::{RoomId, RoomIdOrAlias},
     users::UserId,
 };
 use snafu::ResultExt as _;
@@ -26,16 +26,16 @@ impl RoomInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_room(&mut self, room_id: RoomId) -> Result<Room> {
-        Ok(db::queries::rooms::get_room(&mut self.inner, room_id)
+    async fn get_room(&mut self, room: RoomIdOrAlias) -> Result<Room> {
+        Ok(db::queries::rooms::get_room(&mut self.inner, room)
             .await
             .context(DatabaseSnafu)?
             .into())
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_room_with_creator(&mut self, room_id: RoomId) -> Result<(Room, User)> {
-        let (room, user) = db::queries::rooms::get_room_with_creator(&mut self.inner, room_id)
+    async fn get_room_with_creator(&mut self, room: RoomIdOrAlias) -> Result<(Room, User)> {
+        let (room, user) = db::queries::rooms::get_room_with_creator(&mut self.inner, room)
             .await
             .context(DatabaseSnafu)?;
         Ok((room.into(), user.into()))
@@ -53,9 +53,9 @@ impl RoomInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn update_room(&mut self, room_id: RoomId, update: UpdateRoom) -> Result<Room> {
+    async fn update_room(&mut self, room: RoomIdOrAlias, update: UpdateRoom) -> Result<Room> {
         Ok(
-            db::queries::rooms::update_room(&mut self.inner, update.into(), room_id)
+            db::queries::rooms::update_room(&mut self.inner, update.into(), room)
                 .await
                 .context(DatabaseSnafu)?
                 .into(),

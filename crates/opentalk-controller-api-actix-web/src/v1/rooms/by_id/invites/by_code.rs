@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! API endpoints under `v1/rooms/{room_id}/invites/{invite_code}`
+//! API endpoints under `v1/rooms/{room_id_or_alias}/invites/{invite_code}`
 
 use actix_web::{
     delete, get, put,
@@ -11,7 +11,9 @@ use actix_web::{
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{
     error::ApiError,
-    rooms::by_room_id::invites::{InviteResource, PutInviteRequestBody, RoomIdAndInviteCode},
+    rooms::by_room_id::invites::{
+        InviteResource, PutInviteRequestBody, RoomIdOrAliasAndInviteCode,
+    },
 };
 
 use crate::{
@@ -25,7 +27,7 @@ use crate::{
 #[utoipa::path(
     operation_id = "get_invite",
     tag = "api::v1::invites",
-    params(RoomIdAndInviteCode),
+    params(RoomIdOrAliasAndInviteCode),
     responses(
         (
             status = StatusCode::OK,
@@ -53,14 +55,16 @@ use crate::{
         ("BearerAuth" = []),
     ),
 )]
-#[get("/rooms/{room_id}/invites/{invite_code}")]
+#[get("/rooms/{room_id_or_alias}/invites/{invite_code}")]
 pub async fn get(
     service: Data<dyn OpenTalkControllerService>,
-    path_params: Path<RoomIdAndInviteCode>,
+    path_params: Path<RoomIdOrAliasAndInviteCode>,
 ) -> Result<Json<InviteResource>, ApiError> {
-    let invite_resoruce = service
-        .get_invite(path_params.room_id, path_params.invite_code)
-        .await?;
+    let RoomIdOrAliasAndInviteCode {
+        room_id_or_alias,
+        invite_code,
+    } = path_params.into_inner();
+    let invite_resoruce = service.get_invite(room_id_or_alias, invite_code).await?;
 
     Ok(Json(invite_resoruce))
 }
@@ -71,7 +75,7 @@ pub async fn get(
 #[utoipa::path(
     operation_id = "update_invite",
     tag = "api::v1::invites",
-    params(RoomIdAndInviteCode),
+    params(RoomIdOrAliasAndInviteCode),
     request_body = PutInviteRequestBody,
     responses(
         (
@@ -100,20 +104,24 @@ pub async fn get(
         ("BearerAuth" = []),
     ),
 )]
-#[put("/rooms/{room_id}/invites/{invite_code}")]
+#[put("/rooms/{room_id_or_alias}/invites/{invite_code}")]
 pub async fn put(
     service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
-    path_params: Path<RoomIdAndInviteCode>,
+    path_params: Path<RoomIdOrAliasAndInviteCode>,
     update_invite: Json<PutInviteRequestBody>,
 ) -> Result<Json<InviteResource>, ApiError> {
     let current_user = current_user.into_inner();
+    let RoomIdOrAliasAndInviteCode {
+        room_id_or_alias,
+        invite_code,
+    } = path_params.into_inner();
 
     let invite_resource = service
         .update_invite(
             current_user,
-            path_params.room_id,
-            path_params.invite_code,
+            room_id_or_alias,
+            invite_code,
             update_invite.into_inner(),
         )
         .await?;
@@ -127,7 +135,7 @@ pub async fn put(
 #[utoipa::path(
     operation_id = "delete_invite",
     tag = "api::v1::invites",
-    params(RoomIdAndInviteCode),
+    params(RoomIdOrAliasAndInviteCode),
     responses(
         (
             status = StatusCode::NO_CONTENT,
@@ -154,16 +162,20 @@ pub async fn put(
         ("BearerAuth" = []),
     ),
 )]
-#[delete("/rooms/{room_id}/invites/{invite_code}")]
+#[delete("/rooms/{room_id_or_alias}/invites/{invite_code}")]
 pub async fn delete(
     service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
-    path_params: Path<RoomIdAndInviteCode>,
+    path_params: Path<RoomIdOrAliasAndInviteCode>,
 ) -> Result<NoContent, ApiError> {
     let current_user = current_user.into_inner();
+    let RoomIdOrAliasAndInviteCode {
+        room_id_or_alias,
+        invite_code,
+    } = path_params.into_inner();
 
     service
-        .delete_invite(current_user, path_params.room_id, path_params.invite_code)
+        .delete_invite(current_user, room_id_or_alias, invite_code)
         .await?;
 
     Ok(NoContent)

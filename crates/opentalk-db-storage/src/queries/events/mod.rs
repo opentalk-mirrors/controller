@@ -32,7 +32,7 @@ use opentalk_types_common::{
         EventId,
         invites::{EventInviteStatus, InviteRole},
     },
-    rooms::RoomId,
+    rooms::{RoomId, RoomIdOrAlias},
     training_participation_report::TrainingParticipationReportParameterSet,
     users::UserId,
 };
@@ -40,8 +40,12 @@ pub use shared_folder::*;
 pub use training_participation_report::*;
 
 use crate::{
-    queries::events::types::{
-        EventRecord, GetEventExceptionsCursor, GetEventsCursor, NewEventRecord, UpdateEventRecord,
+    queries::{
+        events::types::{
+            EventRecord, GetEventExceptionsCursor, GetEventsCursor, NewEventRecord,
+            UpdateEventRecord,
+        },
+        room_filter::FilterByRoom as _,
     },
     schema::{
         event_dates, event_exceptions, event_favorites, event_invites, event_recurrences,
@@ -938,7 +942,7 @@ pub async fn delete_by_id(conn: &mut DbConnection, event_id: EventId) -> Result<
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_event_for_room(
     conn: &mut DbConnection,
-    room_id: RoomId,
+    room: RoomIdOrAlias,
 ) -> Result<Option<EventRecord>> {
     events::table
         .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))
@@ -951,7 +955,8 @@ pub async fn get_event_for_room(
             event_dates::all_columns.nullable(),
             event_recurrences::all_columns.nullable(),
         ))
-        .filter(events::room.eq(room_id))
+        .inner_join(rooms::table.on(rooms::id.eq(events::room)))
+        .filter_by_room(room)
         .filter(users::disabled_since.is_null())
         .first(conn)
         .await

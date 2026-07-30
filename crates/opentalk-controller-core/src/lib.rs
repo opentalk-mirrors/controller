@@ -719,6 +719,8 @@ impl Controller {
             opentalk_types_common::pagination::PageSize,
             // Nested types the derive does not recurse into
             opentalk_types_common::time::RecurrenceRule,
+            // Path segments
+            opentalk_types_common::rooms::RoomIdOrAlias,
         ),
         responses(
             crate::api::responses::BadRequest,

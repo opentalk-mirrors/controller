@@ -76,7 +76,7 @@ mod tests {
         let admission = authorizer
             .authorize(AuthorizationTarget {
                 authenticated_subjects: subjects,
-                resource: Resource::RoomAssetDownloadProxy(ROOM_ID, ASSET_ID),
+                resource: Resource::RoomAssetDownloadProxy(ROOM_ID.into(), ASSET_ID),
                 access_method,
             })
             .await

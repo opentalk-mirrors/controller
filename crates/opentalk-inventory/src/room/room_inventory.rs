@@ -4,7 +4,7 @@
 
 use opentalk_types_common::{
     pagination::{ItemCount, Page, PageSize},
-    rooms::RoomId,
+    rooms::{RoomId, RoomIdOrAlias},
     users::UserId,
 };
 
@@ -18,16 +18,16 @@ pub trait RoomInventory {
     async fn create_room(&mut self, new_room: NewRoom) -> Result<Room>;
 
     /// Get a room by its id.
-    async fn get_room(&mut self, room_id: RoomId) -> Result<Room>;
+    async fn get_room(&mut self, room: RoomIdOrAlias) -> Result<Room>;
 
-    /// Get a room and its creator by its id.
-    async fn get_room_with_creator(&mut self, room_id: RoomId) -> Result<(Room, User)>;
+    /// Get a room and its creator by its id or alias.
+    async fn get_room_with_creator(&mut self, room: RoomIdOrAlias) -> Result<(Room, User)>;
 
     /// Get all rooms and their creators.
     async fn get_all_rooms_with_creator(&mut self) -> Result<Vec<(Room, User)>>;
 
     /// Update a room.
-    async fn update_room(&mut self, room_id: RoomId, update: UpdateRoom) -> Result<Room>;
+    async fn update_room(&mut self, room: RoomIdOrAlias, update: UpdateRoom) -> Result<Room>;
 
     /// Delete a room.
     async fn delete_room(&mut self, room_id: RoomId) -> Result<()>;

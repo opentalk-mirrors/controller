@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! API endpoints under `v1/rooms/{room_id}/sip`
+//! API endpoints under `v1/rooms/{room_id_or_alias}/sip`
 
 use actix_web::{
     HttpResponse, delete, get, put,
@@ -13,7 +13,7 @@ use opentalk_types_api_v1::{
     error::ApiError,
     rooms::by_room_id::sip::{PutSipConfigRequestBody, SipConfigResource},
 };
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::rooms::{RoomId, RoomIdOrAlias};
 
 use crate::{
     response::NoContent,
@@ -28,7 +28,7 @@ use crate::{
     operation_id = "get_room_sip",
     tag = "api::v1::sip_configs",
     params(
-        ("room_id" = RoomId, description = "The id of the room"),
+        ("room_id_or_alias" = RoomIdOrAlias, description = "Either the id or the alias of the room"),
     ),
     responses(
         (
@@ -57,12 +57,16 @@ use crate::{
         ("BearerAuth" = []),
     ),
 )]
-#[get("/rooms/{room_id}/sip")]
+#[get("/rooms/{room_id_or_alias}/sip")]
 pub async fn get(
     service: Data<dyn OpenTalkControllerService>,
-    room_id: Path<RoomId>,
+    room_id_or_alias: Path<RoomIdOrAlias>,
 ) -> Result<Json<SipConfigResource>, ApiError> {
-    Ok(Json(service.get_sip_config(room_id.into_inner()).await?))
+    Ok(Json(
+        service
+            .get_sip_config(room_id_or_alias.into_inner())
+            .await?,
+    ))
 }
 
 /// Modify the sip configuration of a room. A new sip configuration is created
@@ -72,7 +76,7 @@ pub async fn get(
 #[utoipa::path(
     tag = "api::v1::sip_configs",
     params(
-        ("room_id" = RoomId, description = "The id of the room"),
+        ("room_id_or_alias" = RoomIdOrAlias, description = "Either the id or the alias of the room"),
     ),
     request_body = PutSipConfigRequestBody,
     responses(
@@ -107,14 +111,17 @@ pub async fn get(
         ("BearerAuth" = []),
     ),
 )]
-#[put("/rooms/{room_id}/sip")]
+#[put("/rooms/{room_id_or_alias}/sip")]
 pub async fn put(
     service: Data<dyn OpenTalkControllerService>,
-    room_id: Path<RoomId>,
+    room_id_or_alias: Path<RoomIdOrAlias>,
     modify_sip_config: Json<PutSipConfigRequestBody>,
 ) -> Result<HttpResponse, ApiError> {
     let (sip_config_resource, newly_created) = service
-        .set_sip_config(room_id.into_inner(), modify_sip_config.into_inner())
+        .set_sip_config(
+            room_id_or_alias.into_inner(),
+            modify_sip_config.into_inner(),
+        )
         .await?;
 
     let mut response = if newly_created {
@@ -133,7 +140,7 @@ pub async fn put(
     operation_id = "delete_room_sip",
     tag = "api::v1::sip_configs",
     params(
-        ("room_id" = RoomId, description = "The id of the room"),
+        ("room_id_or_alias" = RoomId, description = "Either the id or the alias of the room"),
     ),
     responses(
         (
@@ -161,12 +168,14 @@ pub async fn put(
         ("BearerAuth" = []),
     ),
 )]
-#[delete("/rooms/{room_id}/sip")]
+#[delete("/rooms/{room_id_or_alias}/sip")]
 pub async fn delete(
     service: Data<dyn OpenTalkControllerService>,
-    room_id: Path<RoomId>,
+    room_id_or_alias: Path<RoomIdOrAlias>,
 ) -> Result<NoContent, ApiError> {
-    service.delete_sip_config(room_id.into_inner()).await?;
+    service
+        .delete_sip_config(room_id_or_alias.into_inner())
+        .await?;
 
     Ok(NoContent)
 }

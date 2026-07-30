@@ -32,7 +32,7 @@ pub(crate) mod test_utils {
         AuthorizationUserRole as Role, MockAuthorizationInventory, MockInventoryProvider,
     };
     use opentalk_types_common::{
-        rooms::{RoomId, invite_codes::InviteCode},
+        rooms::{RoomId, RoomIdOrAlias, invite_codes::InviteCode},
         users::UserId,
     };
 
@@ -67,7 +67,7 @@ pub(crate) mod test_utils {
         let mut inventory = MockAuthorizationInventory::new();
         let _ = inventory
             .expect_get_room_user_role()
-            .with(eq(ROOM_ID), eq(USER_ID))
+            .with(eq(RoomIdOrAlias::from(ROOM_ID)), eq(USER_ID))
             .return_once(move |_, _| Ok(role));
         let inventory: Box<dyn AuthorizationInventory> = Box::new(inventory);
 
@@ -86,7 +86,7 @@ pub(crate) mod test_utils {
         let _ = inventory
             .expect_get_room_invite_code_validity()
             .with(
-                eq(ROOM_ID),
+                eq(RoomIdOrAlias::from(ROOM_ID)),
                 eq(INVITE_CODE),
                 eq(DISABLED_FEATURES),
                 eq(MODULE_FEATURES),

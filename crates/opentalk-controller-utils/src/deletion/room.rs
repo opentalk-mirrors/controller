@@ -140,7 +140,7 @@ impl Deleter for RoomDeleter {
 
         let target = AuthorizationTarget {
             authenticated_subjects: SubjectCollection::from_iter([Subject::User(user_id)]),
-            resource: Resource::Room(self.room_id),
+            resource: Resource::Room(self.room_id.into()),
             access_method: AccessMethod::Delete,
         };
         if !authorizer
@@ -271,7 +271,7 @@ pub(crate) async fn delete_rows_associated_with_room(
     inventory.delete_event_for_room(room_id).await?;
 
     debug!(log: logger, "Deleting sip config from database");
-    inventory.delete_room_sip_config(room_id).await?;
+    inventory.delete_room_sip_config(room_id.into()).await?;
 
     debug!(log: logger, "Deleting asset information from database");
     inventory.delete_assets_by_ids(asset_ids).await?;

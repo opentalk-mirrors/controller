@@ -39,7 +39,7 @@ mod user_search_backend_keycloak;
 pub use avatar::{Avatar, DEFAULT_LIBRAVATAR_URL};
 pub use call_in::CallIn;
 pub use database::Database;
-pub use defaults::Defaults;
+pub use defaults::{Defaults, MAX_ALIAS_SUFFIX_LENGTH, MIN_ALIAS_SUFFIX_LENGTH};
 pub use endpoints::Endpoints;
 pub use etcd::Etcd;
 pub use frontend::Frontend;

@@ -47,7 +47,7 @@ use opentalk_types_common::{
     events::invites::InviteRole,
     features::{FeatureId, ModuleFeatureId},
     modules::ModuleId,
-    rooms::{GuestAccess, RoomId},
+    rooms::{GuestAccess, RoomId, RoomIdOrAlias},
     roomserver::Token,
     shared_folders::{SharedFolder, SharedFolderAccess},
     tariffs::{QuotaType, TariffResource},
@@ -197,14 +197,14 @@ impl ControllerBackend {
     pub(crate) async fn start_room(
         &self,
         user: Option<RequestUser>,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         request: PostRoomsRoomserverStartRequestBody,
         host: Url,
     ) -> Result<RoomserverStartResponseBody, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
         let settings = self.settings_provider.get();
 
-        let room = self.get_room(&room_id).await?;
+        let room = self.get_room(room_id_or_alias).await?;
 
         let invite_role = match &user {
             Some(user) => Self::get_invite_role(inventory.as_mut(), user.id, &room).await?,
@@ -343,9 +343,11 @@ pub(crate) async fn build_room_parameters(
     room_resource: RoomResource,
     module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
 ) -> Result<RoomParameters, CaptureApiError> {
-    let room = inventory.get_room(room_resource.id).await?;
+    let room = inventory.get_room(room_resource.id.into()).await?;
 
-    let db_event = inventory.get_event_for_room(room_resource.id).await?;
+    let db_event = inventory
+        .get_event_for_room(room_resource.id.into())
+        .await?;
     let show_meeting_details = db_event
         .as_ref()
         .map(|event| event.show_meeting_details)
@@ -539,7 +541,7 @@ pub(crate) async fn override_module_settings(
     room_id: RoomId,
     module_settings: &mut ModuleSettings,
 ) -> Result<(), CaptureApiError> {
-    let Some(event) = inventory.get_event_for_room(room_id).await? else {
+    let Some(event) = inventory.get_event_for_room(room_id.into()).await? else {
         return Ok(());
     };
 

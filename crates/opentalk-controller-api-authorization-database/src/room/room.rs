@@ -5,7 +5,7 @@
 use opentalk_controller_api_authorization::authorization::{
     AccessMethod, Admission, SubjectCollection,
 };
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::rooms::RoomIdOrAlias;
 
 use crate::{
     OpenTalkAuthorizerBackend, Result,
@@ -42,7 +42,7 @@ impl OpenTalkAuthorizerBackend {
         &self,
         subjects: SubjectCollection,
         method: AccessMethod,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
     ) -> Result<Admission> {
         let acl = Acl {
             owner: Access::ReadWrite,
@@ -51,7 +51,7 @@ impl OpenTalkAuthorizerBackend {
             invite_code: Access::None,
         };
 
-        self.apply_acl_for_room(subjects, method, room_id, acl)
+        self.apply_acl_for_room(subjects, method, room_id_or_alias, acl)
             .await
     }
 }
@@ -73,7 +73,10 @@ mod tests {
         AuthorizationUserRole::{self, Invited, Owner, Unrelated},
         MockAuthorizationInventory, MockInventoryProvider,
     };
-    use opentalk_types_common::events::invites::InviteRole::{Moderator, User};
+    use opentalk_types_common::{
+        events::invites::InviteRole::{Moderator, User},
+        rooms::RoomIdOrAlias,
+    };
     use pretty_assertions::assert_eq;
     use rstest::rstest;
 
@@ -104,7 +107,7 @@ mod tests {
         let admission = authorizer
             .authorize(AuthorizationTarget {
                 authenticated_subjects: SubjectCollection::from_iter([Subject::from(USER_ID)]),
-                resource: Resource::Room(ROOM_ID),
+                resource: Resource::Room(ROOM_ID.into()),
                 access_method,
             })
             .await
@@ -127,7 +130,7 @@ mod tests {
         let admission = authorizer
             .authorize(AuthorizationTarget {
                 authenticated_subjects: SubjectCollection::from_iter([Subject::from(INVITE_CODE)]),
-                resource: Resource::Room(ROOM_ID),
+                resource: Resource::Room(ROOM_ID.into()),
                 access_method,
             })
             .await
@@ -143,7 +146,7 @@ mod tests {
         let mut inventory = MockAuthorizationInventory::new();
         let _ = inventory
             .expect_get_room_user_role()
-            .with(eq(ROOM_ID), eq(USER_ID))
+            .with(eq(RoomIdOrAlias::from(ROOM_ID)), eq(USER_ID))
             .return_once(move |_, _| Ok(Invited(Moderator)));
         let inventory: Box<dyn AuthorizationInventory> = Box::new(inventory);
 
@@ -165,7 +168,7 @@ mod tests {
                     Subject::from(USER_ID),
                     Subject::from(INVITE_CODE),
                 ]),
-                resource: Resource::Room(ROOM_ID),
+                resource: Resource::Room(ROOM_ID.into()),
                 access_method: Get,
             })
             .await
@@ -178,12 +181,12 @@ mod tests {
         let mut inventory = MockAuthorizationInventory::new();
         let _ = inventory
             .expect_get_room_user_role()
-            .with(eq(ROOM_ID), eq(USER_ID))
+            .with(eq(RoomIdOrAlias::from(ROOM_ID)), eq(USER_ID))
             .return_once(move |_, _| Ok(Unrelated));
         let _ = inventory
             .expect_get_room_invite_code_validity()
             .with(
-                eq(ROOM_ID),
+                eq(RoomIdOrAlias::from(ROOM_ID)),
                 eq(INVITE_CODE),
                 eq(DISABLED_FEATURES),
                 eq(MODULE_FEATURES),
@@ -209,7 +212,7 @@ mod tests {
                     Subject::from(USER_ID),
                     Subject::from(INVITE_CODE),
                 ]),
-                resource: Resource::Room(ROOM_ID),
+                resource: Resource::Room(ROOM_ID.into()),
                 access_method: Get,
             })
             .await

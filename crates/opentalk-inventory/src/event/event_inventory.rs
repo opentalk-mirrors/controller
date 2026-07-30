@@ -10,7 +10,7 @@ use opentalk_types_common::{
         EventId,
         invites::{EventInviteStatus, InviteRole},
     },
-    rooms::RoomId,
+    rooms::{RoomId, RoomIdOrAlias},
     time::Timestamp,
     training_participation_report::TrainingParticipationReportParameterSet,
     users::UserId,
@@ -38,7 +38,10 @@ pub trait EventInventory {
     async fn get_event(&mut self, event_id: EventId) -> Result<Event>;
 
     /// Get an event by the room id.
-    async fn get_event_for_room(&mut self, room_id: RoomId) -> Result<Option<Event>>;
+    async fn get_event_for_room(
+        &mut self,
+        room_id_or_alias: RoomIdOrAlias,
+    ) -> Result<Option<Event>>;
 
     /// Get an event id by the room id.
     async fn get_event_id_for_room(&mut self, room_id: RoomId) -> Result<Option<EventId>>;

@@ -4,7 +4,7 @@
 
 use opentalk_inventory as inventory;
 use opentalk_types_common::{
-    rooms::{GuestAccess, RoomPassword},
+    rooms::{GuestAccess, OptionalRoomAliasExt as _, RoomName, RoomPassword, RoomSuffix},
     tenants::TenantId,
     users::UserId,
 };
@@ -23,12 +23,15 @@ pub struct NewRoom {
     pub guest_access: GuestAccess,
     pub tenant_id: TenantId,
     pub e2e_encryption: bool,
+    pub name: Option<RoomName>,
+    pub suffix: Option<RoomSuffix>,
 }
 
 impl From<inventory::NewRoom> for NewRoom {
     fn from(
         inventory::NewRoom {
             created_by,
+            alias,
             password,
             waiting_room,
             guest_access,
@@ -36,6 +39,8 @@ impl From<inventory::NewRoom> for NewRoom {
             e2e_encryption,
         }: inventory::NewRoom,
     ) -> Self {
+        let (name, suffix) = alias.into_parts();
+
         Self {
             created_by,
             password,
@@ -43,6 +48,8 @@ impl From<inventory::NewRoom> for NewRoom {
             guest_access,
             tenant_id,
             e2e_encryption,
+            name,
+            suffix,
         }
     }
 }

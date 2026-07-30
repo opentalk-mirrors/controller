@@ -68,7 +68,7 @@ use opentalk_types_common::{
     events::EventId,
     modules::ModuleId,
     pagination::{ItemCount, Page, PageSize},
-    rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
+    rooms::{GuestAccess, RoomIdOrAlias, RoomName, RoomPassword, invite_codes::InviteCode},
     shared_folders::SharedFolder,
     streaming::StreamingTarget,
     tariffs::TariffResource,
@@ -102,9 +102,11 @@ pub trait OpenTalkControllerService: Send + Sync {
     ) -> Result<(GetRoomsResponseBody, ItemCount), ApiError>;
 
     /// Create a new room
+    #[allow(clippy::too_many_arguments)]
     async fn create_room(
         &self,
         current_user: RequestUser,
+        name: Option<RoomName>,
         password: Option<RoomPassword>,
         enable_sip: bool,
         waiting_room: bool,
@@ -115,7 +117,8 @@ pub trait OpenTalkControllerService: Send + Sync {
     /// Patch a room with the provided fields
     async fn patch_room(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
+        name: Option<Option<RoomName>>,
         password: Option<Option<RoomPassword>>,
         waiting_room: Option<bool>,
         guest_access: Option<GuestAccess>,
@@ -126,28 +129,31 @@ pub trait OpenTalkControllerService: Send + Sync {
     async fn delete_room(
         &self,
         current_user: RequestUser,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         force_delete_reference_if_external_services_fail: bool,
     ) -> Result<(), ApiError>;
 
     /// Get a room
-    async fn get_room(&self, room_id: &RoomId) -> Result<RoomResource, ApiError>;
+    async fn get_room(&self, room_id_or_alias: RoomIdOrAlias) -> Result<RoomResource, ApiError>;
 
     /// Get a room's tariff
-    async fn get_room_tariff(&self, room_id: &RoomId) -> Result<TariffResource, ApiError>;
+    async fn get_room_tariff(
+        &self,
+        room_id_or_alias: RoomIdOrAlias,
+    ) -> Result<TariffResource, ApiError>;
 
     /// Get a room's event
     async fn get_room_event(
         &self,
         current_user: Option<RequestUser>,
-        room_id: &RoomId,
+        room_id_or_alias: RoomIdOrAlias,
     ) -> Result<GetRoomEventResponseBody, ApiError>;
 
     /// Start a roomserver signaling session as a registered user
     async fn start_room_session(
         &self,
         current_user: Option<RequestUser>,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         request: PostRoomsRoomserverStartRequestBody,
         host: Url,
     ) -> Result<RoomserverStartResponseBody, ApiError>;
@@ -176,21 +182,21 @@ pub trait OpenTalkControllerService: Send + Sync {
     /// Get the assets associated with a room.
     async fn get_room_assets(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         pagination: &PagePaginationQuery,
     ) -> Result<(RoomsByRoomIdAssetsGetResponseBody, ItemCount), ApiError>;
 
     /// Get a specific asset inside a room.
     async fn get_room_asset(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         asset_id: AssetId,
     ) -> Result<ByStreamExt, ApiError>;
 
     /// Get a short-lived download URL for a specific asset.
     async fn get_room_asset_proxy_download_token(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         asset_id: AssetId,
     ) -> Result<String, ApiError>;
 
@@ -206,7 +212,7 @@ pub trait OpenTalkControllerService: Send + Sync {
     async fn create_room_asset(
         &self,
         storage_notifier: &dyn StorageNotifier,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         filename: NewAssetFileName,
         namespace: Option<ModuleId>,
         data: Box<dyn Stream<Item = Result<Bytes, ObjectStorageError>> + Unpin>,
@@ -216,7 +222,7 @@ pub trait OpenTalkControllerService: Send + Sync {
     async fn delete_room_asset(
         &self,
         storage_notifier: &dyn StorageNotifier,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         asset_id: AssetId,
     ) -> Result<(), ApiError>;
 
@@ -371,21 +377,21 @@ pub trait OpenTalkControllerService: Send + Sync {
     async fn create_invite(
         &self,
         current_user: RequestUser,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         new_invite: PostInviteRequestBody,
     ) -> Result<InviteResource, ApiError>;
 
     /// Get all invites for a room
     async fn get_invites(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         pagination: &PagePaginationQuery,
     ) -> Result<(GetRoomsInvitesResponseBody, ItemCount), ApiError>;
 
     /// Get a room invite
     async fn get_invite(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         invite_code: InviteCode,
     ) -> Result<InviteResource, ApiError>;
 
@@ -393,7 +399,7 @@ pub trait OpenTalkControllerService: Send + Sync {
     async fn update_invite(
         &self,
         current_user: RequestUser,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         invite_code: InviteCode,
         body: PutInviteRequestBody,
     ) -> Result<InviteResource, ApiError>;
@@ -402,7 +408,7 @@ pub trait OpenTalkControllerService: Send + Sync {
     async fn delete_invite(
         &self,
         current_user: RequestUser,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         invite_code: InviteCode,
     ) -> Result<(), ApiError>;
 
@@ -413,24 +419,27 @@ pub trait OpenTalkControllerService: Send + Sync {
     ) -> Result<PostInviteVerifyResponseBody, ApiError>;
 
     /// Get the sip config for the specified room.
-    async fn get_sip_config(&self, room_id: RoomId) -> Result<SipConfigResource, ApiError>;
+    async fn get_sip_config(
+        &self,
+        room_id_or_alias: RoomIdOrAlias,
+    ) -> Result<SipConfigResource, ApiError>;
 
     /// Modify the sip configuration of a room. A new sip configuration is created
     /// if none was set before.
     async fn set_sip_config(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         modify_sip_config: PutSipConfigRequestBody,
     ) -> Result<(SipConfigResource, bool), ApiError>;
 
     /// Delete the SIP configuration of a room.
-    async fn delete_sip_config(&self, room_id: RoomId) -> Result<(), ApiError>;
+    async fn delete_sip_config(&self, room_id_or_alias: RoomIdOrAlias) -> Result<(), ApiError>;
 
     /// Lists the streaming targets of a room
     async fn get_streaming_targets(
         &self,
         user_id: UserId,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         pagination: &PagePaginationQuery,
     ) -> Result<GetRoomStreamingTargetsResponseBody, ApiError>;
 
@@ -438,7 +447,7 @@ pub trait OpenTalkControllerService: Send + Sync {
     async fn post_streaming_target(
         &self,
         current_user: RequestUser,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         query: StreamingTargetOptionsQuery,
         streaming_target: StreamingTarget,
     ) -> Result<PostRoomStreamingTargetResponseBody, ApiError>;

@@ -52,6 +52,8 @@ async fn make_event(
             guest_access: GuestAccess::default(),
             e2e_encryption: false,
             tenant_id: user.tenant_id,
+            name: None,
+            suffix: None,
         };
 
         db::queries::rooms::create_room(conn, room).await.unwrap()
@@ -824,6 +826,8 @@ async fn get_event_min_max_time() {
             guest_access: GuestAccess::default(),
             e2e_encryption: false,
             tenant_id: user.tenant_id,
+            name: None,
+            suffix: None,
         };
 
         db::queries::rooms::create_room(&mut conn, room)
@@ -857,6 +861,8 @@ async fn get_event_min_max_time() {
             guest_access: GuestAccess::default(),
             e2e_encryption: false,
             tenant_id: user.tenant_id,
+            name: None,
+            suffix: None,
         };
 
         db::queries::rooms::create_room(&mut conn, room)

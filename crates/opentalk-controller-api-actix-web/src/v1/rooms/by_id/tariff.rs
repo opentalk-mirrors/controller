@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! API endpoints under `v1/rooms/{room_id}/tariff`
+//! API endpoints under `v1/rooms/{room_id_or_alias}/tariff`
 
 use actix_web::{
     get,
@@ -10,7 +10,7 @@ use actix_web::{
 };
 use opentalk_controller_service_facade::OpenTalkControllerService;
 use opentalk_types_api_v1::error::ApiError;
-use opentalk_types_common::{rooms::RoomId, tariffs::TariffResource};
+use opentalk_types_common::{rooms::RoomIdOrAlias, tariffs::TariffResource};
 
 use crate::utoipa::responses::{Forbidden, InternalServerError, Unauthorized};
 
@@ -22,7 +22,7 @@ use crate::utoipa::responses::{Forbidden, InternalServerError, Unauthorized};
     operation_id = "get_room_tariff",
     tag = "api::v1::rooms",
     params(
-        ("room_id" = RoomId, description = "The id of the room"),
+        ("room_id_or_alias" = RoomIdOrAlias, description = "Either the id or the alias of the room"),
     ),
     responses(
         (
@@ -48,10 +48,14 @@ use crate::utoipa::responses::{Forbidden, InternalServerError, Unauthorized};
         ("InviteCode" = []),
     ),
 )]
-#[get("/rooms/{room_id}/tariff")]
+#[get("/rooms/{room_id_or_alias}/tariff")]
 pub async fn get(
     service: Data<dyn OpenTalkControllerService>,
-    room_id: Path<RoomId>,
+    room_id_or_alias: Path<RoomIdOrAlias>,
 ) -> Result<Json<TariffResource>, ApiError> {
-    Ok(Json(service.get_room_tariff(&room_id).await?))
+    Ok(Json(
+        service
+            .get_room_tariff(room_id_or_alias.into_inner())
+            .await?,
+    ))
 }

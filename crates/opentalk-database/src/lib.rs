@@ -66,6 +66,19 @@ impl DatabaseError {
             }
         )
     }
+    /// Returns `true` if a database unique constraint has been violated
+    #[must_use]
+    pub fn is_unique_violation(&self) -> bool {
+        matches!(
+            self,
+            Self::DieselError {
+                source: diesel::result::Error::DatabaseError(
+                    diesel::result::DatabaseErrorKind::UniqueViolation,
+                    _
+                )
+            }
+        )
+    }
 }
 
 impl From<diesel::result::Error> for DatabaseError {

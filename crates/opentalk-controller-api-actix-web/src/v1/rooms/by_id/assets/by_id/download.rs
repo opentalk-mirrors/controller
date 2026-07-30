@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! API endpoints under `v1/rooms/{room_id}/assets/{asset_id}/download`
+//! API endpoints under `v1/rooms/{room_id_or_alias}/assets/{asset_id}/download`
 
 use actix_web::{
     HttpResponse, get,
@@ -14,7 +14,7 @@ use opentalk_types_api_v1::{
     error::ApiError,
     rooms::by_room_id::assets::{AssetDownloadQuery, AssetDownloadResponseBody},
 };
-use opentalk_types_common::{assets::AssetId, rooms::RoomId};
+use opentalk_types_common::{assets::AssetId, rooms::RoomIdOrAlias};
 
 use crate::utoipa::responses::{Forbidden, InternalServerError, NotFound, Unauthorized};
 
@@ -24,7 +24,7 @@ use crate::utoipa::responses::{Forbidden, InternalServerError, NotFound, Unautho
 #[utoipa::path(
     operation_id = "room_asset_download",
     params(
-        ("room_id" = RoomId, description = "The id of the room"),
+        ("room_id_or_alias" = RoomIdOrAlias, description = "Either the id or the alias of the room"),
         ("asset_id" = AssetId, description = "The id of the asset"),
     ),
     responses(
@@ -58,17 +58,17 @@ use crate::utoipa::responses::{Forbidden, InternalServerError, NotFound, Unautho
         ("BearerAuth" = []),
     ),
 )]
-#[get("/rooms/{room_id}/assets/{asset_id}/download")]
+#[get("/rooms/{room_id_or_alias}/assets/{asset_id}/download")]
 pub async fn get(
     service: Data<dyn OpenTalkControllerService>,
-    path: Path<(RoomId, AssetId)>,
+    path: Path<(RoomIdOrAlias, AssetId)>,
     query: Query<AssetDownloadQuery>,
 ) -> Result<HttpResponse, ApiError> {
-    let (room_id, asset_id) = path.into_inner();
+    let (room_id_or_alias, asset_id) = path.into_inner();
     let query = query.into_inner();
 
     let token = service
-        .get_room_asset_proxy_download_token(room_id, asset_id)
+        .get_room_asset_proxy_download_token(room_id_or_alias, asset_id)
         .await?;
     let url = format!("proxy?token={token}");
 

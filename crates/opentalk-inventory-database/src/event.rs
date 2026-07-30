@@ -17,7 +17,7 @@ use opentalk_types_common::{
         EventId,
         invites::{EventInviteStatus, InviteRole},
     },
-    rooms::RoomId,
+    rooms::{RoomId, RoomIdOrAlias},
     time::Timestamp,
     training_participation_report::TrainingParticipationReportParameterSet,
     users::UserId,
@@ -59,9 +59,12 @@ impl EventInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_event_for_room(&mut self, room_id: RoomId) -> Result<Option<Event>> {
+    async fn get_event_for_room(
+        &mut self,
+        room_id_or_alias: RoomIdOrAlias,
+    ) -> Result<Option<Event>> {
         Ok(
-            db::queries::events::get_event_for_room(&mut self.inner, room_id)
+            db::queries::events::get_event_for_room(&mut self.inner, room_id_or_alias)
                 .await
                 .context(DatabaseSnafu)?
                 .map(Into::into),

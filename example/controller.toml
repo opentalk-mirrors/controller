@@ -342,7 +342,7 @@ secret_key = "minioadmin"
 #expiry = 48
 
 # Default/fallback values
-#[defaults]
+[defaults]
 # Default language of a new user
 #user_language = "en-US"
 # The timezone used by the system and as the users' default, in IANA format (e.g. "Europe/Berlin").
@@ -356,6 +356,18 @@ secret_key = "minioadmin"
 # - core::call_in
 # - integration::outlook
 #disabled_features = ["core::call_in", "integration::outlook"]
+#[defaults.room_alias]
+# When `true`, rooms with an alias will not have a suffix appended to their name. This makes the rooms vulnerable
+# to brute-force attacks and is therefore considered **insecure** when untrusted people can reach your OpenTalk
+# instance and should only be enabled in trusted environments.
+#disable_suffix = false
+# The number of characters the suffix appended to a room name has. The suffix is a randomly generated string that
+# protects the room alias against brute-force guessing. This is only relevant when `disable_suffix` is `false`
+# (default).
+# Short suffixes are vulnerable to brute-force attacks, so it is recommended to use a length of at least 16
+# characters.
+# Allowed values are between 8 and 32, inclusive.
+#suffix_length = 16
 
 # Settings for endpoints
 #[endpoints]

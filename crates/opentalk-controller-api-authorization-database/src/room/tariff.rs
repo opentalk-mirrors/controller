@@ -5,7 +5,7 @@
 use opentalk_controller_api_authorization::authorization::{
     AccessMethod, Admission, SubjectCollection,
 };
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::rooms::RoomIdOrAlias;
 
 use crate::{
     OpenTalkAuthorizerBackend, Result,
@@ -42,7 +42,7 @@ impl OpenTalkAuthorizerBackend {
         &self,
         subjects: SubjectCollection,
         method: AccessMethod,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
     ) -> Result<Admission> {
         let acl = Acl {
             owner: Access::Read,
@@ -51,7 +51,7 @@ impl OpenTalkAuthorizerBackend {
             invite_code: Access::Read,
         };
 
-        self.apply_acl_for_room(subjects, method, room_id, acl)
+        self.apply_acl_for_room(subjects, method, room_id_or_alias, acl)
             .await
     }
 }
@@ -94,7 +94,7 @@ mod tests {
         let admission = authorizer
             .authorize(AuthorizationTarget {
                 authenticated_subjects: SubjectCollection::from_iter([Subject::from(USER_ID)]),
-                resource: Resource::RoomTariff(ROOM_ID),
+                resource: Resource::RoomTariff(ROOM_ID.into()),
                 access_method,
             })
             .await
@@ -117,7 +117,7 @@ mod tests {
         let admission = authorizer
             .authorize(AuthorizationTarget {
                 authenticated_subjects: SubjectCollection::from_iter([Subject::from(INVITE_CODE)]),
-                resource: Resource::RoomTariff(ROOM_ID),
+                resource: Resource::RoomTariff(ROOM_ID.into()),
                 access_method,
             })
             .await

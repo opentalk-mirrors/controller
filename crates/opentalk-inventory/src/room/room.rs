@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_types_common::{
-    rooms::{GuestAccess, RoomId, RoomPassword},
+    rooms::{GuestAccess, RoomAlias, RoomId, RoomPassword},
     tenants::TenantId,
     time::Timestamp,
     users::UserId,
@@ -14,6 +14,9 @@ use opentalk_types_common::{
 pub struct Room {
     /// The id of the room.
     pub id: RoomId,
+
+    /// The alias of the room.
+    pub alias: Option<RoomAlias>,
 
     /// The serial id of the room.
     pub id_serial: i64,

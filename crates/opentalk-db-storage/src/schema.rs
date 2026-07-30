@@ -298,6 +298,10 @@ diesel::table! {
         tenant_id -> Uuid,
         e2e_encryption -> Bool,
         guest_access -> GuestAccess,
+        #[max_length = 40]
+        name -> Nullable<Varchar>,
+        #[max_length = 64]
+        suffix -> Nullable<Varchar>,
     }
 }
 

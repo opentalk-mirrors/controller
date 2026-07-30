@@ -7,9 +7,13 @@
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DatabaseError, DbConnection, Result};
-use opentalk_types_common::{call_in::CallInId, rooms::RoomId};
+use opentalk_types_common::{
+    call_in::CallInId,
+    rooms::{RoomId, RoomIdOrAlias},
+};
 
 use crate::{
+    queries::room_filter::FilterByRoom,
     schema::{rooms, sip_configs, users},
     tables::{
         rooms::Room,
@@ -57,10 +61,13 @@ pub async fn get_room_sip_config(conn: &mut DbConnection, room_id: RoomId) -> Re
 
 /// Delete the sip config for the specified room
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn delete_room_sip_config(conn: &mut DbConnection, room_id: RoomId) -> Result<()> {
-    _ = diesel::delete(sip_configs::table.filter(sip_configs::room.eq(&room_id)))
-        .execute(conn)
-        .await?;
+pub async fn delete_room_sip_config(conn: &mut DbConnection, room: RoomIdOrAlias) -> Result<()> {
+    _ = diesel::delete(
+        sip_configs::table
+            .filter(sip_configs::room.eq_any(rooms::table.select(rooms::id).filter_by_room(room))),
+    )
+    .execute(conn)
+    .await?;
 
     Ok(())
 }

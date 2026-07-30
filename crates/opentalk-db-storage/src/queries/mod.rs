@@ -11,6 +11,7 @@ pub mod groups;
 pub mod invites;
 pub mod jobs;
 pub mod module_resources;
+pub mod room_filter;
 pub mod rooms;
 pub mod sip_configs;
 pub mod streaming_targets;

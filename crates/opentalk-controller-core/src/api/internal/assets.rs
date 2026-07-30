@@ -84,7 +84,7 @@ pub async fn post_asset(
     let (asset_resource, asset_saved) = service
         .create_room_asset(
             notifier.as_ref(),
-            room_id,
+            room_id.into(),
             filename,
             query.namespace,
             Box::new(data),

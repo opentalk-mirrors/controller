@@ -180,7 +180,10 @@ impl TryFrom<SettingsRaw> for Settings {
         let call_in = call_in.map(Into::into);
         let tenants = tenants.map(Into::into).unwrap_or_default();
         let tariffs = tariffs.map(Into::into).unwrap_or_default();
-        let defaults = defaults.map(Into::into).unwrap_or_default();
+        let defaults = defaults
+            .map(TryInto::try_into)
+            .transpose()?
+            .unwrap_or_default();
         let operator_information = operator_information.map(Into::into);
         let roomserver = roomserver.try_into()?;
 
@@ -233,6 +236,7 @@ pub(crate) fn minimal_example() -> Settings {
     use crate::{
         DEFAULT_LIBRAVATAR_URL, DEFAULT_STATIC_TARIFF_NAME, DEFAULT_STATIC_TENANT_ID, Frontend,
         OidcFrontend, RoomServerKind, TariffAssignment, TenantAssignment,
+        settings_file::RoomAlias,
         settings_runtime::{
             HttpCors,
             database::DEFAULT_DATABASE_MAX_CONNECTIONS,
@@ -328,6 +332,7 @@ pub(crate) fn minimal_example() -> Settings {
             user_language: default_user_language(),
             timezone: TimeZone::default(),
             disabled_features: BTreeSet::new(),
+            room_alias: RoomAlias::default(),
         },
         operator_information: None,
         roomserver: RoomServer {

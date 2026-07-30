@@ -116,6 +116,7 @@ pub async fn post(
     let room_resource = service
         .create_room(
             current_user,
+            body.name,
             body.password,
             body.enable_sip,
             body.waiting_room,
