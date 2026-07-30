@@ -2663,6 +2663,35 @@ paths:
       security:
         - BearerAuth: []
         - InviteCode: []
+  "/signaling/{token}":
+    get:
+      tags:
+        - "api::v1::signaling"
+      summary: Establish a signaling WebSocket connection with the internal roomserver
+      description: |-
+        This endpoint upgrades the HTTP connection to a WebSocket and attaches the
+        connection to the room task identified by the provided signaling token.
+        The token is obtained from a prior call to the `/v1/rooms/{room_id}/start`
+        or `/v1/rooms/{room_id}/start_invited` endpoint.
+
+        This endpoint is only available when the controller is configured with an
+        internal roomserver. Returns `404 Not Found` when using an external roomserver.
+      operationId: signaling_ws
+      parameters:
+        - name: token
+          in: path
+          description: The signaling token obtained from a start endpoint
+          required: true
+          schema:
+            $ref: "#/components/schemas/Token"
+      responses:
+        "101":
+          description: WebSocket connection successfully established
+        "404":
+          description: "The signaling token is invalid, expired, or the internal roomserver is not enabled"
+        "500":
+          description: Failed to attach signaling socket to the room task
+      security: []
   /turn:
     get:
       tags:

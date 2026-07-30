@@ -682,6 +682,7 @@ impl Controller {
         v1::users::me::tariff::get,
         v1::users::by_id::get,
         v1::users::me::patch,
+        api::signaling::get,
         api::internal::assets::post_asset,
         api::internal::recording::post_start,
         api::internal::recording::get_upload,
