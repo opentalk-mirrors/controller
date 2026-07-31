@@ -35,5 +35,7 @@ tracing.workspace = true
 url.workspace = true
 
 [dev-dependencies]
+axum.workspace = true
 chrono.workspace = true
 pretty_assertions.workspace = true
+tokio = { workspace = true, features = ["macros", "net", "rt-multi-thread"] }
