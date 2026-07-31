@@ -33,7 +33,7 @@ pub struct Room {
     /// Guest access mode for the room
     pub guest_access: GuestAccess,
 
-    /// The id of the tenant to which the roombelongs.
+    /// The id of the tenant to which the room belongs.
     pub tenant_id: TenantId,
 
     /// A flag indicating that e2e encryption is enabled for this room.
