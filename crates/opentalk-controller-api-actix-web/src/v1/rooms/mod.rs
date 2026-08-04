@@ -21,6 +21,7 @@ use crate::{
 };
 
 pub mod by_id;
+pub mod name;
 
 /// Get a list of rooms accessible by the requesting user
 ///

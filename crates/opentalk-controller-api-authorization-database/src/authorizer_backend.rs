@@ -77,6 +77,7 @@ impl AuthorizerBackend for OpenTalkAuthorizerBackend {
                 self.authorize_room_event(subjects, method, room_id_or_alias)
                     .await
             }
+            Resource::RoomNameVerify => Ok(Self::authorize_room_name_verify(subjects)),
             Resource::RoomInvites(room_id) => {
                 self.authorize_room_invites(subjects, method, room_id).await
             }

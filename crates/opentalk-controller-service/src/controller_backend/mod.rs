@@ -81,6 +81,7 @@ use opentalk_types_api_v1::{
                 PostRoomStreamingTargetResponseBody, RoomAndStreamingTargetId,
             },
         },
+        name::PostRoomNameVerifyResponseBody,
     },
     users::{
         GetEventInvitesPendingResponseBody, GetFindQuery, GetFindResponseBody,
@@ -247,6 +248,13 @@ impl OpenTalkControllerService for ControllerBackend {
                 force_delete_reference_if_external_services_fail,
             )
             .await?)
+    }
+
+    async fn verify_room_name(
+        &self,
+        name: RoomName,
+    ) -> Result<PostRoomNameVerifyResponseBody, ApiError> {
+        Ok(self.verify_room_name(name).await?)
     }
 
     async fn get_room(&self, room_id_or_alias: RoomIdOrAlias) -> Result<RoomResource, ApiError> {

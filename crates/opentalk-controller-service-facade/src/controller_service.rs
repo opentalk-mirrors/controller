@@ -56,6 +56,7 @@ use opentalk_types_api_v1::{
                 PostRoomStreamingTargetResponseBody, RoomAndStreamingTargetId,
             },
         },
+        name::PostRoomNameVerifyResponseBody,
     },
     users::{
         GetEventInvitesPendingResponseBody, GetFindQuery, GetFindResponseBody,
@@ -132,6 +133,12 @@ pub trait OpenTalkControllerService: Send + Sync {
         room_id_or_alias: RoomIdOrAlias,
         force_delete_reference_if_external_services_fail: bool,
     ) -> Result<(), ApiError>;
+
+    /// Verify if a room name is valid and available.
+    async fn verify_room_name(
+        &self,
+        name: RoomName,
+    ) -> Result<PostRoomNameVerifyResponseBody, ApiError>;
 
     /// Get a room
     async fn get_room(&self, room_id_or_alias: RoomIdOrAlias) -> Result<RoomResource, ApiError>;

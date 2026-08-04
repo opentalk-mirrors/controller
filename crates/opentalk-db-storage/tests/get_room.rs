@@ -177,3 +177,94 @@ async fn get_room_with_creator_by_alias_returns_room_and_creator() {
     assert_eq!(room.id, created.id);
     assert_eq!(creator.id, user.id);
 }
+
+#[tokio::test]
+async fn exists_room_reflects_presence() {
+    let db_ctx = opentalk_test_util::database::DatabaseContext::new().await;
+    let mut conn = db_ctx.db.get_conn().await.unwrap();
+
+    let user = make_user(&mut conn, "Ruth", "Less", "Ruth").await;
+
+    let name = RoomName::example_data();
+
+    // Nothing exists yet.
+    let exists_before = db::queries::rooms::exists_room(
+        &mut conn,
+        RoomAlias {
+            name: name.clone(),
+            suffix: None,
+        }
+        .into(),
+    )
+    .await
+    .unwrap();
+    assert!(!exists_before);
+
+    // Create a suffixed room under the same name.
+    db::queries::rooms::create_room(
+        &mut conn,
+        new_room(
+            &user,
+            Some(name.clone()),
+            Some(RoomSuffix::generate(SUFFIX_LENGTH)),
+        ),
+    )
+    .await
+    .unwrap();
+
+    // The `suffix: None` lookup must not spuriously match the suffixed room.
+    let exists_null = db::queries::rooms::exists_room(
+        &mut conn,
+        RoomAlias {
+            name: name.clone(),
+            suffix: None,
+        }
+        .into(),
+    )
+    .await
+    .unwrap();
+    assert!(!exists_null);
+
+    // Create the suffix-less room and confirm it is now reported as existing.
+    db::queries::rooms::create_room(&mut conn, new_room(&user, Some(name.clone()), None))
+        .await
+        .unwrap();
+
+    let exists_after =
+        db::queries::rooms::exists_room(&mut conn, RoomAlias { name, suffix: None }.into())
+            .await
+            .unwrap();
+    assert!(exists_after);
+}
+
+#[tokio::test]
+async fn search_by_alias_with_suffix_does_not_match_room_without_suffix() {
+    let db_ctx = opentalk_test_util::database::DatabaseContext::new().await;
+    let mut conn = db_ctx.db.get_conn().await.unwrap();
+
+    let user = make_user(&mut conn, "Ruth", "Less", "Ruth").await;
+
+    let name = RoomName::example_data();
+
+    // Create a room without a suffix
+    _ = db::queries::rooms::create_room(&mut conn, new_room(&user, Some(name.clone()), None)).await;
+
+    // Search for a room with a suffix
+    let suffix = Some(RoomSuffix::generate(SUFFIX_LENGTH));
+    let err = db::queries::rooms::get_room(
+        &mut conn,
+        RoomAlias {
+            name: name.clone(),
+            suffix: suffix.clone(),
+        }
+        .into(),
+    )
+    .await
+    .unwrap_err();
+    assert!(err.is_not_found());
+
+    let exists = db::queries::rooms::exists_room(&mut conn, RoomAlias { name, suffix }.into())
+        .await
+        .unwrap();
+    assert!(!exists);
+}

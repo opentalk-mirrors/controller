@@ -47,6 +47,14 @@ pub async fn get_room(conn: &mut DbConnection, room: RoomIdOrAlias) -> Result<Ro
         .map_err(DatabaseError::from)
 }
 
+#[tracing::instrument(err(level = "debug"), skip_all)]
+pub async fn exists_room(conn: &mut DbConnection, room: RoomIdOrAlias) -> Result<bool> {
+    diesel::select(diesel::dsl::exists(rooms::table.filter_by_room(room)))
+        .get_result(conn)
+        .await
+        .map_err(DatabaseError::from)
+}
+
 /// Select a room and the creator using the given room id or alias
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_room_with_creator(

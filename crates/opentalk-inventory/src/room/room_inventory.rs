@@ -20,6 +20,9 @@ pub trait RoomInventory {
     /// Get a room by its id.
     async fn get_room(&mut self, room: RoomIdOrAlias) -> Result<Room>;
 
+    /// Check if a room exists.
+    async fn exists_room(&mut self, room: RoomIdOrAlias) -> Result<bool>;
+
     /// Get a room and its creator by its id or alias.
     async fn get_room_with_creator(&mut self, room: RoomIdOrAlias) -> Result<(Room, User)>;
 

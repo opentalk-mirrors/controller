@@ -675,6 +675,7 @@ impl Controller {
         v1::rooms::by_id::streaming_targets::get,
         v1::rooms::by_id::streaming_targets::by_id::patch,
         v1::rooms::by_id::streaming_targets::post,
+        v1::rooms::name::verify::post,
         v1::turn::get,
         v1::users::find::get,
         v1::users::me::get,
@@ -803,6 +804,7 @@ fn v1_scope(
             .service(v1::rooms::by_id::start::post)
             .service(v1::rooms::by_id::roomserver::start::post)
             .service(v1::rooms::by_id::delete)
+            .service(v1::rooms::name::verify::post)
             .service(v1::events::post)
             .service(v1::events::get)
             // "/events/instances" conflicts with "/events/{event_id}" and thus must be listed before

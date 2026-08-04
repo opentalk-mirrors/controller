@@ -1673,6 +1673,32 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
+  /rooms/name/verify:
+    post:
+      tags:
+        - "api::v1::rooms::name"
+      operationId: verify_room_name
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostRoomNameVerifyRequestBody"
+        required: true
+      responses:
+        "200":
+          description: "Room name is valid, the response body tells if the name is available"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostRoomNameVerifyResponseBody"
+        "400":
+          description: The body or room name is invalid
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
   "/rooms/{room_id_or_alias}":
     get:
       tags:
@@ -5260,6 +5286,24 @@ components:
         logout_token:
           $ref: "#/components/schemas/LogoutToken"
           description: Logout token identifying the end user to be logged out
+    PostRoomNameVerifyRequestBody:
+      type: object
+      description: Body for *POST /rooms/name/verify*
+      required:
+        - name
+      properties:
+        name:
+          $ref: "#/components/schemas/RoomName"
+          description: The room name
+    PostRoomNameVerifyResponseBody:
+      type: object
+      description: Verify response body for *POST /rooms/name/verify*
+      required:
+        - available
+      properties:
+        available:
+          type: boolean
+          description: Whether the room name is available for use
     PostRoomStreamingTargetRequestBody:
       $ref: "#/components/schemas/StreamingTarget"
       description: "The body of a *POST /rooms/{room_id}/streaming_targets* request"

@@ -164,6 +164,11 @@ pub enum Resource {
     /// performs the actual authorization.
     RoomStartInvited(RoomIdOrAlias),
 
+    /// The room name verification endpoint.
+    ///
+    /// Served under `v1/rooms/name/verify`.
+    RoomNameVerify,
+
     /// The invite verification endpoint.
     ///
     /// Served under `/v1/invite/verify`. Public: the endpoint validates
@@ -369,6 +374,7 @@ pub(super) mod actix_web_impls {
                     let room_id_or_alias = extract_path::<RoomIdOrAlias>(req.path(), pattern)?;
                     Ok(Resource::RoomStartInvited(room_id_or_alias))
                 }
+                "/v1/rooms/name/verify" => Ok(Resource::RoomNameVerify),
                 "/v1/invite/verify" => Ok(Resource::InviteVerify),
                 "/v1/signaling/{token}" => {
                     let token = extract_path::<Token>(req.path(), pattern)?;

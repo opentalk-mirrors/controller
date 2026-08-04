@@ -34,6 +34,13 @@ impl RoomInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
+    async fn exists_room(&mut self, room: RoomIdOrAlias) -> Result<bool> {
+        Ok(db::queries::rooms::exists_room(&mut self.inner, room)
+            .await
+            .context(DatabaseSnafu)?)
+    }
+
+    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_room_with_creator(&mut self, room: RoomIdOrAlias) -> Result<(Room, User)> {
         let (room, user) = db::queries::rooms::get_room_with_creator(&mut self.inner, room)
             .await

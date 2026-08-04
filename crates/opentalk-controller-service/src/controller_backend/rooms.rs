@@ -14,13 +14,19 @@ use opentalk_inventory::{NewRoom, NewRoomSipConfig, Room, UpdateRoom, utils::is_
 use opentalk_types_api_v1::{
     error::ApiError,
     pagination::PagePaginationQuery,
-    rooms::{GetRoomsResponseBody, RoomResource, by_room_id::GetRoomEventResponseBody},
+    rooms::{
+        GetRoomsResponseBody, RoomResource, by_room_id::GetRoomEventResponseBody,
+        name::PostRoomNameVerifyResponseBody,
+    },
 };
 use opentalk_types_common::{
     events::EventInfo,
     features::GUESTS_ALLOWED_MODULE_FEATURE_ID,
     pagination::ItemCount,
-    rooms::{GuestAccess, RoomId, RoomIdOrAlias, RoomName, RoomPassword, invite_codes::InviteCode},
+    rooms::{
+        GuestAccess, RoomAlias, RoomId, RoomIdOrAlias, RoomName, RoomPassword,
+        invite_codes::InviteCode,
+    },
     users::UserId,
 };
 
@@ -253,6 +259,25 @@ impl ControllerBackend {
             .await?;
 
         Ok(())
+    }
+
+    pub(crate) async fn verify_room_name(
+        &self,
+        name: RoomName,
+    ) -> Result<PostRoomNameVerifyResponseBody, CaptureApiError> {
+        let settings = self.settings_provider.get();
+
+        // When the suffix is enabled, we can assume that the room name is available because the alias will be unique.
+        if !settings.defaults.room_alias.disable_suffix {
+            return Ok(PostRoomNameVerifyResponseBody { available: true });
+        }
+
+        let mut inventory = self.inventory_provider.get_inventory().await?;
+        let exists = inventory
+            .exists_room(RoomAlias { name, suffix: None }.into())
+            .await?;
+
+        Ok(PostRoomNameVerifyResponseBody { available: !exists })
     }
 
     pub(crate) async fn get_room(
