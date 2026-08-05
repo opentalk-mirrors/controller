@@ -28,7 +28,7 @@ pub trait Deleter: Sync {
     type CommitOutput: Sync + Send;
 
     /// Perform a full sequence of the steps implemented by trait.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     async fn perform(
         &self,
         logger: &dyn Log,

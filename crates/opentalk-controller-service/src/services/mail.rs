@@ -287,7 +287,7 @@ impl MailService {
     }
 
     /// Sends a Registered Invite mail task to the rabbit mq queue, if configured.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub async fn send_registered_invite(
         &self,
         settings: &Settings,
@@ -330,7 +330,7 @@ impl MailService {
     }
 
     /// Sends a Unregistered Invite mail task to the rabbit mq queue, if configured.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub async fn send_unregistered_invite(
         &self,
         settings: &Settings,
@@ -371,7 +371,7 @@ impl MailService {
     }
 
     /// Sends a external Invite mail task to the rabbit mq queue, if configured.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub async fn send_external_invite(
         &self,
         settings: &Settings,
@@ -408,7 +408,7 @@ impl MailService {
     }
 
     /// Sends an Event Update mail task to the rabbit mq queue, if configured.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub async fn send_event_update(
         &self,
         settings: &Settings,
@@ -498,7 +498,7 @@ impl MailService {
     }
 
     /// Sends an Event Cancellation mail task to the rabbit mq queue, if configured.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub async fn send_event_cancellation(
         &self,
         settings: &Settings,
@@ -585,7 +585,7 @@ impl MailService {
     }
 
     /// Sends an Event Uninvite mail task to the rabbit mq queue, if configured.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub async fn send_event_uninvite(
         &self,
         settings: &Settings,

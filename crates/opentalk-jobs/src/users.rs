@@ -49,7 +49,7 @@ pub(crate) async fn perform_deletion(
 }
 
 /// Identify and delete users according to the specified delete selector
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 async fn delete_users(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
@@ -98,7 +98,6 @@ async fn delete_users(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
 pub(crate) async fn delete_users_internal(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,
@@ -139,7 +138,7 @@ pub(crate) async fn delete_users_internal(
 }
 
 /// Identify and delete events for the specified users
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 async fn delete_user_events(
     logger: &dyn Log,
     inventory: &mut dyn Inventory,

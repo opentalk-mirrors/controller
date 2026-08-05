@@ -72,7 +72,7 @@ mod storage_notifier;
 mod websocket_adapter;
 
 /// A struct holding the roomserver backend and related components.
-#[allow(missing_debug_implementations)] // Debug is not implemented for the trait objects
+#[expect(missing_debug_implementations)] // Debug is not implemented for the trait objects
 pub struct RoomServerComponents {
     /// The roomserver backend implementation.
     pub backend: Arc<dyn RoomServerBackend>,

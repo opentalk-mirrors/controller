@@ -90,7 +90,7 @@ pub trait EventInventory {
     async fn get_all_finite_recurring_events(&mut self) -> Result<Vec<Event>>;
 
     /// Get all events to which a user has access.
-    #[allow(clippy::too_many_arguments, clippy::type_complexity)]
+    #[expect(clippy::too_many_arguments)]
     async fn get_all_events_for_user_paginated(
         &mut self,
         user: User,
@@ -126,7 +126,7 @@ pub trait EventInventory {
     ) -> Result<Vec<Event>>;
 
     /// Get all events to which a user has access.
-    #[allow(clippy::too_many_arguments, clippy::type_complexity)]
+    #[expect(clippy::too_many_arguments)]
     async fn get_all_events_for_user_paginated_as_stream<'a>(
         &'a mut self,
         user: User,
@@ -159,7 +159,7 @@ pub trait EventInventory {
     >;
 
     /// Get all event exceptions to which a user has access.
-    #[allow(clippy::too_many_arguments, clippy::type_complexity)]
+    #[expect(clippy::too_many_arguments)]
     async fn get_all_event_exceptions_for_user_paginated_as_stream<'a>(
         &'a mut self,
         user: User,

@@ -513,7 +513,7 @@ impl EventInventory for DatabaseConnection {
     }
 }
 
-#[allow(clippy::type_complexity)]
+#[expect(clippy::type_complexity)]
 fn convert_event_and_related_to_inventory_types(
     (event, invite, room, sip_config, is_favorite, shared_folder, tariff): (
         db::queries::events::types::EventRecord,

@@ -206,7 +206,7 @@ impl LoggerTask {
         let metadata = Metadata::builder().level(level).target(target).build();
 
         // Dirty little hack to work around https://github.com/rust-lang/rust/issues/92698
-        #[allow(irrefutable_let_patterns)]
+        #[expect(irrefutable_let_patterns)]
         if let args = format_args!("{}", msg.log_message) {
             let record = Record::builder().metadata(metadata).args(args).build();
 

@@ -145,7 +145,7 @@ pub struct AssetSaved {
 /// stay empty.
 ///
 /// Returns a tuple containing the asset id and the filename on success.
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub async fn save_asset<E>(
     storage: &ObjectStorage,
     inventory_provider: &dyn InventoryProvider,

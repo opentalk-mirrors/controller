@@ -38,7 +38,7 @@ use crate::api::{
 #[into_params(
     parameter_in = Header,
 )]
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) struct RecordingUploadWebSocketHeaders {
     #[param(inline, required = true)]
     pub connection: ConnectionUpgrade,

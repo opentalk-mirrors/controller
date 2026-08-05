@@ -26,7 +26,7 @@ where
 }
 
 /// Executes the given function inside of a database transaction
-#[allow(clippy::manual_async_fn)] // Follows the upstream implementation. Implementing this as async fn triggers a rustc bug.
+#[expect(clippy::manual_async_fn)] // Follows the upstream implementation. Implementing this as async fn triggers a rustc bug.
 pub fn transaction<'a, 'inv, I, F, R, E>(
     inventory: &'inv mut I,
     callback: F,

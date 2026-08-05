@@ -59,7 +59,7 @@ use crate::{
 
 const ONE_HUNDRED_YEARS: Duration = Duration::days(ONE_HUNDRED_YEARS_IN_DAYS as i64);
 
-#[allow(clippy::type_complexity)]
+#[expect(clippy::type_complexity)]
 enum InternalEventOrInstance {
     Event(
         (
@@ -252,7 +252,7 @@ impl ControllerBackend {
         Ok((items, has_more_items))
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     async fn get_event_instances_as_stream<'a>(
         &'a self,
         current_user: &'a User,
@@ -783,7 +783,7 @@ impl ControllerBackend {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 fn create_event_instance(
     users: &UserProfilesBatch,
     mut event: Event,
