@@ -230,7 +230,7 @@ pub(super) mod actix_web_impls {
     use actix_router::{Path, PathDeserializer, ResourceDef};
     use actix_web::{dev::ServiceRequest, error::PathError};
     use serde::de::DeserializeOwned;
-    use snafu::{Snafu, ensure};
+    use snafu::{ResultExt, Snafu, ensure};
 
     use super::*;
 
@@ -241,6 +241,11 @@ pub(super) mod actix_web_impls {
 
         #[snafu(display("Unknown resource path pattern {pattern:?}"))]
         UnknownResourcePathPattern { pattern: String },
+
+        #[snafu(display(
+            "Failed to extract path parameters for resource path pattern {pattern:?}: {source}"
+        ))]
+        InvalidResourcePathPattern { source: PathError, pattern: String },
     }
 
     impl TryFrom<&ServiceRequest> for Resource {
@@ -267,121 +272,118 @@ pub(super) mod actix_web_impls {
                 "/v1/events" => Ok(Resource::Events),
                 "/v1/events/instances" => Ok(Resource::EventsInstances),
                 "/v1/events/{event_id}" => {
-                    let event_id = extract_path::<EventId>(req.path(), &pattern).expect("invalid");
+                    let event_id = extract_path::<EventId>(req.path(), pattern)?;
                     Ok(Resource::Event(event_id))
                 }
                 "/v1/events/{event_id}/invites" => {
-                    let event_id = extract_path::<EventId>(req.path(), &pattern).expect("invalid");
+                    let event_id = extract_path::<EventId>(req.path(), pattern)?;
                     Ok(Resource::EventInvites(event_id))
                 }
                 "/v1/events/{event_id}/invites/email" => {
-                    let event_id = extract_path::<EventId>(req.path(), &pattern).expect("invalid");
+                    let event_id = extract_path::<EventId>(req.path(), pattern)?;
                     Ok(Resource::EventEmailInvite(event_id))
                 }
                 "/v1/events/{event_id}/invites/{user_id}" => {
                     let (event_id, user_id) =
-                        extract_path::<(EventId, UserId)>(req.path(), &pattern).expect("invalid");
+                        extract_path::<(EventId, UserId)>(req.path(), pattern)?;
                     Ok(Resource::EventUserInvite(event_id, user_id))
                 }
                 "/v1/events/{event_id}/invite" => {
-                    let event_id = extract_path::<EventId>(req.path(), &pattern).expect("invalid");
+                    let event_id = extract_path::<EventId>(req.path(), pattern)?;
                     Ok(Resource::EventInvite(event_id))
                 }
                 "/v1/events/{event_id}/instances" => {
-                    let event_id = extract_path::<EventId>(req.path(), &pattern).expect("invalid");
+                    let event_id = extract_path::<EventId>(req.path(), pattern)?;
                     Ok(Resource::EventInstances(event_id))
                 }
                 "/v1/events/{event_id}/instances/{instance_id}" => {
                     let (event_id, instance_id) =
-                        extract_path::<(EventId, InstanceId)>(req.path(), &pattern)
-                            .expect("invalid");
+                        extract_path::<(EventId, InstanceId)>(req.path(), pattern)?;
                     Ok(Resource::EventInstance(event_id, instance_id))
                 }
                 "/v1/events/{event_id}/shared_folder" => {
-                    let event_id = extract_path::<EventId>(req.path(), &pattern).expect("invalid");
+                    let event_id = extract_path::<EventId>(req.path(), pattern)?;
                     Ok(Resource::EventSharedFolder(event_id))
                 }
                 "/v1/rooms" => Ok(Resource::Rooms),
                 "/v1/rooms/{room_id}" => {
-                    let room_id = extract_path::<RoomId>(req.path(), &pattern).expect("invalid");
+                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
                     Ok(Resource::Room(room_id))
                 }
                 "/v1/rooms/{room_id}/event" => {
-                    let room_id = extract_path::<RoomId>(req.path(), &pattern).expect("invalid");
+                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
                     Ok(Resource::RoomEvent(room_id))
                 }
                 "/v1/rooms/{room_id}/invites" => {
-                    let room_id = extract_path::<RoomId>(req.path(), &pattern).expect("invalid");
+                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
                     Ok(Resource::RoomInvites(room_id))
                 }
                 "/v1/rooms/{room_id}/invites/{invite_code}" => {
                     let (room_id, invite_code) =
-                        extract_path::<(RoomId, InviteCode)>(req.path(), &pattern)
-                            .expect("invalid");
+                        extract_path::<(RoomId, InviteCode)>(req.path(), pattern)?;
                     Ok(Resource::RoomInviteCode(room_id, invite_code))
                 }
                 "/v1/rooms/{room_id}/assets" => {
-                    let room_id = extract_path::<RoomId>(req.path(), &pattern).expect("invalid");
+                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
                     Ok(Resource::RoomAssets(room_id))
                 }
                 "/v1/rooms/{room_id}/assets/{asset_id}" => {
                     let (room_id, asset_id) =
-                        extract_path::<(RoomId, AssetId)>(req.path(), &pattern).expect("invalid");
+                        extract_path::<(RoomId, AssetId)>(req.path(), pattern)?;
                     Ok(Resource::RoomAsset(room_id, asset_id))
                 }
                 "/v1/rooms/{room_id}/assets/{asset_id}/download" => {
                     let (room_id, asset_id) =
-                        extract_path::<(RoomId, AssetId)>(req.path(), &pattern).expect("invalid");
+                        extract_path::<(RoomId, AssetId)>(req.path(), pattern)?;
                     Ok(Resource::RoomAssetDownload(room_id, asset_id))
                 }
                 "/v1/rooms/{room_id}/assets/{asset_id}/proxy" => {
                     let (room_id, asset_id) =
-                        extract_path::<(RoomId, AssetId)>(req.path(), &pattern).expect("invalid");
+                        extract_path::<(RoomId, AssetId)>(req.path(), pattern)?;
                     Ok(Resource::RoomAssetDownloadProxy(room_id, asset_id))
                 }
                 "/v1/rooms/{room_id}/sip" => {
-                    let room_id = extract_path::<RoomId>(req.path(), &pattern).expect("invalid");
+                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
                     Ok(Resource::RoomSip(room_id))
                 }
                 "/v1/rooms/{room_id}/streaming_targets" => {
-                    let room_id = extract_path::<RoomId>(req.path(), &pattern).expect("invalid");
+                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
                     Ok(Resource::RoomStreamingTargets(room_id))
                 }
                 "/v1/rooms/{room_id}/streaming_targets/{streaming_target_id}" => {
                     let (room_id, streaming_target_id) =
-                        extract_path::<(RoomId, StreamingTargetId)>(req.path(), &pattern)
-                            .expect("invalid");
+                        extract_path::<(RoomId, StreamingTargetId)>(req.path(), pattern)?;
                     Ok(Resource::RoomStreamingTarget(room_id, streaming_target_id))
                 }
                 "/v1/rooms/{room_id}/start" | "/v1/rooms/{room_id}/roomserver/start" => {
-                    let room_id = extract_path::<RoomId>(req.path(), &pattern).expect("invalid");
+                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
                     Ok(Resource::RoomStart(room_id))
                 }
                 "/v1/rooms/{room_id}/start_invited"
                 | "/v1/rooms/{room_id}/roomserver/start_invited" => {
-                    let room_id = extract_path::<RoomId>(req.path(), &pattern).expect("invalid");
+                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
                     Ok(Resource::RoomStartInvited(room_id))
                 }
                 "/v1/invite/verify" => Ok(Resource::InviteVerify),
                 "/v1/signaling/{token}" => {
-                    let token = extract_path::<Token>(req.path(), &pattern).expect("invalid");
+                    let token = extract_path::<Token>(req.path(), pattern)?;
                     Ok(Resource::Signaling(token))
                 }
                 "/v1/rooms/{room_id}/tariff" => {
-                    let room_id = extract_path::<RoomId>(req.path(), &pattern).expect("invalid");
+                    let room_id = extract_path::<RoomId>(req.path(), pattern)?;
                     Ok(Resource::RoomTariff(room_id))
                 }
                 "/v1/users/find" => Ok(Resource::UserFind),
                 "/v1/users/me" => Ok(Resource::UserMe),
                 "/v1/users/me/assets" => Ok(Resource::UserMeAssets),
                 "/v1/users/me/event_favorites/{event_id}" => {
-                    let event_id = extract_path::<EventId>(req.path(), &pattern).expect("invalid");
+                    let event_id = extract_path::<EventId>(req.path(), pattern)?;
                     Ok(Resource::UserMeEventFavorite(event_id))
                 }
                 "/v1/users/me/pending_invites" => Ok(Resource::UserMePendingInvites),
                 "/v1/users/me/tariff" => Ok(Resource::UserMeTariff),
                 "/v1/users/{user_id}" => {
-                    let user_id = extract_path::<UserId>(req.path(), &pattern).expect("invalid");
+                    let user_id = extract_path::<UserId>(req.path(), pattern)?;
                     Ok(Resource::UserProfile(user_id))
                 }
                 pattern => UnknownResourcePathPatternSnafu {
@@ -392,8 +394,11 @@ pub(super) mod actix_web_impls {
         }
     }
 
-    fn extract_path<T: DeserializeOwned>(path: &str, pattern: &str) -> Result<T, actix_web::Error> {
-        let resource = ResourceDef::prefix(pattern);
+    fn extract_path<T: DeserializeOwned>(
+        path: &str,
+        pattern: String,
+    ) -> Result<T, TryFromResourceError> {
+        let resource = ResourceDef::prefix(&pattern);
         let mut path = Path::new(path);
 
         let matches = resource.capture_match_info(&mut path);
@@ -410,7 +415,7 @@ pub(super) mod actix_web_impls {
 
                 PathError::Deserialize(err)
             })
-            .map_err(actix_web::Error::from)?;
+            .context(InvalidResourcePathPatternSnafu { pattern })?;
         Ok(path)
     }
 }
