@@ -8,6 +8,7 @@ use actix_web::{
     HttpResponse,
     dev::{Service, ServiceRequest, ServiceResponse},
 };
+use tracing::{Instrument, Span, field};
 
 use crate::authorization::{Admission, AuthorizationTarget, Authorizer};
 
@@ -43,29 +44,39 @@ impl<S: Service<ServiceRequest, Response = ServiceResponse, Error = actix_web::E
         self.service.poll_ready(ctx)
     }
 
+    #[tracing::instrument(name = "AuthorizationMiddleware", level = "debug", skip_all, fields(authorized = field::Empty, target = field::Empty))]
     fn call(&self, req: ServiceRequest) -> Self::Future {
+        let span = Span::current();
         let authorizer = self.authorizer.clone();
         let service = self.service.clone();
-        Box::pin(async move {
-            let target = AuthorizationTarget::try_from(&req);
-            let admission = if let Ok(target) = target {
-                authorizer.authorize(target).await
-            } else {
-                tracing::error!("Could not parse path for {:?}, denying access", req.path());
-                Ok(Admission::Denied)
-            };
+        Box::pin(
+            async move {
+                let span = Span::current();
+                let target = AuthorizationTarget::try_from(&req);
+                span.record("target", field::debug(target.as_ref().ok()));
+                let admission = if let Ok(target) = target {
+                    authorizer.authorize(target).await
+                } else {
+                    tracing::error!("Could not parse path for {:?}, denying access", req.path());
+                    Ok(Admission::Denied)
+                };
+                span.record("authorized", field::debug(admission.as_ref().ok().copied()));
 
-            match admission {
-                Ok(Admission::Allowed) => service.call(req).await,
-                Ok(Admission::Denied) => Ok(req.into_response(HttpResponse::Forbidden().finish())),
-                Ok(Admission::AuthenticationRequired) => {
-                    Ok(req.into_response(HttpResponse::Unauthorized().finish()))
-                }
-                Err(e) => {
-                    tracing::error!("Attempt to request authorization failed: {e:?}");
-                    Ok(req.into_response(HttpResponse::InternalServerError().finish()))
+                match admission {
+                    Ok(Admission::Allowed) => service.call(req).await,
+                    Ok(Admission::Denied) => {
+                        Ok(req.into_response(HttpResponse::Forbidden().finish()))
+                    }
+                    Ok(Admission::AuthenticationRequired) => {
+                        Ok(req.into_response(HttpResponse::Unauthorized().finish()))
+                    }
+                    Err(e) => {
+                        tracing::error!("Attempt to request authorization failed: {e:?}");
+                        Ok(req.into_response(HttpResponse::InternalServerError().finish()))
+                    }
                 }
             }
-        })
+            .instrument(span),
+        )
     }
 }

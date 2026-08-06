@@ -105,6 +105,7 @@ where
         self.service.poll_ready(ctx)
     }
 
+    #[tracing::instrument(level = "debug", name = "OidcAuthMiddleware", skip_all)]
     fn call(&self, mut req: ServiceRequest) -> Self::Future {
         let service = self.service.clone();
         let settings_provider = self.settings_provider.clone();
@@ -115,13 +116,6 @@ where
             .app_data::<Data<Cache>>()
             .expect("Caches must be provided as AppData")
             .clone();
-
-        let parse_match_span = tracing::span!(
-            tracing::Level::TRACE,
-            "Authorization::<BearerOrInviteCode>::parse"
-        );
-
-        let _enter = parse_match_span.enter();
 
         // Unauthenticated requests are allowed through without setting any
         // subject on the request; the downstream authorization middleware

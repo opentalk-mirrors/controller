@@ -77,13 +77,11 @@ where
         self.service.poll_ready(ctx)
     }
 
+    #[tracing::instrument(level = "debug", name = "ServiceAuthMiddleware", skip_all)]
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let service = self.service.clone();
         let oidc_ctx = self.oidc_ctx.clone();
 
-        let parse_match_span = tracing::trace_span!("Authorization::<Bearer>::parse");
-
-        let _enter = parse_match_span.enter();
         let auth = match Authorization::<Bearer>::parse(&req) {
             Ok(a) => a,
             Err(e) => {
@@ -109,7 +107,7 @@ where
                     Err(err) => Ok(req.into_response(err.error_response())),
                 }
             }
-            .instrument(tracing::trace_span!("ServiceAuthMiddleware::async::call")),
+            .instrument(tracing::debug_span!("ServiceAuthMiddleware::async::call")),
         )
     }
 }
