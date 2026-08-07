@@ -260,30 +260,27 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let event = inventory.get_event_for_room(*room_id).await?;
-
-        let room = inventory.get_room(*room_id).await?;
+        let Some(event) = event.as_ref() else {
+            return Err(ApiError::not_found().into());
+        };
 
         // Naive check that prevents joining events that were created by a user which is since been
         // disabled. The `get_user` method returns 404 not found when the user is disabled.
+        let room = inventory.get_room(*room_id).await?;
         if inventory.get_user(room.created_by).await.is_err() {
             return Err(ApiError::forbidden().into());
         }
 
-        match event.as_ref() {
-            Some(event) => {
-                let event_info = EventInfo {
-                    id: event.id,
-                    room_id: event.room,
-                    title: event.title.clone(),
-                    is_adhoc: event.is_adhoc,
-                    e2e_encryption: room.e2e_encryption,
-                    password_required: room.password.is_some(),
-                };
+        let event_info = EventInfo {
+            id: event.id,
+            room_id: event.room,
+            title: event.title.clone(),
+            is_adhoc: event.is_adhoc,
+            e2e_encryption: room.e2e_encryption,
+            password_required: room.password.is_some(),
+        };
 
-                Ok(GetRoomEventResponseBody(event_info))
-            }
-            None => Err(ApiError::not_found().into()),
-        }
+        Ok(GetRoomEventResponseBody(event_info))
     }
 
     /// Check the provided invite code and room password
