@@ -19,14 +19,15 @@ impl OpenTalkAuthorizerBackend {
     ///
     /// Access rights for the [`RoomInvites`] resource (`GET`/`POST` on
     /// `/rooms/{room_id}/invites`). Managing room invites is owner-only. Until that delegation is
-    /// modelled explicitly, only the room owner can list or create invites.
+    /// modelled explicitly, only the room owner can create invites; moderators and invited users
+    /// are granted read access to retrieve the invite-code.
     ///
     /// ```text
     /// | Subject               | Access |
     /// |-----------------------|--------|
     /// | Owner                 | rw     |
-    /// | Moderator             | --     |
-    /// | User                  | --     |
+    /// | Moderator             | r-     |
+    /// | User                  | r-     |
     /// | Unrelated User        | --     |
     /// | Valid Invite Code     | --     |
     /// | Invalid Invite Code   | --     |
@@ -41,8 +42,8 @@ impl OpenTalkAuthorizerBackend {
     ) -> Result<Admission> {
         let acl = Acl {
             owner: Access::ReadWrite,
-            moderator: Access::None,
-            invited_user: Access::None,
+            moderator: Access::Read,
+            invited_user: Access::Read,
             invite_code: Access::None,
         };
 
@@ -74,9 +75,9 @@ mod tests {
     #[rstest]
     #[case::owner_get(Owner, Get, Allowed)]
     #[case::owner_post(Owner, Post, Allowed)]
-    #[case::moderator_get(Invited(Moderator), Get, Denied)]
+    #[case::moderator_get(Invited(Moderator), Get, Allowed)]
     #[case::moderator_post(Invited(Moderator), Post, Denied)]
-    #[case::user_get(Invited(User), Get, Denied)]
+    #[case::user_get(Invited(User), Get, Allowed)]
     #[case::user_post(Invited(User), Post, Denied)]
     #[case::unrelated_get(Unrelated, Get, Denied)]
     #[case::unrelated_post(Unrelated, Post, Denied)]
