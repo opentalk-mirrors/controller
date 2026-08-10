@@ -139,11 +139,7 @@ test:cargo_test:
   # this uses region for coverage summary
   coverage: /TOTAL\s+(\d+\s+)+(\d+\.\d+\%)/
   variables:
-    REDIS_ADDR: redis://redis:6379/
     TYPST_PACKAGE_CACHE_PATH: $CI_PROJECT_DIR/target/typst/packages
-  services:
-    - name: redis:8-alpine
-      alias: redis
   script:
     - pwd
     - ls
