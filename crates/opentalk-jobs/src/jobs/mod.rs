@@ -29,10 +29,8 @@ mod test_utils {
     use async_trait::async_trait;
     use opentalk_controller_utils::deletion::{StopRoomBackend, StopRoomError};
     use opentalk_inventory::{
-        Event, Inventory, InventoryProvider as _, NewEvent, NewRoom, NewRoomInvite, Room,
-        RoomInvite, User,
+        Event, Inventory, NewEvent, NewRoom, NewRoomInvite, Room, RoomInvite, User,
     };
-    use opentalk_test_util::database::DatabaseContext;
     use opentalk_types_common::rooms::{GuestAccess, RoomId};
 
     /// A [`StopRoomBackend`] that records the ids of all rooms it is asked to delete.
@@ -46,24 +44,6 @@ mod test_utils {
         async fn stop_room(&self, room_id: RoomId) -> Result<(), StopRoomError> {
             self.deleted_rooms.lock().unwrap().push(room_id);
             Ok(())
-        }
-    }
-
-    pub(super) async fn create_events_and_independent_rooms(
-        db_ctx: &DatabaseContext,
-        event_count: u64,
-        independent_room_count: u64,
-    ) {
-        let user = db_ctx.create_test_user(1, vec![]).await.unwrap();
-
-        let mut inventory = db_ctx.inventory_provider.get_inventory().await.unwrap();
-
-        for _ in 0..event_count {
-            create_generic_test_event(inventory.as_mut(), &user, true).await;
-        }
-
-        for _ in 0..independent_room_count {
-            create_generic_test_room(inventory.as_mut(), &user).await;
         }
     }
 

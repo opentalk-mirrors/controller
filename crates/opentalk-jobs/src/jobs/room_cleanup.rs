@@ -104,25 +104,9 @@ mod tests {
     use crate::{
         Job as _,
         jobs::test_utils::{
-            RecordingStopRoomBackend, create_events_and_independent_rooms,
-            create_generic_test_event, create_generic_test_room,
+            RecordingStopRoomBackend, create_generic_test_event, create_generic_test_room,
         },
     };
-
-    /// Test to fill the database with events and independent rooms. Is ignored by the CI
-    ///
-    /// The data is created in a throwaway database inside a postgres testcontainer (see
-    /// [`opentalk_test_util::database::DatabaseContext`]).
-    ///
-    /// Run with:
-    /// `cargo test --package opentalk-jobs -- --show-output --exact jobs::room_cleanup::test::fill_db_with_test_data --nocapture --ignored`
-    #[ignore]
-    #[actix_rt::test]
-    async fn fill_db_with_test_data() {
-        let db_ctx = DatabaseContext::new().await;
-
-        create_events_and_independent_rooms(&db_ctx, 50, 100).await;
-    }
 
     /// The room cleanup job must notify the room delete backend for orphaned rooms
     /// only, leaving rooms that still belong to an event untouched.

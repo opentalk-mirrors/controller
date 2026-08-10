@@ -141,9 +141,6 @@ test:cargo_test:
   variables:
     TYPST_PACKAGE_CACHE_PATH: $CI_PROJECT_DIR/target/typst/packages
   script:
-    - pwd
-    - ls
-    - RUSTFLAGS="-C link-arg=-fuse-ld=lld"
     - cargo llvm-cov --no-report nextest --profile ci --workspace --locked
     # code coverage for doctests is unstable, so we run them separately
     - cargo test --doc --workspace --locked
