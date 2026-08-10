@@ -2663,6 +2663,35 @@ paths:
       security:
         - BearerAuth: []
         - InviteCode: []
+  "/signaling/{token}":
+    get:
+      tags:
+        - "api::v1::signaling"
+      summary: Establish a signaling WebSocket connection with the internal roomserver
+      description: |-
+        This endpoint upgrades the HTTP connection to a WebSocket and attaches the
+        connection to the room task identified by the provided signaling token.
+        The token is obtained from a prior call to the `/v1/rooms/{room_id}/start`
+        or `/v1/rooms/{room_id}/start_invited` endpoint.
+
+        This endpoint is only available when the controller is configured with an
+        internal roomserver. Returns `404 Not Found` when using an external roomserver.
+      operationId: signaling_ws
+      parameters:
+        - name: token
+          in: path
+          description: The signaling token obtained from a start endpoint
+          required: true
+          schema:
+            $ref: "#/components/schemas/Token"
+      responses:
+        "101":
+          description: WebSocket connection successfully established
+        "404":
+          description: "The signaling token is invalid, expired, or the internal roomserver is not enabled"
+        "500":
+          description: Failed to attach signaling socket to the room task
+      security: []
   /turn:
     get:
       tags:
@@ -2995,19 +3024,6 @@ components:
         - namespace
         - kind
         - created_at
-    AssetSortingQuery:
-      type: object
-      description: |-
-        Asset sorting query type
-
-        The struct describes the query parameter that can be provided to sort the returned assets.
-      properties:
-        order:
-          $ref: "#/components/schemas/Ordering"
-          description: The sorting order that should be applied to the collection
-        sort:
-          $ref: "#/components/schemas/AssetSorting"
-          description: The optional sorting query parameter
     AuthLoginPostRequestBody:
       type: object
       description: "Body of a *POST* request on `/auth/login`"
@@ -3018,11 +3034,6 @@ components:
           type: string
           description: The id token to use for the login
           example: bG9yZW0gaXBzdW0sIHF1aWEgZG9sb3Igc2
-    BreakoutRoomId:
-      type: string
-      format: uuid
-      description: The id of a breakout room
-      example: 00000000-0000-0000-0000-0000badcab1e
     CallInId:
       $ref: "#/components/schemas/NumericId"
       description: The id of a call-in participation
@@ -4133,18 +4144,6 @@ components:
       examples:
         - Team Event
       maxLength: 255
-    EventType:
-      type: string
-      description: |-
-        Type of event resource.
-
-        Is used as type discriminator in field `type`.
-      enum:
-        - single
-        - recurring
-        - instance
-        - exception
-      example: instance
     ExceptionMarker:
       type: string
       description: |-
@@ -4498,32 +4497,6 @@ components:
     LogoutToken:
       type: string
       description: A logout token
-    MeetingDetails:
-      type: object
-      description: Details about meeting
-      properties:
-        call_in:
-          $ref: "#/components/schemas/CallInInfo"
-          description: The call-in information for the event
-        invite_code_id:
-          $ref: "#/components/schemas/InviteCode"
-          description: The invite code id of the event
-        streaming_links:
-          type: array
-          items:
-            $ref: "#/components/schemas/StreamingLink"
-          description: The links for accessing the stream
-      example:
-        call_in:
-          default_country_code: DE
-          id: "1234567890"
-          mask_unmapped_phone_numbers: true
-          password: "0987654321"
-          tel: +555-123-456-789
-        invite_code_id: 00000000-0000-0000-0000-0000deadbeef
-        streaming_links:
-          - name: My OwnCast Stream
-            url: "https://owncast.example.com/mystream"
     ModuleId:
       anyOf:
         - type: string
@@ -5514,9 +5487,6 @@ components:
       examples:
         - FREQ=WEEKLY;INTERVAL=1;BYDAY=MO
       maxLength: 1024
-    ResumptionToken:
-      type: string
-      description: A resumption token
     RoomId:
       type: string
       format: uuid
@@ -5624,22 +5594,6 @@ components:
           kind: record
           namespace: recording
           size: 98765432
-    RoomsStartResponseBody:
-      type: object
-      description: The JSON body returned from the start endpoints supporting session resumption
-      required:
-        - ticket
-        - resumption
-      properties:
-        resumption:
-          $ref: "#/components/schemas/ResumptionToken"
-          description: The resumption token for the room
-        ticket:
-          $ref: "#/components/schemas/TicketToken"
-          description: The ticket token for the room
-      example:
-        resumption: 654321zyxwvutsrqponmlkjihgfedcba654321zyxwvutsrqponmlkjihgfedcba
-        ticket: abcdefghijklmnopqrstuvwxyz123456abcdefghijklmnopqrstuvwxyz123456
     RoomserverStartResponseBody:
       type: object
       description: The JSON body returned from the roomserver start endpoint
@@ -5728,23 +5682,6 @@ components:
       type: string
       description: The secret key of a streaming target
       example: aabbccddeeff
-    StreamingLink:
-      type: object
-      description: Streaming link for an event
-      required:
-        - name
-        - url
-      properties:
-        name:
-          type: string
-          description: The name of the streaming link
-        url:
-          type: string
-          format: uri
-          description: The url of the streaming link
-      example:
-        name: My OwnCast Stream
-        url: "https://owncast.example.com/mystream"
     StreamingTarget:
       allOf:
         - $ref: "#/components/schemas/StreamingTargetKind"
@@ -5942,9 +5879,6 @@ components:
         - dark
         - system
       example: system
-    TicketToken:
-      type: string
-      description: A ticket token
     TimeDependentMarker:
       description: |-
         Marker type that serializes to `false`.
