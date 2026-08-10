@@ -95,19 +95,18 @@ mod type_polyfills {
 }
 #[cfg(test)]
 mod migration_tests {
-    use serial_test::serial;
-
     use super::Result;
 
     /// Tests the refinery database migration.
-    /// A database config has to be specified via the environment variables
-    /// * POSTGRES_BASE_URL (default: `postgres://postgres:password123@localhost:5432`) - url to the postgres database without the database name specifier
-    /// * DATABASE_NAME (default: `opentalk_test`) - the database name inside postgres
+    ///
+    /// A dedicated postgres [testcontainer] is started automatically, so a working docker (or compatible) environment
+    /// is required. See [`opentalk_test_util::database::DatabaseContext`] for details.
+    ///
+    /// [testcontainer]: https://testcontainers.com/
     #[tokio::test]
-    #[serial]
-    async fn serial_test_migration() -> Result<()> {
+    async fn test_migration() -> Result<()> {
         // This will create a database and migrate it
-        opentalk_test_util::database::DatabaseContext::new(false).await;
+        opentalk_test_util::database::DatabaseContext::new().await;
 
         Ok(())
     }

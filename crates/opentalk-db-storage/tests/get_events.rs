@@ -26,7 +26,6 @@ use opentalk_types_common::{
     utils::ExampleData,
 };
 use pretty_assertions::assert_eq;
-use serial_test::serial;
 
 use crate::common::make_user;
 
@@ -102,9 +101,8 @@ async fn update_invite_status(
 }
 
 #[tokio::test]
-#[serial]
-async fn serial_test_test() {
-    let db_ctx = opentalk_test_util::database::DatabaseContext::new(true).await;
+async fn get_events_ordering() {
+    let db_ctx = opentalk_test_util::database::DatabaseContext::new().await;
 
     let mut conn = db_ctx.db.get_conn().await.unwrap();
 
@@ -308,9 +306,8 @@ async fn serial_test_test() {
 }
 
 #[tokio::test]
-#[serial]
-async fn serial_test_get_events_invite_filter() {
-    let db_ctx = opentalk_test_util::database::DatabaseContext::new(true).await;
+async fn get_events_invite_filter() {
+    let db_ctx = opentalk_test_util::database::DatabaseContext::new().await;
 
     let mut conn = db_ctx.db.get_conn().await.unwrap();
 
@@ -570,9 +567,8 @@ async fn serial_test_get_events_invite_filter() {
 }
 
 #[tokio::test]
-#[serial]
-async fn serial_test_get_event_invites() {
-    let db_ctx = opentalk_test_util::database::DatabaseContext::new(true).await;
+async fn get_event_invites() {
+    let db_ctx = opentalk_test_util::database::DatabaseContext::new().await;
 
     let mut conn = db_ctx.db.get_conn().await.unwrap();
 
@@ -651,9 +647,8 @@ async fn serial_test_get_event_invites() {
 }
 
 #[tokio::test]
-#[serial]
-async fn serial_test_get_event_adhoc() {
-    let db_ctx = opentalk_test_util::database::DatabaseContext::new(true).await;
+async fn get_event_adhoc() {
+    let db_ctx = opentalk_test_util::database::DatabaseContext::new().await;
 
     let mut conn = db_ctx.db.get_conn().await.unwrap();
 
@@ -732,9 +727,8 @@ async fn serial_test_get_event_adhoc() {
 }
 
 #[tokio::test]
-#[serial]
-async fn serial_test_get_event_time_independent() {
-    let db_ctx = opentalk_test_util::database::DatabaseContext::new(true).await;
+async fn get_event_time_independent() {
+    let db_ctx = opentalk_test_util::database::DatabaseContext::new().await;
 
     let mut conn = db_ctx.db.get_conn().await.unwrap();
 
@@ -815,9 +809,8 @@ async fn serial_test_get_event_time_independent() {
 }
 
 #[tokio::test]
-#[serial]
-async fn serial_test_get_event_min_max_time() {
-    let db_ctx = opentalk_test_util::database::DatabaseContext::new(true).await;
+async fn get_event_min_max_time() {
+    let db_ctx = opentalk_test_util::database::DatabaseContext::new().await;
 
     let mut conn = db_ctx.db.get_conn().await.unwrap();
 

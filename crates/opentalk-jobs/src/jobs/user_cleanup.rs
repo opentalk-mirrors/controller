@@ -188,7 +188,7 @@ mod tests {
         .unwrap();
         let settings = settings_provider.get();
 
-        let db_ctx = DatabaseContext::new(false).await;
+        let db_ctx = DatabaseContext::new().await;
         let mut inventory = db_ctx.inventory_provider.get_inventory().await.unwrap();
 
         let inviter = db_ctx.create_test_user(0, vec![]).await.unwrap();
@@ -252,7 +252,7 @@ mod tests {
         .unwrap();
         let settings = settings_provider.get();
 
-        let db_ctx = DatabaseContext::new(false).await;
+        let db_ctx = DatabaseContext::new().await;
         let mut inventory = db_ctx.inventory_provider.get_inventory().await.unwrap();
 
         let user = db_ctx.create_test_user(0, vec![]).await.unwrap();
@@ -297,7 +297,7 @@ mod tests {
         assert!(!user_exists, "User was not successfully cleaned up");
     }
 
-    #[ignore = "database and minio/s3 storage are required for this test"]
+    #[ignore = "minio/s3 storage is required for this test"]
     #[actix_rt::test]
     #[serial_test::serial]
     async fn user_cleanup_deletes_events_and_rooms() {
@@ -307,7 +307,7 @@ mod tests {
         .unwrap();
         let settings = settings_provider.get();
 
-        let db_ctx = DatabaseContext::new(false).await;
+        let db_ctx = DatabaseContext::new().await;
         let mut inventory = db_ctx.inventory_provider.get_inventory().await.unwrap();
 
         let user = db_ctx.create_test_user(0, vec![]).await.unwrap();

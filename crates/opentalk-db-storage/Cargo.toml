@@ -59,4 +59,3 @@ uuid = { workspace = true, features = ["serde", "v4"] }
 actix-rt.workspace = true
 opentalk-test-util = { workspace = true, features = ["database"] }
 pretty_assertions.workspace = true
-serial_test.workspace = true

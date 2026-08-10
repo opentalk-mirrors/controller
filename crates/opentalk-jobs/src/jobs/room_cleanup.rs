@@ -111,23 +111,22 @@ mod tests {
 
     /// Test to fill the database with events and independent rooms. Is ignored by the CI
     ///
-    /// The created data is persistent and saved in `opentalk_test`. The target database can be overwritten with the
-    /// `DATABASE_NAME` environment variable. For more configuration options, see
-    /// [`opentalk_test_util::database::DatabaseContext`].
+    /// The data is created in a throwaway database inside a postgres testcontainer (see
+    /// [`opentalk_test_util::database::DatabaseContext`]).
     ///
     /// Run with:
     /// `cargo test --package opentalk-jobs -- --show-output --exact jobs::room_cleanup::test::fill_db_with_test_data --nocapture --ignored`
     #[ignore]
     #[actix_rt::test]
     async fn fill_db_with_test_data() {
-        let db_ctx = DatabaseContext::new(false).await;
+        let db_ctx = DatabaseContext::new().await;
 
         create_events_and_independent_rooms(&db_ctx, 50, 100).await;
     }
 
     /// The room cleanup job must notify the room delete backend for orphaned rooms
     /// only, leaving rooms that still belong to an event untouched.
-    #[ignore = "database and minio/s3 storage are required for this test"]
+    #[ignore = "minio/s3 storage is required for this test"]
     #[actix_rt::test]
     #[serial_test::serial]
     async fn room_cleanup_only_deletes_orphaned_rooms() {
@@ -137,7 +136,7 @@ mod tests {
         .unwrap();
         let settings = settings_provider.get();
 
-        let db_ctx = DatabaseContext::new(false).await;
+        let db_ctx = DatabaseContext::new().await;
         let mut inventory = db_ctx.inventory_provider.get_inventory().await.unwrap();
 
         let user = db_ctx.create_test_user(0, vec![]).await.unwrap();

@@ -103,7 +103,7 @@ mod tests {
 
     /// The ad-hoc event cleanup job must notify the room delete backend for the rooms
     /// of the ad-hoc events it deletes, while leaving rooms of non-ad-hoc events untouched.
-    #[ignore = "database and minio/s3 storage are required for this test"]
+    #[ignore = "minio/s3 storage is required for this test"]
     #[actix_rt::test]
     #[serial_test::serial]
     async fn adhoc_event_cleanup_only_deletes_adhoc_event_rooms() {
@@ -113,7 +113,7 @@ mod tests {
         .unwrap();
         let settings = settings_provider.get();
 
-        let db_ctx = DatabaseContext::new(false).await;
+        let db_ctx = DatabaseContext::new().await;
         let mut inventory = db_ctx.inventory_provider.get_inventory().await.unwrap();
 
         let user = db_ctx.create_test_user(0, vec![]).await.unwrap();

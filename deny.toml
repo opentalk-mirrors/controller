@@ -562,6 +562,7 @@ skip = [
   { name = "async-io", version = "1" },
   { name = "async-lock", version = "2" },
   { name = "base64", version = "0.21" },
+  { name = "base64", version = "0.22" },
   { name = "bitflags", version = "1" },
   { name = "block-buffer", version = "0.10" },
   { name = "const-oid", version = "0.9" },

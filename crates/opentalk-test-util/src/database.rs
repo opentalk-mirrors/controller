@@ -16,44 +16,70 @@ use opentalk_types_common::{
     users::{GroupId, GroupName, UserId, UserTitle},
 };
 use snafu::{ResultExt, Whatever};
+use testcontainers_modules::{
+    postgres::Postgres,
+    testcontainers::{ContainerAsync, ImageExt as _, runners::AsyncRunner as _},
+};
+
+/// User configured on the postgres testcontainer.
+const POSTGRES_USER: &str = "postgres";
+/// Password configured on the postgres testcontainer.
+const POSTGRES_PASSWORD: &str = "postgres";
+/// Image tag for the postgres testcontainer.
+const POSTGRES_TAG: &str = "18-alpine";
+/// Name of the database created for the test inside the dedicated container.
+const TEST_DB_NAME: &str = "opentalk_test";
+const POSTGRES_PORT: u16 = 5432;
 
 /// Contains the [`Db`] as well as information about the test database
 pub struct DatabaseContext {
     pub base_url: String,
     pub db_name: String,
     pub db: Arc<Db>,
-    /// DatabaseContext will DROP the database inside postgres when dropped
-    pub drop_db_on_drop: bool,
     pub inventory_provider: Arc<DatabaseConnectionPool>,
+    /// The postgres testcontainer backing this context.
+    ///
+    /// Dropping the [`DatabaseContext`] stops and removes the container (and with it the test database).
+    _container: ContainerAsync<Postgres>,
 }
 
 impl DatabaseContext {
     /// Create a new [`DatabaseContext`]
     ///
-    /// Uses the environment variable `POSTGRES_BASE_URL` to connect to postgres. Defaults to `postgres://postgres:password123@localhost:5432`
-    /// when the environment variable is not set. The same goes for `DATABASE_NAME` where the default is `opentalk_test`.
+    /// Starts a dedicated postgres [testcontainer] for this context and creates a migrated database inside it. Because
+    /// every context gets its own container, tests are isolated from each other and can run in parallel. Running the
+    /// tests requires a working docker (or compatible) environment.
     ///
-    /// Once connected, the database with `DATABASE_NAME` gets dropped and re-created to guarantee a clean state, then the
-    /// opentalk controller migration is applied.
-    pub async fn new(drop_db_on_drop: bool) -> Self {
-        let base_url = std::env::var("POSTGRES_BASE_URL")
-            .unwrap_or_else(|_| "postgres://postgres:password123@localhost:5432".to_owned());
+    /// The container is owned by the returned [`DatabaseContext`] and is stopped and removed when it is dropped, so
+    /// callers must keep the context alive for as long as they use its [`Db`] or any connection obtained from it.
+    ///
+    /// [testcontainer]: https://testcontainers.com/
+    pub async fn new() -> Self {
+        let container = Postgres::default()
+            .with_tag(POSTGRES_TAG)
+            .start()
+            .await
+            .expect("Failed to start postgres testcontainer");
 
-        let db_name = std::env::var("DATABASE_NAME").unwrap_or_else(|_| "opentalk_test".to_owned());
+        let host = container
+            .get_host()
+            .await
+            .expect("Failed to get testcontainer host");
+        let port = container
+            .get_host_port_ipv4(POSTGRES_PORT)
+            .await
+            .expect("Failed to get testcontainer port");
+
+        let base_url = format!("postgres://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{host}:{port}");
+        let db_name = TEST_DB_NAME.to_owned();
 
         let postgres_url = format!("{base_url}/postgres");
         let mut conn = AsyncPgConnection::establish(&postgres_url)
             .await
             .expect("Cannot connect to postgres database.");
 
-        // Drop the target database in case it already exists to guarantee a clean state
-        drop_database(&mut conn, &db_name)
-            .await
-            .expect("Database initialization cleanup failed");
-
-        // Create a new database for the test
-        let query = diesel::sql_query(format!("CREATE DATABASE {db_name}"));
-        query
+        // Create the test database. The container is freshly started, so it cannot exist yet.
+        diesel::sql_query(format!("CREATE DATABASE {db_name}"))
             .execute(&mut conn)
             .await
             .unwrap_or_else(|_| panic!("Could not create database {db_name}"));
@@ -64,16 +90,16 @@ impl DatabaseContext {
             .await
             .expect("Unable to migrate database");
 
-        let db_conn = Arc::new(Db::connect_url(&db_url, 5).unwrap());
+        let db_conn = Arc::new(Db::connect_url(&db_url, 5).expect("Failed to connect to database"));
 
         let inventory_provider = Arc::new(DatabaseConnectionPool::new(db_conn.clone()));
 
         Self {
-            base_url: base_url.to_string(),
-            db_name: db_name.to_string(),
+            base_url,
+            db_name,
             db: db_conn,
-            drop_db_on_drop,
             inventory_provider,
+            _container: container,
         }
     }
 
@@ -164,41 +190,4 @@ impl DatabaseContext {
 
         Ok(room)
     }
-}
-
-impl Drop for DatabaseContext {
-    fn drop(&mut self) {
-        if self.drop_db_on_drop {
-            // Hack to avoid the missing "async drop"
-            // Create a new runtime on a different thread, drop the database there and wait for the thread to complete.
-            // The new thread is needed as tokio prevents creating a new runtime on a runtime thread.
-            std::thread::scope(|s| {
-                s.spawn(|| {
-                    tokio::runtime::Runtime::new()
-                        .unwrap()
-                        .block_on(async move {
-                            let postgres_url = format!("{}/postgres", self.base_url);
-                            let db_name = self.db_name.clone();
-
-                            let mut conn = AsyncPgConnection::establish(&postgres_url)
-                                .await
-                                .expect("Cannot connect to postgres database.");
-
-                            drop_database(&mut conn, &db_name).await.unwrap();
-                        })
-                });
-            });
-        }
-    }
-}
-
-/// Disconnect all users from the database with `db_name` and drop it.
-async fn drop_database(conn: &mut AsyncPgConnection, db_name: &str) -> Result<(), Whatever> {
-    let query = diesel::sql_query(format!("DROP DATABASE IF EXISTS {db_name} WITH (FORCE)"));
-    query
-        .execute(conn)
-        .await
-        .with_whatever_context(|_| format!("Couldn't drop database {db_name}"))?;
-
-    Ok(())
 }
