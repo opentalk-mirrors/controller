@@ -76,6 +76,7 @@ pub struct SettingsRaw {
     pub(crate) operator_information: Option<OperatorInformation>,
 }
 
+#[cfg(any(feature = "test-util", test))]
 pub(crate) fn settings_raw_minimal_example() -> SettingsRaw {
     use openidconnect::{ClientId, ClientSecret};
     use opentalk_roomserver_modules::ECHO_MODULE_ID;
