@@ -56,7 +56,7 @@ impl TestContext {
     pub async fn new() -> Self {
         let _ = setup_logging();
 
-        let db_ctx = DatabaseContext::new(true).await;
+        let db_ctx = DatabaseContext::new().await;
 
         let (shutdown, _) = tokio::sync::broadcast::channel(10);
 

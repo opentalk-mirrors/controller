@@ -105,7 +105,7 @@ mod tests {
     use opentalk_inventory::{
         Event, Inventory, InventoryProvider as _, UpdateEvent, UpdateUser, User,
     };
-    use opentalk_test_util::database::DatabaseContext;
+    use opentalk_test_util::{database::DatabaseContext, object_storage::ObjectStorageContext};
     use opentalk_types_common::{events::EventId, time::Timestamp, users::UserId};
 
     use super::{UserCleanup, default_days_since_user_has_been_disabled};
@@ -177,18 +177,19 @@ mod tests {
             .unwrap()
     }
 
-    #[ignore = "minio/s3 storage is required for this test"]
     #[actix_rt::test]
-    #[serial_test::serial]
     async fn cleanup_user_with_event_and_invites() {
         init_logger();
         let settings_provider = SettingsProvider::load_from_path_or_standard_paths(Some(
             Path::new("../../example/controller.toml"),
         ))
         .unwrap();
-        let settings = settings_provider.get();
 
-        let db_ctx = DatabaseContext::new(false).await;
+        let object_storage_ctx = ObjectStorageContext::new().await;
+        let mut settings = settings_provider.get().as_ref().clone();
+        settings.minio = object_storage_ctx.minio.clone();
+
+        let db_ctx = DatabaseContext::new().await;
         let mut inventory = db_ctx.inventory_provider.get_inventory().await.unwrap();
 
         let inviter = db_ctx.create_test_user(0, vec![]).await.unwrap();
@@ -241,18 +242,19 @@ mod tests {
         assert!(!user_exists, "User was not successfully cleaned up");
     }
 
-    #[ignore = "minio/s3 storage is required for this test"]
     #[actix_rt::test]
-    #[serial_test::serial]
     async fn cleanup_user() {
         init_logger();
         let settings_provider = SettingsProvider::load_from_path_or_standard_paths(Some(
             Path::new("../../example/controller.toml"),
         ))
         .unwrap();
-        let settings = settings_provider.get();
 
-        let db_ctx = DatabaseContext::new(false).await;
+        let object_storage_ctx = ObjectStorageContext::new().await;
+        let mut settings = settings_provider.get().as_ref().clone();
+        settings.minio = object_storage_ctx.minio.clone();
+
+        let db_ctx = DatabaseContext::new().await;
         let mut inventory = db_ctx.inventory_provider.get_inventory().await.unwrap();
 
         let user = db_ctx.create_test_user(0, vec![]).await.unwrap();
@@ -297,17 +299,18 @@ mod tests {
         assert!(!user_exists, "User was not successfully cleaned up");
     }
 
-    #[ignore = "database and minio/s3 storage are required for this test"]
     #[actix_rt::test]
-    #[serial_test::serial]
     async fn user_cleanup_deletes_events_and_rooms() {
         let settings_provider = SettingsProvider::load_from_path_or_standard_paths(Some(
             Path::new("../../example/controller.toml"),
         ))
         .unwrap();
-        let settings = settings_provider.get();
 
-        let db_ctx = DatabaseContext::new(false).await;
+        let object_storage_ctx = ObjectStorageContext::new().await;
+        let mut settings = settings_provider.get().as_ref().clone();
+        settings.minio = object_storage_ctx.minio.clone();
+
+        let db_ctx = DatabaseContext::new().await;
         let mut inventory = db_ctx.inventory_provider.get_inventory().await.unwrap();
 
         let user = db_ctx.create_test_user(0, vec![]).await.unwrap();

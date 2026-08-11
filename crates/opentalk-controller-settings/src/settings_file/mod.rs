@@ -62,6 +62,7 @@ pub(crate) use roomserver::{RoomServer, RoomServerKind, WebSocketRateLimit};
 #[cfg(test)]
 pub(crate) use settings_raw::SETTINGS_RAW_MINIMAL_CONFIG_TOML;
 pub use settings_raw::SettingsRaw;
+#[cfg(any(feature = "test-util", test))]
 pub(crate) use settings_raw::settings_raw_minimal_example;
 pub(crate) use shared_folder::SharedFolder;
 pub(crate) use tariff_assignment::TariffAssignment;

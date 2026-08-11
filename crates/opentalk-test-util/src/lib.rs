@@ -16,3 +16,6 @@ pub mod redis;
 
 #[cfg(feature = "database")]
 pub mod database;
+
+#[cfg(feature = "object-storage")]
+pub mod object_storage;

@@ -4,18 +4,16 @@
 
 use opentalk_db_storage as db;
 use pretty_assertions::assert_eq;
-use serial_test::serial;
 
 use crate::common::make_user;
 
 mod common;
 
 #[tokio::test]
-#[serial]
-async fn serial_test_test() {
+async fn find_users() {
     const MAX_USER_SEARCH_RESULTS: usize = 20;
 
-    let db_ctx = opentalk_test_util::database::DatabaseContext::new(true).await;
+    let db_ctx = opentalk_test_util::database::DatabaseContext::new().await;
     let mut conn = db_ctx.db.get_conn().await.unwrap();
 
     // generate some random users with some made up names

@@ -124,6 +124,10 @@ test:load_typst_plugins:
 test:cargo_test:
   stage: test
   <<: *default_job_condition
+  # Runs on a runner that exposes a docker daemon, so the database tests can spin up their own
+  # throwaway postgres instances via testcontainers.
+  tags:
+    - testcontainers
   needs:
     - test:load_typst_plugins
   artifacts:
@@ -135,25 +139,8 @@ test:cargo_test:
   # this uses region for coverage summary
   coverage: /TOTAL\s+(\d+\s+)+(\d+\.\d+\%)/
   variables:
-    # Set ENV vars for services
-    POSTGRES_DB: opentalk
-    POSTGRES_USER: postgres
-    POSTGRES_PASSWORD: password123
-    POSTGRES_HOST_AUTH_METHOD: trust
-    # Used for integration tests
-    POSTGRES_BASE_URL: postgres://postgres:password123@postgres:5432
-    DATABASE_NAME: opentalk
-    REDIS_ADDR: redis://redis:6379/
     TYPST_PACKAGE_CACHE_PATH: $CI_PROJECT_DIR/target/typst/packages
-  services:
-    - name: postgres:18-alpine
-      alias: postgres
-    - name: redis:8-alpine
-      alias: redis
   script:
-    - pwd
-    - ls
-    - RUSTFLAGS="-C link-arg=-fuse-ld=lld"
     - cargo llvm-cov --no-report nextest --profile ci --workspace --locked
     # code coverage for doctests is unstable, so we run them separately
     - cargo test --doc --workspace --locked

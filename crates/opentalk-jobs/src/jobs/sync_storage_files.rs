@@ -186,9 +186,8 @@ mod tests {
         AssetSaved, ChunkFormat, NewAssetFileName, NoOpStorageNotifier, ObjectStorage,
         ObjectStorageError, save_asset,
     };
-    use opentalk_controller_settings::MinIO;
     use opentalk_inventory::{InventoryProvider as _, NewAsset, UpdateAsset};
-    use opentalk_test_util::common::TestContext;
+    use opentalk_test_util::{common::TestContext, object_storage::ObjectStorageContext};
     use opentalk_types_common::{
         assets::{AssetId, FileExtension},
         rooms::RoomId,
@@ -201,54 +200,30 @@ mod tests {
     const LOST_ASSET_ID: AssetId = AssetId::from_u128(42);
 
     /// Test the database/storage file synchronization and delete assets that have to related storage object
-    ///
-    /// Requires a local MinIO instance
-    ///
-    /// `cargo test --package opentalk-jobs  -- --exact jobs::sync_storage_files::tests::sync_files_and_delete_missing --ignored`
     #[actix_rt::test]
-    #[ignore]
     async fn sync_files_and_delete_missing() {
-        sync_asset_test(499, &MissingStorageFileHandling::DeleteAssetEntry).await
+        sync_asset_test(99, &MissingStorageFileHandling::DeleteAssetEntry).await
     }
 
     /// Test the database/storage file synchronization and set the file size of assets that have no related storage object to zero
-    ///
-    /// Requires a local MinIO instance
-    ///
-    ///  `cargo test --package opentalk-jobs  -- --exact jobs::sync_storage_files::tests::sync_files_and_set_missing_to_zero --ignored`
     #[actix_rt::test]
-    #[ignore]
     async fn sync_files_and_set_missing_to_zero() {
         sync_asset_test(99, &MissingStorageFileHandling::SetFileSizeToZero).await
     }
 
     /// Test the database/storage file synchronization and with a low amount of assets
-    ///
-    /// `cargo test --package opentalk-jobs  -- --exact jobs::sync_storage_files::tests::sync_low_asset_count --ignored`
     #[actix_rt::test]
-    #[ignore]
     async fn sync_low_asset_count() {
         sync_asset_test(2, &MissingStorageFileHandling::DeleteAssetEntry).await
     }
 
     /// Test the database/storage file synchronization with no assets in the database
-    ///
-    /// `cargo test --package opentalk-jobs  -- --exact jobs::sync_storage_files::tests::sync_zero_assets --ignored`
     #[actix_rt::test]
-    #[ignore]
     async fn sync_zero_assets() {
         let test_ctx = TestContext::default().await;
 
-        let minio = MinIO {
-            uri: "http://localhost:9555".into(),
-            bucket: "controller".into(),
-            access_key: "minioadmin".into(),
-            secret_key: "minioadmin".into(),
-            region: None,
-            force_path_style: None,
-        };
-
-        let object_storage = ObjectStorage::new(&minio).await.unwrap();
+        let object_storage_ctx = ObjectStorageContext::new().await;
+        let object_storage = ObjectStorage::new(&object_storage_ctx.minio).await.unwrap();
 
         let inventory = test_ctx
             .db_ctx
@@ -273,16 +248,8 @@ mod tests {
     ) {
         let test_ctx = TestContext::default().await;
 
-        let minio = MinIO {
-            uri: "http://localhost:9555".into(),
-            bucket: "controller".into(),
-            access_key: "minioadmin".into(),
-            secret_key: "minioadmin".into(),
-            region: None,
-            force_path_style: None,
-        };
-
-        let object_storage = ObjectStorage::new(&minio).await.unwrap();
+        let object_storage_ctx = ObjectStorageContext::new().await;
+        let object_storage = ObjectStorage::new(&object_storage_ctx.minio).await.unwrap();
 
         prepare_db_and_storage(&test_ctx, &object_storage, valid_asset_count).await;
 

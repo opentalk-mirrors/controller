@@ -27,6 +27,13 @@
       ],
       "groupName": "livekit",
       "groupSlug": "livekit"
+    },
+    {
+      "matchPackageNames": [
+        "/^testcontainers/"
+      ],
+      "groupName": "testcontainers",
+      "groupSlug": "testcontainers"
     }
   ],
   "ignoreDeps": [
