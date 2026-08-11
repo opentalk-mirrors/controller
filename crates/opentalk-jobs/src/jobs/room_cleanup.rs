@@ -98,7 +98,7 @@ mod tests {
     use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
     use opentalk_controller_settings::SettingsProvider;
     use opentalk_inventory::InventoryProvider as _;
-    use opentalk_test_util::database::DatabaseContext;
+    use opentalk_test_util::{database::DatabaseContext, object_storage::ObjectStorageContext};
 
     use super::RoomCleanup;
     use crate::{
@@ -110,15 +110,16 @@ mod tests {
 
     /// The room cleanup job must notify the room delete backend for orphaned rooms
     /// only, leaving rooms that still belong to an event untouched.
-    #[ignore = "minio/s3 storage is required for this test"]
     #[actix_rt::test]
-    #[serial_test::serial]
     async fn room_cleanup_only_deletes_orphaned_rooms() {
         let settings_provider = SettingsProvider::load_from_path_or_standard_paths(Some(
             Path::new("../../example/controller.toml"),
         ))
         .unwrap();
-        let settings = settings_provider.get();
+
+        let object_storage_ctx = ObjectStorageContext::new().await;
+        let mut settings = settings_provider.get().as_ref().clone();
+        settings.minio = object_storage_ctx.minio.clone();
 
         let db_ctx = DatabaseContext::new().await;
         let mut inventory = db_ctx.inventory_provider.get_inventory().await.unwrap();

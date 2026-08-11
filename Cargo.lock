@@ -6096,7 +6096,6 @@ dependencies = [
  "opentalk-types-common",
  "serde",
  "serde_json",
- "serial_test",
  "snafu 0.9.2",
  "tokio",
  "tokio-cron-scheduler",
@@ -7162,6 +7161,7 @@ dependencies = [
  "serde",
  "serde_json",
  "snafu 0.9.2",
+ "testcontainers",
  "testcontainers-modules",
  "tokio",
 ]

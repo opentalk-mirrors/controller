@@ -41,5 +41,8 @@ actix-rt.workspace = true
 bytes.workspace = true
 env_logger.workspace = true
 futures.workspace = true
-opentalk-test-util = { workspace = true, features = ["controller", "database"] }
-serial_test.workspace = true
+opentalk-test-util = { workspace = true, features = [
+  "controller",
+  "database",
+  "object-storage",
+] }

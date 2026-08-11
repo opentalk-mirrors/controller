@@ -35,6 +35,7 @@ opentalk-inventory.workspace = true
 opentalk-inventory-database.workspace = true
 opentalk-types-common = { workspace = true, features = ["backend"] }
 opentalk-types-signaling = { workspace = true, features = ["backend"] }
+testcontainers = { workspace = true, optional = true }
 testcontainers-modules = { workspace = true, optional = true }
 
 [dev-dependencies]
@@ -48,6 +49,7 @@ database = [
   "dep:testcontainers-modules",
   "testcontainers-modules/postgres",
 ]
+object-storage = ["dep:testcontainers"]
 
 [package.metadata.cargo-machete]
 ignored = [
