@@ -64,9 +64,9 @@ pub async fn get(
         room_id_or_alias,
         invite_code,
     } = path_params.into_inner();
-    let invite_resoruce = service.get_invite(room_id_or_alias, invite_code).await?;
+    let invite_resource = service.get_invite(room_id_or_alias, invite_code).await?;
 
-    Ok(Json(invite_resoruce))
+    Ok(Json(invite_resource))
 }
 
 /// Update an invite code
