@@ -25,9 +25,7 @@ use opentalk_controller_service::oidc::{Cache, OidcTokenHandler};
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::SettingsProvider;
 use opentalk_inventory::{InventoryProvider, User};
-use opentalk_types_api_v1::error::{ApiError, AuthenticationError};
 use opentalk_types_common::rooms::invite_codes::InviteCode;
-use snafu::Report;
 use tracing_futures::Instrument;
 
 use crate::api::v1::middleware::user_auth::bearer_or_invite_code::BearerOrInviteCode;
@@ -116,17 +114,11 @@ where
 
         let auth = match Authorization::<BearerOrInviteCode>::parse(&req) {
             Ok(a) => a,
-            Err(e) => {
-                tracing::warn!(
-                    "Unable to parse access token or invite code, {}",
-                    Report::from_error(e)
-                );
-                let error = ApiError::unauthorized()
-                    .with_message("Unable to parse access token or invite code")
-                    .with_www_authenticate(AuthenticationError::InvalidAccessToken);
 
-                let response = req.into_response(error.error_response());
-                return Box::pin(ready(Ok(response)));
+            // Allow access without authentication in case of invalid tokens.
+            Err(e) => {
+                tracing::debug!(error=?e, "ignoring invalid Bearer");
+                return Box::pin(service.call(req));
             }
         };
 
