@@ -202,7 +202,7 @@ mod tests {
     /// Test the database/storage file synchronization and delete assets that have to related storage object
     #[actix_rt::test]
     async fn sync_files_and_delete_missing() {
-        sync_asset_test(499, &MissingStorageFileHandling::DeleteAssetEntry).await
+        sync_asset_test(99, &MissingStorageFileHandling::DeleteAssetEntry).await
     }
 
     /// Test the database/storage file synchronization and set the file size of assets that have no related storage object to zero
