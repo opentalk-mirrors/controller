@@ -13,7 +13,7 @@ use opentalk_types_common::{
     events::EventId,
     features::{FeatureId, ModuleFeatureId},
     modules::ModuleId,
-    rooms::{RoomId, invite_codes::InviteCode},
+    rooms::{RoomIdOrAlias, invite_codes::InviteCode},
     users::UserId,
 };
 use snafu::ResultExt as _;
@@ -80,11 +80,18 @@ impl AuthorizationInventory for DatabaseConnection {
         Ok(Validity::Invalid)
     }
 
-    async fn get_room_user_role(&mut self, room_id: RoomId, user_id: UserId) -> Result<Role> {
-        let is_owner =
-            db::queries::authorization::rooms::is_room_owner(&mut self.inner, room_id, user_id)
-                .await
-                .context(DatabaseSnafu)?;
+    async fn get_room_user_role(
+        &mut self,
+        room_id_or_alias: RoomIdOrAlias,
+        user_id: UserId,
+    ) -> Result<Role> {
+        let is_owner = db::queries::authorization::rooms::is_room_owner(
+            &mut self.inner,
+            room_id_or_alias.clone(),
+            user_id,
+        )
+        .await
+        .context(DatabaseSnafu)?;
 
         if is_owner {
             return Ok(Role::Owner);
@@ -92,7 +99,7 @@ impl AuthorizationInventory for DatabaseConnection {
 
         let role = db::queries::authorization::rooms::get_room_user_role(
             &mut self.inner,
-            room_id,
+            room_id_or_alias,
             user_id,
         )
         .await
@@ -107,14 +114,14 @@ impl AuthorizationInventory for DatabaseConnection {
 
     async fn get_room_invite_code_validity(
         &mut self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         invite_code: InviteCode,
         disabled_features: BTreeSet<ModuleFeatureId>,
         module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
     ) -> Result<Validity> {
         let room_invite_and_tariff = db::queries::authorization::rooms::get_room_invite_and_tariff(
             &mut self.inner,
-            room_id,
+            room_id_or_alias,
             invite_code,
         )
         .await

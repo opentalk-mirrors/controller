@@ -7,7 +7,7 @@ use opentalk_inventory::{
     RoomStreamingTargetInventory, RoomStreamingTargetRecord, UpdateRoomStreamingTarget,
 };
 use opentalk_types_common::{
-    rooms::RoomId,
+    rooms::{RoomId, RoomIdOrAlias},
     streaming::{RoomStreamingTarget, StreamingTarget, StreamingTargetId},
 };
 use snafu::ResultExt as _;
@@ -82,7 +82,7 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
 
     async fn update_room_streaming_target(
         &mut self,
-        room_id: RoomId,
+        room: RoomIdOrAlias,
         streaming_target_id: StreamingTargetId,
         streaming_target: UpdateRoomStreamingTarget,
     ) -> Result<RoomStreamingTargetRecord> {
@@ -90,7 +90,7 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
             db::queries::streaming_targets::update_room_streaming_target(
                 &mut self.inner,
                 streaming_target.into(),
-                room_id,
+                room,
                 streaming_target_id,
             )
             .await
@@ -101,13 +101,13 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
 
     async fn delete_room_streaming_target(
         &mut self,
-        room_id: RoomId,
+        room: RoomIdOrAlias,
         streaming_target_id: StreamingTargetId,
     ) -> Result<()> {
         Ok(
             db::queries::streaming_targets::delete_room_streaming_target(
                 &mut self.inner,
-                room_id,
+                room,
                 streaming_target_id,
             )
             .await

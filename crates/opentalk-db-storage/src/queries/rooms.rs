@@ -4,19 +4,20 @@
 
 //! Contains rooms database queries
 
-use diesel::{dsl::not, prelude::*};
+use diesel::{dsl::not, prelude::*, query_builder::IntoUpdateTarget};
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_types_common::{
     features::GUESTS_ALLOWED_MODULE_FEATURE_ID,
     pagination::{ItemCount, Page, PageSize},
-    rooms::{GuestAccess, RoomId},
+    rooms::{GuestAccess, RoomAlias, RoomId, RoomIdOrAlias, RoomSuffix},
     users::UserId,
 };
 
 use crate::{
     self as db,
     paginate::Paginate,
+    queries::room_filter::FilterByRoom,
     schema::{event_invites, events, rooms, tariffs, users},
     tables::{
         rooms::{NewRoom, Room, UpdateRoom},
@@ -34,22 +35,35 @@ pub struct RoomAuthProperties {
     pub guests_allowed_by_tariff: bool,
 }
 
-/// Select a room using the given id
+const UNIQUE_SUFFIX_ATTEMPTS: u8 = 3;
+
+/// Select a room using the given id or alias
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_room(conn: &mut DbConnection, id: RoomId) -> Result<Room> {
+pub async fn get_room(conn: &mut DbConnection, room: RoomIdOrAlias) -> Result<Room> {
     rooms::table
-        .filter(rooms::id.eq(id))
+        .filter_by_room(room)
         .get_result(conn)
         .await
         .map_err(DatabaseError::from)
 }
 
-/// Select a room and the creator using the given room id
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_room_with_creator(conn: &mut DbConnection, id: RoomId) -> Result<(Room, User)> {
+pub async fn exists_room(conn: &mut DbConnection, room: RoomIdOrAlias) -> Result<bool> {
+    diesel::select(diesel::dsl::exists(rooms::table.filter_by_room(room)))
+        .get_result(conn)
+        .await
+        .map_err(DatabaseError::from)
+}
+
+/// Select a room and the creator using the given room id or alias
+#[tracing::instrument(err(level = "debug"), skip_all)]
+pub async fn get_room_with_creator(
+    conn: &mut DbConnection,
+    room: RoomIdOrAlias,
+) -> Result<(Room, User)> {
     rooms::table
-        .filter(rooms::id.eq(id))
         .inner_join(users::table)
+        .filter_by_room(room)
         .get_result(conn)
         .await
         .map_err(DatabaseError::from)
@@ -179,24 +193,100 @@ pub async fn delete_room(conn: &mut DbConnection, room_id: RoomId) -> Result<()>
 
 /// Create new room
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn create_room(conn: &mut DbConnection, new_room: NewRoom) -> Result<Room> {
-    diesel::insert_into(rooms::table)
-        .values(new_room)
-        .get_result(conn)
-        .await
-        .map_err(DatabaseError::from)
+pub async fn create_room(conn: &mut DbConnection, mut new_room: NewRoom) -> Result<Room> {
+    let mut attempts_left = UNIQUE_SUFFIX_ATTEMPTS;
+
+    loop {
+        match diesel::insert_into(rooms::table)
+            .values(&new_room)
+            .get_result(conn)
+            .await
+        {
+            Ok(room) => return Ok(room),
+            Err(diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::UniqueViolation,
+                _,
+            )) if attempts_left > 1
+                && let Some(suffix) = &mut new_room.suffix =>
+            {
+                attempts_left -= 1;
+                let length = suffix.char_count();
+                *suffix = RoomSuffix::generate(length);
+            }
+            // Out of retries or other error
+            Err(e) => return Err(e.into()),
+        }
+    }
 }
 
-/// Create room
+/// Update a room
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn update_room(
     conn: &mut DbConnection,
     update_room: UpdateRoom,
-    room_id: RoomId,
+    room: RoomIdOrAlias,
 ) -> Result<Room> {
-    diesel::update(rooms::table.filter(rooms::id.eq(&room_id)))
-        .set(update_room)
-        .get_result(conn)
-        .await
-        .map_err(DatabaseError::from)
+    match &room {
+        RoomIdOrAlias::Id(id) => {
+            update_room_with_suffix_retry(conn, update_room, rooms::table.filter(rooms::id.eq(id)))
+                .await
+        }
+        RoomIdOrAlias::Alias(RoomAlias {
+            name,
+            suffix: Some(suffix),
+        }) => {
+            update_room_with_suffix_retry(
+                conn,
+                update_room,
+                rooms::table
+                    .filter(rooms::name.eq(name))
+                    .filter(rooms::suffix.eq(suffix)),
+            )
+            .await
+        }
+        RoomIdOrAlias::Alias(RoomAlias { name, suffix: None }) => {
+            update_room_with_suffix_retry(
+                conn,
+                update_room,
+                rooms::table
+                    .filter(rooms::name.eq(name))
+                    .filter(rooms::suffix.is_null()),
+            )
+            .await
+        }
+    }
+}
+
+/// Runs a room `UPDATE`, regenerating the suffix and retrying on a unique-suffix collision.
+async fn update_room_with_suffix_retry<T>(
+    conn: &mut DbConnection,
+    mut update_room: UpdateRoom,
+    filter: T,
+) -> Result<Room>
+where
+    T: IntoUpdateTarget<Table = rooms::table> + Copy,
+    T::WhereClause: diesel::query_builder::QueryFragment<diesel::pg::Pg> + Send,
+{
+    let mut attempts_left = UNIQUE_SUFFIX_ATTEMPTS;
+    loop {
+        match diesel::update(filter)
+            .set(&update_room)
+            .get_result(conn)
+            .await
+        {
+            Ok(room) => return Ok(room),
+            Err(diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::UniqueViolation,
+                _,
+            )) if attempts_left > 1
+                && let Some(Some(suffix)) = &mut update_room.suffix =>
+            {
+                attempts_left -= 1;
+                let length = suffix.char_count();
+                *suffix = RoomSuffix::generate(length);
+            }
+            // Out of retries or other error
+            Err(e) => return Err(e.into()),
+        }
+    }
 }

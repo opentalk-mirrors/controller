@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_types_common::{
-    rooms::{GuestAccess, RoomId, RoomPassword},
+    rooms::{GuestAccess, RoomAlias, RoomId, RoomPassword},
     tenants::TenantId,
     time::Timestamp,
     users::UserId,
@@ -14,6 +14,9 @@ use opentalk_types_common::{
 pub struct Room {
     /// The id of the room.
     pub id: RoomId,
+
+    /// The alias of the room.
+    pub alias: Option<RoomAlias>,
 
     /// The serial id of the room.
     pub id_serial: i64,
@@ -33,7 +36,7 @@ pub struct Room {
     /// Guest access mode for the room
     pub guest_access: GuestAccess,
 
-    /// The id of the tenant to which the roombelongs.
+    /// The id of the tenant to which the room belongs.
     pub tenant_id: TenantId,
 
     /// A flag indicating that e2e encryption is enabled for this room.

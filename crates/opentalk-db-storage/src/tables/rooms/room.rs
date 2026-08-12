@@ -5,7 +5,10 @@
 use chrono::{DateTime, Utc};
 use opentalk_inventory as inventory;
 use opentalk_types_common::{
-    rooms::{GuestAccess, RoomId, RoomPassword},
+    rooms::{
+        GuestAccess, OptionalRoomAliasExt as _, RoomAlias, RoomId, RoomName, RoomPassword,
+        RoomSuffix,
+    },
     tenants::TenantId,
     users::UserId,
 };
@@ -27,6 +30,8 @@ pub struct Room {
     pub tenant_id: TenantId,
     pub e2e_encryption: bool,
     pub guest_access: GuestAccess,
+    pub name: Option<RoomName>,
+    pub suffix: Option<RoomSuffix>,
 }
 
 impl From<Room> for inventory::Room {
@@ -41,6 +46,8 @@ impl From<Room> for inventory::Room {
             guest_access,
             tenant_id,
             e2e_encryption,
+            name,
+            suffix,
         }: Room,
     ) -> Self {
         Self {
@@ -53,6 +60,7 @@ impl From<Room> for inventory::Room {
             guest_access,
             tenant_id,
             e2e_encryption,
+            alias: name.map(|name| RoomAlias { name, suffix }),
         }
     }
 }
@@ -69,8 +77,11 @@ impl From<inventory::Room> for Room {
             guest_access,
             tenant_id,
             e2e_encryption,
+            alias,
         }: inventory::Room,
     ) -> Self {
+        let (name, suffix) = alias.into_parts();
+
         Self {
             id,
             id_serial: id_serial.into(),
@@ -81,6 +92,8 @@ impl From<inventory::Room> for Room {
             guest_access,
             tenant_id,
             e2e_encryption,
+            name,
+            suffix,
         }
     }
 }

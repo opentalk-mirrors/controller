@@ -131,6 +131,7 @@ mod tests {
             id_serial: 0,
             created_by: UserId::nil(),
             created_at: Timestamp::unix_epoch(),
+            alias: None,
             password: None,
             waiting_room: true,
             guest_access: GuestAccess::WaitingRoom,
@@ -203,6 +204,7 @@ mod tests {
             guest_access: GuestAccess::WaitingRoom,
             tenant_id: TenantId::nil(),
             e2e_encryption: false,
+            alias: None,
         };
         let allowed_tariff = TariffResource {
             id: TariffId::nil(),
@@ -279,6 +281,7 @@ mod tests {
             guest_access: GuestAccess::WaitingRoom,
             tenant_id: TenantId::nil(),
             e2e_encryption: false,
+            alias: None,
         };
         let allowed_tariff = TariffResource {
             id: TariffId::nil(),
@@ -303,6 +306,7 @@ mod tests {
             guest_access: GuestAccess::WaitingRoom,
             tenant_id: TenantId::nil(),
             e2e_encryption: true,
+            alias: None,
         };
         assert!(!is_room_guest_access_allowed(
             &encrypted_room,
@@ -319,6 +323,7 @@ mod tests {
             guest_access: GuestAccess::Disabled,
             tenant_id: TenantId::nil(),
             e2e_encryption: false,
+            alias: None,
         };
         assert!(!is_room_guest_access_allowed(
             &guest_access_disabled_room,

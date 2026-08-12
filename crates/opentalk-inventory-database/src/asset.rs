@@ -10,7 +10,7 @@ use opentalk_types_common::{
     events::EventId,
     order::Ordering,
     pagination::{ItemCount, Page, PageSize},
-    rooms::RoomId,
+    rooms::{RoomId, RoomIdOrAlias},
     users::UserId,
 };
 use snafu::ResultExt as _;
@@ -43,9 +43,13 @@ impl AssetInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_asset_for_room(&mut self, room_id: RoomId, asset_id: AssetId) -> Result<Asset> {
+    async fn get_asset_for_room(
+        &mut self,
+        room: RoomIdOrAlias,
+        asset_id: AssetId,
+    ) -> Result<Asset> {
         Ok(
-            db::queries::assets::get_asset_for_room(&mut self.inner, room_id, asset_id)
+            db::queries::assets::get_asset_for_room(&mut self.inner, room, asset_id)
                 .await
                 .context(DatabaseSnafu)?
                 .into(),
@@ -64,13 +68,13 @@ impl AssetInventory for DatabaseConnection {
     #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_assets_for_room_paginated(
         &mut self,
-        room_id: RoomId,
+        room: RoomIdOrAlias,
         per_page: PageSize,
         page: Page,
     ) -> Result<(Vec<Asset>, ItemCount)> {
         let (assets, overall) = db::queries::assets::get_all_assets_for_room_paginated(
             &mut self.inner,
-            room_id,
+            room,
             per_page,
             page,
         )

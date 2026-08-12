@@ -24,6 +24,7 @@ mod operator_information;
 mod rabbit_mq_config;
 mod redis_config;
 mod reports_typst;
+mod room_alias;
 mod roomserver;
 mod settings_raw;
 mod shared_folder;
@@ -58,6 +59,7 @@ pub(crate) use operator_information::OperatorInformation;
 pub(crate) use rabbit_mq_config::RabbitMqConfig;
 pub(crate) use redis_config::RedisConfig;
 pub(crate) use reports_typst::ReportsTypst;
+pub(crate) use room_alias::RoomAlias;
 pub(crate) use roomserver::{RoomServer, RoomServerKind, WebSocketRateLimit};
 #[cfg(test)]
 pub(crate) use settings_raw::SETTINGS_RAW_MINIMAL_CONFIG_TOML;

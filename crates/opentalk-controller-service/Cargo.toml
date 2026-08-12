@@ -73,5 +73,6 @@ url.workspace = true
 uuid = { workspace = true, features = ["serde", "v4"] }
 
 [dev-dependencies]
+opentalk-controller-settings = { workspace = true, features = ["test-util"] }
 pretty_assertions.workspace = true
 ring.workspace = true

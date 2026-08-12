@@ -1673,7 +1673,33 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
-  "/rooms/{room_id}":
+  /rooms/name/verify:
+    post:
+      tags:
+        - "api::v1::rooms::name"
+      operationId: verify_room_name
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostRoomNameVerifyRequestBody"
+        required: true
+      responses:
+        "200":
+          description: "Room name is valid, the response body tells if the name is available"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostRoomNameVerifyResponseBody"
+        "400":
+          description: The body or room name is invalid
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+  "/rooms/{room_id_or_alias}":
     get:
       tags:
         - "api::v1::rooms"
@@ -1681,12 +1707,12 @@ paths:
       description: Returns the room resource including additional information such as the creator profile.
       operationId: get_room
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
       responses:
         "200":
           description: Room was successfully retrieved
@@ -1712,12 +1738,12 @@ paths:
         cannot be successfully deleted.
       operationId: delete
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
         - name: force_delete_reference_if_external_services_fail
           in: query
           description: Flag to force delete the reference if the deletion at the external services fails
@@ -1748,12 +1774,12 @@ paths:
       description: Fields that are not provided in the request body will remain unchanged.
       operationId: patch_room
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room to be modified
+          description: Either the id or the alias of the room
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
       requestBody:
         content:
           application/json:
@@ -1777,7 +1803,7 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
-  "/rooms/{room_id}/assets":
+  "/rooms/{room_id_or_alias}/assets":
     get:
       tags:
         - "api::v1::assets"
@@ -1787,12 +1813,12 @@ paths:
         pagination query is added, the default page size is used.
       operationId: room_assets
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
         - name: per_page
           in: query
           description: The number of entries per page
@@ -1829,12 +1855,12 @@ paths:
       description: The asset is attached to the room and saved in the storage.
       operationId: create_room_asset
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
         - name: event_title
           in: query
           description: The title of the event
@@ -1887,7 +1913,7 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
-  "/rooms/{room_id}/assets/{asset_id}":
+  "/rooms/{room_id_or_alias}/assets/{asset_id}":
     get:
       tags:
         - "api::v1::assets"
@@ -1897,12 +1923,12 @@ paths:
         whatever else is stored inside the asset storage.
       operationId: room_asset
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
         - name: asset_id
           in: path
           description: The id of the asset
@@ -1929,12 +1955,12 @@ paths:
       description: The asset is removed from the room and deleted from the storage.
       operationId: delete_room_asset
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
         - name: asset_id
           in: path
           description: The id of the asset
@@ -1954,7 +1980,7 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
-  "/rooms/{room_id}/assets/{asset_id}/download":
+  "/rooms/{room_id_or_alias}/assets/{asset_id}/download":
     get:
       tags:
         - "v1::rooms::by_id::assets::by_id::download"
@@ -1962,12 +1988,12 @@ paths:
       description: Returns a path for downloading the asset via the controller.
       operationId: room_asset_download
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
         - name: asset_id
           in: path
           description: The id of the asset
@@ -1993,7 +2019,7 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
-  "/rooms/{room_id}/event":
+  "/rooms/{room_id_or_alias}/event":
     get:
       tags:
         - "api::v1::rooms"
@@ -2004,9 +2030,9 @@ paths:
         returned.
       operationId: get_room_event
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
             $ref: "#/components/schemas/RoomId"
@@ -2026,7 +2052,7 @@ paths:
       security:
         - BearerAuth: []
         - InviteCode: []
-  "/rooms/{room_id}/invites":
+  "/rooms/{room_id_or_alias}/invites":
     get:
       tags:
         - "api::v1::invites"
@@ -2036,12 +2062,12 @@ paths:
         pagination query is added, the default page size is used.
       operationId: get_invites
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
         - name: per_page
           in: query
           description: The number of entries per page
@@ -2078,12 +2104,12 @@ paths:
       description: A new invite to the room is created with the information in the body.
       operationId: add_invite
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
       requestBody:
         content:
           application/json:
@@ -2111,7 +2137,7 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
-  "/rooms/{room_id}/invites/{invite_code}":
+  "/rooms/{room_id_or_alias}/invites/{invite_code}":
     get:
       tags:
         - "api::v1::invites"
@@ -2119,12 +2145,12 @@ paths:
       description: Returns the room invite resource
       operationId: get_invite
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The room id for the invite
+          description: The room id or alias for the invite
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
         - name: invite_code
           in: path
           description: The invite code id
@@ -2155,12 +2181,12 @@ paths:
       description: Updates the field values as set in the request body.
       operationId: update_invite
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The room id for the invite
+          description: The room id or alias for the invite
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
         - name: invite_code
           in: path
           description: The invite code id
@@ -2197,12 +2223,12 @@ paths:
       description: The invite code will no longer be usable once it is deleted.
       operationId: delete_invite
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The room id for the invite
+          description: The room id or alias for the invite
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
         - name: invite_code
           in: path
           description: The invite code id
@@ -2222,7 +2248,7 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
-  "/rooms/{room_id}/sip":
+  "/rooms/{room_id_or_alias}/sip":
     get:
       tags:
         - "api::v1::sip_configs"
@@ -2232,12 +2258,12 @@ paths:
         is returned.
       operationId: get_room_sip
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
       responses:
         "200":
           description: The SIP config is successfully returned
@@ -2264,12 +2290,12 @@ paths:
       description: Returns the new modified sip configuration.
       operationId: put
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
       requestBody:
         content:
           application/json:
@@ -2306,9 +2332,9 @@ paths:
       description: This removes the dial-in functionality from the room.
       operationId: delete_room_sip
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
             $ref: "#/components/schemas/RoomId"
@@ -2325,7 +2351,7 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
-  "/rooms/{room_id}/start":
+  "/rooms/{room_id_or_alias}/start":
     post:
       tags:
         - "api::v1::rooms"
@@ -2336,12 +2362,12 @@ paths:
         establish the websocket connection with the roomserver.
       operationId: start
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
       requestBody:
         content:
           application/json:
@@ -2395,7 +2421,7 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
-  "/rooms/{room_id}/start_invited":
+  "/rooms/{room_id_or_alias}/start_invited":
     post:
       tags:
         - "api::v1::rooms"
@@ -2406,9 +2432,9 @@ paths:
         establish the websocket connection with the roomserver.
       operationId: start_invited
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
             $ref: "#/components/schemas/RoomId"
@@ -2420,14 +2446,14 @@ paths:
         required: true
       responses:
         "308":
-          description: "Redirects to *POST `/v1/rooms/{room_id}/start`*"
+          description: "Redirects to *POST `/v1/rooms/{room_id_or_alias}/start`*"
           headers:
             location:
               schema:
                 type: string
-              description: "Target URL: `/v1/rooms/{room_id}/start`"
+              description: "Target URL: `/v1/rooms/{room_id_or_alias}/start`"
       security: []
-  "/rooms/{room_id}/streaming_targets":
+  "/rooms/{room_id_or_alias}/streaming_targets":
     get:
       tags:
         - "api::v1::streaming_targets"
@@ -2447,12 +2473,12 @@ paths:
           required: false
           schema:
             $ref: "#/components/schemas/Page"
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
       responses:
         "200":
           description: List of streaming targets successfully returned
@@ -2483,12 +2509,12 @@ paths:
           required: false
           schema:
             type: boolean
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
       requestBody:
         content:
           application/json:
@@ -2512,7 +2538,7 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
-  "/rooms/{room_id}/streaming_targets/{streaming_target_id}":
+  "/rooms/{room_id_or_alias}/streaming_targets/{streaming_target_id}":
     get:
       tags:
         - "api::v1::streaming_targets"
@@ -2520,12 +2546,12 @@ paths:
       description: Returns a single streaming target for a specific room.
       operationId: get_streaming_target
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The room id for the invite
+          description: The room id or alias for the invite
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
         - name: streaming_target_id
           in: path
           description: The streaming target id
@@ -2556,12 +2582,12 @@ paths:
       description: The streaming target is deleted from the room
       operationId: delete_streaming_target
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The room id for the invite
+          description: The room id or alias for the invite
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
         - name: streaming_target_id
           in: path
           description: The streaming target id
@@ -2594,12 +2620,12 @@ paths:
       description: Modifies and returns a single streaming target.
       operationId: patch_streaming_target
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The room id for the invite
+          description: The room id or alias for the invite
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
         - name: streaming_target_id
           in: path
           description: The streaming target id
@@ -2631,7 +2657,7 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
-  "/rooms/{room_id}/tariff":
+  "/rooms/{room_id_or_alias}/tariff":
     get:
       tags:
         - "api::v1::rooms"
@@ -2641,12 +2667,12 @@ paths:
         the room creator.
       operationId: get_room_tariff
       parameters:
-        - name: room_id
+        - name: room_id_or_alias
           in: path
-          description: The id of the room
+          description: Either the id or the alias of the room
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/RoomIdOrAlias"
       responses:
         "200":
           description: "The room's tariff was successfully retrieved"
@@ -3581,6 +3607,7 @@ components:
         is_favorite: false
         recurring_event_id: 00000000-0000-0000-0000-004433221100
         room:
+          alias: personal-room-name_0000000000000000
           call_in:
             id: "1234567890"
             password: "9876543210"
@@ -3745,6 +3772,7 @@ components:
         recurrence_pattern:
           - FREQ=WEEKLY;INTERVAL=1;BYDAY=MO
         room:
+          alias: personal-room-name_0000000000000000
           call_in:
             id: "1234567890"
             password: "9876543210"
@@ -3920,6 +3948,7 @@ components:
         recurrence_pattern:
           - FREQ=WEEKLY;INTERVAL=1;BYDAY=MO
         room:
+          alias: personal-room-name_0000000000000000
           call_in:
             id: "1234567890"
             password: "9876543210"
@@ -4103,6 +4132,9 @@ components:
         - id
         - waiting_room
       properties:
+        alias:
+          $ref: "#/components/schemas/RoomAlias"
+          description: "An alias that can be used in the URL to access the room instead of the [`RoomId`]."
         call_in:
           $ref: "#/components/schemas/CallInInfo"
           description: Call-In information
@@ -4122,6 +4154,7 @@ components:
           type: boolean
           description: Flag to check if the room has a waiting room enabled
       example:
+        alias: personal-room-name_0000000000000000
         call_in:
           id: "1234567890"
           password: "9876543210"
@@ -4220,6 +4253,7 @@ components:
           is_favorite: false
           recurring_event_id: 00000000-0000-0000-0000-004433221100
           room:
+            alias: personal-room-name_0000000000000000
             call_in:
               id: "1234567890"
               password: "9876543210"
@@ -4768,6 +4802,33 @@ components:
               description: Invite role of the user
     PatchEventBody:
       allOf:
+        - type: object
+          description: "Room related fields of the body for the `PATCH /events/{event_id}` endpoint"
+          properties:
+            e2e_encryption:
+              type: boolean
+              description: Patch whether the event is encrypted
+            guest_access:
+              $ref: "#/components/schemas/GuestAccess"
+              description: Guest access mode
+            password:
+              $ref: "#/components/schemas/RoomPassword"
+              description: "Patch the password of the event's room"
+            room_name:
+              oneOf:
+                - type: "null"
+                - $ref: "#/components/schemas/RoomName"
+                  description: |-
+                    A custom room name that can be used as part of the URL alias to access the room instead of the [`RoomId`].
+
+                    The name is only one part of the alias. The full alias additionally contains a code that is generated by the
+                    controller. Whether such a code is generated depends on the controller configuration.
+
+                    [`RoomId`]: opentalk_types_common::rooms::RoomId
+            waiting_room:
+              type: boolean
+              description: Patch the presence of a waiting room
+          example: {}
         - $ref: "#/components/schemas/PatchEventDateKind"
           description: |-
             Patch the date of the event.
@@ -4781,21 +4842,12 @@ components:
             description:
               $ref: "#/components/schemas/EventDescription"
               description: Patch the description of the event
-            e2e_encryption:
-              type: boolean
-              description: Patch whether the event is encrypted
-            guest_access:
-              $ref: "#/components/schemas/GuestAccess"
-              description: Guest access mode
             has_shared_folder:
               type: boolean
               description: "Either add a shared folder to the event, if none existed before or delete the shared folder"
             is_adhoc:
               type: boolean
               description: Patch the adhoc flag.
-            password:
-              $ref: "#/components/schemas/RoomPassword"
-              description: "Patch the password of the event's room"
             show_meeting_details:
               type: boolean
               description: Patch wether the meeting details are displayed or not
@@ -4814,9 +4866,6 @@ components:
 
                 When present, the training participation report will be started
                 automatically in the meeting.
-            waiting_room:
-              type: boolean
-              description: Patch the presence of a waiting room
       description: "Body for the `PATCH /events/{event_id}` endpoint"
       example:
         description: The new description
@@ -5037,6 +5086,15 @@ components:
         guest_access:
           $ref: "#/components/schemas/GuestAccess"
           description: Guest access mode
+        name:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/RoomName"
+              description: |-
+                A custom name that can be used as part of the URL alias to access the room instead of the [`RoomId`](opentalk_types_common::rooms::RoomId).
+
+                The name is only one part of the alias. The full alias additionally contains a code that is generated by the
+                controller. Whether such a code is generated depends on the controller configuration.
         password:
           oneOf:
             - type: "null"
@@ -5110,6 +5168,13 @@ components:
             password:
               $ref: "#/components/schemas/RoomPassword"
               description: Optional password for the room related to the event
+            room_name:
+              $ref: "#/components/schemas/RoomName"
+              description: |-
+                A custom name that can be used as part of the URL alias to access the room instead of the [`RoomId`](opentalk_types_common::rooms::RoomId).
+
+                The name is only one part of the alias. The full alias additionally contains a code that is generated by the
+                controller. Whether such a code is generated depends on the controller configuration.
             show_meeting_details:
               type: boolean
               description: Should it be able to show the meeting details?
@@ -5146,6 +5211,7 @@ components:
         password: v3rys3cr3t
         recurrence_pattern:
           - FREQ=WEEKLY;INTERVAL=1;BYDAY=MO
+        room_name: personal-room-name
         show_meeting_details: true
         starts_at:
           datetime: "2002-04-01T10:41:35Z"
@@ -5220,6 +5286,24 @@ components:
         logout_token:
           $ref: "#/components/schemas/LogoutToken"
           description: Logout token identifying the end user to be logged out
+    PostRoomNameVerifyRequestBody:
+      type: object
+      description: Body for *POST /rooms/name/verify*
+      required:
+        - name
+      properties:
+        name:
+          $ref: "#/components/schemas/RoomName"
+          description: The room name
+    PostRoomNameVerifyResponseBody:
+      type: object
+      description: Verify response body for *POST /rooms/name/verify*
+      required:
+        - available
+      properties:
+        available:
+          type: boolean
+          description: Whether the room name is available for use
     PostRoomStreamingTargetRequestBody:
       $ref: "#/components/schemas/StreamingTarget"
       description: "The body of a *POST /rooms/{room_id}/streaming_targets* request"
@@ -5239,6 +5323,13 @@ components:
         guest_access:
           $ref: "#/components/schemas/GuestAccess"
           description: Guest access mode
+        name:
+          $ref: "#/components/schemas/RoomName"
+          description: |-
+            A custom name that can be used as part of the URL alias to access the room instead of the [`RoomId`](opentalk_types_common::rooms::RoomId).
+
+            The name is only one part of the alias. The full alias additionally contains a code that is generated by the
+            controller. Whether such a code is generated depends on the controller configuration.
         password:
           oneOf:
             - type: "null"
@@ -5253,6 +5344,7 @@ components:
         e2e_encryption: false
         enable_sip: true
         guest_access: waiting_room
+        name: personal-room-name
         password: ~
         waiting_room: true
     PostRoomsRoomserverStartInvitedRequestBody:
@@ -5487,11 +5579,41 @@ components:
       examples:
         - FREQ=WEEKLY;INTERVAL=1;BYDAY=MO
       maxLength: 1024
+    RoomAlias:
+      type: string
+      description: A human readable alias for a room.
+      examples:
+        - personal-room-name_0000000000000000
     RoomId:
       type: string
       format: uuid
       description: The id of a room
       example: 00000000-0000-0000-0000-0000abadcafe
+    RoomIdOrAlias:
+      oneOf:
+        - $ref: "#/components/schemas/RoomId"
+          description: A room id.
+        - $ref: "#/components/schemas/RoomAlias"
+          description: A room alias.
+      description: An enum that represents either a room id or a room alias.
+      example: 00000000-0000-0000-0000-0000abadcafe
+    RoomName:
+      type: string
+      description: |-
+        A valid name for a room.
+
+        A room name must
+
+        * be at least 3 characters long
+        * be at most 40 characters long
+        * contain only `a-z`, `0-9`, `.` and `-`
+        * not be a valid UUID
+
+        The "not a valid UUID" rule exists so that a [`RoomName`] can never be confused with a
+        [`RoomId`](super::RoomId): both can appear in the same URL position and are resolved via the untagged
+        [`RoomIdOrAlias`](super::RoomIdOrAlias) enum. Without it, users could hijack rooms by creating a name that
+        collides with an existing room's ID.
+      example: personal-room-name
     RoomPassword:
       type: string
       description: A room password
@@ -5512,6 +5634,9 @@ components:
         - created_at
         - waiting_room
       properties:
+        alias:
+          $ref: "#/components/schemas/RoomAlias"
+          description: An optional alias for the room that can be used in room links.
         created_at:
           $ref: "#/components/schemas/Timestamp"
           description: The date when the room was created
@@ -5531,6 +5656,7 @@ components:
           type: boolean
           description: If waiting room is enabled
       example:
+        alias: personal-room-name_0000000000000000
         created_at: "1970-01-01T00:00:00Z"
         created_by:
           avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"

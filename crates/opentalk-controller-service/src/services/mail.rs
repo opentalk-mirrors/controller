@@ -162,6 +162,7 @@ fn to_event(
         end_time,
         room: v1::Room {
             id: Uuid::from(room.id),
+            alias: room.alias,
             password: room.password,
         },
         call_in,

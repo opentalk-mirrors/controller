@@ -73,9 +73,11 @@ impl AuthorizerBackend for OpenTalkAuthorizerBackend {
             }
             Resource::Rooms => Ok(self.authorize_rooms(subjects).await),
             Resource::Room(room_id) => self.authorize_room(subjects, method, room_id).await,
-            Resource::RoomEvent(room_id) => {
-                self.authorize_room_event(subjects, method, room_id).await
+            Resource::RoomEvent(room_id_or_alias) => {
+                self.authorize_room_event(subjects, method, room_id_or_alias)
+                    .await
             }
+            Resource::RoomNameVerify => Ok(Self::authorize_room_name_verify(subjects)),
             Resource::RoomInvites(room_id) => {
                 self.authorize_room_invites(subjects, method, room_id).await
             }
@@ -102,8 +104,9 @@ impl AuthorizerBackend for OpenTalkAuthorizerBackend {
                     .await
             }
             Resource::RoomSip(room_id) => self.authorize_room_sip(subjects, method, room_id).await,
-            Resource::RoomStart(room_id) => {
-                self.authorize_room_start(subjects, method, room_id).await
+            Resource::RoomStart(room_id_or_alias) => {
+                self.authorize_room_start(subjects, method, room_id_or_alias)
+                    .await
             }
             Resource::RoomStartInvited(_) => Ok(Self::authorize_room_start_invited()),
             Resource::InviteVerify => Ok(Self::authorize_invite_verify()),

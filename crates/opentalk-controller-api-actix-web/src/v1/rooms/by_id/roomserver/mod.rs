@@ -4,7 +4,7 @@
 
 //! # DEPRECATED
 //!
-//! API endpoints under `v1/rooms/{room_id}/roomserver`.
+//! API endpoints under `v1/rooms/{room_id_or_alias}/roomserver`.
 
 #![allow(deprecated)]
 

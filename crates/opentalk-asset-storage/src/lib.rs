@@ -18,7 +18,7 @@ use opentalk_types_common::{
     assets::{AssetFileKind, AssetId, FileExtension},
     events::EventTitle,
     modules::ModuleId,
-    rooms::RoomId,
+    rooms::RoomIdOrAlias,
     tariffs::QuotaType,
     time::Timestamp,
     users::UserId,
@@ -150,7 +150,7 @@ pub async fn save_asset<E>(
     storage: &ObjectStorage,
     inventory_provider: &dyn InventoryProvider,
     storage_notifier: &dyn StorageNotifier,
-    room_id: RoomId,
+    room: RoomIdOrAlias,
     namespace: Option<ModuleId>,
     mut filename: NewAssetFileName,
     data: impl Stream<Item = Result<Bytes, E>> + Unpin,
@@ -164,7 +164,8 @@ where
         .get_inventory()
         .await
         .context(InventoryConnectionSnafu)?;
-    let (room, storage_quota) = prepare_storage(room_id, inventory.as_mut()).await?;
+    let (room, storage_quota) = prepare_storage(room, inventory.as_mut()).await?;
+    let creator = room.created_by;
 
     let asset_id = AssetId::generate();
 
@@ -190,7 +191,7 @@ where
             .context(InventoryConnectionSnafu)?;
         if filename.event_title.is_none() {
             filename.event_title = inventory
-                .get_event_for_room(room.id)
+                .get_event_for_room(room.id.into())
                 .await
                 .context(InventoryQuerySnafu)?
                 .map(|e| e.title);
@@ -233,11 +234,6 @@ where
     }
 
     // Update the room parameters of all roomserver rooms with the same owner
-    let creator = inventory
-        .get_room(room_id)
-        .await
-        .context(InventoryQuerySnafu)?
-        .created_by;
     let new_quota = get_storage_quota(inventory.as_mut(), creator).await?;
     storage_notifier
         .notify(creator, storage_quota, new_quota)
@@ -284,11 +280,11 @@ async fn insert_asset_into_inventory(
 }
 
 async fn prepare_storage(
-    room_id: RoomId,
+    room: RoomIdOrAlias,
     inventory: &mut dyn Inventory,
 ) -> Result<(Room, Quota), AssetError> {
     let room = inventory
-        .get_room(room_id)
+        .get_room(room)
         .await
         .context(InventoryQuerySnafu)?;
     let storage_quota = verify_storage_usage(inventory, room.created_by).await?;
@@ -320,7 +316,7 @@ pub async fn delete_asset(
     storage: &ObjectStorage,
     inventory_provider: &dyn InventoryProvider,
     storage_notifier: &dyn StorageNotifier,
-    room_id: RoomId,
+    room: RoomIdOrAlias,
     asset_id: AssetId,
 ) -> Result<()> {
     let mut inventory = inventory_provider
@@ -328,15 +324,15 @@ pub async fn delete_asset(
         .await
         .context(InventoryConnectionSnafu)?;
 
-    let creator = inventory
-        .get_room(room_id)
+    let room = inventory
+        .get_room(room)
         .await
-        .context(InventoryQuerySnafu)?
-        .created_by;
+        .context(InventoryQuerySnafu)?;
+    let creator = room.created_by;
     let old_quota = get_storage_quota(inventory.as_mut(), creator).await?;
 
     let size: i64 = inventory
-        .delete_asset_from_room(room_id, asset_id)
+        .delete_asset_from_room(room.id, asset_id)
         .await
         .context(InventoryQuerySnafu)?
         .into();

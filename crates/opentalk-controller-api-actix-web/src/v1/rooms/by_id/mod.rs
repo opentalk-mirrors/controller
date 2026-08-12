@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! API endpoints under `v1/rooms/{room_id}`
+//! API endpoints under `v1/rooms/{room_id_or_alias}`
 
 use actix_web::{
     delete, get, patch,
@@ -16,7 +16,7 @@ use opentalk_types_api_v1::{
         by_room_id::{DeleteRoomQuery, PatchRoomsRequestBody},
     },
 };
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::rooms::RoomIdOrAlias;
 
 use crate::{
     response::NoContent,
@@ -40,7 +40,7 @@ pub mod tariff;
     operation_id = "get_room",
     tag = "api::v1::rooms",
     params(
-        ("room_id" = RoomId, description = "The id of the room"),
+        ("room_id_or_alias" = RoomIdOrAlias, description = "Either the id or the alias of the room"),
     ),
     responses(
         (
@@ -65,12 +65,12 @@ pub mod tariff;
         ("BearerAuth" = []),
     ),
 )]
-#[get("/rooms/{room_id}")]
+#[get("/rooms/{room_id_or_alias}")]
 pub async fn get(
     service: Data<dyn OpenTalkControllerService>,
-    room_id: Path<RoomId>,
+    room_id_or_alias: Path<RoomIdOrAlias>,
 ) -> Result<Json<RoomResource>, ApiError> {
-    Ok(Json(service.get_room(&room_id).await?))
+    Ok(Json(service.get_room(room_id_or_alias.into_inner()).await?))
 }
 
 /// Patch a room with the provided fields
@@ -81,7 +81,7 @@ pub async fn get(
     operation_id = "patch_room",
     tag = "api::v1::rooms",
     params(
-        ("room_id" = RoomId, description = "The id of the room to be modified"),
+        ("room_id_or_alias" = RoomIdOrAlias, description = "Either the id or the alias of the room"),
     ),
     responses(
         (
@@ -107,18 +107,19 @@ pub async fn get(
         ("BearerAuth" = []),
     ),
 )]
-#[patch("/rooms/{room_id}")]
+#[patch("/rooms/{room_id_or_alias}")]
 pub async fn patch(
     service: Data<dyn OpenTalkControllerService>,
-    room_id: Path<RoomId>,
+    room_id_or_alias: Path<RoomIdOrAlias>,
     body: Json<PatchRoomsRequestBody>,
 ) -> Result<Json<RoomResource>, ApiError> {
-    let room_id = room_id.into_inner();
+    let room_id_or_alias = room_id_or_alias.into_inner();
     let body = body.into_inner();
 
     let room_resource = service
         .patch_room(
-            room_id,
+            room_id_or_alias,
+            body.name,
             body.password,
             body.waiting_room,
             body.guest_access,
@@ -137,7 +138,7 @@ pub async fn patch(
 #[utoipa::path(
     tag = "api::v1::rooms",
     params(
-        ("room_id" = RoomId, description = "The id of the room"),
+        ("room_id_or_alias" = RoomIdOrAlias, description = "Either the id or the alias of the room"),
         DeleteRoomQuery,
     ),
     responses(
@@ -162,11 +163,11 @@ pub async fn patch(
         ("BearerAuth" = []),
     ),
 )]
-#[delete("/rooms/{room_id}")]
+#[delete("/rooms/{room_id_or_alias}")]
 pub async fn delete(
     service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
-    room_id: Path<RoomId>,
+    room_id_or_alias: Path<RoomIdOrAlias>,
     query: Query<DeleteRoomQuery>,
 ) -> Result<NoContent, ApiError> {
     let query = query.into_inner();
@@ -174,7 +175,7 @@ pub async fn delete(
     service
         .delete_room(
             current_user.into_inner(),
-            room_id.into_inner(),
+            room_id_or_alias.into_inner(),
             query.force_delete_reference_if_external_services_fail,
         )
         .await?;

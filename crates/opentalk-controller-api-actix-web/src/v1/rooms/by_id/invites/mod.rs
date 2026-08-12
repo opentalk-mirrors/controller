@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! API endpoints under `v1/rooms/{room_id}/invites`
+//! API endpoints under `v1/rooms/{room_id_or_alias}/invites`
 
 use actix_web::{
     get, post,
@@ -16,7 +16,7 @@ use opentalk_types_api_v1::{
         GetRoomsInvitesResponseBody, InviteResource, PostInviteRequestBody,
     },
 };
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::rooms::RoomIdOrAlias;
 
 use crate::{
     utoipa::responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
@@ -33,7 +33,10 @@ pub mod by_code;
     operation_id = "get_invites",
     tag = "api::v1::invites",
     params(
-        ("room_id" = RoomId, description = "The id of the room"),
+        (
+            "room_id_or_alias" = RoomIdOrAlias,
+            description = "Either the id or the alias of the room"
+        ),
         PagePaginationQuery,
     ),
     responses(
@@ -63,15 +66,16 @@ pub mod by_code;
         ("BearerAuth" = []),
     ),
 )]
-#[get("/rooms/{room_id}/invites")]
+#[get("/rooms/{room_id_or_alias}/invites")]
 pub async fn get(
     service: Data<dyn OpenTalkControllerService>,
-    room_id: Path<RoomId>,
+    room_id_or_alias: Path<RoomIdOrAlias>,
     pagination: Query<PagePaginationQuery>,
 ) -> Result<ApiResponse<GetRoomsInvitesResponseBody>, ApiError> {
-    let room_id = room_id.into_inner();
+    let room_id_or_alias = room_id_or_alias.into_inner();
 
-    let (invite_resources, invite_count) = service.get_invites(room_id, &pagination).await?;
+    let (invite_resources, invite_count) =
+        service.get_invites(room_id_or_alias, &pagination).await?;
 
     Ok(ApiResponse::new(invite_resources).with_page_pagination(
         pagination.per_page,
@@ -87,7 +91,7 @@ pub async fn get(
     operation_id = "add_invite",
     tag = "api::v1::invites",
     params(
-        ("room_id" = RoomId, description = "The id of the room"),
+        ("room_id_or_alias" = RoomIdOrAlias, description = "Either the id or the alias of the room"),
     ),
     request_body = PostInviteRequestBody,
     responses(
@@ -122,19 +126,19 @@ pub async fn get(
         ("BearerAuth" = []),
     ),
 )]
-#[post("/rooms/{room_id}/invites")]
+#[post("/rooms/{room_id_or_alias}/invites")]
 pub async fn post(
     service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
-    room_id: Path<RoomId>,
+    room_id_or_alias: Path<RoomIdOrAlias>,
     new_invite: Json<PostInviteRequestBody>,
 ) -> Result<Json<InviteResource>, ApiError> {
     let current_user = current_user.into_inner();
-    let room_id = room_id.into_inner();
+    let room_id_or_alias = room_id_or_alias.into_inner();
     let new_invite = new_invite.into_inner();
 
     let invite_resource = service
-        .create_invite(current_user, room_id, new_invite)
+        .create_invite(current_user, room_id_or_alias, new_invite)
         .await?;
 
     Ok(Json(invite_resource))

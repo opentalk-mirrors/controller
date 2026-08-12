@@ -7,7 +7,7 @@ use opentalk_types_common::{
     events::EventId,
     order::Ordering,
     pagination::{ItemCount, Page, PageSize},
-    rooms::RoomId,
+    rooms::{RoomId, RoomIdOrAlias},
     users::UserId,
 };
 
@@ -28,7 +28,8 @@ pub trait AssetInventory {
     ) -> Result<FileSize>;
 
     /// Get an asset for a room.
-    async fn get_asset_for_room(&mut self, room_id: RoomId, asset_id: AssetId) -> Result<Asset>;
+    async fn get_asset_for_room(&mut self, room: RoomIdOrAlias, asset_id: AssetId)
+    -> Result<Asset>;
 
     /// Get all asset ids and their size
     async fn get_all_assets_with_size(&mut self) -> Result<Vec<(AssetId, i64)>>;
@@ -38,7 +39,7 @@ pub trait AssetInventory {
     /// Returns a tuple of the loaded assets, and the overall count of available assets.
     async fn get_all_assets_for_room_paginated(
         &mut self,
-        room: RoomId,
+        room: RoomIdOrAlias,
         per_page: PageSize,
         page: Page,
     ) -> Result<(Vec<Asset>, ItemCount)>;

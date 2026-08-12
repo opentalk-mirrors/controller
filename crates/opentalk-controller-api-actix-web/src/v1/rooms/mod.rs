@@ -21,6 +21,7 @@ use crate::{
 };
 
 pub mod by_id;
+pub mod name;
 
 /// Get a list of rooms accessible by the requesting user
 ///
@@ -116,6 +117,7 @@ pub async fn post(
     let room_resource = service
         .create_room(
             current_user,
+            body.name,
             body.password,
             body.enable_sip,
             body.waiting_room,

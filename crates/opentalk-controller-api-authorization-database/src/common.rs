@@ -13,7 +13,7 @@ use opentalk_inventory::{
 };
 use opentalk_types_common::{
     events::{EventId, invites::InviteRole},
-    rooms::RoomId,
+    rooms::RoomIdOrAlias,
 };
 
 use crate::{OpenTalkAuthorizerBackend, Result};
@@ -106,7 +106,7 @@ impl OpenTalkAuthorizerBackend {
         &self,
         subjects: SubjectCollection,
         method: AccessMethod,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         acl: Acl,
     ) -> Result<Admission> {
         if subjects.0.is_empty() {
@@ -118,7 +118,9 @@ impl OpenTalkAuthorizerBackend {
         for subject in subjects.0 {
             let admission = match subject {
                 Subject::User(user_id) => {
-                    let role = inventory.get_room_user_role(room_id, user_id).await?;
+                    let role = inventory
+                        .get_room_user_role(room_id_or_alias.clone(), user_id)
+                        .await?;
                     acl.apply(role.into(), method)
                 }
                 Subject::InviteCode(invite_code) => {
@@ -126,7 +128,7 @@ impl OpenTalkAuthorizerBackend {
                     let disabled_features = self.settings.get().defaults.disabled_features.clone();
                     let validity = inventory
                         .get_room_invite_code_validity(
-                            room_id,
+                            room_id_or_alias.clone(),
                             invite_code,
                             disabled_features,
                             module_features,
@@ -414,7 +416,7 @@ mod tests {
             invite_code: Access::None,
         };
         let admission = authorization_backend
-            .apply_acl_for_room(empty_subjects, Get, room::test_utils::ROOM_ID, acl)
+            .apply_acl_for_room(empty_subjects, Get, room::test_utils::ROOM_ID.into(), acl)
             .await
             .unwrap();
         assert_eq!(admission, Admission::AuthenticationRequired);

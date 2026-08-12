@@ -7,6 +7,8 @@ use std::path::PathBuf;
 use snafu::Snafu;
 use url::Url;
 
+use crate::settings_runtime::{MAX_ALIAS_SUFFIX_LENGTH, MIN_ALIAS_SUFFIX_LENGTH};
+
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub(crate)))]
 pub enum SettingsError {
@@ -62,4 +64,9 @@ pub enum SettingsError {
 
     #[snafu(display("Missing mandatory roomserver module(s): \"{}\".", modules.join("\", \"")))]
     MandatoryModulesMissing { modules: Vec<String> },
+
+    #[snafu(display(
+        "Invalid room alias suffix length: {length}. Must be between {MIN_ALIAS_SUFFIX_LENGTH} and {MAX_ALIAS_SUFFIX_LENGTH}.",
+    ))]
+    InvalidRoomAliasSuffixLength { length: u8 },
 }

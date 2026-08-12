@@ -5,7 +5,7 @@
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::Tariff;
 use opentalk_types_common::{
-    rooms::RoomId,
+    rooms::RoomIdOrAlias,
     tariffs::{TariffId, TariffResource},
     users::UserId,
 };
@@ -27,11 +27,11 @@ impl ControllerBackend {
 
     pub(super) async fn get_room_tariff(
         &self,
-        room_id: RoomId,
+        room: RoomIdOrAlias,
     ) -> Result<TariffResource, CaptureApiError> {
         let tariff = {
             let mut inventory = self.inventory_provider.get_inventory().await?;
-            let room = inventory.get_room(room_id).await?;
+            let room = inventory.get_room(room).await?;
             inventory.get_tariff_for_user(room.created_by).await
         }?;
 

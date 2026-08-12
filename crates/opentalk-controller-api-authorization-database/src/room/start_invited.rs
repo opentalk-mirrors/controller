@@ -75,7 +75,7 @@ mod tests {
         let admission = authorizer
             .authorize(AuthorizationTarget {
                 authenticated_subjects: subjects,
-                resource: Resource::RoomStartInvited(ROOM_ID),
+                resource: Resource::RoomStartInvited(ROOM_ID.into()),
                 access_method,
             })
             .await

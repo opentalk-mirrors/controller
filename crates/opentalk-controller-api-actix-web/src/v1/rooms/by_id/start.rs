@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! API endpoints under `v1/rooms/{room_id}/start`
+//! API endpoints under `v1/rooms/{room_id_or_alias}/start`
 
 use actix_web::{
     post,
@@ -13,7 +13,7 @@ use opentalk_types_api_v1::{
     error::{ApiError, ErrorBody},
     rooms::by_room_id::{PostRoomsRoomserverStartRequestBody, RoomserverStartResponseBody},
 };
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::rooms::RoomIdOrAlias;
 
 use crate::{host::Host, utoipa::responses::InternalServerError};
 
@@ -26,7 +26,7 @@ use crate::{host::Host, utoipa::responses::InternalServerError};
     operation_id = "start",
     tag = "api::v1::rooms",
     params(
-        ("room_id" = RoomId, description = "The id of the room"),
+        ("room_id_or_alias" = RoomIdOrAlias, description = "Either the id or the alias of the room"),
     ),
     responses(
         (
@@ -71,11 +71,11 @@ use crate::{host::Host, utoipa::responses::InternalServerError};
         ("BearerAuth" = []),
     ),
 )]
-#[post("/rooms/{room_id}/start")]
+#[post("/rooms/{room_id_or_alias}/start")]
 pub async fn post(
     service: Data<dyn OpenTalkControllerService>,
     current_user: Option<ReqData<RequestUser>>,
-    room_id: Path<RoomId>,
+    room_id_or_alias: Path<RoomIdOrAlias>,
     request: Json<PostRoomsRoomserverStartRequestBody>,
     host: Host,
 ) -> Result<Json<RoomserverStartResponseBody>, ApiError> {
@@ -84,7 +84,7 @@ pub async fn post(
         service
             .start_room_session(
                 user,
-                room_id.into_inner(),
+                room_id_or_alias.into_inner(),
                 request.into_inner(),
                 host.into_inner(),
             )

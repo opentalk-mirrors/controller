@@ -19,7 +19,7 @@ use opentalk_types_api_v1::{
 };
 use opentalk_types_common::{
     pagination::ItemCount,
-    rooms::{RoomId, invite_codes::InviteCode},
+    rooms::{RoomIdOrAlias, invite_codes::InviteCode},
     time::Timestamp,
 };
 
@@ -30,15 +30,15 @@ impl ControllerBackend {
     pub(crate) async fn create_invite(
         &self,
         current_user: RequestUser,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         new_invite: PostInviteRequestBody,
     ) -> Result<InviteResource, CaptureApiError> {
         let settings = self.settings_provider.get();
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let room = inventory.get_room(room_id).await?;
-        let tariff = self.get_room_tariff(room_id).await?;
+        let room = inventory.get_room(room_id_or_alias).await?;
+        let tariff = self.get_tariff_for_user(room.created_by).await?;
         verify_invite_write(&tariff, &room)?;
 
         let invite = inventory
@@ -46,14 +46,14 @@ impl ControllerBackend {
                 active: true,
                 created_by: current_user.id,
                 updated_by: current_user.id,
-                room: room_id,
+                room: room.id,
                 expiration: new_invite.expiration.map(Into::into),
             })
             .await?;
 
         self.authorizer
             .apply_change(&AuthorizationChange::AddInviteCodeToRoom {
-                room: room_id,
+                room: room.id,
                 invite_code: invite.invite_code,
                 expiration: invite.expiration,
             })
@@ -73,20 +73,20 @@ impl ControllerBackend {
 
     pub(crate) async fn get_invites(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         pagination: &PagePaginationQuery,
     ) -> Result<(GetRoomsInvitesResponseBody, ItemCount), CaptureApiError> {
         let settings = self.settings_provider.get();
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let room = inventory.get_room(room_id).await?;
-        let tariff = self.get_room_tariff(room_id).await?;
+        let room = inventory.get_room(room_id_or_alias).await?;
+        let tariff = self.get_tariff_for_user(room.created_by).await?;
         verify_invite_read(&tariff, &room)?;
 
         let (invites_with_users, total_invites) = inventory
             .get_room_invites_paginated_with_creator_and_updater(
-                room_id,
+                room.id,
                 pagination.per_page,
                 pagination.page,
             )
@@ -113,15 +113,15 @@ impl ControllerBackend {
 
     pub(crate) async fn get_invite(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         invite_code: InviteCode,
     ) -> Result<InviteResource, CaptureApiError> {
         let settings = self.settings_provider.get();
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let room = inventory.get_room(room_id).await?;
-        let tariff = self.get_room_tariff(room_id).await?;
+        let room = inventory.get_room(room_id_or_alias).await?;
+        let tariff = self.get_tariff_for_user(room.created_by).await?;
         verify_invite_read(&tariff, &room)?;
 
         let RoomInviteWithUsers {
@@ -132,7 +132,7 @@ impl ControllerBackend {
             .get_room_invite_with_creator_and_updater(invite_code)
             .await?;
 
-        if invite.room != room_id {
+        if invite.room != room.id {
             return Err(ApiError::not_found().into());
         }
 
@@ -145,7 +145,7 @@ impl ControllerBackend {
     pub(crate) async fn update_invite(
         &self,
         current_user: RequestUser,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         invite_code: InviteCode,
         body: PutInviteRequestBody,
     ) -> Result<InviteResource, CaptureApiError> {
@@ -153,8 +153,8 @@ impl ControllerBackend {
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let room = inventory.get_room(room_id).await?;
-        let tariff = self.get_room_tariff(room_id).await?;
+        let room = inventory.get_room(room_id_or_alias).await?;
+        let tariff = self.get_tariff_for_user(room.created_by).await?;
         verify_invite_write(&tariff, &room)?;
 
         let RoomInviteWithUsers {
@@ -165,7 +165,7 @@ impl ControllerBackend {
             .get_room_invite_with_creator_and_updater(invite_code)
             .await?;
 
-        if invite.room != room_id {
+        if invite.room != room.id {
             return Err(ApiError::not_found().into());
         }
 
@@ -173,7 +173,7 @@ impl ControllerBackend {
         let expiration = body.expiration.map(Into::into);
         let invite = inventory
             .update_room_invite(
-                room_id,
+                room.id,
                 invite_code,
                 UpdateRoomInvite {
                     updated_by: Some(current_user.id),
@@ -188,7 +188,7 @@ impl ControllerBackend {
         // Overwrite the invite in the authorization database
         self.authorizer
             .apply_change(&AuthorizationChange::AddInviteCodeToRoom {
-                room: room_id,
+                room: room.id,
                 invite_code,
                 expiration,
             })
@@ -203,18 +203,18 @@ impl ControllerBackend {
     pub(crate) async fn delete_invite(
         &self,
         current_user: RequestUser,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         invite_code: InviteCode,
     ) -> Result<(), CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let room = inventory.get_room(room_id).await?;
-        let tariff = self.get_room_tariff(room_id).await?;
+        let room = inventory.get_room(room_id_or_alias).await?;
+        let tariff = self.get_tariff_for_user(room.created_by).await?;
         verify_invite_write(&tariff, &room)?;
 
         _ = inventory
             .update_room_invite(
-                room_id,
+                room.id,
                 invite_code,
                 UpdateRoomInvite {
                     updated_by: Some(current_user.id),
@@ -228,7 +228,7 @@ impl ControllerBackend {
 
         self.authorizer
             .apply_change(&AuthorizationChange::RemoveInviteCodeFromRoom {
-                room: room_id,
+                room: room.id,
                 invite_code,
             })
             .await
@@ -247,8 +247,8 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let invite = inventory.get_room_invite(data.invite_code).await?;
-        let room = inventory.get_room(invite.room).await?;
-        let tariff = self.get_room_tariff(room.id).await?;
+        let room = inventory.get_room(invite.room.into()).await?;
+        let tariff = self.get_room_tariff(room.id.into()).await?;
 
         if !is_invite_valid(&invite, &room, &tariff) {
             // Do not leak the existence of the invite

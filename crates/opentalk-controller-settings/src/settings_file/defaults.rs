@@ -8,6 +8,8 @@ use icu_locid::LanguageIdentifier;
 use opentalk_types_common::{features::ModuleFeatureId, time::TimeZone};
 use serde::Deserialize;
 
+use super::RoomAlias;
+
 #[derive(Clone, Default, Debug, PartialEq, Eq, Deserialize)]
 pub(crate) struct Defaults {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -18,4 +20,7 @@ pub(crate) struct Defaults {
 
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub disabled_features: BTreeSet<ModuleFeatureId>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub room_alias: Option<RoomAlias>,
 }

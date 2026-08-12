@@ -44,7 +44,7 @@ use opentalk_types_common::{
     events::{EventDescription, EventId, EventTitle, invites::EventInviteStatus},
     features::GUESTS_ALLOWED_MODULE_FEATURE_ID,
     pagination::{ItemCount, Page, PageSize},
-    rooms::{GuestAccess, RoomPassword},
+    rooms::{GuestAccess, RoomName, RoomPassword},
     shared_folders::SharedFolder,
     streaming::{RoomStreamingTarget, StreamingTarget},
     tariffs::TariffResource,
@@ -59,7 +59,7 @@ use crate::{
     ControllerBackend, ToUserProfile as _,
     controller_backend::{
         delete_shared_folders, put_shared_folder,
-        utils::{ensure_guest_access_valid, interweave_result_streams},
+        utils::{build_room_alias, ensure_guest_access_valid, interweave_result_streams},
     },
     email_to_libravatar_url,
     events::{
@@ -119,6 +119,7 @@ impl ControllerBackend {
                 PostEventsBody {
                     title,
                     description,
+                    room_name,
                     password,
                     waiting_room,
                     guest_access,
@@ -140,6 +141,7 @@ impl ControllerBackend {
                         &tariff,
                         title,
                         description,
+                        room_name,
                         password,
                         waiting_room,
                         guest_access,
@@ -155,6 +157,7 @@ impl ControllerBackend {
                 PostEventsBody {
                     title,
                     description,
+                    room_name,
                     password,
                     waiting_room,
                     guest_access,
@@ -183,6 +186,7 @@ impl ControllerBackend {
                         &tariff,
                         title,
                         description,
+                        room_name,
                         password,
                         waiting_room,
                         guest_access,
@@ -783,17 +787,19 @@ impl ControllerBackend {
         let tariff = self.build_tariff_resource(&tariff)?;
 
         // Update the event's room if at least one of the fields is set
-        let room = if patch.password.is_some()
-            || patch.waiting_room.is_some()
-            || patch.guest_access.is_some()
-            || patch.e2e_encryption.is_some()
+        let room = if patch.room.room_name.is_some()
+            || patch.room.password.is_some()
+            || patch.room.waiting_room.is_some()
+            || patch.room.guest_access.is_some()
+            || patch.room.e2e_encryption.is_some()
         {
             self.update_room(
-                event.room,
-                patch.password.clone(),
-                patch.waiting_room,
-                patch.guest_access,
-                patch.e2e_encryption,
+                event.room.into(),
+                patch.room.room_name.clone(),
+                patch.room.password.clone(),
+                patch.room.waiting_room,
+                patch.room.guest_access,
+                patch.room.e2e_encryption,
             )
             .await?
         } else {
@@ -987,7 +993,7 @@ impl ControllerBackend {
         self.patch_room_parameters(
             room.id,
             RoomParametersPatch {
-                password: patch.password,
+                password: patch.room.password,
                 title: patch.title,
             },
         )
@@ -1382,6 +1388,7 @@ impl EventRoomInfoExt for EventRoomInfo {
 
         Self {
             id: room.id,
+            alias: room.alias.clone(),
             password: room.password.clone(),
             waiting_room: room.waiting_room,
             guest_access: room.guest_access,
@@ -1447,6 +1454,7 @@ async fn create_time_independent_event(
     user_tariff: &TariffResource,
     title: EventTitle,
     description: EventDescription,
+    room_name: Option<RoomName>,
     password: Option<RoomPassword>,
     waiting_room: bool,
     guest_access: Option<GuestAccess>,
@@ -1459,10 +1467,12 @@ async fn create_time_independent_event(
 ) -> Result<(EventResource, Option<MailResource>), CaptureApiError> {
     let guest_access = guest_access.unwrap_or(GuestAccess::WaitingRoom);
     ensure_guest_access_valid(guest_access, e2e_encryption, user_tariff)?;
+    let alias = build_room_alias(room_name, settings);
 
     let room = inventory
         .create_room(NewRoom {
             created_by: current_user.id,
+            alias,
             password,
             waiting_room,
             guest_access,
@@ -1541,6 +1551,7 @@ async fn create_time_dependent_event(
     user_tariff: &TariffResource,
     title: EventTitle,
     description: EventDescription,
+    room_name: Option<RoomName>,
     password: Option<RoomPassword>,
     waiting_room: bool,
     guest_access: Option<GuestAccess>,
@@ -1563,9 +1574,12 @@ async fn create_time_dependent_event(
     let guest_access = guest_access.unwrap_or(GuestAccess::WaitingRoom);
     ensure_guest_access_valid(guest_access, e2e_encryption, user_tariff)?;
 
+    let alias = build_room_alias(room_name, settings);
+
     let room = inventory
         .create_room(NewRoom {
             created_by: current_user.id,
+            alias,
             password,
             waiting_room,
             guest_access,
@@ -2049,6 +2063,7 @@ mod tests {
                 .expect("valid event description"),
             room: EventRoomInfo {
                 id: RoomId::nil(),
+                alias: None,
                 password: None,
                 waiting_room: false,
                 guest_access: GuestAccess::default(),
@@ -2205,6 +2220,7 @@ mod tests {
                 .expect("valid event description"),
             room: EventRoomInfo {
                 id: RoomId::nil(),
+                alias: None,
                 password: None,
                 waiting_room: false,
                 guest_access: GuestAccess::default(),

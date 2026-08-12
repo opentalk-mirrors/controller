@@ -54,6 +54,7 @@ mod test_utils {
         inventory
             .create_room(NewRoom {
                 created_by: user.id,
+                alias: None,
                 password: None,
                 waiting_room: false,
                 guest_access: GuestAccess::default(),

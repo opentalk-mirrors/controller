@@ -181,7 +181,9 @@ rooms {
     boolean e2e_encryption
     guest_access guest_access
     bigint id_serial
+    character_varying name
     character_varying password
+    character_varying suffix
     boolean waiting_room
 }
 sip_configs {

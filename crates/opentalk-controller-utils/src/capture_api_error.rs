@@ -44,6 +44,13 @@ impl From<DatabaseError> for CaptureApiError {
         if value.is_not_found() {
             return CaptureApiError(ApiError::not_found());
         }
+        if value.is_unique_violation() {
+            log::error!(
+                "REST API threw unique violation from Diesel error: {}",
+                snafu::Report::from_error(value)
+            );
+            return CaptureApiError(ApiError::conflict());
+        }
         log::error!(
             "REST API threw internal error from Diesel error: {}",
             snafu::Report::from_error(value)
@@ -56,6 +63,13 @@ impl From<opentalk_inventory::Error> for CaptureApiError {
     fn from(value: opentalk_inventory::Error) -> Self {
         if value.is_not_found() {
             return CaptureApiError(ApiError::not_found());
+        }
+        if value.is_unique_violation() {
+            log::error!(
+                "REST API threw unique violation from inventory backend: {}",
+                snafu::Report::from_error(value)
+            );
+            return CaptureApiError(ApiError::conflict());
         }
         if value.is_constraint_violation() {
             return CaptureApiError(ApiError::bad_request());

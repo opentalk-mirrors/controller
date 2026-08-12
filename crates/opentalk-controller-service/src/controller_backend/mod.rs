@@ -81,6 +81,7 @@ use opentalk_types_api_v1::{
                 PostRoomStreamingTargetResponseBody, RoomAndStreamingTargetId,
             },
         },
+        name::PostRoomNameVerifyResponseBody,
     },
     users::{
         GetEventInvitesPendingResponseBody, GetFindQuery, GetFindResponseBody,
@@ -94,7 +95,7 @@ use opentalk_types_common::{
     features::FeatureId,
     modules::ModuleId,
     pagination::{ItemCount, Page, PageSize},
-    rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
+    rooms::{GuestAccess, RoomIdOrAlias, RoomName, RoomPassword, invite_codes::InviteCode},
     shared_folders::SharedFolder,
     streaming::StreamingTarget,
     tariffs::TariffResource,
@@ -193,6 +194,7 @@ impl OpenTalkControllerService for ControllerBackend {
     async fn create_room(
         &self,
         current_user: RequestUser,
+        name: Option<RoomName>,
         password: Option<RoomPassword>,
         enable_sip: bool,
         waiting_room: bool,
@@ -202,6 +204,7 @@ impl OpenTalkControllerService for ControllerBackend {
         Ok(self
             .create_room(
                 current_user,
+                name,
                 password,
                 enable_sip,
                 waiting_room,
@@ -213,7 +216,8 @@ impl OpenTalkControllerService for ControllerBackend {
 
     async fn patch_room(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
+        name: Option<Option<RoomName>>,
         password: Option<Option<RoomPassword>>,
         waiting_room: Option<bool>,
         guest_access: Option<GuestAccess>,
@@ -221,7 +225,8 @@ impl OpenTalkControllerService for ControllerBackend {
     ) -> Result<RoomResource, ApiError> {
         Ok(self
             .patch_room(
-                room_id,
+                room_id_or_alias,
+                name,
                 password,
                 waiting_room,
                 guest_access,
@@ -233,43 +238,53 @@ impl OpenTalkControllerService for ControllerBackend {
     async fn delete_room(
         &self,
         current_user: RequestUser,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         force_delete_reference_if_external_services_fail: bool,
     ) -> Result<(), ApiError> {
         Ok(self
             .delete_room(
                 current_user,
-                room_id,
+                room_id_or_alias,
                 force_delete_reference_if_external_services_fail,
             )
             .await?)
     }
 
-    async fn get_room(&self, room_id: &RoomId) -> Result<RoomResource, ApiError> {
-        Ok(self.get_room(room_id).await?)
+    async fn verify_room_name(
+        &self,
+        name: RoomName,
+    ) -> Result<PostRoomNameVerifyResponseBody, ApiError> {
+        Ok(self.verify_room_name(name).await?)
     }
 
-    async fn get_room_tariff(&self, room_id: &RoomId) -> Result<TariffResource, ApiError> {
-        Ok(self.get_room_tariff(*room_id).await?)
+    async fn get_room(&self, room_id_or_alias: RoomIdOrAlias) -> Result<RoomResource, ApiError> {
+        Ok(self.get_room(room_id_or_alias).await?)
+    }
+
+    async fn get_room_tariff(
+        &self,
+        room_id_or_alias: RoomIdOrAlias,
+    ) -> Result<TariffResource, ApiError> {
+        Ok(self.get_room_tariff(room_id_or_alias).await?)
     }
 
     async fn get_room_event(
         &self,
         current_user: Option<RequestUser>,
-        room_id: &RoomId,
+        room_id_or_alias: RoomIdOrAlias,
     ) -> Result<GetRoomEventResponseBody, ApiError> {
-        Ok(self.get_room_event(current_user, room_id).await?)
+        Ok(self.get_room_event(current_user, room_id_or_alias).await?)
     }
 
     async fn start_room_session(
         &self,
         current_user: Option<RequestUser>,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         request: PostRoomsRoomserverStartRequestBody,
         host: Url,
     ) -> Result<RoomserverStartResponseBody, ApiError> {
         Ok(self
-            .start_room(current_user, room_id, request, host)
+            .start_room(current_user, room_id_or_alias, request, host)
             .await?)
     }
 
@@ -299,27 +314,27 @@ impl OpenTalkControllerService for ControllerBackend {
 
     async fn get_room_assets(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         pagination: &PagePaginationQuery,
     ) -> Result<(RoomsByRoomIdAssetsGetResponseBody, ItemCount), ApiError> {
-        Ok(self.get_room_assets(room_id, pagination).await?)
+        Ok(self.get_room_assets(room_id_or_alias, pagination).await?)
     }
 
     async fn get_room_asset(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         asset_id: AssetId,
     ) -> Result<ByStreamExt, ApiError> {
-        Ok(self.get_room_asset(room_id, asset_id).await?)
+        Ok(self.get_room_asset(room_id_or_alias, asset_id).await?)
     }
 
     async fn get_room_asset_proxy_download_token(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         asset_id: AssetId,
     ) -> Result<String, ApiError> {
         Ok(self
-            .get_room_asset_proxy_download_token(room_id, asset_id)
+            .get_room_asset_proxy_download_token(room_id_or_alias, asset_id)
             .await?)
     }
 
@@ -344,24 +359,30 @@ impl OpenTalkControllerService for ControllerBackend {
     async fn create_room_asset(
         &self,
         storage_notifier: &dyn StorageNotifier,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         filename: NewAssetFileName,
         namespace: Option<ModuleId>,
         data: Box<dyn Stream<Item = Result<Bytes, ObjectStorageError>> + Unpin>,
     ) -> Result<(AssetResource, AssetSaved), ApiError> {
         Ok(self
-            .create_room_asset(storage_notifier, room_id, filename, namespace, data)
+            .create_room_asset(
+                storage_notifier,
+                room_id_or_alias,
+                filename,
+                namespace,
+                data,
+            )
             .await?)
     }
 
     async fn delete_room_asset(
         &self,
         storage_notifier: &dyn StorageNotifier,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         asset_id: AssetId,
     ) -> Result<(), ApiError> {
         Ok(self
-            .delete_room_asset(storage_notifier, room_id, asset_id)
+            .delete_room_asset(storage_notifier, room_id_or_alias, asset_id)
             .await?)
     }
 
@@ -559,50 +580,50 @@ impl OpenTalkControllerService for ControllerBackend {
     async fn create_invite(
         &self,
         current_user: RequestUser,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         new_invite: PostInviteRequestBody,
     ) -> Result<InviteResource, ApiError> {
         Ok(self
-            .create_invite(current_user, room_id, new_invite)
+            .create_invite(current_user, room_id_or_alias, new_invite)
             .await?)
     }
 
     async fn get_invites(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         pagination: &PagePaginationQuery,
     ) -> Result<(GetRoomsInvitesResponseBody, ItemCount), ApiError> {
-        Ok(self.get_invites(room_id, pagination).await?)
+        Ok(self.get_invites(room_id_or_alias, pagination).await?)
     }
 
     async fn get_invite(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         invite_code: InviteCode,
     ) -> Result<InviteResource, ApiError> {
-        Ok(self.get_invite(room_id, invite_code).await?)
+        Ok(self.get_invite(room_id_or_alias, invite_code).await?)
     }
 
     async fn update_invite(
         &self,
         current_user: RequestUser,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         invite_code: InviteCode,
         body: PutInviteRequestBody,
     ) -> Result<InviteResource, ApiError> {
         Ok(self
-            .update_invite(current_user, room_id, invite_code, body)
+            .update_invite(current_user, room_id_or_alias, invite_code, body)
             .await?)
     }
 
     async fn delete_invite(
         &self,
         current_user: RequestUser,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         invite_code: InviteCode,
     ) -> Result<(), ApiError> {
         Ok(self
-            .delete_invite(current_user, room_id, invite_code)
+            .delete_invite(current_user, room_id_or_alias, invite_code)
             .await?)
     }
 
@@ -613,42 +634,47 @@ impl OpenTalkControllerService for ControllerBackend {
         Ok(self.verify_invite_code(data).await?)
     }
 
-    async fn get_sip_config(&self, room_id: RoomId) -> Result<SipConfigResource, ApiError> {
-        Ok(self.get_sip_config(room_id).await?)
+    async fn get_sip_config(
+        &self,
+        room_id_or_alias: RoomIdOrAlias,
+    ) -> Result<SipConfigResource, ApiError> {
+        Ok(self.get_sip_config(room_id_or_alias).await?)
     }
 
     async fn set_sip_config(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         modify_sip_config: PutSipConfigRequestBody,
     ) -> Result<(SipConfigResource, bool), ApiError> {
-        Ok(self.set_sip_config(room_id, modify_sip_config).await?)
+        Ok(self
+            .set_sip_config(room_id_or_alias, modify_sip_config)
+            .await?)
     }
 
-    async fn delete_sip_config(&self, room_id: RoomId) -> Result<(), ApiError> {
-        Ok(self.delete_sip_config(room_id).await?)
+    async fn delete_sip_config(&self, room_id_or_alias: RoomIdOrAlias) -> Result<(), ApiError> {
+        Ok(self.delete_sip_config(room_id_or_alias).await?)
     }
 
     async fn get_streaming_targets(
         &self,
         user_id: UserId,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         pagination: &PagePaginationQuery,
     ) -> Result<GetRoomStreamingTargetsResponseBody, ApiError> {
         Ok(self
-            .get_streaming_targets(user_id, room_id, pagination)
+            .get_streaming_targets(user_id, room_id_or_alias, pagination)
             .await?)
     }
 
     async fn post_streaming_target(
         &self,
         current_user: RequestUser,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         query: StreamingTargetOptionsQuery,
         streaming_target: StreamingTarget,
     ) -> Result<PostRoomStreamingTargetResponseBody, ApiError> {
         Ok(self
-            .post_streaming_target(current_user, room_id, query, streaming_target)
+            .post_streaming_target(current_user, room_id_or_alias, query, streaming_target)
             .await?)
     }
 

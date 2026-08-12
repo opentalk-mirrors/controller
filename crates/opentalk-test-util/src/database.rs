@@ -176,6 +176,7 @@ impl DatabaseContext {
 
         let new_room = NewRoom {
             created_by,
+            alias: None,
             password: None,
             waiting_room,
             guest_access: GuestAccess::default(),

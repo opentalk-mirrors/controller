@@ -14,13 +14,14 @@ use opentalk_types_common::{
     events::EventId,
     order::Ordering,
     pagination::{ItemCount, Page, PageSize},
-    rooms::RoomId,
+    rooms::{RoomId, RoomIdOrAlias},
     users::UserId,
 };
 
 pub use crate::tables::assets::{Asset, NewAsset, UpdateAsset};
 use crate::{
     paginate::Paginate as _,
+    queries::room_filter::FilterByRoom,
     schema::{assets, events, room_assets, rooms},
     tables::assets::RoomAsset,
 };
@@ -28,19 +29,17 @@ use crate::{
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_asset_for_room(
     conn: &mut DbConnection,
-    room_id: RoomId,
+    room: RoomIdOrAlias,
     asset_id: AssetId,
 ) -> Result<Asset> {
-    //FIXME: The inner_join below (as well as the room_id parameter) can be removed when assets have their own
+    //FIXME: The inner_joins below (as well as the room parameter) can be removed when assets have their own
     // permission check and don't rely on room permissions
     assets::table
-        .inner_join(
-            room_assets::table.on(room_assets::asset_id
-                .eq(assets::id)
-                .and(room_assets::room_id.eq(room_id))),
-        )
+        .inner_join(room_assets::table.on(room_assets::asset_id.eq(assets::id)))
+        .inner_join(rooms::table.on(rooms::id.eq(room_assets::room_id)))
         .filter(assets::id.eq(asset_id))
         .select(assets::all_columns)
+        .filter_by_room(room)
         .get_result(conn)
         .await
         .map_err(DatabaseError::from)
@@ -71,14 +70,15 @@ pub async fn count_all_assets(conn: &mut DbConnection) -> Result<i64> {
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_assets_for_room_paginated(
     conn: &mut DbConnection,
-    room_id: RoomId,
+    room: RoomIdOrAlias,
     limit: PageSize,
     page: Page,
 ) -> Result<(Vec<Asset>, ItemCount)> {
     assets::table
         .inner_join(room_assets::table.on(room_assets::asset_id.eq(assets::id)))
-        .filter(room_assets::room_id.eq(room_id))
+        .inner_join(rooms::table.on(rooms::id.eq(room_assets::room_id)))
         .select(assets::all_columns)
+        .filter_by_room(room)
         .paginate_by(limit, page)
         .load_and_count(conn)
         .await

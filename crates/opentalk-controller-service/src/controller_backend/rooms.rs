@@ -14,18 +14,25 @@ use opentalk_inventory::{NewRoom, NewRoomSipConfig, Room, UpdateRoom, utils::is_
 use opentalk_types_api_v1::{
     error::ApiError,
     pagination::PagePaginationQuery,
-    rooms::{GetRoomsResponseBody, RoomResource, by_room_id::GetRoomEventResponseBody},
+    rooms::{
+        GetRoomsResponseBody, RoomResource, by_room_id::GetRoomEventResponseBody,
+        name::PostRoomNameVerifyResponseBody,
+    },
 };
 use opentalk_types_common::{
     events::EventInfo,
     features::GUESTS_ALLOWED_MODULE_FEATURE_ID,
     pagination::ItemCount,
-    rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
+    rooms::{
+        GuestAccess, RoomAlias, RoomId, RoomIdOrAlias, RoomName, RoomPassword,
+        invite_codes::InviteCode,
+    },
     users::UserId,
 };
 
 use crate::{
-    ControllerBackend, ToUserProfile, controller_backend::utils::ensure_guest_access_valid,
+    ControllerBackend, ToUserProfile,
+    controller_backend::utils::{build_room_alias, ensure_guest_access_valid, resolve_room_id},
 };
 
 impl ControllerBackend {
@@ -49,6 +56,7 @@ impl ControllerBackend {
             .into_iter()
             .map(|(room, user)| RoomResource {
                 id: room.id,
+                alias: room.alias,
                 created_by: user.to_public_user_profile(&settings),
                 created_at: room.created_at,
                 password: room.password,
@@ -60,9 +68,11 @@ impl ControllerBackend {
         Ok((GetRoomsResponseBody(rooms), room_count))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) async fn create_room(
         &self,
         current_user: RequestUser,
+        name: Option<RoomName>,
         password: Option<RoomPassword>,
         enable_sip: bool,
         waiting_room: bool,
@@ -80,9 +90,12 @@ impl ControllerBackend {
         }
         ensure_guest_access_valid(guest_access, e2e_encryption, &tariff)?;
 
+        let alias = build_room_alias(name, &settings);
+
         let room = inventory
             .create_room(NewRoom {
                 created_by: current_user.id,
+                alias,
                 password,
                 waiting_room,
                 guest_access,
@@ -101,6 +114,7 @@ impl ControllerBackend {
 
         let room_resource = RoomResource {
             id: room.id,
+            alias: room.alias,
             created_by: current_user.to_public_user_profile(&settings),
             created_at: room.created_at,
             password: room.password,
@@ -131,7 +145,8 @@ impl ControllerBackend {
 
     pub(crate) async fn patch_room(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
+        name: Option<Option<RoomName>>,
         password: Option<Option<RoomPassword>>,
         waiting_room: Option<bool>,
         guest_access: Option<GuestAccess>,
@@ -139,7 +154,8 @@ impl ControllerBackend {
     ) -> Result<RoomResource, CaptureApiError> {
         let room = self
             .update_room(
-                room_id,
+                room_id_or_alias,
+                name,
                 password,
                 waiting_room,
                 guest_access,
@@ -156,6 +172,7 @@ impl ControllerBackend {
 
         let room_resource = RoomResource {
             id: room.id,
+            alias: room.alias,
             created_by,
             created_at: room.created_at,
             password: room.password,
@@ -169,15 +186,20 @@ impl ControllerBackend {
     /// Updates a room in the database and applies the necessary changes in the authorization middleware.
     pub(crate) async fn update_room(
         &self,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
+        name: Option<Option<RoomName>>,
         password: Option<Option<RoomPassword>>,
         waiting_room: Option<bool>,
         guest_access: Option<GuestAccess>,
         e2e_encryption: Option<bool>,
     ) -> Result<Room, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
+        let settings = self.settings_provider.get();
+
+        let alias = name.map(|name| build_room_alias(name, &settings));
+
         if guest_access.is_some() || e2e_encryption.is_some() {
-            let room = inventory.get_room(room_id).await?;
+            let room = inventory.get_room(room_id_or_alias.clone()).await?;
             let tariff = self.get_tariff_for_user(room.created_by).await?;
 
             let guest_access = guest_access.unwrap_or(room.guest_access);
@@ -188,8 +210,9 @@ impl ControllerBackend {
 
         let room = inventory
             .update_room(
-                room_id,
+                room_id_or_alias,
                 UpdateRoom {
+                    alias,
                     password,
                     waiting_room,
                     guest_access,
@@ -200,7 +223,7 @@ impl ControllerBackend {
 
         self.authorizer
             .apply_change(&AuthorizationChange::UpdateRoomConfiguration {
-                room: room_id,
+                room: room.id,
                 guest_access,
                 e2e_encryption,
             })
@@ -212,12 +235,15 @@ impl ControllerBackend {
     pub(crate) async fn delete_room(
         &self,
         current_user: RequestUser,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         force_delete_reference_if_external_services_fail: bool,
     ) -> Result<(), CaptureApiError> {
         let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
+        // Resolve the room alias to a room id here instead of piping the `RoomIdOrAlias` through the `RoomDeleter`
+        // because the `RoomDeleter` interacts with the auth API, which only accepts room ids, not aliases.
+        let room_id = resolve_room_id(inventory.as_mut(), room_id_or_alias).await?;
         let deleter = RoomDeleter::new(room_id, force_delete_reference_if_external_services_fail);
 
         deleter
@@ -235,14 +261,37 @@ impl ControllerBackend {
         Ok(())
     }
 
-    pub(crate) async fn get_room(&self, room_id: &RoomId) -> Result<RoomResource, CaptureApiError> {
+    pub(crate) async fn verify_room_name(
+        &self,
+        name: RoomName,
+    ) -> Result<PostRoomNameVerifyResponseBody, CaptureApiError> {
+        let settings = self.settings_provider.get();
+
+        // When the suffix is enabled, we can assume that the room name is available because the alias will be unique.
+        if !settings.defaults.room_alias.disable_suffix {
+            return Ok(PostRoomNameVerifyResponseBody { available: true });
+        }
+
+        let mut inventory = self.inventory_provider.get_inventory().await?;
+        let exists = inventory
+            .exists_room(RoomAlias { name, suffix: None }.into())
+            .await?;
+
+        Ok(PostRoomNameVerifyResponseBody { available: !exists })
+    }
+
+    pub(crate) async fn get_room(
+        &self,
+        room_id_or_alias: RoomIdOrAlias,
+    ) -> Result<RoomResource, CaptureApiError> {
         let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let (room, created_by) = inventory.get_room_with_creator(*room_id).await?;
+        let (room, created_by) = inventory.get_room_with_creator(room_id_or_alias).await?;
 
         let room_resource = RoomResource {
             id: room.id,
+            alias: room.alias,
             created_by: created_by.to_public_user_profile(&settings),
             created_at: room.created_at,
             password: room.password,
@@ -256,18 +305,18 @@ impl ControllerBackend {
     pub(crate) async fn get_room_event(
         &self,
         current_user: Option<RequestUser>,
-        room_id: &RoomId,
+        room_id_or_alias: RoomIdOrAlias,
     ) -> Result<GetRoomEventResponseBody, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let event = inventory.get_event_for_room(*room_id).await?;
+        let room = inventory.get_room(room_id_or_alias).await?;
+        let event = inventory.get_event_for_room(room.id.into()).await?;
         let Some(event) = event.as_ref() else {
             return Err(ApiError::not_found().into());
         };
 
         // Naive check that prevents joining events that were created by a user which is since been
         // disabled. The `get_user` method returns 404 not found when the user is disabled.
-        let room = inventory.get_room(*room_id).await?;
         if inventory.get_user(room.created_by).await.is_err() {
             return Err(ApiError::forbidden().into());
         }
@@ -309,7 +358,7 @@ impl ControllerBackend {
         };
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
-        let (room, created_by) = inventory.get_room_with_creator(room_id).await?;
+        let (room, created_by) = inventory.get_room_with_creator(room_id.into()).await?;
         let tariff = self.get_tariff_for_user(created_by.id).await?;
         let invite = inventory.get_room_invite(invite_code).await?;
 

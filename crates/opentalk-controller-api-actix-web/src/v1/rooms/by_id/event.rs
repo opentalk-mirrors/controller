@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! API endpoints under `v1/rooms/{room_id}/event`
+//! API endpoints under `v1/rooms/{room_id_or_alias}/event`
 
 use actix_web::{
     get,
@@ -10,7 +10,10 @@ use actix_web::{
 };
 use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{error::ApiError, rooms::by_room_id::GetRoomEventResponseBody};
-use opentalk_types_common::{events::EventInfo, rooms::RoomId};
+use opentalk_types_common::{
+    events::EventInfo,
+    rooms::{RoomId, RoomIdOrAlias},
+};
 
 use crate::utoipa::responses::{Forbidden, InternalServerError, Unauthorized};
 
@@ -23,7 +26,7 @@ use crate::utoipa::responses::{Forbidden, InternalServerError, Unauthorized};
     operation_id = "get_room_event",
     tag = "api::v1::rooms",
     params(
-        ("room_id" = RoomId, description = "The id of the room"),
+        ("room_id_or_alias" = RoomId, description = "Either the id or the alias of the room"),
     ),
     responses(
         (
@@ -49,12 +52,16 @@ use crate::utoipa::responses::{Forbidden, InternalServerError, Unauthorized};
         ("InviteCode" = []),
     ),
 )]
-#[get("/rooms/{room_id}/event")]
+#[get("/rooms/{room_id_or_alias}/event")]
 pub async fn get(
     service: Data<dyn OpenTalkControllerService>,
     current_user: Option<ReqData<RequestUser>>,
-    room_id: Path<RoomId>,
+    room_id_or_alias: Path<RoomIdOrAlias>,
 ) -> Result<Json<GetRoomEventResponseBody>, ApiError> {
     let user = current_user.map(|user| user.into_inner());
-    Ok(Json(service.get_room_event(user, &room_id).await?))
+    Ok(Json(
+        service
+            .get_room_event(user, room_id_or_alias.into_inner())
+            .await?,
+    ))
 }

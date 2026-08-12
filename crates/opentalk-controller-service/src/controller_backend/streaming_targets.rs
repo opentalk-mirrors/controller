@@ -19,7 +19,7 @@ use opentalk_types_api_v1::{
     },
 };
 use opentalk_types_common::{
-    rooms::RoomId,
+    rooms::RoomIdOrAlias,
     streaming::{
         RoomStreamingTarget, RoomStreamingTargetResource, StreamingKind, StreamingTarget,
         StreamingTargetKind, StreamingTargetKindResource, StreamingTargetResource,
@@ -28,21 +28,24 @@ use opentalk_types_common::{
 };
 use snafu::Report;
 
-use crate::{ControllerBackend, events::notifications::notify_event_invitees_by_room_about_update};
+use crate::{
+    ControllerBackend, controller_backend::utils::resolve_room_id,
+    events::notifications::notify_event_invitees_by_room_about_update,
+};
 
 impl ControllerBackend {
     pub(crate) async fn get_streaming_targets(
         &self,
         user_id: UserId,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         _pagination: &PagePaginationQuery,
     ) -> Result<GetRoomStreamingTargetsResponseBody, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
+        let room = inventory.get_room(room_id_or_alias).await?;
         // TODO: No paginated DB access is done here for now though the API provides pagination parameters
-        let room_streaming_targets = inventory.get_room_streaming_targets(room_id).await?;
+        let room_streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
 
-        let room = inventory.get_room(room_id).await?;
         let with_streaming_key = room.created_by == user_id;
         let room_streaming_target_resources = room_streaming_targets
             .into_iter()
@@ -57,7 +60,7 @@ impl ControllerBackend {
     pub(crate) async fn post_streaming_target(
         &self,
         current_user: RequestUser,
-        room_id: RoomId,
+        room_id_or_alias: RoomIdOrAlias,
         query: StreamingTargetOptionsQuery,
         streaming_target: StreamingTarget,
     ) -> Result<PostRoomStreamingTargetResponseBody, CaptureApiError> {
@@ -68,6 +71,8 @@ impl ControllerBackend {
             .then(|| self.mail_service.as_ref().clone())
             .flatten();
 
+        let room_id = resolve_room_id(inventory.as_mut(), room_id_or_alias).await?;
+
         let room_streaming_target = inventory
             .create_room_streaming_target(room_id, streaming_target)
             .await?;
@@ -75,7 +80,7 @@ impl ControllerBackend {
         if let Some(mail_service) = &mail_service {
             let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
             let current_user = inventory.get_user(current_user.id).await?;
-            let room_tariff = self.get_room_tariff(room_id).await?;
+            let room_tariff = self.get_room_tariff(room_id.into()).await?;
 
             notify_event_invitees_by_room_about_update(
                 &self.user_search_client,
@@ -97,15 +102,19 @@ impl ControllerBackend {
         &self,
         user_id: UserId,
         RoomAndStreamingTargetId {
-            room_id,
+            room_id_or_alias,
             streaming_target_id,
         }: RoomAndStreamingTargetId,
     ) -> Result<GetRoomStreamingTargetResponseBody, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
+        let room = inventory.get_room(room_id_or_alias).await?;
+
         let room_streaming_target = inventory
-            .get_room_streaming_target_record(room_id, streaming_target_id)
+            .get_room_streaming_target_record(room.id, streaming_target_id)
             .await?;
+
+        let with_streaming_key = room.created_by == user_id;
 
         let room_streaming_target = RoomStreamingTarget {
             id: room_streaming_target.id,
@@ -133,8 +142,6 @@ impl ControllerBackend {
             },
         };
 
-        let room = inventory.get_room(room_id).await?;
-        let with_streaming_key = room.created_by == user_id;
         let room_streaming_target_resource =
             build_resource(room_streaming_target, with_streaming_key);
 
@@ -147,7 +154,7 @@ impl ControllerBackend {
         &self,
         current_user: RequestUser,
         RoomAndStreamingTargetId {
-            room_id,
+            room_id_or_alias,
             streaming_target_id,
         }: RoomAndStreamingTargetId,
         query: StreamingTargetOptionsQuery,
@@ -182,7 +189,7 @@ impl ControllerBackend {
 
         let room_streaming_target = inventory
             .update_room_streaming_target(
-                room_id,
+                room_id_or_alias,
                 streaming_target_id,
                 UpdateRoomStreamingTarget {
                     name: streaming_target.name,
@@ -193,6 +200,7 @@ impl ControllerBackend {
                 },
             )
             .await?;
+        let room_id = room_streaming_target.room_id;
 
         let kind = match room_streaming_target.kind {
             StreamingKind::Custom => StreamingTargetKind::Custom {
@@ -224,7 +232,7 @@ impl ControllerBackend {
         if let Some(mail_service) = &mail_service {
             let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
             let current_user = inventory.get_user(current_user.id).await?;
-            let room_tariff = self.get_room_tariff(room_id).await?;
+            let room_tariff = self.get_room_tariff(room_id.into()).await?;
 
             notify_event_invitees_by_room_about_update(
                 &self.user_search_client,
@@ -246,7 +254,7 @@ impl ControllerBackend {
         &self,
         current_user: RequestUser,
         RoomAndStreamingTargetId {
-            room_id,
+            room_id_or_alias,
             streaming_target_id,
         }: RoomAndStreamingTargetId,
         query: StreamingTargetOptionsQuery,
@@ -259,13 +267,14 @@ impl ControllerBackend {
             .flatten();
 
         inventory
-            .delete_room_streaming_target(room_id, streaming_target_id)
+            .delete_room_streaming_target(room_id_or_alias.clone(), streaming_target_id)
             .await?;
 
         if let Some(mail_service) = &mail_service {
             let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
             let current_user = inventory.get_user(current_user.id).await?;
-            let room_tariff = self.get_room_tariff(room_id).await?;
+            let room_id = resolve_room_id(inventory.as_mut(), room_id_or_alias).await?;
+            let room_tariff = self.get_room_tariff(room_id.into()).await?;
 
             notify_event_invitees_by_room_about_update(
                 &self.user_search_client,

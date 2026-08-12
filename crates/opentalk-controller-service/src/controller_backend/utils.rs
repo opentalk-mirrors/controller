@@ -6,11 +6,14 @@ use std::{cmp::Ordering, pin::Pin};
 
 use async_stream::{__private::AsyncStream, stream};
 use futures_util::{Stream, StreamExt};
+use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::{CaptureApiError, TariffResourceExt};
-use opentalk_inventory::{Result, Room, utils::is_room_guest_access_allowed};
+use opentalk_inventory::{Inventory, Result, Room, utils::is_room_guest_access_allowed};
 use opentalk_types_api_v1::error::ApiError;
 use opentalk_types_common::{
-    features::GUESTS_ALLOWED_MODULE_FEATURE_ID, rooms::GuestAccess, tariffs::TariffResource,
+    features::GUESTS_ALLOWED_MODULE_FEATURE_ID,
+    rooms::{GuestAccess, RoomAlias, RoomId, RoomIdOrAlias, RoomName, RoomSuffix},
+    tariffs::TariffResource,
 };
 
 pub(crate) fn interweave_result_streams<'a, T: 'a>(
@@ -107,18 +110,62 @@ pub fn ensure_guest_access_valid(
     Ok(())
 }
 
+pub(crate) fn build_room_alias(name: Option<RoomName>, settings: &Settings) -> Option<RoomAlias> {
+    let name = name?;
+
+    let suffix = if settings.defaults.room_alias.disable_suffix {
+        None
+    } else {
+        Some(RoomSuffix::generate(
+            settings.defaults.room_alias.suffix_length,
+        ))
+    };
+
+    Some(RoomAlias { name, suffix })
+}
+
+/// Resolves a [`RoomIdOrAlias`] into a concrete [`RoomId`].
+///
+/// If the given value is already a [`RoomId`], it is returned directly. Otherwise, the room is looked up by its
+/// alias in the inventory and its ID is returned.
+pub(crate) async fn resolve_room_id(
+    inventory: &mut dyn Inventory,
+    room_id_or_alias: RoomIdOrAlias,
+) -> Result<RoomId, opentalk_inventory::Error> {
+    let id = match room_id_or_alias {
+        RoomIdOrAlias::Id(id) => id,
+        RoomIdOrAlias::Alias(_) => inventory.get_room(room_id_or_alias).await?.id,
+    };
+
+    Ok(id)
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::{BTreeMap, BTreeSet};
 
     use http::StatusCode;
+    use opentalk_controller_settings::{
+        Settings, test_util::settings_provider_from_example_raw_settings,
+    };
     use opentalk_types_common::{
         features::GUESTS_ALLOWED_MODULE_FEATURE_ID,
-        rooms::GuestAccess,
+        rooms::{GuestAccess, RoomName},
         tariffs::{TariffId, TariffModuleResource, TariffResource},
+        utils::ExampleData as _,
     };
+    use pretty_assertions::assert_eq;
 
-    use super::ensure_guest_access_valid;
+    use super::{build_room_alias, ensure_guest_access_valid};
+
+    fn settings_with_room_alias(disable_suffix: bool, suffix_length: u8) -> Settings {
+        let provider = settings_provider_from_example_raw_settings();
+        let mut settings = (*provider.get()).clone();
+        settings.defaults.room_alias.disable_suffix = disable_suffix;
+        settings.defaults.room_alias.suffix_length = suffix_length;
+
+        settings
+    }
 
     fn guests_allowed_tariff() -> TariffResource {
         TariffResource {
@@ -174,5 +221,40 @@ mod tests {
                 .unwrap_err();
         assert_eq!(err.status, StatusCode::FORBIDDEN);
         assert_eq!(err.body.code, "feature_disabled");
+    }
+
+    #[test]
+    fn build_room_alias_returns_none_when_name_is_none() {
+        // Without a name there is no alias, regardless of the suffix configuration.
+        assert_eq!(
+            build_room_alias(None, &settings_with_room_alias(false, 16)),
+            None
+        );
+        assert_eq!(
+            build_room_alias(None, &settings_with_room_alias(true, 16)),
+            None
+        );
+    }
+
+    #[test]
+    fn build_room_alias_omits_suffix_when_disabled() {
+        let name = RoomName::example_data();
+        let settings = settings_with_room_alias(true, 16);
+
+        let alias = build_room_alias(Some(name.clone()), &settings).unwrap();
+
+        assert_eq!(alias.name, name);
+        assert_eq!(alias.suffix, None);
+    }
+
+    #[test]
+    fn build_room_alias_generates_suffix_of_configured_length_when_enabled() {
+        let name = RoomName::example_data();
+        let settings = settings_with_room_alias(false, 20);
+
+        let alias = build_room_alias(Some(name.clone()), &settings).unwrap();
+
+        assert_eq!(alias.name, name);
+        assert_eq!(alias.suffix.unwrap().char_count(), 20);
     }
 }

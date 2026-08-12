@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_types_common::{call_in::CallInId, rooms::RoomId};
+use opentalk_types_common::{
+    call_in::CallInId,
+    rooms::{RoomId, RoomIdOrAlias},
+};
 
 use super::{NewRoomSipConfig, RoomSipConfig, UpdateRoomSipConfig};
 use crate::{Result, Room, User};
@@ -39,5 +42,5 @@ pub trait RoomSipConfigInventory {
     ) -> Result<Option<RoomSipConfig>>;
 
     /// Delete a room SIP config.
-    async fn delete_room_sip_config(&mut self, room_id: RoomId) -> Result<()>;
+    async fn delete_room_sip_config(&mut self, room: RoomIdOrAlias) -> Result<()>;
 }

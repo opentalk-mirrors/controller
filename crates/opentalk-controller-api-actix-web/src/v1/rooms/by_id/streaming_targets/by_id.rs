@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! API endpoints under `v1/rooms/{room_id}/streaming_targets/{streaming_target_id}`
+//! API endpoints under `v1/rooms/{room_id_or_alias}/streaming_targets/{streaming_target_id}`
 
 use actix_web::{
     delete, get, patch,
@@ -57,7 +57,7 @@ use crate::{
         ("BearerAuth" = []),
     ),
 )]
-#[get("/rooms/{room_id}/streaming_targets/{streaming_target_id}")]
+#[get("/rooms/{room_id_or_alias}/streaming_targets/{streaming_target_id}")]
 pub async fn get(
     service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
@@ -106,7 +106,7 @@ pub async fn get(
         ("BearerAuth" = []),
     ),
 )]
-#[patch("/rooms/{room_id}/streaming_targets/{streaming_target_id}")]
+#[patch("/rooms/{room_id_or_alias}/streaming_targets/{streaming_target_id}")]
 pub async fn patch(
     service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,
@@ -162,7 +162,7 @@ pub async fn patch(
         ("BearerAuth" = []),
     ),
 )]
-#[delete("/rooms/{room_id}/streaming_targets/{streaming_target_id}")]
+#[delete("/rooms/{room_id_or_alias}/streaming_targets/{streaming_target_id}")]
 pub async fn delete(
     service: Data<dyn OpenTalkControllerService>,
     current_user: ReqData<RequestUser>,

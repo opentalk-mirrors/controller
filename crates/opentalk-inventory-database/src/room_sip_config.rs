@@ -7,7 +7,10 @@ use opentalk_db_storage as db;
 use opentalk_inventory::{
     NewRoomSipConfig, Room, RoomSipConfig, RoomSipConfigInventory, UpdateRoomSipConfig, User,
 };
-use opentalk_types_common::{call_in::CallInId, rooms::RoomId};
+use opentalk_types_common::{
+    call_in::CallInId,
+    rooms::{RoomId, RoomIdOrAlias},
+};
 use snafu::ResultExt as _;
 
 use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
@@ -82,9 +85,9 @@ impl RoomSipConfigInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn delete_room_sip_config(&mut self, room_id: RoomId) -> Result<()> {
+    async fn delete_room_sip_config(&mut self, room: RoomIdOrAlias) -> Result<()> {
         Ok(
-            db::queries::sip_configs::delete_room_sip_config(&mut self.inner, room_id)
+            db::queries::sip_configs::delete_room_sip_config(&mut self.inner, room)
                 .await
                 .context(DatabaseSnafu)?,
         )

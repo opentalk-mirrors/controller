@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! API endpoints under `v1/rooms/{room_id}/assets/{asset_id}/proxy`
+//! API endpoints under `v1/rooms/{room_id_or_alias}/assets/{asset_id}/proxy`
 
 use actix_web::{
     HttpRequest, HttpResponse, get,
@@ -11,14 +11,14 @@ use actix_web::{
 use futures::TryStreamExt as _;
 use opentalk_controller_service_facade::{AssetDownloadProxyStream, OpenTalkControllerService};
 use opentalk_types_api_v1::error::ApiError;
-use opentalk_types_common::{assets::AssetId, rooms::RoomId};
+use opentalk_types_common::{assets::AssetId, rooms::RoomIdOrAlias};
 use serde::{Deserialize, Serialize};
 
 use crate::utoipa::responses::{
     BinaryData, Forbidden, InternalServerError, NotFound, Unauthorized,
 };
 
-/// Query parameters for *GET /rooms/{room_id}/assets/{asset_id}/proxy*
+/// Query parameters for *GET /rooms/{room_id_or_alias}/assets/{asset_id}/proxy*
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 struct AssetProxyDownloadQuery {
     /// The token required for the asset download
@@ -31,7 +31,7 @@ struct AssetProxyDownloadQuery {
 /// query parameters supplied by the client.
 #[utoipa::path(
     params(
-        ("room_id" = RoomId, description = "The id of the room"),
+        ("room_id_or_alias" = RoomIdOrAlias, description = "Either the id or the alias of the room"),
         ("asset_id" = AssetId, description = "The id of the asset"),
     ),
     responses(
@@ -58,14 +58,14 @@ struct AssetProxyDownloadQuery {
     ),
     security(("BearerAuth" = [])),
 )]
-#[get("/rooms/{room_id}/assets/{asset_id}/proxy")]
+#[get("/rooms/{room_id_or_alias}/assets/{asset_id}/proxy")]
 pub async fn get(
     service: Data<dyn OpenTalkControllerService>,
-    path: Path<(RoomId, AssetId)>,
+    path: Path<(RoomIdOrAlias, AssetId)>,
     req: HttpRequest,
     query: Query<AssetProxyDownloadQuery>,
 ) -> Result<HttpResponse, ApiError> {
-    let (_room_id, asset_id) = path.into_inner();
+    let (_room_id_or_alias, asset_id) = path.into_inner();
     let query = query.into_inner();
 
     let range_header = req

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! API endpoints under `v1/rooms/{room_id}/assets`
+//! API endpoints under `v1/rooms/{room_id_or_alias}/assets`
 
 use actix_web::{
     get, post,
@@ -19,7 +19,7 @@ use opentalk_types_api_v1::{
         PostAssetQuery, PostAssetResponseBody, RoomsByRoomIdAssetsGetResponseBody,
     },
 };
-use opentalk_types_common::{rooms::RoomId, time::Timestamp};
+use opentalk_types_common::{rooms::RoomIdOrAlias, time::Timestamp};
 
 use crate::{
     utoipa::responses::{Forbidden, InternalServerError, NotFound, Unauthorized},
@@ -36,7 +36,7 @@ pub mod by_id;
     operation_id = "room_assets",
     tag = "api::v1::assets",
     params(
-        ("room_id" = RoomId, description = "The id of the room"),
+        ("room_id_or_alias" = RoomIdOrAlias, description = "Either the id or the alias of the room"),
         PagePaginationQuery,
     ),
     responses(
@@ -66,16 +66,16 @@ pub mod by_id;
         ("BearerAuth" = []),
     ),
 )]
-#[get("/rooms/{room_id}/assets")]
+#[get("/rooms/{room_id_or_alias}/assets")]
 pub async fn get(
     service: Data<dyn OpenTalkControllerService>,
-    room_id: Path<RoomId>,
+    room_id_or_alias: Path<RoomIdOrAlias>,
     pagination: Query<PagePaginationQuery>,
 ) -> Result<ApiResponse<RoomsByRoomIdAssetsGetResponseBody>, ApiError> {
     let pagination = pagination.into_inner();
 
     let (assets, asset_count) = service
-        .get_room_assets(room_id.into_inner(), &pagination)
+        .get_room_assets(room_id_or_alias.into_inner(), &pagination)
         .await?;
 
     Ok(ApiResponse::new(assets).with_page_pagination(
@@ -97,7 +97,7 @@ pub async fn get(
         description = "The contents of the file",
     ),
     params(
-        ("room_id" = RoomId, description = "The id of the room"),
+        ("room_id_or_alias" = RoomIdOrAlias, description = "Either the id or the alias of the room"),
         PostAssetQuery,
     ),
     responses(
@@ -127,15 +127,15 @@ pub async fn get(
         ("BearerAuth" = []),
     ),
 )]
-#[post("/rooms/{room_id}/assets")]
+#[post("/rooms/{room_id_or_alias}/assets")]
 pub async fn post(
     service: Data<dyn OpenTalkControllerService>,
     notifier: Data<dyn StorageNotifier>,
-    path: Path<RoomId>,
+    path: Path<RoomIdOrAlias>,
     query: Query<PostAssetQuery>,
     data: Payload,
 ) -> Result<Json<PostAssetResponseBody>, ApiError> {
-    let room_id = path.into_inner();
+    let room_id_or_alias = path.into_inner();
     let query = query.into_inner();
 
     let filename = NewAssetFileName::new_with_event_title(
@@ -153,7 +153,7 @@ pub async fn post(
     let (resource, _) = service
         .create_room_asset(
             notifier.as_ref(),
-            room_id,
+            room_id_or_alias,
             filename,
             query.namespace,
             Box::new(data),
