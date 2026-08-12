@@ -6,9 +6,9 @@
 
 use actix_web::{
     get,
-    web::{Data, Json, Path},
+    web::{Data, Json, Path, ReqData},
 };
-use opentalk_controller_service_facade::OpenTalkControllerService;
+use opentalk_controller_service_facade::{OpenTalkControllerService, RequestUser};
 use opentalk_types_api_v1::{error::ApiError, rooms::by_room_id::GetRoomEventResponseBody};
 use opentalk_types_common::{events::EventInfo, rooms::RoomId};
 
@@ -52,7 +52,9 @@ use crate::utoipa::responses::{Forbidden, InternalServerError, Unauthorized};
 #[get("/rooms/{room_id}/event")]
 pub async fn get(
     service: Data<dyn OpenTalkControllerService>,
+    current_user: Option<ReqData<RequestUser>>,
     room_id: Path<RoomId>,
 ) -> Result<Json<GetRoomEventResponseBody>, ApiError> {
-    Ok(Json(service.get_room_event(&room_id).await?))
+    let user = current_user.map(|user| user.into_inner());
+    Ok(Json(service.get_room_event(user, &room_id).await?))
 }

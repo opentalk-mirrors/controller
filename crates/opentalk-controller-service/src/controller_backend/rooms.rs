@@ -255,6 +255,7 @@ impl ControllerBackend {
 
     pub(crate) async fn get_room_event(
         &self,
+        current_user: Option<RequestUser>,
         room_id: &RoomId,
     ) -> Result<GetRoomEventResponseBody, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
@@ -271,13 +272,24 @@ impl ControllerBackend {
             return Err(ApiError::forbidden().into());
         }
 
+        let is_privileged_user = match &current_user {
+            Some(user) => {
+                user.id == room.created_by
+                    || inventory
+                        .get_event_invite_for_user_and_room(user.id, room.id)
+                        .await?
+                        .is_some()
+            }
+            None => false,
+        };
+
         let event_info = EventInfo {
             id: event.id,
             room_id: event.room,
             title: event.title.clone(),
             is_adhoc: event.is_adhoc,
             e2e_encryption: room.e2e_encryption,
-            password_required: room.password.is_some(),
+            password_required: room.password.is_some() && !is_privileged_user,
         };
 
         Ok(GetRoomEventResponseBody(event_info))
