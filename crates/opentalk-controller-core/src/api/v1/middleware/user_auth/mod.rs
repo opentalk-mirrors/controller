@@ -40,8 +40,8 @@ mod bearer_or_invite_code;
 mod provisioning;
 
 /// Route pattern for the room-start endpoint. Kept in sync with the
-/// `#[post("/rooms/{room_id}/start")]` handler; the pattern includes the `/v1` scope prefix.
-const ROOM_START_PATTERN: &str = "/v1/rooms/{room_id}/start";
+/// `#[post("/rooms/{room_id_or_alias}/start")]` handler; the pattern includes the `/v1` scope prefix.
+const ROOM_START_PATTERN: &str = "/v1/rooms/{room_id_or_alias}/start";
 
 /// Maximum size (in bytes) of the body we are willing to buffer when peeking.
 const PEEK_BODY_LIMIT: usize = 2 * 1024 * 1024;
