@@ -25,7 +25,6 @@ use opentalk_controller_service::oidc::{Cache, OidcTokenHandler};
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::SettingsProvider;
 use opentalk_inventory::{InventoryProvider, User};
-use opentalk_types_common::rooms::invite_codes::InviteCode;
 use tracing_futures::Instrument;
 
 use crate::api::v1::middleware::user_auth::bearer_or_invite_code::BearerOrInviteCode;
@@ -124,16 +123,16 @@ where
 
         enum AccessTokenOrInviteCode {
             AccessToken(AccessToken),
-            InviteCode(InviteCode),
+
+            /// Legacy authentication
+            InviteCode,
         }
 
         let access_token_or_invite_code = match auth.into_scheme() {
             BearerOrInviteCode::Bearer(bearer) => {
                 AccessTokenOrInviteCode::AccessToken(AccessToken::new(bearer.token().to_string()))
             }
-            BearerOrInviteCode::InviteCode(invite_code) => {
-                AccessTokenOrInviteCode::InviteCode(invite_code)
-            }
+            BearerOrInviteCode::InviteCode => AccessTokenOrInviteCode::InviteCode,
         };
 
         Box::pin(
@@ -164,11 +163,7 @@ where
                             Err(err) => Ok(req.into_response(err.error_response())),
                         }
                     }
-                    AccessTokenOrInviteCode::InviteCode(current_invite_code) => {
-                        req.extensions_mut().insert(current_invite_code);
-                        req.extensions_mut().insert(Some(current_invite_code));
-                        service.call(req).await
-                    }
+                    AccessTokenOrInviteCode::InviteCode => service.call(req).await,
                 }
             }
             .instrument(tracing::trace_span!("OidcAuthMiddleware::async::call")),
