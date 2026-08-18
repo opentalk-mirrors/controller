@@ -24,9 +24,6 @@ version = 2
 # The url(s) of the advisory databases to use
 db-urls = ["https://github.com/rustsec/advisory-db"]
 # The lint level for crates that have been yanked from their source registry
-yanked = "deny"
-# A list of advisory IDs to ignore. Note that ignored advisories will still
-# output a note when they are encountered.
 ignore = [
   # | Marvin Attack: potential key recovery through timing sidechannels
   # | in `rsa 0.9.3`.
@@ -235,7 +232,18 @@ ignore = [
 
   # `rustybuzz` is unmaintained
   "RUSTSEC-2026-0206",
-]
+
+  # The h2 crate, used internally by hyper, had a flaw that would accept and queue empty DATA frames without limit.
+  # If streams were not actively drained, this could lead to unbounded memory usage, or a panic if the length overflows.
+  # Low severity.
+  # 
+  # Announcement: https://github.com/hyperium/hyper/security/advisories/GHSA-q83h-524g-xf6h
+  # 
+  # This version of h2 is a transient dependency pulled in by actix-web.
+  "RUSTSEC-2026-0258",
+] # A list of advisory IDs to ignore. Note that ignored advisories will still
+yanked = "deny"
+# output a note when they are encountered.
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
 # will still output a note when they are encountered.
