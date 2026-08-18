@@ -57,7 +57,7 @@ pub async fn notify_event_invitees_by_room_about_update(
     room_id: RoomId,
     room_tariff: &TariffResource,
 ) -> Result<(), CaptureApiError> {
-    let event = inventory.get_event_for_room(room_id.into()).await?;
+    let event = inventory.get_event_for_room(&room_id.into()).await?;
 
     if let Some(event) = event {
         let (

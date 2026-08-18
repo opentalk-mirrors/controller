@@ -19,7 +19,7 @@ use crate::{
 
 pub async fn is_room_owner(
     conn: &mut DbConnection,
-    room: RoomIdOrAlias,
+    room: &RoomIdOrAlias,
     user_id: UserId,
 ) -> Result<bool> {
     diesel::select(diesel::dsl::exists(
@@ -34,7 +34,7 @@ pub async fn is_room_owner(
 
 pub async fn get_room_user_role(
     conn: &mut DbConnection,
-    room: RoomIdOrAlias,
+    room: &RoomIdOrAlias,
     user_id: UserId,
 ) -> Result<Option<InviteRole>> {
     rooms::table
@@ -57,7 +57,7 @@ pub async fn get_room_user_role(
 /// [`RoomId`]: opentalk_types_common::rooms::RoomId
 pub async fn get_room_invite_and_tariff(
     conn: &mut DbConnection,
-    room: RoomIdOrAlias,
+    room: &RoomIdOrAlias,
     invite_code: InviteCode,
 ) -> Result<Option<(Room, Invite, Tariff)>> {
     invites::table

@@ -45,7 +45,7 @@ async fn delete_room_sip_config_by_id_removes_the_config() {
         .unwrap();
     assert_eq!(fetched.room, room.id);
 
-    db::queries::sip_configs::delete_room_sip_config(&mut conn, room.id.into())
+    db::queries::sip_configs::delete_room_sip_config(&mut conn, &room.id.into())
         .await
         .unwrap();
 
@@ -77,7 +77,7 @@ async fn delete_room_sip_config_by_alias_removes_the_config() {
 
     db::queries::sip_configs::delete_room_sip_config(
         &mut conn,
-        RoomAlias {
+        &RoomAlias {
             name,
             suffix: Some(suffix),
         }
@@ -113,7 +113,7 @@ async fn delete_room_sip_config_only_deletes_the_matching_room() {
         .await
         .unwrap();
 
-    db::queries::sip_configs::delete_room_sip_config(&mut conn, target.id.into())
+    db::queries::sip_configs::delete_room_sip_config(&mut conn, &target.id.into())
         .await
         .unwrap();
 

@@ -44,7 +44,7 @@ async fn get_asset_for_room_by_id_returns_the_asset() {
         .await
         .unwrap();
 
-    let fetched = db::queries::assets::get_asset_for_room(&mut conn, room.id.into(), created.id)
+    let fetched = db::queries::assets::get_asset_for_room(&mut conn, &room.id.into(), created.id)
         .await
         .unwrap();
 
@@ -73,7 +73,7 @@ async fn get_asset_for_room_by_alias_returns_the_asset() {
 
     let fetched = db::queries::assets::get_asset_for_room(
         &mut conn,
-        RoomAlias {
+        &RoomAlias {
             name,
             suffix: Some(suffix),
         }
@@ -108,7 +108,7 @@ async fn get_asset_for_room_by_wrong_room_id_returns_not_found() {
             .await
             .unwrap();
 
-    let err = db::queries::assets::get_asset_for_room(&mut conn, other_room.id.into(), created.id)
+    let err = db::queries::assets::get_asset_for_room(&mut conn, &other_room.id.into(), created.id)
         .await
         .unwrap_err();
 
@@ -150,7 +150,7 @@ async fn get_asset_for_room_by_wrong_room_alias_returns_not_found() {
 
     let err = db::queries::assets::get_asset_for_room(
         &mut conn,
-        RoomAlias {
+        &RoomAlias {
             name,
             suffix: Some(other_suffix),
         }

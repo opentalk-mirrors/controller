@@ -37,7 +37,7 @@ pub trait EventInventory {
     /// Get an event by the room id.
     async fn get_event_for_room(
         &mut self,
-        room_id_or_alias: RoomIdOrAlias,
+        room_id_or_alias: &RoomIdOrAlias,
     ) -> Result<Option<Event>>;
 
     /// Get an event id by the room id.

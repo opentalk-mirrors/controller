@@ -158,7 +158,7 @@ pub(crate) async fn get_upload(
                 &storage,
                 storage_connection_provider.as_ref(),
                 notifier.as_ref(),
-                room_id.into(),
+                &room_id.into(),
                 Some(RECORDING_MODULE_ID),
                 filename,
                 receiver_stream,

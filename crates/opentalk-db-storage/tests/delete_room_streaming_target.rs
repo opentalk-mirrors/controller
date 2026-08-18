@@ -29,7 +29,7 @@ async fn delete_room_streaming_target_by_id_removes_the_target() {
 
     db::queries::streaming_targets::delete_room_streaming_target(
         &mut conn,
-        room.id.into(),
+        &room.id.into(),
         target_id,
     )
     .await
@@ -61,7 +61,7 @@ async fn delete_room_streaming_target_by_alias_removes_the_target() {
 
     db::queries::streaming_targets::delete_room_streaming_target(
         &mut conn,
-        RoomAlias {
+        &RoomAlias {
             name,
             suffix: Some(suffix),
         }
@@ -96,7 +96,7 @@ async fn delete_room_streaming_target_only_affects_the_matching_room() {
     // Deleting the target while filtering by the wrong room must not remove it.
     db::queries::streaming_targets::delete_room_streaming_target(
         &mut conn,
-        other.id.into(),
+        &other.id.into(),
         target_id,
     )
     .await

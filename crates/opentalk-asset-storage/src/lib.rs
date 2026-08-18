@@ -150,7 +150,7 @@ pub async fn save_asset<E>(
     storage: &ObjectStorage,
     inventory_provider: &dyn InventoryProvider,
     storage_notifier: &dyn StorageNotifier,
-    room: RoomIdOrAlias,
+    room: &RoomIdOrAlias,
     namespace: Option<ModuleId>,
     mut filename: NewAssetFileName,
     data: impl Stream<Item = Result<Bytes, E>> + Unpin,
@@ -191,7 +191,7 @@ where
             .context(InventoryConnectionSnafu)?;
         if filename.event_title.is_none() {
             filename.event_title = inventory
-                .get_event_for_room(room.id.into())
+                .get_event_for_room(&room.id.into())
                 .await
                 .context(InventoryQuerySnafu)?
                 .map(|e| e.title);
@@ -280,7 +280,7 @@ async fn insert_asset_into_inventory(
 }
 
 async fn prepare_storage(
-    room: RoomIdOrAlias,
+    room: &RoomIdOrAlias,
     inventory: &mut dyn Inventory,
 ) -> Result<(Room, Quota), AssetError> {
     let room = inventory
@@ -316,7 +316,7 @@ pub async fn delete_asset(
     storage: &ObjectStorage,
     inventory_provider: &dyn InventoryProvider,
     storage_notifier: &dyn StorageNotifier,
-    room: RoomIdOrAlias,
+    room: &RoomIdOrAlias,
     asset_id: AssetId,
 ) -> Result<()> {
     let mut inventory = inventory_provider

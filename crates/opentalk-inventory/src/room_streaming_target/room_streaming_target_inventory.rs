@@ -35,7 +35,7 @@ pub trait RoomStreamingTargetInventory {
     /// Update a room streaming target.
     async fn update_room_streaming_target(
         &mut self,
-        room: RoomIdOrAlias,
+        room: &RoomIdOrAlias,
         streaming_target_id: StreamingTargetId,
         streaming_target: UpdateRoomStreamingTarget,
     ) -> Result<RoomStreamingTargetRecord>;
@@ -43,7 +43,7 @@ pub trait RoomStreamingTargetInventory {
     /// Update a room streaming target.
     async fn delete_room_streaming_target(
         &mut self,
-        room: RoomIdOrAlias,
+        room: &RoomIdOrAlias,
         streaming_target_id: StreamingTargetId,
     ) -> Result<()>;
 

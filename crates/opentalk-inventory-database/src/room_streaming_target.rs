@@ -67,7 +67,7 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
 
     async fn update_room_streaming_target(
         &mut self,
-        room: RoomIdOrAlias,
+        room: &RoomIdOrAlias,
         streaming_target_id: StreamingTargetId,
         streaming_target: UpdateRoomStreamingTarget,
     ) -> Result<RoomStreamingTargetRecord> {
@@ -86,7 +86,7 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
 
     async fn delete_room_streaming_target(
         &mut self,
-        room: RoomIdOrAlias,
+        room: &RoomIdOrAlias,
         streaming_target_id: StreamingTargetId,
     ) -> Result<()> {
         Ok(

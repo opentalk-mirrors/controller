@@ -29,7 +29,7 @@ use crate::{
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_asset_for_room(
     conn: &mut DbConnection,
-    room: RoomIdOrAlias,
+    room: &RoomIdOrAlias,
     asset_id: AssetId,
 ) -> Result<Asset> {
     //FIXME: The inner_joins below (as well as the room parameter) can be removed when assets have their own
@@ -70,7 +70,7 @@ pub async fn count_all_assets(conn: &mut DbConnection) -> Result<i64> {
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_all_assets_for_room_paginated(
     conn: &mut DbConnection,
-    room: RoomIdOrAlias,
+    room: &RoomIdOrAlias,
     limit: PageSize,
     page: Page,
 ) -> Result<(Vec<Asset>, ItemCount)> {

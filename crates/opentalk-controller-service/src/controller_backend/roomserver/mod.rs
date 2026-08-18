@@ -343,10 +343,10 @@ pub(crate) async fn build_room_parameters(
     room_resource: RoomResource,
     module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
 ) -> Result<RoomParameters, CaptureApiError> {
-    let room = inventory.get_room(room_resource.id.into()).await?;
+    let room = inventory.get_room(&room_resource.id.into()).await?;
 
     let db_event = inventory
-        .get_event_for_room(room_resource.id.into())
+        .get_event_for_room(&room_resource.id.into())
         .await?;
     let show_meeting_details = db_event
         .as_ref()
@@ -541,7 +541,7 @@ pub(crate) async fn override_module_settings(
     room_id: RoomId,
     module_settings: &mut ModuleSettings,
 ) -> Result<(), CaptureApiError> {
-    let Some(event) = inventory.get_event_for_room(room_id.into()).await? else {
+    let Some(event) = inventory.get_event_for_room(&room_id.into()).await? else {
         return Ok(());
     };
 

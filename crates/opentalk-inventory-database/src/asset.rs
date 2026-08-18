@@ -45,7 +45,7 @@ impl AssetInventory for DatabaseConnection {
     #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_asset_for_room(
         &mut self,
-        room: RoomIdOrAlias,
+        room: &RoomIdOrAlias,
         asset_id: AssetId,
     ) -> Result<Asset> {
         Ok(
@@ -68,7 +68,7 @@ impl AssetInventory for DatabaseConnection {
     #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_assets_for_room_paginated(
         &mut self,
-        room: RoomIdOrAlias,
+        room: &RoomIdOrAlias,
         per_page: PageSize,
         page: Page,
     ) -> Result<(Vec<Asset>, ItemCount)> {

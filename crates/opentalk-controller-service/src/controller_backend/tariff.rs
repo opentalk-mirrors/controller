@@ -31,7 +31,7 @@ impl ControllerBackend {
     ) -> Result<TariffResource, CaptureApiError> {
         let tariff = {
             let mut inventory = self.inventory_provider.get_inventory().await?;
-            let room = inventory.get_room(room).await?;
+            let room = inventory.get_room(&room).await?;
             inventory.get_tariff_for_user(room.created_by).await
         }?;
 

@@ -72,40 +72,41 @@ impl AuthorizerBackend for OpenTalkAuthorizerBackend {
                     .await
             }
             Resource::Rooms => Ok(self.authorize_rooms(subjects).await),
-            Resource::Room(room_id) => self.authorize_room(subjects, method, room_id).await,
+            Resource::Room(room_id) => self.authorize_room(subjects, method, &room_id).await,
             Resource::RoomEvent(room_id_or_alias) => {
-                self.authorize_room_event(subjects, method, room_id_or_alias)
+                self.authorize_room_event(subjects, method, &room_id_or_alias)
                     .await
             }
             Resource::RoomNameVerify => Ok(Self::authorize_room_name_verify(subjects)),
             Resource::RoomInvites(room_id) => {
-                self.authorize_room_invites(subjects, method, room_id).await
+                self.authorize_room_invites(subjects, method, &room_id)
+                    .await
             }
             Resource::RoomInviteCode(room_id, invite_code) => {
                 self.authorize_room_invite_code(subjects, method, room_id, invite_code)
                     .await
             }
             Resource::RoomAssets(room_id) => {
-                self.authorize_room_assets(subjects, method, room_id).await
+                self.authorize_room_assets(subjects, method, &room_id).await
             }
             Resource::RoomAsset(room_id, _) => {
-                self.authorize_room_asset(subjects, method, room_id).await
+                self.authorize_room_asset(subjects, method, &room_id).await
             }
             Resource::RoomAssetDownload(room_id, _) => {
                 self.authorize_room_asset_download(subjects, method, room_id)
                     .await
             }
             Resource::RoomStreamingTargets(room_id) => {
-                self.authorize_room_streaming_targets(subjects, method, room_id)
+                self.authorize_room_streaming_targets(subjects, method, &room_id)
                     .await
             }
             Resource::RoomStreamingTarget(room_id, _) => {
-                self.authorize_room_streaming_target(subjects, method, room_id)
+                self.authorize_room_streaming_target(subjects, method, &room_id)
                     .await
             }
-            Resource::RoomSip(room_id) => self.authorize_room_sip(subjects, method, room_id).await,
+            Resource::RoomSip(room_id) => self.authorize_room_sip(subjects, method, &room_id).await,
             Resource::RoomStart(room_id_or_alias) => {
-                self.authorize_room_start(subjects, method, room_id_or_alias)
+                self.authorize_room_start(subjects, method, &room_id_or_alias)
                     .await
             }
             Resource::RoomStartInvited(_) => Ok(Self::authorize_room_start_invited()),
@@ -115,7 +116,7 @@ impl AuthorizerBackend for OpenTalkAuthorizerBackend {
                 Ok(Self::authorize_room_asset_download_proxy())
             }
             Resource::RoomTariff(room_id) => {
-                self.authorize_room_tariff(subjects, method, room_id).await
+                self.authorize_room_tariff(subjects, method, &room_id).await
             }
             Resource::UserFind => Ok(self.authorize_user_find(subjects, method)),
             Resource::UserMe => Ok(self.authorize_user_me(subjects)),

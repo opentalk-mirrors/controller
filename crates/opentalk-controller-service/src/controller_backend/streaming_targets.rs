@@ -42,7 +42,7 @@ impl ControllerBackend {
     ) -> Result<GetRoomStreamingTargetsResponseBody, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let room = inventory.get_room(room_id_or_alias).await?;
+        let room = inventory.get_room(&room_id_or_alias).await?;
         // TODO: No paginated DB access is done here for now though the API provides pagination parameters
         let room_streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
 
@@ -71,7 +71,7 @@ impl ControllerBackend {
             .then(|| self.mail_service.as_ref().clone())
             .flatten();
 
-        let room_id = resolve_room_id(inventory.as_mut(), room_id_or_alias).await?;
+        let room_id = resolve_room_id(inventory.as_mut(), &room_id_or_alias).await?;
 
         let room_streaming_target = inventory
             .create_room_streaming_target(room_id, streaming_target)
@@ -108,7 +108,7 @@ impl ControllerBackend {
     ) -> Result<GetRoomStreamingTargetResponseBody, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let room = inventory.get_room(room_id_or_alias).await?;
+        let room = inventory.get_room(&room_id_or_alias).await?;
 
         let room_streaming_target = inventory
             .get_room_streaming_target_record(room.id, streaming_target_id)
@@ -189,7 +189,7 @@ impl ControllerBackend {
 
         let room_streaming_target = inventory
             .update_room_streaming_target(
-                room_id_or_alias,
+                &room_id_or_alias,
                 streaming_target_id,
                 UpdateRoomStreamingTarget {
                     name: streaming_target.name,
@@ -267,13 +267,13 @@ impl ControllerBackend {
             .flatten();
 
         inventory
-            .delete_room_streaming_target(room_id_or_alias.clone(), streaming_target_id)
+            .delete_room_streaming_target(&room_id_or_alias, streaming_target_id)
             .await?;
 
         if let Some(mail_service) = &mail_service {
             let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
             let current_user = inventory.get_user(current_user.id).await?;
-            let room_id = resolve_room_id(inventory.as_mut(), room_id_or_alias).await?;
+            let room_id = resolve_room_id(inventory.as_mut(), &room_id_or_alias).await?;
             let room_tariff = self.get_room_tariff(room_id.into()).await?;
 
             notify_event_invitees_by_room_about_update(

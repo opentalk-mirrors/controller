@@ -44,7 +44,7 @@ async fn get_room_by_id_returns_the_room() {
             .await
             .unwrap();
 
-    let fetched = db::queries::rooms::get_room(&mut conn, created.id.into())
+    let fetched = db::queries::rooms::get_room(&mut conn, &created.id.into())
         .await
         .unwrap();
 
@@ -81,7 +81,7 @@ async fn get_room_by_alias_with_suffix_matches_name_and_suffix() {
 
     let fetched = db::queries::rooms::get_room(
         &mut conn,
-        RoomAlias {
+        &RoomAlias {
             name,
             suffix: Some(suffix),
         }
@@ -120,7 +120,7 @@ async fn get_room_by_alias_without_suffix_matches_null_suffix_only() {
     .await
     .unwrap();
 
-    let fetched = db::queries::rooms::get_room(&mut conn, RoomAlias { name, suffix: None }.into())
+    let fetched = db::queries::rooms::get_room(&mut conn, &RoomAlias { name, suffix: None }.into())
         .await
         .unwrap();
 
@@ -135,7 +135,7 @@ async fn get_room_by_alias_returns_not_found_when_absent() {
 
     let err = db::queries::rooms::get_room(
         &mut conn,
-        RoomAlias {
+        &RoomAlias {
             name: RoomName::example_data(),
             suffix: None,
         }
@@ -165,7 +165,7 @@ async fn get_room_with_creator_by_alias_returns_room_and_creator() {
 
     let (room, creator) = db::queries::rooms::get_room_with_creator(
         &mut conn,
-        RoomAlias {
+        &RoomAlias {
             name,
             suffix: Some(suffix),
         }
@@ -190,7 +190,7 @@ async fn exists_room_reflects_presence() {
     // Nothing exists yet.
     let exists_before = db::queries::rooms::exists_room(
         &mut conn,
-        RoomAlias {
+        &RoomAlias {
             name: name.clone(),
             suffix: None,
         }
@@ -215,7 +215,7 @@ async fn exists_room_reflects_presence() {
     // The `suffix: None` lookup must not spuriously match the suffixed room.
     let exists_null = db::queries::rooms::exists_room(
         &mut conn,
-        RoomAlias {
+        &RoomAlias {
             name: name.clone(),
             suffix: None,
         }
@@ -231,7 +231,7 @@ async fn exists_room_reflects_presence() {
         .unwrap();
 
     let exists_after =
-        db::queries::rooms::exists_room(&mut conn, RoomAlias { name, suffix: None }.into())
+        db::queries::rooms::exists_room(&mut conn, &RoomAlias { name, suffix: None }.into())
             .await
             .unwrap();
     assert!(exists_after);
@@ -253,7 +253,7 @@ async fn search_by_alias_with_suffix_does_not_match_room_without_suffix() {
     let suffix = Some(RoomSuffix::generate(SUFFIX_LENGTH));
     let err = db::queries::rooms::get_room(
         &mut conn,
-        RoomAlias {
+        &RoomAlias {
             name: name.clone(),
             suffix: suffix.clone(),
         }
@@ -263,7 +263,7 @@ async fn search_by_alias_with_suffix_does_not_match_room_without_suffix() {
     .unwrap_err();
     assert!(err.is_not_found());
 
-    let exists = db::queries::rooms::exists_room(&mut conn, RoomAlias { name, suffix }.into())
+    let exists = db::queries::rooms::exists_room(&mut conn, &RoomAlias { name, suffix }.into())
         .await
         .unwrap();
     assert!(!exists);
