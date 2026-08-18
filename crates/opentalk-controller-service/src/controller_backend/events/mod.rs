@@ -34,7 +34,7 @@ use opentalk_types_api_v1::{
         EventExceptionResource, EventInvitee, EventInviteeProfile, EventOptionsQuery,
         EventOrException, EventResource, EventResourceDate, EventResourceDateKind, EventRoomInfo,
         EventStatus, ExceptionMarker, GetEventQuery, GetEventsCursorData, GetEventsQuery,
-        PatchEventBody, PatchEventDateKind, PatchEventQuery, PostEventsBody,
+        PatchEventBody, PatchEventBodyRoom, PatchEventDateKind, PatchEventQuery, PostEventsBody,
         PublicInviteUserProfile, TimeDependentMarker,
     },
     pagination::Cursor,
@@ -787,19 +787,21 @@ impl ControllerBackend {
         let tariff = self.build_tariff_resource(&tariff)?;
 
         // Update the event's room if at least one of the fields is set
-        let room = if patch.room.room_name.is_some()
-            || patch.room.password.is_some()
-            || patch.room.waiting_room.is_some()
-            || patch.room.guest_access.is_some()
-            || patch.room.e2e_encryption.is_some()
-        {
+        let room = if !patch.room.is_empty() {
+            let PatchEventBodyRoom {
+                room_name,
+                password,
+                waiting_room,
+                guest_access,
+                e2e_encryption,
+            } = patch.room.clone();
             self.update_room(
                 event.room.into(),
-                patch.room.room_name.clone(),
-                patch.room.password.clone(),
-                patch.room.waiting_room,
-                patch.room.guest_access,
-                patch.room.e2e_encryption,
+                room_name,
+                password,
+                waiting_room,
+                guest_access,
+                e2e_encryption,
             )
             .await?
         } else {
