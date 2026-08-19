@@ -71,7 +71,7 @@ pub use opentalk_inventory_common::{
     error::{Error, InventoryBackendError},
 };
 pub use room::{NewRoom, Room, RoomInventory, UpdateRoom};
-pub use room_invite::{RoomInvite, RoomInviteInventory, RoomInviteWithUsers};
+pub use room_invite::{RoomInvite, RoomInviteInventory};
 pub use room_sip_config::{
     NewRoomSipConfig, RoomSipConfig, RoomSipConfigInventory, UpdateRoomSipConfig,
 };

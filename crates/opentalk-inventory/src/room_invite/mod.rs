@@ -6,8 +6,6 @@
 
 mod room_invite;
 mod room_invite_inventory;
-mod room_invite_with_users;
 
 pub use room_invite::RoomInvite;
 pub use room_invite_inventory::RoomInviteInventory;
-pub use room_invite_with_users::RoomInviteWithUsers;

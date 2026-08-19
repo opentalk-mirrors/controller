@@ -4,12 +4,10 @@
 
 use opentalk_database::DatabaseError;
 use opentalk_db_storage as db;
-use opentalk_inventory::{RoomInvite, RoomInviteInventory, RoomInviteWithUsers};
+use opentalk_inventory::{RoomInvite, RoomInviteInventory};
 use opentalk_types_common::{
-    pagination::{ItemCount, Page, PageSize},
     rooms::{RoomId, invite_codes::InviteCode},
     time::Timestamp,
-    users::UserId,
 };
 use snafu::ResultExt as _;
 
@@ -24,73 +22,6 @@ impl RoomInviteInventory for DatabaseConnection {
             Err(DatabaseError::NotFound) => Err(Error::NotFound),
             Err(err) => Err(err).context(DatabaseSnafu)?,
         }
-    }
-
-    async fn get_all_room_invites(&mut self) -> Result<Vec<RoomInvite>> {
-        Ok(db::queries::invites::get_all_invites(&mut self.inner)
-            .await
-            .context(DatabaseSnafu)?
-            .into_iter()
-            .map(Into::into)
-            .collect())
-    }
-
-    #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_room_invites_updated_by(&mut self, user_id: UserId) -> Result<Vec<RoomInvite>> {
-        Ok(
-            db::queries::invites::get_room_invites_updated_by(&mut self.inner, user_id)
-                .await
-                .context(DatabaseSnafu)?
-                .into_iter()
-                .map(Into::into)
-                .collect(),
-        )
-    }
-
-    #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_room_invites_paginated_with_creator_and_updater(
-        &mut self,
-        room_id: RoomId,
-        limit: PageSize,
-        page: Page,
-    ) -> Result<(Vec<RoomInviteWithUsers>, ItemCount)> {
-        let (invites, overall) =
-            db::queries::invites::get_room_invites_paginated_with_creator_and_updater(
-                &mut self.inner,
-                room_id,
-                limit,
-                page,
-            )
-            .await
-            .context(DatabaseSnafu)?;
-        Ok((
-            invites
-                .into_iter()
-                .map(|(invite, created_by, updated_by)| {
-                    RoomInviteWithUsers::new(invite.into(), created_by.into(), updated_by.into())
-                })
-                .collect(),
-            overall,
-        ))
-    }
-
-    #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_room_invite_with_creator_and_updater(
-        &mut self,
-        invite_code: InviteCode,
-    ) -> Result<RoomInviteWithUsers> {
-        let (invite, created_by, updated_by) =
-            db::queries::invites::get_room_invite_with_creator_and_updater(
-                &mut self.inner,
-                invite_code,
-            )
-            .await
-            .context(DatabaseSnafu)?;
-        Ok(RoomInviteWithUsers::new(
-            invite.into(),
-            created_by.into(),
-            updated_by.into(),
-        ))
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
