@@ -742,15 +742,6 @@ impl utoipa::Modify for SecurityAddon {
             "BearerAuth",
             SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer)),
         );
-        // TODO: this is strictly speaking no bearer authentication, so we
-        // need to find out whether we can properly describe what we implemented with
-        // the `Authorization: InviteCode …` header.
-        // Supported authentication schemes:
-        // https://www.iana.org/assignments/http-authschemes/http-authschemes.xhtml
-        components.add_security_scheme(
-            "InviteCode",
-            SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer)),
-        );
     }
 }
 

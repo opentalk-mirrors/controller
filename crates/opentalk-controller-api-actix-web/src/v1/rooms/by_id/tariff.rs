@@ -45,7 +45,6 @@ use crate::utoipa::responses::{Forbidden, InternalServerError, Unauthorized};
     ),
     security(
         ("BearerAuth" = []),
-        ("InviteCode" = []),
     ),
 )]
 #[get("/rooms/{room_id_or_alias}/tariff")]
