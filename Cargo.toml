@@ -151,7 +151,7 @@ tracing = "0.1"
 tracing-opentelemetry = "0.33.0"
 url = "2"
 utoipa = "5"
-utoipa-swagger-ui = "9"
+utoipa-swagger-ui = { version = "9", features = ["vendored"] }
 uuid = "1"
 yaml-rust2 = "0.11.0"
 

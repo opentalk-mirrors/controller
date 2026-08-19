@@ -12,7 +12,7 @@ WORKDIR /controller
 
 ADD . /controller
 
-RUN apt-get --update -y full-upgrade && apt-get install --no-install-recommends -y libpq-dev protobuf-compiler curl
+RUN apt-get --update -y full-upgrade && apt-get install --no-install-recommends -y libpq-dev protobuf-compiler
 
 RUN cargo auditable build --release --locked --package opentalk-controller
 
