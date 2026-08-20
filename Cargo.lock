@@ -6028,7 +6028,6 @@ name = "opentalk-inventory"
 version = "0.35.0-alpha"
 dependencies = [
  "async-trait",
- "bigdecimal",
  "chrono",
  "chrono-tz",
  "clap",
@@ -6058,7 +6057,6 @@ version = "0.35.0-alpha"
 dependencies = [
  "async-stream",
  "async-trait",
- "bigdecimal",
  "chrono",
  "diesel-async",
  "futures-util",

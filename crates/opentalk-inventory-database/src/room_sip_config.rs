@@ -27,19 +27,6 @@ impl RoomSipConfigInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_room_sip_config_with_room(
-        &mut self,
-        call_in_id: CallInId,
-    ) -> Result<Option<(RoomSipConfig, Room)>> {
-        Ok(
-            db::queries::sip_configs::get_room_sip_config_with_room(&mut self.inner, &call_in_id)
-                .await
-                .context(DatabaseSnafu)?
-                .map(|(sip_config, room)| (sip_config.into(), room.into())),
-        )
-    }
-
-    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_room_sip_config_with_room_and_creator(
         &mut self,
         call_in_id: CallInId,

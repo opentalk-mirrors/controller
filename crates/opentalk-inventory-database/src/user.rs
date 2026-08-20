@@ -4,9 +4,8 @@
 
 use std::collections::BTreeSet;
 
-use bigdecimal::BigDecimal;
 use opentalk_db_storage as db;
-use opentalk_inventory::{Group, NewUser, UpdateUser, UpsertOutcome, User, UserInventory};
+use opentalk_inventory::{NewUser, UpdateUser, UpsertOutcome, User, UserInventory};
 use opentalk_types_common::{
     tenants::TenantId,
     time::Timestamp,
@@ -73,18 +72,6 @@ impl UserInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_all_users_with_groups(&mut self) -> Result<Vec<(User, Vec<Group>)>> {
-        Ok(
-            db::queries::users::get_all_users_with_groups(&mut self.inner)
-                .await
-                .context(DatabaseSnafu)?
-                .into_iter()
-                .map(|(user, groups)| (user.into(), groups.into_iter().map(Into::into).collect()))
-                .collect(),
-        )
-    }
-
-    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_users_by_ids(&mut self, user_ids: &[UserId]) -> Result<Vec<User>> {
         Ok(
             db::queries::users::get_users_by_ids(&mut self.inner, user_ids)
@@ -117,24 +104,6 @@ impl UserInventory for DatabaseConnection {
                 .context(DatabaseSnafu)?
                 .map(Into::into),
         )
-    }
-
-    #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_users_by_phone_number(
-        &mut self,
-        tenant_id: TenantId,
-        phone_number_e164: &str,
-    ) -> Result<Vec<User>> {
-        Ok(db::queries::users::get_users_by_phone_number(
-            &mut self.inner,
-            tenant_id,
-            phone_number_e164,
-        )
-        .await
-        .context(DatabaseSnafu)?
-        .into_iter()
-        .map(Into::into)
-        .collect())
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
@@ -215,15 +184,6 @@ impl UserInventory for DatabaseConnection {
     async fn remove_user_from_all_groups(&mut self, user_id: UserId) -> Result<()> {
         Ok(
             db::queries::groups::remove_user_from_all_groups(&mut self.inner, user_id)
-                .await
-                .context(DatabaseSnafu)?,
-        )
-    }
-
-    #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_user_storage_used_size(&mut self, user_id: UserId) -> Result<BigDecimal> {
-        Ok(
-            db::queries::users::get_user_storage_used_size(&mut self.inner, &user_id)
                 .await
                 .context(DatabaseSnafu)?,
         )

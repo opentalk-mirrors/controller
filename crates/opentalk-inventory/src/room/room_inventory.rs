@@ -26,9 +26,6 @@ pub trait RoomInventory {
     /// Get a room and its creator by its id or alias.
     async fn get_room_with_creator(&mut self, room: RoomIdOrAlias) -> Result<(Room, User)>;
 
-    /// Get all rooms and their creators.
-    async fn get_all_rooms_with_creator(&mut self) -> Result<Vec<(Room, User)>>;
-
     /// Update a room.
     async fn update_room(&mut self, room: RoomIdOrAlias, update: UpdateRoom) -> Result<Room>;
 
@@ -37,25 +34,6 @@ pub trait RoomInventory {
 
     /// Get all rooms that don't have an event associated.
     async fn get_all_orphaned_room_ids(&mut self) -> Result<Vec<RoomId>>;
-
-    /// Get all rooms, paginated and with the creator user.
-    ///
-    /// The returned tuple contains a `Vec` with the data, and the total number of available rooms.
-    async fn get_all_rooms_paginated_with_creator(
-        &mut self,
-        limit: PageSize,
-        page: Page,
-    ) -> Result<(Vec<(Room, User)>, ItemCount)>;
-
-    /// Get a set of rooms by their id, paginated and with the creator user.
-    ///
-    /// The returned tuple contains a `Vec` with the data, and the total number of available rooms.
-    async fn get_rooms_paginated_by_id_with_creator(
-        &mut self,
-        room_ids: &[RoomId],
-        limit: PageSize,
-        page: Page,
-    ) -> Result<(Vec<(Room, User)>, ItemCount)>;
 
     /// Get all rooms accessible to a specific user, paginated and with the creator user.
     async fn get_rooms_accessible_to_user_with_creator_paginated(

@@ -18,13 +18,9 @@ use opentalk_types_common::{
 use crate::{
     levenshtein, lower,
     paginate::Paginate,
-    schema::{assets, groups, room_assets, rooms, users},
+    schema::{assets, room_assets, rooms, users},
     soundex,
-    tables::{
-        groups::Group,
-        user_groups::UserGroupRelation,
-        users::{NewUser, UpdateUser, User},
-    },
+    tables::users::{NewUser, UpdateUser, User},
 };
 
 const MAX_USER_SEARCH_RESULTS: usize = 50;
@@ -81,42 +77,6 @@ pub async fn get_user_by_email(
         .await
         .optional()
         .map_err(DatabaseError::from)
-}
-
-/// Get one or more users with the given phone number
-#[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_users_by_phone_number(
-    conn: &mut DbConnection,
-    tenant_id: TenantId,
-    phone: &str,
-) -> Result<Vec<User>> {
-    active_users_query()
-        .filter(users::tenant_id.eq(tenant_id))
-        .filter(users::phone.eq(phone))
-        .get_results(conn)
-        .await
-        .map_err(DatabaseError::from)
-}
-
-/// Get all users alongside their current groups
-#[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_all_users_with_groups(conn: &mut DbConnection) -> Result<Vec<(User, Vec<Group>)>> {
-    let users_query = active_users_query().order_by(users::id.desc());
-    let users = users_query.load(conn).await?;
-
-    let groups_query = UserGroupRelation::belonging_to(&users).inner_join(groups::table);
-    let groups: Vec<Vec<(UserGroupRelation, Group)>> = groups_query
-        .load::<(UserGroupRelation, Group)>(conn)
-        .await?
-        .grouped_by(&users);
-
-    let users_with_groups = users
-        .into_iter()
-        .zip(groups)
-        .map(|(user, groups)| (user, groups.into_iter().map(|(_, group)| group).collect()))
-        .collect();
-
-    Ok(users_with_groups)
 }
 
 /// Get all users paginated

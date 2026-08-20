@@ -23,20 +23,6 @@ use crate::{
 };
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_room_sip_config_with_room(
-    conn: &mut DbConnection,
-    sip_id: &CallInId,
-) -> Result<Option<(SipConfig, Room)>> {
-    sip_configs::table
-        .filter(sip_configs::sip_id.eq(sip_id))
-        .inner_join(rooms::table)
-        .get_result(conn)
-        .await
-        .optional()
-        .map_err(DatabaseError::from)
-}
-
-#[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_room_sip_config_with_room_and_creator(
     conn: &mut DbConnection,
     sip_id: &CallInId,

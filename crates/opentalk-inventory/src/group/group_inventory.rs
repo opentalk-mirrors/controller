@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_types_common::{
-    tenants::TenantId,
-    users::{GroupName, UserId},
-};
+use opentalk_types_common::{tenants::TenantId, users::GroupName};
 
 use super::Group;
 use crate::Result;
@@ -18,7 +15,4 @@ pub trait GroupInventory {
         &mut self,
         groups: &[(TenantId, GroupName)],
     ) -> Result<Vec<Group>>;
-
-    /// Get all groups for a user.
-    async fn get_groups_for_user(&mut self, user_id: UserId) -> Result<Vec<Group>>;
 }

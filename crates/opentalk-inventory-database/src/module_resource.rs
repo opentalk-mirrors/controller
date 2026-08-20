@@ -7,7 +7,7 @@ use opentalk_inventory::{
     ModuleResource, ModuleResourceFilter, ModuleResourceInventory, ModuleResourceOperation,
     NewModuleResource,
 };
-use opentalk_types_common::{module_resources::ModuleResourceId, rooms::RoomId, users::UserId};
+use opentalk_types_common::{module_resources::ModuleResourceId, rooms::RoomId};
 use snafu::ResultExt as _;
 
 use crate::{
@@ -44,17 +44,6 @@ impl ModuleResourceInventory for DatabaseConnection {
         .into_iter()
         .map(Into::into)
         .collect())
-    }
-
-    #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_all_module_resources(
-        &mut self,
-    ) -> Result<Vec<(ModuleResourceId, UserId, UserId)>> {
-        Ok(
-            db::queries::module_resources::get_all_module_resources(&mut self.inner)
-                .await
-                .context(DatabaseSnafu)?,
-        )
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]

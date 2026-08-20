@@ -13,10 +13,7 @@ use opentalk_inventory::{
     User,
 };
 use opentalk_types_common::{
-    events::{
-        EventId,
-        invites::{EventInviteStatus, InviteRole},
-    },
+    events::{EventId, invites::EventInviteStatus},
     rooms::{RoomId, RoomIdOrAlias},
     time::Timestamp,
     training_participation_report::TrainingParticipationReportParameterSet,
@@ -201,79 +198,6 @@ impl EventInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_all_events_for_user_paginated(
-        &mut self,
-        user: User,
-        only_favorites: bool,
-        invite_status_filter: BTreeSet<EventInviteStatus>,
-        time_min: Option<Timestamp>,
-        time_max: Option<Timestamp>,
-        created_before: Option<Timestamp>,
-        created_after: Option<Timestamp>,
-        adhoc: Option<bool>,
-        time_independent: Option<bool>,
-        cursor: Option<GetEventsCursor>,
-        limit: i64,
-    ) -> Result<
-        Vec<(
-            Event,
-            Option<EventInvite>,
-            Room,
-            Option<RoomSipConfig>,
-            Vec<EventException>,
-            bool,
-            Option<EventSharedFolder>,
-            Tariff,
-            Option<TrainingParticipationReportParameterSet>,
-        )>,
-    > {
-        let items = db::queries::events::get_all_events_for_user_paginated(
-            &mut self.inner,
-            user.into(),
-            only_favorites,
-            Vec::from_iter(invite_status_filter),
-            time_min.map(Into::into),
-            time_max.map(Into::into),
-            created_before.map(Into::into),
-            created_after.map(Into::into),
-            adhoc,
-            time_independent,
-            cursor.map(Into::into),
-            limit,
-        )
-        .await
-        .context(DatabaseSnafu)?;
-        Ok(items
-            .into_iter()
-            .map(
-                |(
-                    event,
-                    invite,
-                    room,
-                    sip_config,
-                    exceptions,
-                    is_favorite,
-                    shared_folder,
-                    tariff,
-                    training_participation_report_parameters,
-                )| {
-                    let exceptions = exceptions.into_iter().map(EventException::from).collect();
-                    (
-                        event.into(),
-                        invite.map(Into::into),
-                        room.into(),
-                        sip_config.map(Into::into),
-                        exceptions,
-                        is_favorite,
-                        shared_folder.map(Into::into),
-                        tariff.into(),
-                        training_participation_report_parameters,
-                    )
-                },
-            )
-            .collect())
-    }
-    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_all_events_for_user(
         &mut self,
         user: User,
@@ -382,26 +306,6 @@ impl EventInventory for DatabaseConnection {
         .context(DatabaseSnafu)?;
 
         Ok(stream)
-    }
-
-    #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_all_event_ids_with_creator_id(&mut self) -> Result<Vec<(EventId, UserId)>> {
-        Ok(
-            db::queries::events::get_all_event_and_room_ids_with_creator(&mut self.inner)
-                .await
-                .context(DatabaseSnafu)?,
-        )
-    }
-
-    #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_all_event_ids_with_room_ids_and_invitee_ids(
-        &mut self,
-    ) -> Result<Vec<(EventId, RoomId, UserId, InviteRole)>> {
-        Ok(
-            db::queries::events::get_all_events_with_invitee(&mut self.inner)
-                .await
-                .context(DatabaseSnafu)?,
-        )
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]

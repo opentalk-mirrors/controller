@@ -16,12 +16,6 @@ pub trait RoomSipConfigInventory {
     /// Get the SIP config for a room.
     async fn get_room_sip_config(&mut self, room_id: RoomId) -> Result<Option<RoomSipConfig>>;
 
-    /// Get the SIP config by the call-in id.
-    async fn get_room_sip_config_with_room(
-        &mut self,
-        call_in_id: CallInId,
-    ) -> Result<Option<(RoomSipConfig, Room)>>;
-
     /// Get the SIP config, associated room and room creator for the provided call-in id.
     async fn get_room_sip_config_with_room_and_creator(
         &mut self,

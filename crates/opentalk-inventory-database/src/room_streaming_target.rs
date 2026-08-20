@@ -33,21 +33,6 @@ impl RoomStreamingTargetInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_room_streaming_target_records(
-        &mut self,
-        room_id: RoomId,
-    ) -> Result<Vec<RoomStreamingTargetRecord>> {
-        Ok(
-            db::queries::streaming_targets::get_room_streaming_targets(&mut self.inner, room_id)
-                .await
-                .context(DatabaseSnafu)?
-                .into_iter()
-                .map(Into::into)
-                .collect(),
-        )
-    }
-
-    #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_room_streaming_target_record(
         &mut self,
         room_id: RoomId,

@@ -15,7 +15,6 @@ workspace = true
 
 [dependencies]
 async-trait.workspace = true
-bigdecimal.workspace = true
 chrono.workspace = true
 chrono-tz.workspace = true
 clap.workspace = true
