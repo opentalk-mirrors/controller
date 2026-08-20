@@ -361,22 +361,124 @@ api_key = { id = "roomserver", secret = "secret" }
 # The duration in seconds after which a room without participants is closed.
 #room_idle_timeout = 60
 
-#The Modules that are enabled in the roomserver
+# The modules that are enabled in the roomserver.
+#
+# A module is enabled by adding its `[roomserver.modules.<module>]` table. Some modules require
+# additional configuration fields, others are enabled simply by adding their (otherwise empty)
+# table. Modules that are commented out below are disabled.
 [roomserver.modules]
+
+# Handles auto-moderation functionality such as the talking stick.
+#[roomserver.modules.automod]
+
+# Handles room chat functionality.
 #[roomserver.modules.chat]
+# RoomServer chat rate limiting configuration.
+#
+# The implementation uses the token bucket algorithm. Each chat message consumes one token, and the
+# bucket is refilled at a fixed rate each second. This allows short bursts of messages while
+# limiting the sustained message rate.
 #[roomserver.modules.chat.rate_limit]
-#tokens_per_second = 3
-#token_bucket_size = 10
+# The tokens that are added to the bucket per second.
+#tokens_per_second = 10
+# The maximum amount of tokens that a token bucket can hold at a time.
+#token_bucket_size = 30
+# If a participant has sent this many requests in a second, they will be told to slow down.
+# Must be between 0.0 and 1.0 (inclusive).
 #slow_down_threshold = 0.8
+
+# Handles end-to-end encryption functionality.
 #[roomserver.modules.e2ee]
+
+# Handles the legal-vote functionality.
+#[roomserver.modules.legal_vote]
+
+# Handles Livekit media streams coordination and integration.
 [roomserver.modules.livekit]
+# The API key for connecting to LiveKit.
 api_key = "devkey"
+# The API secret for connecting to LiveKit.
 api_secret = "secret"
+# The public url that OpenTalk clients will use for connecting to LiveKit.
 public_url = "http://localhost:7880"
+# The url that the OpenTalk controller will use for connecting to LiveKit.
 service_url = "http://localhost:7880"
+
+# Handles meeting note editing and viewing functionality.
+#[roomserver.modules.meeting_notes]
+# The base URL of the Etherpad instance.
+#base_url = "http://localhost:9001"
+# The API key for accessing the Etherpad instance.
+#api_key = "secret"
+
+# Handles generation of meeting reports, e.g. participant list export.
+#[roomserver.modules.meeting_report]
+
+# Handles moderation functionality.
+#[roomserver.modules.moderation]
+
+# Handles recording functionality.
+#[roomserver.modules.recording]
+# The recorder service base url.
+#url = "http://localhost:5555"
+# The API key for signing recorder JWT tokens.
+#api_key = { id = "recorder", secret = "secret" }
+
+# Used for internal connection checking.
 [roomserver.modules.echo]
+
+# Handles meeting polls functionality.
 #[roomserver.modules.polls]
+
+# Handles emoji reactions.
+#[roomserver.modules.reaction]
+
+# Handles shared folder integration. This allows automatic creation of shares on a NextCloud
+# instance using the OCS API
+# (https://docs.nextcloud.com/server/latest/developer_manual/client_apis/OCS/ocs-api-overview.html)
+# or on an OpenCloud instance using its Graph API (https://owncloud.dev/libre-graph-api/) and WebDAV
+# (https://docs.opencloud.eu/docs/dev/apis/webdav) endpoints.
+#[roomserver.modules.shared_folder]
+
+# Handles sub-room audio, allowing participants to talk to each other in a separate audio group.
+#[roomserver.modules.subroom_audio]
+
+# Handles timer functionality including the coffee-break timer.
 #[roomserver.modules.timer]
+
+# Handles training participation report functionality. Participants are asked to confirm their
+# presence repeatedly at pre-configured time intervals. These confirmations are documented in the
+# training participation report which is created automatically at the end of the meeting.
+#[roomserver.modules.training_participation_report]
+# When set, participation logging starts automatically with the given parameters.
+#[roomserver.modules.training_participation_report.autostart]
+# The time range definition for the initial checkpoint delay. Both `after` and `within` are given in
+# seconds. `after` is the shortest duration that needs to elapse before the checkpoint can be
+# created, `within` is the time window within which the checkpoint is created.
+#initial_checkpoint_delay = { after = 100, within = 200 }
+# The time range definition for the subsequent checkpoints, in the same format as above.
+#checkpoint_interval = { after = 300, within = 400 }
+
+# Live transcription for meetings.
+#[roomserver.modules.transcription]
+# The URL of the transcription service.
+#url = "http://localhost:11413"
+# The API key to authenticate with the transcription service.
+#api_key = { id = "transcription", secret = "secret" }
+
+# Handles the raising hand functionality.
+#[roomserver.modules.raise_hands]
+
+# Handles whiteboard integration. The whiteboard is a collaborative drawing board that can be used
+# during the meeting.
+#[roomserver.modules.whiteboard]
+# The base URL of the Spacedeck instance.
+#base_url = "http://localhost:9666"
+# The API key for accessing the Spacedeck instance.
+#api_key = "secret"
+
+# Handles excalidraw whiteboard integration. Excalidraw is a collaborative drawing board.
+#[roomserver.modules.excalidraw]
 
 #[stun]
 #uris = ["stun:127.0.0.1:3478"]
