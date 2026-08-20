@@ -6,10 +6,7 @@ use std::{collections::BTreeSet, pin::Pin};
 
 use futures_util::Stream;
 use opentalk_types_common::{
-    events::{
-        EventId,
-        invites::{EventInviteStatus, InviteRole},
-    },
+    events::{EventId, invites::EventInviteStatus},
     rooms::{RoomId, RoomIdOrAlias},
     time::Timestamp,
     training_participation_report::TrainingParticipationReportParameterSet,
@@ -93,35 +90,6 @@ pub trait EventInventory {
     async fn get_all_finite_recurring_events(&mut self) -> Result<Vec<Event>>;
 
     /// Get all events to which a user has access.
-    #[expect(clippy::too_many_arguments)]
-    async fn get_all_events_for_user_paginated(
-        &mut self,
-        user: User,
-        only_favorites: bool,
-        invite_status_filter: BTreeSet<EventInviteStatus>,
-        time_min: Option<Timestamp>,
-        time_max: Option<Timestamp>,
-        created_before: Option<Timestamp>,
-        created_after: Option<Timestamp>,
-        adhoc: Option<bool>,
-        time_independent: Option<bool>,
-        cursor: Option<GetEventsCursor>,
-        limit: i64,
-    ) -> Result<
-        Vec<(
-            Event,
-            Option<EventInvite>,
-            Room,
-            Option<RoomSipConfig>,
-            Vec<EventException>,
-            bool,
-            Option<EventSharedFolder>,
-            Tariff,
-            Option<TrainingParticipationReportParameterSet>,
-        )>,
-    >;
-
-    /// Get all events to which a user has access.
     async fn get_all_events_for_user(
         &mut self,
         user: User,
@@ -176,14 +144,6 @@ pub trait EventInventory {
         time_independent: Option<bool>,
         cursor: Option<GetEventExceptionsCursor>,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<(EventException, Event)>> + 'a>>>;
-
-    /// Get the ids of all events with the ids of their creator.
-    async fn get_all_event_ids_with_creator_id(&mut self) -> Result<Vec<(EventId, UserId)>>;
-
-    /// Get all event ids with room ids and their invitee ids.
-    async fn get_all_event_ids_with_room_ids_and_invitee_ids(
-        &mut self,
-    ) -> Result<Vec<(EventId, RoomId, UserId, InviteRole)>>;
 
     /// Create an event exception.
     async fn create_event_exception(

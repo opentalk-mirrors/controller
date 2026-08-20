@@ -4,10 +4,7 @@
 
 use opentalk_db_storage as db;
 use opentalk_inventory::{Group, GroupInventory};
-use opentalk_types_common::{
-    tenants::TenantId,
-    users::{GroupName, UserId},
-};
+use opentalk_types_common::{tenants::TenantId, users::GroupName};
 use snafu::ResultExt as _;
 
 use crate::{DatabaseConnection, Result, error::DatabaseSnafu};
@@ -21,18 +18,6 @@ impl GroupInventory for DatabaseConnection {
     ) -> Result<Vec<Group>> {
         Ok(
             db::queries::groups::get_or_create_groups_by_name(&mut self.inner, groups)
-                .await
-                .context(DatabaseSnafu)?
-                .into_iter()
-                .map(Into::into)
-                .collect(),
-        )
-    }
-
-    #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_groups_for_user(&mut self, user_id: UserId) -> Result<Vec<Group>> {
-        Ok(
-            db::queries::groups::get_groups_for_user(&mut self.inner, user_id)
                 .await
                 .context(DatabaseSnafu)?
                 .into_iter()

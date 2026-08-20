@@ -18,12 +18,6 @@ pub trait RoomStreamingTargetInventory {
         room_id: RoomId,
     ) -> Result<Vec<RoomStreamingTarget>>;
 
-    /// Get all room streaming target records for a room.
-    async fn get_room_streaming_target_records(
-        &mut self,
-        room_id: RoomId,
-    ) -> Result<Vec<RoomStreamingTargetRecord>>;
-
     /// Get room streaming target record.
     async fn get_room_streaming_target_record(
         &mut self,

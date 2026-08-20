@@ -4,7 +4,6 @@
 
 use std::collections::BTreeSet;
 
-use bigdecimal::BigDecimal;
 use opentalk_types_common::{
     tenants::TenantId,
     time::Timestamp,
@@ -12,7 +11,7 @@ use opentalk_types_common::{
 };
 
 use super::{NewUser, UpdateUser, User};
-use crate::{Group, Result, UpsertOutcome};
+use crate::{Result, UpsertOutcome};
 
 /// A trait for retrieving and storing user entities.
 #[async_trait::async_trait]
@@ -36,9 +35,6 @@ pub trait UserInventory {
     /// Get all users.
     async fn get_all_users(&mut self) -> Result<Vec<User>>;
 
-    /// Get all users and their groups.
-    async fn get_all_users_with_groups(&mut self) -> Result<Vec<(User, Vec<Group>)>>;
-
     /// Get a list of users by their ids.
     async fn get_users_by_ids(&mut self, user_ids: &[UserId]) -> Result<Vec<User>>;
 
@@ -51,13 +47,6 @@ pub trait UserInventory {
         tenant_id: TenantId,
         email_address: &str,
     ) -> Result<Option<User>>;
-
-    /// Get users by their phone number (in E.164 format).
-    async fn get_users_by_phone_number(
-        &mut self,
-        tenant_id: TenantId,
-        phone_number_e164: &str,
-    ) -> Result<Vec<User>>;
 
     /// Create or update a user.
     async fn create_or_update_user_by_oidc_sub(
@@ -94,9 +83,6 @@ pub trait UserInventory {
 
     /// Remove a user from all groups.
     async fn remove_user_from_all_groups(&mut self, user_id: UserId) -> Result<()>;
-
-    /// Get the storage used by a user.
-    async fn get_user_storage_used_size(&mut self, user_id: UserId) -> Result<BigDecimal>;
 
     /// Get the storage used by a user.
     async fn get_user_storage_used_size_u64(&mut self, user_id: UserId) -> Result<u64>;

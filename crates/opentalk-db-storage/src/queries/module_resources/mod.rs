@@ -8,10 +8,10 @@ use diesel::{prelude::*, sql_types::Jsonb};
 use diesel_async::RunQueryDsl;
 use opentalk_database::{DatabaseError, DbConnection, Result};
 use opentalk_inventory as inventory;
-use opentalk_types_common::{module_resources::ModuleResourceId, rooms::RoomId, users::UserId};
+use opentalk_types_common::{module_resources::ModuleResourceId, rooms::RoomId};
 
 use crate::{
-    schema::{module_resources, rooms},
+    schema::module_resources,
     tables::module_resources::{ModuleResource, NewModuleResource},
 };
 
@@ -49,22 +49,6 @@ pub async fn get_all_module_ids_for_room(
     module_resources::table
         .select(module_resources::id)
         .filter(module_resources::room_id.eq(room_id))
-        .load(conn)
-        .await
-        .map_err(DatabaseError::from)
-}
-
-#[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_all_module_resources(
-    conn: &mut DbConnection,
-) -> Result<Vec<(ModuleResourceId, UserId, UserId)>> {
-    module_resources::table
-        .inner_join(rooms::table)
-        .select((
-            module_resources::id,
-            module_resources::created_by,
-            rooms::created_by,
-        ))
         .load(conn)
         .await
         .map_err(DatabaseError::from)

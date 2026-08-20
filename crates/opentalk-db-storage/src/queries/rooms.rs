@@ -69,34 +69,6 @@ pub async fn get_room_with_creator(
         .map_err(DatabaseError::from)
 }
 
-/// Select all rooms joined with their creator
-#[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_all_rooms_with_creator(conn: &mut DbConnection) -> Result<Vec<(Room, User)>> {
-    rooms::table
-        .order_by(rooms::id.desc())
-        .inner_join(users::table)
-        .load::<(Room, User)>(conn)
-        .await
-        .map_err(DatabaseError::from)
-}
-
-/// Select all rooms paginated
-#[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_all_rooms_paginated_with_creator(
-    conn: &mut DbConnection,
-    limit: PageSize,
-    page: Page,
-) -> Result<(Vec<(Room, User)>, ItemCount)> {
-    rooms::table
-        .inner_join(users::table)
-        .select((rooms::all_columns, users::all_columns))
-        .order_by(rooms::id.desc())
-        .paginate_by(limit, page)
-        .load_and_count(conn)
-        .await
-        .map_err(DatabaseError::from)
-}
-
 /// Select all rooms accessible to a certain user
 #[tracing::instrument(err, skip_all)]
 pub async fn get_accessible_to_user_with_creator_paginated(

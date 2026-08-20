@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_types_common::{module_resources::ModuleResourceId, rooms::RoomId, users::UserId};
+use opentalk_types_common::{module_resources::ModuleResourceId, rooms::RoomId};
 
 use super::ModuleResource;
 use crate::{ModuleResourceFilter, ModuleResourceOperation, NewModuleResource, Result};
@@ -21,10 +21,6 @@ pub trait ModuleResourceInventory {
         &mut self,
         resource_filter: ModuleResourceFilter,
     ) -> Result<Vec<ModuleResource>>;
-
-    /// Get all module resources.
-    async fn get_all_module_resources(&mut self)
-    -> Result<Vec<(ModuleResourceId, UserId, UserId)>>;
 
     /// Patch the contents of one or multiple module resources.
     async fn patch_module_resources(

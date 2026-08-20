@@ -22,18 +22,6 @@ use crate::{
     },
 };
 
-#[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_groups_for_user(conn: &mut DbConnection, user_id: UserId) -> Result<Vec<Group>> {
-    user_groups::table
-        .inner_join(groups::table)
-        .filter(user_groups::user_id.eq(user_id))
-        .select(groups::all_columns)
-        .order_by(groups::id_serial)
-        .load(conn)
-        .await
-        .map_err(DatabaseError::from)
-}
-
 /// Insert the new group. If the group already exists for the OIDC issuer the group will be
 /// returned instead
 #[tracing::instrument(err(level = "debug"), skip_all)]
