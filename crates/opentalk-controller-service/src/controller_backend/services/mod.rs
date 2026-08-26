@@ -38,7 +38,7 @@ pub(crate) async fn build_roomserver_params(
     breakout_room: Option<u32>,
     service_kind: ServiceKind,
 ) -> Result<(RoomResource, ClientParameters), CaptureApiError> {
-    let (room, creator) = inventory.get_room_with_creator(room_id.into()).await?;
+    let (room, creator) = inventory.get_room_with_creator(&room_id.into()).await?;
 
     let _ = verify_storage_usage(inventory, room.created_by).await?;
 

@@ -43,7 +43,7 @@ async fn update_room_streaming_target_by_id_updates_the_target() {
     let updated = db::queries::streaming_targets::update_room_streaming_target(
         &mut conn,
         rename(UPDATED_STREAMING_TARGET_NAME),
-        room.id.into(),
+        &room.id.into(),
         target_id,
     )
     .await
@@ -81,7 +81,7 @@ async fn update_room_streaming_target_by_alias_updates_the_target() {
     let updated = db::queries::streaming_targets::update_room_streaming_target(
         &mut conn,
         rename(UPDATED_STREAMING_TARGET_NAME),
-        RoomAlias {
+        &RoomAlias {
             name,
             suffix: Some(suffix),
         }
@@ -113,7 +113,7 @@ async fn update_room_streaming_target_from_wrong_room_returns_not_found() {
     let err = db::queries::streaming_targets::update_room_streaming_target(
         &mut conn,
         rename(UPDATED_STREAMING_TARGET_NAME),
-        other.id.into(),
+        &other.id.into(),
         target_id,
     )
     .await

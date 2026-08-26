@@ -26,7 +26,7 @@ impl RoomInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_room(&mut self, room: RoomIdOrAlias) -> Result<Room> {
+    async fn get_room(&mut self, room: &RoomIdOrAlias) -> Result<Room> {
         Ok(db::queries::rooms::get_room(&mut self.inner, room)
             .await
             .context(DatabaseSnafu)?
@@ -34,14 +34,14 @@ impl RoomInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn exists_room(&mut self, room: RoomIdOrAlias) -> Result<bool> {
+    async fn exists_room(&mut self, room: &RoomIdOrAlias) -> Result<bool> {
         Ok(db::queries::rooms::exists_room(&mut self.inner, room)
             .await
             .context(DatabaseSnafu)?)
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_room_with_creator(&mut self, room: RoomIdOrAlias) -> Result<(Room, User)> {
+    async fn get_room_with_creator(&mut self, room: &RoomIdOrAlias) -> Result<(Room, User)> {
         let (room, user) = db::queries::rooms::get_room_with_creator(&mut self.inner, room)
             .await
             .context(DatabaseSnafu)?;
@@ -49,7 +49,7 @@ impl RoomInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn update_room(&mut self, room: RoomIdOrAlias, update: UpdateRoom) -> Result<Room> {
+    async fn update_room(&mut self, room: &RoomIdOrAlias, update: UpdateRoom) -> Result<Room> {
         Ok(
             db::queries::rooms::update_room(&mut self.inner, update.into(), room)
                 .await

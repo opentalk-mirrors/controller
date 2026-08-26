@@ -32,7 +32,7 @@ impl ControllerBackend {
 
         let (assets, asset_count) = inventory
             .get_all_assets_for_room_paginated(
-                room_id_or_alias,
+                &room_id_or_alias,
                 pagination.per_page,
                 pagination.page,
             )
@@ -52,7 +52,7 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let asset = inventory
-            .get_asset_for_room(room_id_or_alias, asset_id)
+            .get_asset_for_room(&room_id_or_alias, asset_id)
             .await?;
 
         let stream = get_asset(&self.storage, &asset.id).await?;
@@ -67,7 +67,7 @@ impl ControllerBackend {
     ) -> Result<String, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
         let asset = inventory
-            .get_asset_for_room(room_id_or_alias, asset_id)
+            .get_asset_for_room(&room_id_or_alias, asset_id)
             .await?;
 
         let encoded_filename = percent_encoding::utf8_percent_encode(
@@ -108,7 +108,7 @@ impl ControllerBackend {
             &self.storage.clone(),
             self.inventory_provider.as_ref(),
             storage_notifier,
-            room_id_or_alias.clone(),
+            &room_id_or_alias,
             namespace,
             filename,
             data,
@@ -133,7 +133,7 @@ impl ControllerBackend {
             .inventory_provider
             .get_inventory()
             .await?
-            .get_asset_for_room(room_id_or_alias, asset_saved.asset_id)
+            .get_asset_for_room(&room_id_or_alias, asset_saved.asset_id)
             .await?;
 
         Ok((asset_to_asset_resource(asset), asset_saved))
@@ -149,7 +149,7 @@ impl ControllerBackend {
             &self.storage,
             self.inventory_provider.as_ref(),
             storage_notifier,
-            room_id_or_alias,
+            &room_id_or_alias,
             asset_id,
         )
         .await?;

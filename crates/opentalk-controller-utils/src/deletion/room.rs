@@ -271,7 +271,7 @@ pub(crate) async fn delete_rows_associated_with_room(
     inventory.delete_event_for_room(room_id).await?;
 
     debug!(log: logger, "Deleting sip config from database");
-    inventory.delete_room_sip_config(room_id.into()).await?;
+    inventory.delete_room_sip_config(&room_id.into()).await?;
 
     debug!(log: logger, "Deleting asset information from database");
     inventory.delete_assets_by_ids(asset_ids).await?;

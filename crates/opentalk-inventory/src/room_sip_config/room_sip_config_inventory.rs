@@ -36,5 +36,5 @@ pub trait RoomSipConfigInventory {
     ) -> Result<Option<RoomSipConfig>>;
 
     /// Delete a room SIP config.
-    async fn delete_room_sip_config(&mut self, room: RoomIdOrAlias) -> Result<()>;
+    async fn delete_room_sip_config(&mut self, room: &RoomIdOrAlias) -> Result<()>;
 }

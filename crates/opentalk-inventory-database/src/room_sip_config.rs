@@ -72,7 +72,7 @@ impl RoomSipConfigInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn delete_room_sip_config(&mut self, room: RoomIdOrAlias) -> Result<()> {
+    async fn delete_room_sip_config(&mut self, room: &RoomIdOrAlias) -> Result<()> {
         Ok(
             db::queries::sip_configs::delete_room_sip_config(&mut self.inner, room)
                 .await

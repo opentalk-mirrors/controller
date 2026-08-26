@@ -732,7 +732,7 @@ pub async fn delete_by_id(conn: &mut DbConnection, event_id: EventId) -> Result<
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_event_for_room(
     conn: &mut DbConnection,
-    room: RoomIdOrAlias,
+    room: &RoomIdOrAlias,
 ) -> Result<Option<EventRecord>> {
     events::table
         .left_join(event_dates::table.on(event_dates::event_id.eq(events::id)))

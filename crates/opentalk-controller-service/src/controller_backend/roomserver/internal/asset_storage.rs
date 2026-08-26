@@ -71,7 +71,7 @@ impl AssetStorageProvider for AssetStorage {
             &self.storage,
             self.inventory_provider.as_ref(),
             self.storage_notifier.as_ref(),
-            context.room_id.into(),
+            &context.room_id.into(),
             Some(context.namespace.clone()),
             filename,
             data,

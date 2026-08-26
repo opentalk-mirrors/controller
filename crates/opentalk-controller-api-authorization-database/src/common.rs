@@ -106,7 +106,7 @@ impl OpenTalkAuthorizerBackend {
         &self,
         subjects: SubjectCollection,
         method: AccessMethod,
-        room_id_or_alias: RoomIdOrAlias,
+        room_id_or_alias: &RoomIdOrAlias,
         acl: Acl,
     ) -> Result<Admission> {
         if subjects.0.is_empty() {
@@ -119,7 +119,7 @@ impl OpenTalkAuthorizerBackend {
             let admission = match subject {
                 Subject::User(user_id) => {
                     let role = inventory
-                        .get_room_user_role(room_id_or_alias.clone(), user_id)
+                        .get_room_user_role(room_id_or_alias, user_id)
                         .await?;
                     acl.apply(role.into(), method)
                 }
@@ -128,7 +128,7 @@ impl OpenTalkAuthorizerBackend {
                     let disabled_features = self.settings.get().defaults.disabled_features.clone();
                     let validity = inventory
                         .get_room_invite_code_validity(
-                            room_id_or_alias.clone(),
+                            room_id_or_alias,
                             invite_code,
                             disabled_features,
                             module_features,
@@ -416,7 +416,7 @@ mod tests {
             invite_code: Access::None,
         };
         let admission = authorization_backend
-            .apply_acl_for_room(empty_subjects, Get, room::test_utils::ROOM_ID.into(), acl)
+            .apply_acl_for_room(empty_subjects, Get, &room::test_utils::ROOM_ID.into(), acl)
             .await
             .unwrap();
         assert_eq!(admission, Admission::AuthenticationRequired);

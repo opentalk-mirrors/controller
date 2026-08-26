@@ -18,16 +18,16 @@ pub trait RoomInventory {
     async fn create_room(&mut self, new_room: NewRoom) -> Result<Room>;
 
     /// Get a room by its id.
-    async fn get_room(&mut self, room: RoomIdOrAlias) -> Result<Room>;
+    async fn get_room(&mut self, room: &RoomIdOrAlias) -> Result<Room>;
 
     /// Check if a room exists.
-    async fn exists_room(&mut self, room: RoomIdOrAlias) -> Result<bool>;
+    async fn exists_room(&mut self, room: &RoomIdOrAlias) -> Result<bool>;
 
     /// Get a room and its creator by its id or alias.
-    async fn get_room_with_creator(&mut self, room: RoomIdOrAlias) -> Result<(Room, User)>;
+    async fn get_room_with_creator(&mut self, room: &RoomIdOrAlias) -> Result<(Room, User)>;
 
     /// Update a room.
-    async fn update_room(&mut self, room: RoomIdOrAlias, update: UpdateRoom) -> Result<Room>;
+    async fn update_room(&mut self, room: &RoomIdOrAlias, update: UpdateRoom) -> Result<Room>;
 
     /// Delete a room.
     async fn delete_room(&mut self, room_id: RoomId) -> Result<()>;

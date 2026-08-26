@@ -113,7 +113,7 @@ pub async fn get_room_streaming_targets(
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn delete_room_streaming_target(
     conn: &mut DbConnection,
-    room: RoomIdOrAlias,
+    room: &RoomIdOrAlias,
     streaming_target_id: StreamingTargetId,
 ) -> Result<()> {
     _ = diesel::delete(
@@ -158,7 +158,7 @@ pub async fn insert(
 pub async fn update_room_streaming_target(
     conn: &mut DbConnection,
     update_room_streaming_target: UpdateRoomStreamingTarget,
-    room: RoomIdOrAlias,
+    room: &RoomIdOrAlias,
     streaming_target_id: StreamingTargetId,
 ) -> Result<RoomStreamingTarget> {
     diesel::update(room_streaming_targets::table)

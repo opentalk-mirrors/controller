@@ -58,7 +58,7 @@ impl EventInventory for DatabaseConnection {
     #[tracing::instrument(err(level = "debug"), skip_all)]
     async fn get_event_for_room(
         &mut self,
-        room_id_or_alias: RoomIdOrAlias,
+        room_id_or_alias: &RoomIdOrAlias,
     ) -> Result<Option<Event>> {
         Ok(
             db::queries::events::get_event_for_room(&mut self.inner, room_id_or_alias)

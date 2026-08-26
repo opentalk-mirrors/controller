@@ -130,10 +130,10 @@ pub(crate) fn build_room_alias(name: Option<RoomName>, settings: &Settings) -> O
 /// alias in the inventory and its ID is returned.
 pub(crate) async fn resolve_room_id(
     inventory: &mut dyn Inventory,
-    room_id_or_alias: RoomIdOrAlias,
+    room_id_or_alias: &RoomIdOrAlias,
 ) -> Result<RoomId, opentalk_inventory::Error> {
     let id = match room_id_or_alias {
-        RoomIdOrAlias::Id(id) => id,
+        RoomIdOrAlias::Id(id) => *id,
         RoomIdOrAlias::Alias(_) => inventory.get_room(room_id_or_alias).await?.id,
     };
 

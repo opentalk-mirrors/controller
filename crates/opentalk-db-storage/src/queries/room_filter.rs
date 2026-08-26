@@ -22,7 +22,7 @@ pub trait FilterByRoom<'a>: Sized {
     type Output;
 
     /// Box this query and restrict it to the room described by `room`.
-    fn filter_by_room(self, room: RoomIdOrAlias) -> Self::Output;
+    fn filter_by_room(self, room: &'a RoomIdOrAlias) -> Self::Output;
 }
 
 impl<'a, Q, ST, QS> FilterByRoom<'a> for Q
@@ -35,7 +35,7 @@ where
 {
     type Output = BoxedSelectStatement<'a, ST, FromClause<QS>, Pg>;
 
-    fn filter_by_room(self, room: RoomIdOrAlias) -> Self::Output {
+    fn filter_by_room(self, room: &'a RoomIdOrAlias) -> Self::Output {
         let query = self.into_boxed();
         match room {
             RoomIdOrAlias::Id(id) => query.filter(rooms::id.eq(id)),

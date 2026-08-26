@@ -82,12 +82,12 @@ impl AuthorizationInventory for DatabaseConnection {
 
     async fn get_room_user_role(
         &mut self,
-        room_id_or_alias: RoomIdOrAlias,
+        room_id_or_alias: &RoomIdOrAlias,
         user_id: UserId,
     ) -> Result<Role> {
         let is_owner = db::queries::authorization::rooms::is_room_owner(
             &mut self.inner,
-            room_id_or_alias.clone(),
+            room_id_or_alias,
             user_id,
         )
         .await
@@ -114,7 +114,7 @@ impl AuthorizationInventory for DatabaseConnection {
 
     async fn get_room_invite_code_validity(
         &mut self,
-        room_id_or_alias: RoomIdOrAlias,
+        room_id_or_alias: &RoomIdOrAlias,
         invite_code: InviteCode,
         disabled_features: BTreeSet<ModuleFeatureId>,
         module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,

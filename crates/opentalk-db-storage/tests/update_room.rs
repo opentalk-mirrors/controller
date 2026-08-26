@@ -66,7 +66,7 @@ async fn update_room_persists_name_and_suffix() {
     let updated = db::queries::rooms::update_room(
         &mut conn,
         update_alias(Some(name.clone()), Some(suffix.clone())),
-        room.id.into(),
+        &room.id.into(),
     )
     .await
     .unwrap();
@@ -104,7 +104,7 @@ async fn update_room_regenerates_suffix_on_collision() {
     let updated = db::queries::rooms::update_room(
         &mut conn,
         update_alias(Some(name.clone()), Some(suffix.clone())),
-        second.id.into(),
+        &second.id.into(),
     )
     .await
     .unwrap();
@@ -147,7 +147,7 @@ async fn update_room_fails_on_collision_without_suffix() {
     let err = db::queries::rooms::update_room(
         &mut conn,
         update_alias(Some(name), None),
-        second.id.into(),
+        &second.id.into(),
     )
     .await
     .unwrap_err();
@@ -188,11 +188,11 @@ async fn update_room_allows_multiple_rooms_without_alias() {
 
     // Removing the alias yields a `NULL` alias, which may exist any number of times, so both updates succeed.
     let first_updated =
-        db::queries::rooms::update_room(&mut conn, update_alias(None, None), first.id.into())
+        db::queries::rooms::update_room(&mut conn, update_alias(None, None), &first.id.into())
             .await
             .unwrap();
     let second_updated =
-        db::queries::rooms::update_room(&mut conn, update_alias(None, None), second.id.into())
+        db::queries::rooms::update_room(&mut conn, update_alias(None, None), &second.id.into())
             .await
             .unwrap();
 

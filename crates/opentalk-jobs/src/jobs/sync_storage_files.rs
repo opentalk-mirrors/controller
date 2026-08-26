@@ -327,7 +327,7 @@ mod tests {
                 object_storage,
                 db_ctx.inventory_provider.as_ref(),
                 &NoOpStorageNotifier,
-                room.id.into(),
+                &room.id.into(),
                 None,
                 filename,
                 data,

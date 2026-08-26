@@ -40,14 +40,14 @@ pub trait AuthorizationInventory: Send {
     /// Returns the [`AuthorizationUserRole`] associated with the `user_id` on the room.
     async fn get_room_user_role(
         &mut self,
-        room_id_or_alias: RoomIdOrAlias,
+        room_id_or_alias: &RoomIdOrAlias,
         user_id: UserId,
     ) -> Result<AuthorizationUserRole>;
 
     /// Return the [`AuthorizationInviteCodeValidity`] of the room invite code.
     async fn get_room_invite_code_validity(
         &mut self,
-        room_id_or_alias: RoomIdOrAlias,
+        room_id_or_alias: &RoomIdOrAlias,
         invite_code: InviteCode,
         disabled_features: BTreeSet<ModuleFeatureId>,
         module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,

@@ -39,7 +39,7 @@ const UNIQUE_SUFFIX_ATTEMPTS: u8 = 3;
 
 /// Select a room using the given id or alias
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_room(conn: &mut DbConnection, room: RoomIdOrAlias) -> Result<Room> {
+pub async fn get_room(conn: &mut DbConnection, room: &RoomIdOrAlias) -> Result<Room> {
     rooms::table
         .filter_by_room(room)
         .get_result(conn)
@@ -48,7 +48,7 @@ pub async fn get_room(conn: &mut DbConnection, room: RoomIdOrAlias) -> Result<Ro
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn exists_room(conn: &mut DbConnection, room: RoomIdOrAlias) -> Result<bool> {
+pub async fn exists_room(conn: &mut DbConnection, room: &RoomIdOrAlias) -> Result<bool> {
     diesel::select(diesel::dsl::exists(rooms::table.filter_by_room(room)))
         .get_result(conn)
         .await
@@ -59,7 +59,7 @@ pub async fn exists_room(conn: &mut DbConnection, room: RoomIdOrAlias) -> Result
 #[tracing::instrument(err(level = "debug"), skip_all)]
 pub async fn get_room_with_creator(
     conn: &mut DbConnection,
-    room: RoomIdOrAlias,
+    room: &RoomIdOrAlias,
 ) -> Result<(Room, User)> {
     rooms::table
         .inner_join(users::table)
@@ -196,9 +196,9 @@ pub async fn create_room(conn: &mut DbConnection, mut new_room: NewRoom) -> Resu
 pub async fn update_room(
     conn: &mut DbConnection,
     update_room: UpdateRoom,
-    room: RoomIdOrAlias,
+    room: &RoomIdOrAlias,
 ) -> Result<Room> {
-    match &room {
+    match room {
         RoomIdOrAlias::Id(id) => {
             update_room_with_suffix_retry(conn, update_room, rooms::table.filter(rooms::id.eq(id)))
                 .await

@@ -47,7 +47,7 @@ impl OpenTalkAuthorizerBackend {
             invite_code: Access::None,
         };
 
-        self.apply_acl_for_room(subjects, method, room_id.into(), acl)
+        self.apply_acl_for_room(subjects, method, &room_id.into(), acl)
             .await
     }
 }

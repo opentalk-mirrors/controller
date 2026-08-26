@@ -199,7 +199,7 @@ impl ControllerBackend {
         let alias = name.map(|name| build_room_alias(name, &settings));
 
         if guest_access.is_some() || e2e_encryption.is_some() {
-            let room = inventory.get_room(room_id_or_alias.clone()).await?;
+            let room = inventory.get_room(&room_id_or_alias).await?;
             let tariff = self.get_tariff_for_user(room.created_by).await?;
 
             let guest_access = guest_access.unwrap_or(room.guest_access);
@@ -210,7 +210,7 @@ impl ControllerBackend {
 
         let room = inventory
             .update_room(
-                room_id_or_alias,
+                &room_id_or_alias,
                 UpdateRoom {
                     alias,
                     password,
@@ -243,7 +243,7 @@ impl ControllerBackend {
 
         // Resolve the room alias to a room id here instead of piping the `RoomIdOrAlias` through the `RoomDeleter`
         // because the `RoomDeleter` interacts with the auth API, which only accepts room ids, not aliases.
-        let room_id = resolve_room_id(inventory.as_mut(), room_id_or_alias).await?;
+        let room_id = resolve_room_id(inventory.as_mut(), &room_id_or_alias).await?;
         let deleter = RoomDeleter::new(room_id, force_delete_reference_if_external_services_fail);
 
         deleter
@@ -274,7 +274,7 @@ impl ControllerBackend {
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
         let exists = inventory
-            .exists_room(RoomAlias { name, suffix: None }.into())
+            .exists_room(&RoomAlias { name, suffix: None }.into())
             .await?;
 
         Ok(PostRoomNameVerifyResponseBody { available: !exists })
@@ -287,7 +287,7 @@ impl ControllerBackend {
         let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let (room, created_by) = inventory.get_room_with_creator(room_id_or_alias).await?;
+        let (room, created_by) = inventory.get_room_with_creator(&room_id_or_alias).await?;
 
         let room_resource = RoomResource {
             id: room.id,
@@ -309,8 +309,8 @@ impl ControllerBackend {
     ) -> Result<GetRoomEventResponseBody, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let room = inventory.get_room(room_id_or_alias).await?;
-        let event = inventory.get_event_for_room(room.id.into()).await?;
+        let room = inventory.get_room(&room_id_or_alias).await?;
+        let event = inventory.get_event_for_room(&room.id.into()).await?;
         let Some(event) = event.as_ref() else {
             return Err(ApiError::not_found().into());
         };
@@ -358,7 +358,7 @@ impl ControllerBackend {
         };
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
-        let (room, created_by) = inventory.get_room_with_creator(room_id.into()).await?;
+        let (room, created_by) = inventory.get_room_with_creator(&room_id.into()).await?;
         let tariff = self.get_tariff_for_user(created_by.id).await?;
         let invite = inventory.get_room_invite(invite_code).await?;
 

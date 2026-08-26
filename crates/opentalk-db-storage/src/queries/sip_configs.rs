@@ -47,7 +47,7 @@ pub async fn get_room_sip_config(conn: &mut DbConnection, room_id: RoomId) -> Re
 
 /// Delete the sip config for the specified room
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn delete_room_sip_config(conn: &mut DbConnection, room: RoomIdOrAlias) -> Result<()> {
+pub async fn delete_room_sip_config(conn: &mut DbConnection, room: &RoomIdOrAlias) -> Result<()> {
     _ = diesel::delete(
         sip_configs::table
             .filter(sip_configs::room.eq_any(rooms::table.select(rooms::id).filter_by_room(room))),

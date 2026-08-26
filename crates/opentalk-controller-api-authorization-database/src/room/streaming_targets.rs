@@ -40,7 +40,7 @@ impl OpenTalkAuthorizerBackend {
         &self,
         subjects: SubjectCollection,
         method: AccessMethod,
-        room_id_or_alias: RoomIdOrAlias,
+        room_id_or_alias: &RoomIdOrAlias,
     ) -> Result<Admission> {
         let acl = Acl {
             owner: Access::ReadWrite,

@@ -22,7 +22,7 @@ impl ControllerBackend {
     ) -> Result<SipConfigResource, CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let room = inventory.get_room(room_id_or_alias).await?;
+        let room = inventory.get_room(&room_id_or_alias).await?;
 
         let tariff = self.get_tariff_for_user(room.created_by).await?;
         // Unlike the other call-in checks, reading the SIP config historically
@@ -57,7 +57,7 @@ impl ControllerBackend {
     ) -> Result<(SipConfigResource, bool), CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let room = inventory.get_room(room_id_or_alias).await?;
+        let room = inventory.get_room(&room_id_or_alias).await?;
 
         let tariff = self.get_tariff_for_user(room.created_by).await?;
         Self::ensure_call_in_permission(room.e2e_encryption, room.guest_access, &tariff)?;
@@ -110,11 +110,11 @@ impl ControllerBackend {
     ) -> Result<(), CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        let room = inventory.get_room(room_id_or_alias).await?;
+        let room = inventory.get_room(&room_id_or_alias).await?;
         let tariff = self.get_tariff_for_user(room.created_by).await?;
         tariff.require_feature(&features::CALL_IN_MODULE_FEATURE_ID)?;
 
-        inventory.delete_room_sip_config(room.id.into()).await?;
+        inventory.delete_room_sip_config(&room.id.into()).await?;
 
         Ok(())
     }
