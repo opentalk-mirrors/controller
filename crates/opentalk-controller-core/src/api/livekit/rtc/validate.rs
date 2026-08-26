@@ -8,7 +8,7 @@ use actix_http::{
     header::{HeaderName, HeaderValue},
 };
 use actix_web::{
-    HttpRequest, HttpResponse, post,
+    HttpRequest, HttpResponse, get,
     web::{Data, Header, Query},
 };
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
@@ -25,7 +25,7 @@ use crate::api::livekit::rtc::{extract_access_token, raw_query, to_http1_headers
 /// - `/livekit/rtc/validate`
 /// - `/livekit/rtc/v1/validate`
 #[utoipa::path(
-    post,
+    get,
     path = "/livekit/rtc/validate",
     operation_id = "livekit_rtc_validate",
     responses(
@@ -39,8 +39,8 @@ use crate::api::livekit::rtc::{extract_access_token, raw_query, to_http1_headers
     ),
 )]
 #[tracing::instrument(level = "info", name = "/livekit/rtc/validate", skip_all)]
-#[post("rtc/validate")]
-pub async fn post(
+#[get("rtc/validate")]
+pub async fn get(
     proxy: Data<Option<Arc<dyn SignalingProxyBackend>>>,
     req: HttpRequest,
     auth_header: Option<Header<Authorization<Bearer>>>,
