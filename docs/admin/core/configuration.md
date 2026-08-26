@@ -553,7 +553,7 @@ secret_key = "minioadmin"
 # (default).
 # Short suffixes are vulnerable to brute-force attacks, so it is recommended to use a length of at least 16
 # characters.
-# Allowed values are between 8 and 32, inclusive.
+# Allowed values are between 8 and 64, inclusive.
 #suffix_length = 16
 
 # Settings for endpoints
