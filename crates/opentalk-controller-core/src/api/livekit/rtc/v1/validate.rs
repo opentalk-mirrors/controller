@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use actix_web::{
-    HttpRequest, HttpResponse, post,
+    HttpRequest, HttpResponse, get,
     web::{Data, Header, Query},
 };
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
@@ -16,7 +16,7 @@ use crate::api::livekit::rtc::validate::validate;
 
 /// Proxies the LiveKit validate request to the upstream livekit service via the room task
 #[utoipa::path(
-    post,
+    get,
     path = "/livekit/rtc/v1/validate",
     operation_id = "livekit_rtc_v1_validate",
     responses(
@@ -30,8 +30,8 @@ use crate::api::livekit::rtc::validate::validate;
     ),
 )]
 #[tracing::instrument(level = "info", name = "/livekit/rtc/validate", skip_all)]
-#[post("rtc/v1/validate")]
-pub async fn post(
+#[get("rtc/v1/validate")]
+pub async fn get(
     proxy: Data<Option<Arc<dyn SignalingProxyBackend>>>,
     req: HttpRequest,
     auth_header: Option<Header<Authorization<Bearer>>>,

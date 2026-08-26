@@ -693,9 +693,9 @@ impl Controller {
         api::internal::module_resources::patch,
         api::internal::module_resources::delete,
         livekit::rtc::get,
-        livekit::rtc::validate::post,
+        livekit::rtc::validate::get,
         livekit::rtc::v1::get,
-        livekit::rtc::v1::validate::post,
+        livekit::rtc::v1::validate::get,
     ),
     components(
         // These schemas cannot be auto-collected by utoipa from `paths(...)`:
@@ -882,8 +882,8 @@ fn livekit_scope() -> Scope {
     web::scope("livekit")
         .service(livekit::rtc::get)
         .service(livekit::rtc::v1::get)
-        .service(livekit::rtc::validate::post)
-        .service(livekit::rtc::v1::validate::post)
+        .service(livekit::rtc::validate::get)
+        .service(livekit::rtc::v1::validate::get)
 }
 
 fn setup_cors(settings_provider: SettingsProvider) -> Cors {
