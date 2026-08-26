@@ -53,6 +53,17 @@ introspection without further configuration.
     controller cannot verify access tokens and rejects every request. See the
     [OIDC Authentication Flow](../under_the_hood/oidc_auth.md) for details.
 
+### Audience requirement (Keycloak 26.6.2 and newer)
+
+Since Keycloak **26.6.2**, token introspection only succeeds when the controller's confidential
+client is listed in the token's `aud` claim. Tokens issued for other clients no longer contain it
+by default, so the controller rejects them with an error that looks like an expired token.
+
+This only affects the **frontend client** (e.g. `Frontend`), because the controller introspects the
+user access tokens issued for it. Add an **Audience** mapper to that client (client scope →
+**Mappers** → **Add mapper** → **By configuration** → **Audience**) with **Included Client
+Audience** set to the controller's client.
+
 ## Configuring back-channel logout
 
 The {{ product_name }} Controller implements [OIDC back-channel logout](./oidc.md#back-channel-logout).
