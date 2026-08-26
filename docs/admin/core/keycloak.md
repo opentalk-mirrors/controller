@@ -20,7 +20,7 @@ This manual describes the configuration for the {{ product_name }} Controller on
 1. Create a [realm](https://www.keycloak.org/docs/latest/server_admin/index.html#proc-creating-a-realm_server_administration_guide) for usage with {{ product_name }} if it hasn't been created yet.
    - The **Realm ID** will be used in the `keycloak.realm` configuration field.
 2. Create an [OpenID Connect client](https://www.keycloak.org/docs/latest/server_admin/index.html#proc-creating-oidc-client_server_administration_guide).
-   - The **Client ID**  will be used in the `keycloak.client_id` configuration field.
+   - The **Client ID** will be used in the `keycloak.client_id` configuration field.
    - Enable **Client authentication** and **Service account roles** in the [Capability Config](https://www.keycloak.org/docs/latest/server_admin/index.html#capability-config).
 3. Create [Confidential client credentials](https://www.keycloak.org/docs/latest/server_admin/index.html#_client-credentials).
    - Use the Client Authenticator **Client Id and Secret** .
@@ -46,13 +46,23 @@ and expiration and therefore cannot detect revoked tokens.
 Keycloak exposes the introspection endpoint for confidential clients out of the box. A client
 configured with **Client authentication** enabled (as described above) therefore supports
 introspection without further configuration.
-it as well.
 
 !!! warning
 
     If the identity provider supports neither token introspection nor JWT access tokens, the
     controller cannot verify access tokens and rejects every request. See the
     [OIDC Authentication Flow](../under_the_hood/oidc_auth.md) for details.
+
+### Audience requirement (Keycloak 26.6.2 and newer)
+
+Since Keycloak **26.6.2**, token introspection only succeeds when the controller's confidential
+client is listed in the token's `aud` claim. Tokens issued for other clients no longer contain it
+by default, so the controller rejects them with an error that looks like an expired token.
+
+This only affects the **frontend client** (e.g. `Frontend`), because the controller introspects the
+user access tokens issued for it. Add an **Audience** mapper to that client (client scope →
+**Mappers** → **Add mapper** → **By configuration** → **Audience**) with **Included Client
+Audience** set to the controller's client.
 
 ## Configuring back-channel logout
 
