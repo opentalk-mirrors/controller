@@ -37,5 +37,5 @@ pub async fn get(
     auth_header: Option<Header<Authorization<Bearer>>>,
     query: Query<LiveKitQuery>,
 ) -> Result<HttpResponse, ApiError> {
-    validate(proxy, req, auth_header, query).await
+    validate(proxy, req, auth_header, query, true).await
 }
