@@ -20,7 +20,7 @@ This manual describes the configuration for the {{ product_name }} Controller on
 1. Create a [realm](https://www.keycloak.org/docs/latest/server_admin/index.html#proc-creating-a-realm_server_administration_guide) for usage with {{ product_name }} if it hasn't been created yet.
    - The **Realm ID** will be used in the `keycloak.realm` configuration field.
 2. Create an [OpenID Connect client](https://www.keycloak.org/docs/latest/server_admin/index.html#proc-creating-oidc-client_server_administration_guide).
-   - The **Client ID**  will be used in the `keycloak.client_id` configuration field.
+   - The **Client ID** will be used in the `keycloak.client_id` configuration field.
    - Enable **Client authentication** and **Service account roles** in the [Capability Config](https://www.keycloak.org/docs/latest/server_admin/index.html#capability-config).
 3. Create [Confidential client credentials](https://www.keycloak.org/docs/latest/server_admin/index.html#_client-credentials).
    - Use the Client Authenticator **Client Id and Secret** .
@@ -46,7 +46,6 @@ and expiration and therefore cannot detect revoked tokens.
 Keycloak exposes the introspection endpoint for confidential clients out of the box. A client
 configured with **Client authentication** enabled (as described above) therefore supports
 introspection without further configuration.
-it as well.
 
 !!! warning
 
