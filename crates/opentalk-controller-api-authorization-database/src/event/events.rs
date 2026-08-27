@@ -33,7 +33,7 @@ mod tests {
 
     use opentalk_controller_api_authorization::authorization::{
         AccessMethod::{self, Get, Post},
-        Admission::{self, Allowed, Denied},
+        Admission::{self, Allowed, AuthenticationRequired},
         AuthorizationTarget, AuthorizerBackend, Resource, Subject, SubjectCollection,
     };
     use opentalk_controller_settings::test_util;
@@ -70,8 +70,8 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case::guest_get(Get, Denied)]
-    #[case::guest_post(Post, Denied)]
+    #[case::guest_get(Get, AuthenticationRequired)]
+    #[case::guest_post(Post, AuthenticationRequired)]
     async fn unauthenticated(
         #[case] access_method: AccessMethod,
         #[case] expected_admission: Admission,

@@ -24,15 +24,11 @@ impl OpenTalkAuthorizerBackend {
     /// include the `Rooms` and `Events` listing endpoints, or the `UserMe` and `UserProfile`
     /// resources that expose write paths.
     pub(crate) fn require_read_write_user(subjects: SubjectCollection) -> Admission {
-        if subjects.0.is_empty() {
-            return Admission::AuthenticationRequired;
+        if subjects.contains_any_user() {
+            Admission::Allowed
+        } else {
+            Admission::AuthenticationRequired
         }
-        for subject in subjects.0 {
-            if let Subject::User(_) = subject {
-                return Admission::Allowed;
-            }
-        }
-        Admission::Denied
     }
 
     /// Helper for ACL pattern: any registered user can read; invite codes can not; nobody writes.
@@ -45,17 +41,11 @@ impl OpenTalkAuthorizerBackend {
         subjects: SubjectCollection,
         method: AccessMethod,
     ) -> Admission {
-        if subjects.0.is_empty() {
-            return Admission::AuthenticationRequired;
+        match (subjects.contains_any_user(), method.is_read_only()) {
+            (true, true) => Admission::Allowed,
+            (false, true) => Admission::AuthenticationRequired,
+            _ => Admission::Denied,
         }
-        for subject in subjects.0 {
-            if let Subject::User(_) = subject
-                && method.is_read_only()
-            {
-                return Admission::Allowed;
-            }
-        }
-        Admission::Denied
     }
 
     pub(crate) async fn apply_acl_for_event(
@@ -65,45 +55,44 @@ impl OpenTalkAuthorizerBackend {
         event_id: EventId,
         acl: Acl,
     ) -> Result<Admission> {
-        if subjects.0.is_empty() {
-            return Ok(Admission::AuthenticationRequired);
-        }
-
         let mut inventory = self.inventory.get_authorization_inventory().await?;
 
         let module_features = self.module_features.clone();
         let disabled_features = self.settings.get().defaults.disabled_features.clone();
-        for subject in subjects.0 {
-            let admission = match subject {
-                Subject::User(user_id) => {
-                    let role = inventory
-                        .get_event_user_role(
-                            event_id,
-                            user_id,
-                            disabled_features.clone(),
-                            module_features.clone(),
-                        )
-                        .await?;
-                    acl.apply(role.into(), method)
-                }
-                Subject::Unauthenticated => {
-                    let guest_access = inventory
-                        .get_event_guest_allowed(
-                            event_id,
-                            disabled_features.clone(),
-                            module_features.clone(),
-                        )
-                        .await?;
-                    acl.apply(acl::Subject::Unregistered { guest_access }, method)
-                }
-            };
 
+        for user_id in subjects.all_user_ids() {
+            let role = inventory
+                .get_event_user_role(
+                    event_id,
+                    user_id,
+                    disabled_features.clone(),
+                    module_features.clone(),
+                )
+                .await?;
+            let admission = acl.apply(role.into(), method);
             if admission.is_allowed() {
                 return Ok(admission);
             }
         }
 
-        Ok(Admission::Denied)
+        if subjects.contains(&Subject::Unauthenticated) {
+            let guest_access = inventory
+                .get_event_guest_allowed(
+                    event_id,
+                    disabled_features.clone(),
+                    module_features.clone(),
+                )
+                .await?;
+            let admission = acl.apply(acl::Subject::Unregistered { guest_access }, method);
+            if admission.is_allowed() {
+                return Ok(admission);
+            }
+        }
+        if !subjects.contains_any_user() {
+            Ok(Admission::AuthenticationRequired)
+        } else {
+            Ok(Admission::Denied)
+        }
     }
 
     pub(crate) async fn apply_acl_for_room(
@@ -113,45 +102,44 @@ impl OpenTalkAuthorizerBackend {
         room_id_or_alias: &RoomIdOrAlias,
         acl: Acl,
     ) -> Result<Admission> {
-        if subjects.0.is_empty() {
-            return Ok(Admission::AuthenticationRequired);
-        }
-
         let mut inventory = self.inventory.get_authorization_inventory().await?;
 
         let module_features = self.module_features.clone();
         let disabled_features = self.settings.get().defaults.disabled_features.clone();
-        for subject in subjects.0 {
-            let admission = match subject {
-                Subject::User(user_id) => {
-                    let role = inventory
-                        .get_room_user_role(
-                            room_id_or_alias,
-                            user_id,
-                            disabled_features.clone(),
-                            module_features.clone(),
-                        )
-                        .await?;
-                    acl.apply(role.into(), method)
-                }
-                Subject::Unauthenticated => {
-                    let guest_access = inventory
-                        .get_room_guest_allowed(
-                            room_id_or_alias,
-                            disabled_features.clone(),
-                            module_features.clone(),
-                        )
-                        .await?;
-                    acl.apply(acl::Subject::Unregistered { guest_access }, method)
-                }
-            };
 
+        for user_id in subjects.all_user_ids() {
+            let role = inventory
+                .get_room_user_role(
+                    room_id_or_alias,
+                    user_id,
+                    disabled_features.clone(),
+                    module_features.clone(),
+                )
+                .await?;
+            let admission = acl.apply(role.into(), method);
             if admission.is_allowed() {
                 return Ok(admission);
             }
         }
 
-        Ok(Admission::Denied)
+        if subjects.contains(&Subject::Unauthenticated) {
+            let guest_access = inventory
+                .get_room_guest_allowed(
+                    room_id_or_alias,
+                    disabled_features.clone(),
+                    module_features.clone(),
+                )
+                .await?;
+            let admission = acl.apply(acl::Subject::Unregistered { guest_access }, method);
+            if admission.is_allowed() {
+                return Ok(admission);
+            }
+        }
+        if !subjects.contains_any_user() {
+            Ok(Admission::AuthenticationRequired)
+        } else {
+            Ok(Admission::Denied)
+        }
     }
 }
 
@@ -227,6 +215,7 @@ mod tests {
     use AccessMethod::{Get, Post};
     use Admission::{Allowed, Denied};
     use acl::Subject::User;
+    use opentalk_controller_api_authorization::authorization::Admission::AuthenticationRequired;
     use pretty_assertions::assert_eq;
     use rstest::rstest;
 
@@ -346,7 +335,7 @@ mod tests {
     #[rstest]
     #[case::user_get(Subject::User(event::test_utils::USER_ID), Get, Allowed)]
     #[case::user_post(Subject::User(event::test_utils::USER_ID), Post, Denied)]
-    #[case::unauthenticated_get(Subject::Unauthenticated, Get, Denied)]
+    #[case::unauthenticated_get(Subject::Unauthenticated, Get, AuthenticationRequired)]
     #[case::unauthenticated_post(Subject::Unauthenticated, Post, Denied)]
     fn require_read_user(
         #[case] sub: Subject,
@@ -362,7 +351,7 @@ mod tests {
 
     #[rstest]
     #[case::user_get(Subject::User(event::test_utils::USER_ID), Allowed)]
-    #[case::unauthenticated_get(Subject::Unauthenticated, Denied)]
+    #[case::unauthenticated_get(Subject::Unauthenticated, AuthenticationRequired)]
     fn require_write_user(#[case] sub: Subject, #[case] admission: Admission) {
         let subjects = SubjectCollection::from_iter([sub]);
         assert_eq!(

@@ -57,7 +57,7 @@ impl OpenTalkAuthorizerBackend {
 mod tests {
     use opentalk_controller_api_authorization::authorization::{
         AccessMethod::{self, Delete, Get, Put},
-        Admission::{self, Allowed, Denied},
+        Admission::{self, Allowed, AuthenticationRequired, Denied},
         AuthorizationTarget, AuthorizerBackend, Resource, Subject, SubjectCollection,
     };
     use opentalk_inventory::AuthorizationUserRole::{self, Invited, Owner, Unrelated};
@@ -105,12 +105,12 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case::guest_access_get(true, Get, Denied)]
-    #[case::guest_access_put(true, Put, Denied)]
-    #[case::guest_access_delete(true, Delete, Denied)]
-    #[case::non_guest_access_get(false, Get, Denied)]
-    #[case::non_guest_access_put(false, Put, Denied)]
-    #[case::non_guest_access_delete(false, Delete, Denied)]
+    #[case::guest_access_get(true, Get, AuthenticationRequired)]
+    #[case::guest_access_put(true, Put, AuthenticationRequired)]
+    #[case::guest_access_delete(true, Delete, AuthenticationRequired)]
+    #[case::non_guest_access_get(false, Get, AuthenticationRequired)]
+    #[case::non_guest_access_put(false, Put, AuthenticationRequired)]
+    #[case::non_guest_access_delete(false, Delete, AuthenticationRequired)]
     async fn unauthenticated(
         #[case] guest_access: bool,
         #[case] access_method: AccessMethod,

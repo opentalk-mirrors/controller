@@ -27,6 +27,14 @@ impl Subject {
     pub fn is_unauthenticated(&self) -> bool {
         matches!(self, Self::Unauthenticated)
     }
+
+    pub fn as_user(&self) -> Option<&UserId> {
+        if let Self::User(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
 }
 
 impl From<UserId> for Subject {

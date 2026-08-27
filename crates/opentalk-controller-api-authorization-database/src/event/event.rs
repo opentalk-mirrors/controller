@@ -52,7 +52,7 @@ mod tests {
     use mockall::predicate::eq;
     use opentalk_controller_api_authorization::authorization::{
         AccessMethod::{self, Get as GET, Post as POST},
-        Admission::{self, Allowed, Denied},
+        Admission::{self, Allowed, AuthenticationRequired, Denied},
         AuthorizationTarget, AuthorizerBackend, Resource, Subject, SubjectCollection,
     };
     use opentalk_controller_settings::test_util;
@@ -104,10 +104,10 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case::guest_access_get(true, GET, Denied)]
-    #[case::guest_access_post(true, POST, Denied)]
-    #[case::non_guest_access_get(false, GET, Denied)]
-    #[case::non_guest_access_post(false, POST, Denied)]
+    #[case::guest_access_get(true, GET, AuthenticationRequired)]
+    #[case::guest_access_post(true, POST, AuthenticationRequired)]
+    #[case::non_guest_access_get(false, GET, AuthenticationRequired)]
+    #[case::non_guest_access_post(false, POST, AuthenticationRequired)]
     async fn unauthenticated(
         #[case] guest_access: bool,
         #[case] access_method: AccessMethod,

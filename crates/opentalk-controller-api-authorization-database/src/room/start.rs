@@ -57,7 +57,7 @@ impl OpenTalkAuthorizerBackend {
 mod tests {
     use opentalk_controller_api_authorization::authorization::{
         AccessMethod::{self, Get, Post},
-        Admission::{self, Allowed, Denied},
+        Admission::{self, Allowed, AuthenticationRequired, Denied},
         AuthorizationTarget, AuthorizerBackend, Resource, Subject, SubjectCollection,
     };
     use opentalk_inventory::AuthorizationUserRole::{self, Invited, Owner, Unrelated};
@@ -102,8 +102,8 @@ mod tests {
     #[rstest]
     #[case::guest_access_get(true, Get, Allowed)]
     #[case::guest_access_post(true, Post, Allowed)]
-    #[case::non_guest_access_get(false, Get, Denied)]
-    #[case::non_guest_access_post(false, Post, Denied)]
+    #[case::non_guest_access_get(false, Get, AuthenticationRequired)]
+    #[case::non_guest_access_post(false, Post, AuthenticationRequired)]
     async fn unauthenticated(
         #[case] guest_access: bool,
         #[case] access_method: AccessMethod,
