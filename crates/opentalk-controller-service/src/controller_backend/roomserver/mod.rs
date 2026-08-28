@@ -459,6 +459,7 @@ pub(crate) async fn build_room_parameters(
         ws_rate_limit: settings.roomserver.websocket_rate_limit,
         allowed_origins,
         room_idle_timeout: settings.roomserver.room_idle_timeout,
+        alias: room.alias,
     };
 
     Ok(parameters)

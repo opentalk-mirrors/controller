@@ -4219,7 +4219,10 @@ components:
     InviteCode:
       type: string
       format: uuid
-      description: An invite code
+      description: |-
+        An invite code
+
+        Note: invite codes are no longer support and only kept for backwards compatibility.
       example: 00000000-0000-0000-0000-0000deadbeef
     InviteRole:
       type: string
