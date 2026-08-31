@@ -78,14 +78,6 @@ impl AuthorizerBackend for OpenTalkAuthorizerBackend {
                     .await
             }
             Resource::RoomNameVerify => Ok(Self::authorize_room_name_verify(subjects)),
-            Resource::RoomInvites(room_id) => {
-                self.authorize_room_invites(subjects, method, &room_id)
-                    .await
-            }
-            Resource::RoomInviteCode(room_id, invite_code) => {
-                self.authorize_room_invite_code(subjects, method, room_id, invite_code)
-                    .await
-            }
             Resource::RoomAssets(room_id) => {
                 self.authorize_room_assets(subjects, method, &room_id).await
             }
@@ -109,7 +101,8 @@ impl AuthorizerBackend for OpenTalkAuthorizerBackend {
                 self.authorize_room_start(subjects, method, &room_id_or_alias)
                     .await
             }
-            Resource::RoomStartInvited(_) => Ok(Self::authorize_room_start_invited()),
+            // Removed endpoints: the handlers redirect or respond with `410 Gone` themselves.
+            Resource::RoomStartInvited(_) | Resource::RemovedRoomInvites => Ok(Admission::Allowed),
             Resource::InviteVerify => Ok(Self::authorize_invite_verify()),
             Resource::Signaling(_) => Ok(Self::authorize_signaling()),
             Resource::RoomAssetDownloadProxy(_, _) => {

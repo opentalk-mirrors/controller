@@ -25,16 +25,12 @@ impl OpenTalkAuthorizerBackend {
     /// moderator, invitee, or invite-code subject may read or
     /// modify it.
     ///
-    /// ```text
     /// | Subject               | Access |
     /// |-----------------------|--------|
     /// | Owner                 | rw     |
     /// | Moderator             | --     |
     /// | User                  | --     |
-    /// | Unrelated User        | --     |
-    /// | Valid Invite Code     | --     |
-    /// | Invalid Invite Code   | --     |
-    /// ```
+    /// | Guest                 | --     |
     ///
     /// [`RoomStreamingTarget`]: opentalk_controller_api_authorization::authorization::Resource::RoomStreamingTarget
     pub(crate) async fn authorize_room_streaming_target(
@@ -47,7 +43,7 @@ impl OpenTalkAuthorizerBackend {
             owner: Access::ReadWrite,
             moderator: Access::None,
             invited_user: Access::None,
-            invite_code: Access::None,
+            guest_user: Access::None,
         };
 
         self.apply_acl_for_room(subjects, method, room_id_or_alias, acl)
@@ -59,13 +55,10 @@ impl OpenTalkAuthorizerBackend {
 mod tests {
     use opentalk_controller_api_authorization::authorization::{
         AccessMethod::{self, Delete, Get, Patch},
-        Admission::{self, Allowed, Denied},
+        Admission::{self, Allowed, AuthenticationRequired, Denied},
         AuthorizationTarget, AuthorizerBackend, Resource, Subject, SubjectCollection,
     };
-    use opentalk_inventory::{
-        AuthorizationInviteCodeValidity::{self, Invalid, Valid},
-        AuthorizationUserRole::{self, Invited, Owner, Unrelated},
-    };
+    use opentalk_inventory::AuthorizationUserRole::{self, Invited, Owner, Unrelated};
     use opentalk_types_common::{
         events::invites::InviteRole::{Moderator, User},
         streaming::StreamingTargetId,
@@ -74,7 +67,7 @@ mod tests {
     use rstest::rstest;
 
     use super::super::test_utils::{
-        INVITE_CODE, ROOM_ID, USER_ID, create_authorizer_with_role, create_authorizer_with_validity,
+        ROOM_ID, USER_ID, create_authorizer_with_guest_access, create_authorizer_with_role,
     };
 
     const STREAMING_TARGET_ID: StreamingTargetId = StreamingTargetId::from_u128(0x0005);
@@ -89,8 +82,10 @@ mod tests {
     #[case::moderator_delete(Invited(Moderator), Delete, Denied)]
     #[case::user_get(Invited(User), Get, Denied)]
     #[case::user_patch(Invited(User), Patch, Denied)]
-    #[case::unrelated_get(Unrelated, Get, Denied)]
-    #[case::unrelated_patch(Unrelated, Patch, Denied)]
+    #[case::unrelated_get(Unrelated { guest_access: false }, Get, Denied)]
+    #[case::unrelated_get(Unrelated { guest_access: true }, Get, Denied)]
+    #[case::unrelated_patch(Unrelated { guest_access: false }, Patch, Denied)]
+    #[case::unrelated_patch(Unrelated { guest_access: true }, Patch, Denied)]
     async fn user(
         #[case] role: AuthorizationUserRole,
         #[case] access_method: AccessMethod,
@@ -110,19 +105,19 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case::valid_get(Valid, Get, Denied)]
-    #[case::valid_patch(Valid, Patch, Denied)]
-    #[case::invalid_get(Invalid, Get, Denied)]
-    #[case::invalid_patch(Invalid, Patch, Denied)]
-    async fn invite_code(
-        #[case] validity: AuthorizationInviteCodeValidity,
+    #[case::guest_access_get(true, Get, AuthenticationRequired)]
+    #[case::guest_access_patch(true, Patch, AuthenticationRequired)]
+    #[case::non_guest_access_get(false, Get, AuthenticationRequired)]
+    #[case::non_guest_access_patch(false, Patch, AuthenticationRequired)]
+    async fn unauthenticated(
+        #[case] guest_access: bool,
         #[case] access_method: AccessMethod,
         #[case] expected_admission: Admission,
     ) {
-        let authorizer = create_authorizer_with_validity(validity);
+        let authorizer = create_authorizer_with_guest_access(guest_access);
         let admission = authorizer
             .authorize(AuthorizationTarget {
-                authenticated_subjects: SubjectCollection::from_iter([Subject::from(INVITE_CODE)]),
+                authenticated_subjects: SubjectCollection::from_iter([Subject::Unauthenticated]),
                 resource: Resource::RoomStreamingTarget(ROOM_ID.into(), STREAMING_TARGET_ID),
                 access_method,
             })

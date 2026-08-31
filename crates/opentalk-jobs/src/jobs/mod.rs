@@ -28,9 +28,7 @@ mod test_utils {
 
     use async_trait::async_trait;
     use opentalk_controller_utils::deletion::{StopRoomBackend, StopRoomError};
-    use opentalk_inventory::{
-        Event, Inventory, NewEvent, NewRoom, NewRoomInvite, Room, RoomInvite, User,
-    };
+    use opentalk_inventory::{Event, Inventory, NewEvent, NewRoom, Room, User};
     use opentalk_types_common::rooms::{GuestAccess, RoomId};
 
     /// A [`StopRoomBackend`] that records the ids of all rooms it is asked to delete.
@@ -85,24 +83,6 @@ mod test_utils {
                 is_adhoc,
                 tenant_id: user.tenant_id,
                 show_meeting_details: true,
-            })
-            .await
-            .unwrap()
-    }
-
-    pub(super) async fn create_generic_test_invite(
-        inventory: &mut dyn Inventory,
-        inviter: &User,
-        updated_by: Option<&User>,
-        room: &Room,
-    ) -> RoomInvite {
-        inventory
-            .create_room_invite(NewRoomInvite {
-                created_by: inviter.id,
-                updated_by: updated_by.unwrap_or(inviter).id,
-                room: room.id,
-                active: true,
-                expiration: None,
             })
             .await
             .unwrap()

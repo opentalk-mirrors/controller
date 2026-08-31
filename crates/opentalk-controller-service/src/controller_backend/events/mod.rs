@@ -1016,24 +1016,6 @@ impl ControllerBackend {
             .into_iter()
             .chain(std::iter::once(current_user_mail_recipient))
             .collect::<Vec<_>>();
-        let invite_for_room = inventory
-            .get_or_create_valid_invite_for_room(room.id, current_user.id)
-            .await?;
-
-        // Add the access policy for the invite code, just in case it has been created by
-        // the `Invite::get_first_for_room(…)` call above. That function is not able to
-        // add the policy, because it has no access to the `RoomsPoliciesBuilderExt` trait.
-        self.authorizer
-            .apply_change(&AuthorizationChange::AddInviteCodeToRoom {
-                room: room.id,
-                invite_code: invite_for_room.invite_code,
-                expiration: invite_for_room.expiration,
-            })
-            .await
-            .map_err(|e| {
-                log::error!("Could not apply changes in the authorization database: {e:?}");
-                ApiError::internal()
-            })?;
 
         let (invitees, invitees_truncated) =
             get_invitees_for_event(&settings, inventory.as_mut(), event_id, query.invitees_max)
@@ -1130,7 +1112,6 @@ impl ControllerBackend {
             room,
             sip_config,
             users_to_notify,
-            invite_for_room,
         };
 
         if let Some(mail_service) = &mail_service {

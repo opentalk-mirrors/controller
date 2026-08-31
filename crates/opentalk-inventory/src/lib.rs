@@ -34,9 +34,7 @@ mod user;
 pub mod utils;
 
 pub use asset::{Asset, AssetInventory, NewAsset, UpdateAsset};
-pub use authorization::{
-    AuthorizationInventory, AuthorizationInviteCodeValidity, AuthorizationUserRole,
-};
+pub use authorization::{AuthorizationInventory, AuthorizationUserRole};
 pub use event::{
     Event, EventDate, EventException, EventExceptionId, EventExceptionKind, EventInventory,
     EventRecurrence, GetEventExceptionsCursor, GetEventsCursor, NewEvent, NewEventDate,
@@ -73,9 +71,7 @@ pub use opentalk_inventory_common::{
     error::{Error, InventoryBackendError},
 };
 pub use room::{NewRoom, Room, RoomInventory, UpdateRoom};
-pub use room_invite::{
-    NewRoomInvite, RoomInvite, RoomInviteInventory, RoomInviteWithUsers, UpdateRoomInvite,
-};
+pub use room_invite::{RoomInvite, RoomInviteInventory};
 pub use room_sip_config::{
     NewRoomSipConfig, RoomSipConfig, RoomSipConfigInventory, UpdateRoomSipConfig,
 };

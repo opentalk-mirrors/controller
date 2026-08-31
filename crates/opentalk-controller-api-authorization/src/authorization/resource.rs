@@ -6,7 +6,7 @@ use opentalk_types_api_v1::events::InstanceId;
 use opentalk_types_common::{
     assets::AssetId,
     events::EventId,
-    rooms::{RoomId, RoomIdOrAlias, invite_codes::InviteCode},
+    rooms::{RoomId, RoomIdOrAlias},
     roomserver::Token,
     streaming::StreamingTargetId,
     users::UserId,
@@ -17,7 +17,7 @@ use opentalk_types_common::{
 /// Variants come in two flavours:
 ///
 /// * **Authenticated resources** require the caller to be a [`Subject`] (i.e.
-///   an authenticated user or a holder of an invite code) and are checked
+///   an authenticated or unauthenticated user) and are checked
 ///   against an ACL by the authorization backend.
 /// * **Public resources** are served without authentication and the
 ///   authorization backend admits any caller — including unauthenticated
@@ -112,15 +112,13 @@ pub enum Resource {
     /// Served under `/v1/rooms/{room_id_or_alias}/event`.
     RoomEvent(RoomIdOrAlias),
 
-    /// The list of invites to a room.
+    /// The removed room invite-management endpoints.
     ///
-    /// Served under `/v1/rooms/{room_id_or_alias}/invites`.
-    RoomInvites(RoomIdOrAlias),
-
-    /// A room invite code.
-    ///
-    /// Served under `/v1/rooms/{room_id_or_alias}/invites/{invite_code}`.
-    RoomInviteCode(RoomId, InviteCode),
+    /// Served under `/v1/rooms/{room_id_or_alias}/invites` and
+    /// `/v1/rooms/{room_id_or_alias}/invites/{invite_code}`. Public: the invite-code API
+    /// has been removed and these endpoints respond with `410 Gone` without
+    /// exposing any room data.
+    RemovedRoomInvites,
 
     /// The list of assets for a room.
     ///
@@ -156,12 +154,12 @@ pub enum Resource {
     ///
     /// Served under `/v1/rooms/{room_id_or_alias}/start`.
     RoomStart(RoomIdOrAlias),
-
-    /// The invite-based room start endpoint.
+    /// The removed invite-based room start endpoint.
     ///
-    /// Served under `/v1/rooms/{room_id_or_alias}/start_invited`. Public: the
-    /// endpoint just issues a permanent redirect to [`Self::RoomStart`] which
-    /// performs the actual authorization.
+    /// Served under `/v1/rooms/{room_id_or_alias}/start_invited` and
+    /// `/v1/rooms/{room_id_or_alias}/roomserver/start_invited`. Public: the endpoint
+    /// issues a permanent redirect to [`Self::RoomStart`], which performs the
+    /// actual authorization.
     RoomStartInvited(RoomIdOrAlias),
 
     /// The room name verification endpoint.
@@ -320,14 +318,9 @@ pub(super) mod actix_web_impls {
                     let room_id_or_alias = extract_path::<RoomIdOrAlias>(req.path(), pattern)?;
                     Ok(Resource::RoomEvent(room_id_or_alias))
                 }
-                "/v1/rooms/{room_id_or_alias}/invites" => {
-                    let room_id_or_alias = extract_path::<RoomIdOrAlias>(req.path(), pattern)?;
-                    Ok(Resource::RoomInvites(room_id_or_alias))
-                }
-                "/v1/rooms/{room_id_or_alias}/invites/{invite_code}" => {
-                    let (room_id, invite_code) =
-                        extract_path::<(RoomId, InviteCode)>(req.path(), pattern)?;
-                    Ok(Resource::RoomInviteCode(room_id, invite_code))
+                "/v1/rooms/{room_id_or_alias}/invites"
+                | "/v1/rooms/{room_id_or_alias}/invites/{invite_code}" => {
+                    Ok(Resource::RemovedRoomInvites)
                 }
                 "/v1/rooms/{room_id_or_alias}/assets" => {
                     let room_id_or_alias = extract_path::<RoomIdOrAlias>(req.path(), pattern)?;

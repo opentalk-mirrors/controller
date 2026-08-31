@@ -46,7 +46,7 @@ pub async fn get(
     auth_header: Option<Header<Authorization<Bearer>>>,
     query: Query<LiveKitQuery>,
 ) -> Result<HttpResponse, ApiError> {
-    validate(proxy, req, auth_header, query).await
+    validate(proxy, req, auth_header, query, false).await
 }
 
 pub(crate) async fn validate(
@@ -54,6 +54,7 @@ pub(crate) async fn validate(
     req: HttpRequest,
     auth_header: Option<Header<Authorization<Bearer>>>,
     query: Query<LiveKitQuery>,
+    v1: bool,
 ) -> Result<HttpResponse, ApiError> {
     let proxy = proxy
         .as_ref() // Option as ref
@@ -73,7 +74,7 @@ pub(crate) async fn validate(
     let headers = to_http1_headers(req.headers());
 
     let response = proxy
-        .proxy_livekit_validate(room_id, headers, raw_query)
+        .proxy_livekit_validate(room_id, headers, raw_query, v1)
         .await?;
 
     tracing::trace!("Received validate response: {response:?}");

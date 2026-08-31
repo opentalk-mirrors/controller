@@ -652,11 +652,6 @@ impl Controller {
         v1::events::by_id::shared_folder::get,
         v1::events::by_id::shared_folder::put,
         v1::events::by_id::shared_folder::delete,
-        v1::rooms::by_id::invites::post,
-        v1::rooms::by_id::invites::by_code::delete,
-        v1::rooms::by_id::invites::by_code::get,
-        v1::rooms::by_id::invites::get,
-        v1::rooms::by_id::invites::by_code::put,
         v1::invite::verify::post,
         v1::rooms::get,
         v1::rooms::by_id::delete,
@@ -747,15 +742,6 @@ impl utoipa::Modify for SecurityAddon {
             "BearerAuth",
             SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer)),
         );
-        // TODO: this is strictly speaking no bearer authentication, so we
-        // need to find out whether we can properly describe what we implemented with
-        // the `Authorization: InviteCode …` header.
-        // Supported authentication schemes:
-        // https://www.iana.org/assignments/http-authschemes/http-authschemes.xhtml
-        components.add_security_scheme(
-            "InviteCode",
-            SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer)),
-        );
     }
 }
 
@@ -786,6 +772,9 @@ fn v1_scope(
             .service(v1::auth::logout::post)
             .service(v1::rooms::by_id::roomserver::start_invited::post)
             .service(v1::rooms::by_id::start_invited::post)
+            // The invite-code API has been removed; respond with `410 Gone` instead of `404 Not Found`
+            .service(v1::rooms::by_id::invites::collection())
+            .service(v1::rooms::by_id::invites::by_code())
             .service(v1::turn::get)
             .service(v1::rooms::by_id::assets::by_id::proxy::get)
             .service(v1::users::find::get)
@@ -831,11 +820,6 @@ fn v1_scope(
             .service(v1::rooms::by_id::sip::get)
             .service(v1::rooms::by_id::sip::put)
             .service(v1::rooms::by_id::sip::delete)
-            .service(v1::rooms::by_id::invites::get)
-            .service(v1::rooms::by_id::invites::post)
-            .service(v1::rooms::by_id::invites::by_code::get)
-            .service(v1::rooms::by_id::invites::by_code::put)
-            .service(v1::rooms::by_id::invites::by_code::delete)
             .service(v1::rooms::by_id::assets::get)
             .service(v1::rooms::by_id::assets::post)
             .service(v1::rooms::by_id::assets::by_id::get)

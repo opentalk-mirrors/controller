@@ -17,13 +17,10 @@ impl OpenTalkAuthorizerBackend {
     /// explicit and testable rather than relying on the absence of a
     /// middleware wrap.
     ///
-    /// ```text
-    /// | Subject                 | Access |
-    /// | ----------------------- | ------ |
-    /// | **Unauthenticated**     | rw     |
-    /// | **User**                | rw     |
-    /// | **Invite-Code**         | rw     |
-    /// ```
+    /// | Subject             | Access |
+    /// | ------------------- | ------ |
+    /// | **Invited User**    | rw     |
+    /// | **Guest**           | rw     |
     ///
     /// [`Turn`]: opentalk_controller_api_authorization::authorization::Resource::Turn
     pub(crate) const fn authorize_turn() -> Admission {
@@ -42,23 +39,20 @@ mod tests {
     };
     use opentalk_controller_settings::test_util;
     use opentalk_inventory::MockInventoryProvider;
-    use opentalk_types_common::{rooms::invite_codes::InviteCode, users::UserId};
+    use opentalk_types_common::users::UserId;
     use pretty_assertions::assert_eq;
     use rstest::rstest;
 
     use crate::{OpenTalkAuthorizerBackend, event::test_utils::MODULE_FEATURES};
 
     const USER_ID: UserId = UserId::from_u128(0x0001);
-    const INVITE_CODE: InviteCode = InviteCode::from_u128(0x0002);
 
     #[tokio::test]
     #[rstest]
-    #[case::unauth_get(SubjectCollection::default(), Get)]
-    #[case::unauth_post(SubjectCollection::default(), Post)]
     #[case::user_get(SubjectCollection::from_iter([Subject::from(USER_ID)]), Get)]
     #[case::user_post(SubjectCollection::from_iter([Subject::from(USER_ID)]), Post)]
-    #[case::invite_get(SubjectCollection::from_iter([Subject::from(INVITE_CODE)]), Get)]
-    #[case::invite_post(SubjectCollection::from_iter([Subject::from(INVITE_CODE)]), Post)]
+    #[case::unauthenticated_get(SubjectCollection::from_iter([Subject::Unauthenticated]), Get)]
+    #[case::unauthenticated_post(SubjectCollection::from_iter([Subject::Unauthenticated]), Post)]
     async fn turn_is_unconditionally_allowed(
         #[case] subjects: SubjectCollection,
         #[case] access_method: AccessMethod,

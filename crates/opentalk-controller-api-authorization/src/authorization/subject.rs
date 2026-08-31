@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_types_common::{rooms::invite_codes::InviteCode, users::UserId};
+use opentalk_types_common::users::UserId;
 
 /// A subject for which the access to resources can be checked.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -10,8 +10,8 @@ pub enum Subject {
     /// An authenticated user.
     User(UserId),
 
-    /// An invite code.
-    InviteCode(InviteCode),
+    /// A user without authentication.
+    Unauthenticated,
 }
 
 impl Subject {
@@ -20,9 +20,20 @@ impl Subject {
         matches!(self, Subject::User(_))
     }
 
-    /// Check whether the subject is an invite code
-    pub fn is_invite_code(&self) -> bool {
-        matches!(self, Subject::InviteCode(_))
+    /// Returns `true` if the subject is [`Unauthenticated`].
+    ///
+    /// [`Unauthenticated`]: Subject::Unauthenticated
+    #[must_use]
+    pub fn is_unauthenticated(&self) -> bool {
+        matches!(self, Self::Unauthenticated)
+    }
+
+    pub fn as_user(&self) -> Option<&UserId> {
+        if let Self::User(v) = self {
+            Some(v)
+        } else {
+            None
+        }
     }
 }
 
@@ -35,17 +46,5 @@ impl From<UserId> for Subject {
 impl From<&UserId> for Subject {
     fn from(user_id: &UserId) -> Self {
         Self::from(*user_id)
-    }
-}
-
-impl From<InviteCode> for Subject {
-    fn from(invite_code: InviteCode) -> Self {
-        Self::InviteCode(invite_code)
-    }
-}
-
-impl From<&InviteCode> for Subject {
-    fn from(invite_code: &InviteCode) -> Self {
-        Self::from(*invite_code)
     }
 }

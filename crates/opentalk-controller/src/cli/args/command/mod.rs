@@ -9,6 +9,7 @@ use clap::Subcommand;
 use crate::Result;
 
 mod acl;
+mod dev;
 mod fix_acl;
 mod health;
 mod jobs;
@@ -62,6 +63,10 @@ pub enum Command {
     /// who are attempting to use it.
     #[clap(hide = true)]
     Acl(acl::Command),
+
+    /// Development and debugging helpers
+    #[clap(subcommand, hide = true)]
+    Dev(dev::Command),
 }
 
 impl Command {
@@ -96,6 +101,9 @@ impl Command {
             }
             Command::Acl(command) => {
                 command.exec();
+            }
+            Command::Dev(command) => {
+                command.exec(optional_config_path).await?;
             }
         }
         Ok(())

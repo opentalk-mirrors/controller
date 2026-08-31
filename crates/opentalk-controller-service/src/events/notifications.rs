@@ -6,9 +6,7 @@
 
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_inventory::{
-    Event, EventException, Inventory, Room, RoomInvite, RoomSipConfig, Tenant, User,
-};
+use opentalk_inventory::{Event, EventException, Inventory, Room, RoomSipConfig, Tenant, User};
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_common::{
     rooms::RoomId, shared_folders::SharedFolder, streaming::RoomStreamingTarget,
@@ -41,8 +39,6 @@ pub struct UpdateNotificationValues {
     pub sip_config: Option<RoomSipConfig>,
     /// The users to notify about the update
     pub users_to_notify: Vec<MailRecipient>,
-    /// The updated invite
-    pub invite_for_room: RoomInvite,
 }
 
 /// Notifies the invitees of an event belonging to the specified room
@@ -125,9 +121,6 @@ pub async fn notify_event_invitees_about_update(
         .into_iter()
         .chain(std::iter::once(current_user_mail_recipient))
         .collect::<Vec<_>>();
-    let invite_for_room = inventory
-        .get_or_create_valid_invite_for_room(room.id, current_user.id)
-        .await?;
     let created_by = if event.created_by == current_user.id {
         current_user
     } else {
@@ -142,7 +135,6 @@ pub async fn notify_event_invitees_about_update(
         room,
         sip_config,
         users_to_notify,
-        invite_for_room,
     };
 
     notify_invitees_about_update(
@@ -187,7 +179,6 @@ pub async fn notify_invitees_about_update(
                 room_tariff,
                 notification_values.sip_config.clone(),
                 invited_user,
-                notification_values.invite_for_room.invite_code.to_string(),
                 shared_folder.clone(),
                 streaming_targets.clone(),
             )

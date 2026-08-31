@@ -4,19 +4,18 @@
 
 use actix_http::header::{HeaderValue, InvalidHeaderValue, TryIntoHeaderValue};
 use actix_web_httpauth::headers::authorization::{Bearer, ParseError, Scheme};
-use opentalk_types_common::rooms::invite_codes::InviteCode;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) enum BearerOrInviteCode {
     Bearer(Bearer),
-    InviteCode(InviteCode),
+    InviteCode,
 }
 
 impl std::fmt::Display for BearerOrInviteCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Bearer(bearer) => bearer.fmt(f),
-            Self::InviteCode(invite) => invite.fmt(f),
+            Self::InviteCode => write!(f, "invite-code"),
         }
     }
 }
@@ -27,7 +26,7 @@ impl Scheme for BearerOrInviteCode {
 
         match header_first_char {
             Some('B') => Ok(Self::Bearer(Bearer::parse(header)?)),
-            Some('I') => Ok(Self::InviteCode(InviteCode::parse(header)?)),
+            Some('I') => Ok(Self::InviteCode),
             _ => Err(ParseError::Invalid),
         }
     }
@@ -39,7 +38,7 @@ impl TryIntoHeaderValue for BearerOrInviteCode {
     fn try_into_value(self) -> Result<HeaderValue, Self::Error> {
         match self {
             Self::Bearer(bearer) => bearer.try_into_value(),
-            Self::InviteCode(invite) => invite.try_into_value(),
+            Self::InviteCode => HeaderValue::from_str("InviteCode invite-code"),
         }
     }
 }
@@ -62,15 +61,14 @@ mod tests {
 
     #[test]
     fn test_parse_invite_code() {
-        let uuid = uuid::uuid!("c7fe02dd-ba7b-4fc5-a8ba-a9c778f348dc");
-        let code = InviteCode::from(uuid);
-        let value = HeaderValue::from_str(&format!("InviteCode {code}")).unwrap();
+        let value =
+            HeaderValue::from_str("InviteCode c7fe02dd-ba7b-4fc5-a8ba-a9c778f348dc").unwrap();
         let scheme = BearerOrInviteCode::parse(&value);
 
         assert!(scheme.is_ok());
         let scheme = scheme.unwrap();
 
-        assert_eq!(scheme, BearerOrInviteCode::InviteCode(code));
+        assert_eq!(scheme, BearerOrInviteCode::InviteCode);
     }
 
     #[test]

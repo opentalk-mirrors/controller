@@ -12,14 +12,8 @@ pub enum AuthorizationUserRole {
     /// Invited to the event.
     Invited(InviteRole),
     /// No relation to the event.
-    Unrelated,
-}
-
-/// The validity of an invite code.
-#[derive(Clone, Debug)]
-pub enum AuthorizationInviteCodeValidity {
-    /// Valid invite code.
-    Valid,
-    /// Invalid invite code.
-    Invalid,
+    Unrelated {
+        /// Is guest access is enabled.
+        guest_access: bool,
+    },
 }

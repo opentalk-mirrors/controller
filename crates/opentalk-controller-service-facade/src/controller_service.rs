@@ -45,10 +45,7 @@ use opentalk_types_api_v1::{
             GetRoomEventResponseBody, PostRoomsRoomserverStartRequestBody,
             RoomserverStartResponseBody,
             assets::RoomsByRoomIdAssetsGetResponseBody,
-            invites::{
-                GetRoomsInvitesResponseBody, InviteResource, PostInviteRequestBody,
-                PostInviteVerifyRequestBody, PostInviteVerifyResponseBody, PutInviteRequestBody,
-            },
+            invites::{PostInviteVerifyRequestBody, PostInviteVerifyResponseBody},
             sip::{PutSipConfigRequestBody, SipConfigResource},
             streaming_targets::{
                 GetRoomStreamingTargetResponseBody, GetRoomStreamingTargetsResponseBody,
@@ -69,7 +66,7 @@ use opentalk_types_common::{
     events::EventId,
     modules::ModuleId,
     pagination::{ItemCount, Page, PageSize},
-    rooms::{GuestAccess, RoomIdOrAlias, RoomName, RoomPassword, invite_codes::InviteCode},
+    rooms::{GuestAccess, RoomIdOrAlias, RoomName, RoomPassword},
     shared_folders::SharedFolder,
     streaming::StreamingTarget,
     tariffs::TariffResource,
@@ -378,45 +375,6 @@ pub trait OpenTalkControllerService: Send + Sync {
         &self,
         user_id: UserId,
         event_id: EventId,
-    ) -> Result<(), ApiError>;
-
-    /// Create a new invite
-    async fn create_invite(
-        &self,
-        current_user: RequestUser,
-        room_id_or_alias: RoomIdOrAlias,
-        new_invite: PostInviteRequestBody,
-    ) -> Result<InviteResource, ApiError>;
-
-    /// Get all invites for a room
-    async fn get_invites(
-        &self,
-        room_id_or_alias: RoomIdOrAlias,
-        pagination: &PagePaginationQuery,
-    ) -> Result<(GetRoomsInvitesResponseBody, ItemCount), ApiError>;
-
-    /// Get a room invite
-    async fn get_invite(
-        &self,
-        room_id_or_alias: RoomIdOrAlias,
-        invite_code: InviteCode,
-    ) -> Result<InviteResource, ApiError>;
-
-    /// Update an invite code
-    async fn update_invite(
-        &self,
-        current_user: RequestUser,
-        room_id_or_alias: RoomIdOrAlias,
-        invite_code: InviteCode,
-        body: PutInviteRequestBody,
-    ) -> Result<InviteResource, ApiError>;
-
-    /// Delete an invite code
-    async fn delete_invite(
-        &self,
-        current_user: RequestUser,
-        room_id_or_alias: RoomIdOrAlias,
-        invite_code: InviteCode,
     ) -> Result<(), ApiError>;
 
     /// Verify an invite code

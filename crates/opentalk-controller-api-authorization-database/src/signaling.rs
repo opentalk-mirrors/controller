@@ -19,13 +19,10 @@ impl OpenTalkAuthorizerBackend {
     /// here makes the "allowed by default" decision explicit and
     /// testable.
     ///
-    /// ```text
-    /// | Subject                 | Access |
-    /// | ----------------------- | ------ |
-    /// | **Unauthenticated**     | rw     |
-    /// | **User**                | rw     |
-    /// | **Invite-Code**         | rw     |
-    /// ```
+    /// | Subject          | Access |
+    /// | ---------------- | ------ |
+    /// | **Invited User** | rw     |
+    /// | **Guest**        | rw     |
     ///
     /// [`Signaling`]: opentalk_controller_api_authorization::authorization::Resource::Signaling
     pub(crate) const fn authorize_signaling() -> Admission {
@@ -44,26 +41,21 @@ mod tests {
     };
     use opentalk_controller_settings::test_util;
     use opentalk_inventory::MockInventoryProvider;
-    use opentalk_types_common::{
-        rooms::invite_codes::InviteCode, roomserver::Token, users::UserId,
-    };
+    use opentalk_types_common::{roomserver::Token, users::UserId};
     use pretty_assertions::assert_eq;
     use rstest::rstest;
 
     use crate::{OpenTalkAuthorizerBackend, event::test_utils::MODULE_FEATURES};
 
     const USER_ID: UserId = UserId::from_u128(0x0001);
-    const INVITE_CODE: InviteCode = InviteCode::from_u128(0x0002);
     const TOKEN: Token = Token::from_u128(0x0003);
 
     #[tokio::test]
     #[rstest]
-    #[case::unauth_get(SubjectCollection::default(), Get)]
-    #[case::unauth_post(SubjectCollection::default(), Post)]
     #[case::user_get(SubjectCollection::from_iter([Subject::from(USER_ID)]), Get)]
     #[case::user_post(SubjectCollection::from_iter([Subject::from(USER_ID)]), Post)]
-    #[case::invite_get(SubjectCollection::from_iter([Subject::from(INVITE_CODE)]), Get)]
-    #[case::invite_post(SubjectCollection::from_iter([Subject::from(INVITE_CODE)]), Post)]
+    #[case::unauthenticated_get(SubjectCollection::from_iter([Subject::Unauthenticated]), Get)]
+    #[case::unauthenticated_post(SubjectCollection::from_iter([Subject::Unauthenticated]), Post)]
     async fn signaling_is_unconditionally_allowed(
         #[case] subjects: SubjectCollection,
         #[case] access_method: AccessMethod,

@@ -18,12 +18,10 @@ impl OpenTalkAuthorizerBackend {
     /// room when room alias suffix is disabled and the room has guest access enabled and no password. Only registered
     /// users need to check room name availability because unregistered users can not create rooms.
     ///
-    /// ```text
     /// | Subject                 | Access |
     /// | ----------------------- | ------ |
     /// | **User**                | rw     |
-    /// | **Invite-Code**         | --     |
-    /// ```
+    /// | **Unauthenticated**     | --     |
     ///
     /// [`RoomNameVerify`]: opentalk_controller_api_authorization::authorization::Resource::RoomNameVerify
     pub(crate) fn authorize_room_name_verify(subjects: SubjectCollection) -> Admission {
@@ -36,28 +34,25 @@ mod tests {
 
     use opentalk_controller_api_authorization::authorization::{
         AccessMethod::{self, Get, Post},
-        Admission::{self, Allowed, AuthenticationRequired, Denied},
+        Admission::{self, Allowed, AuthenticationRequired},
         AuthorizationTarget, AuthorizerBackend, Resource, Subject, SubjectCollection,
     };
     use opentalk_controller_settings::test_util;
     use opentalk_inventory::MockInventoryProvider;
-    use opentalk_types_common::{rooms::invite_codes::InviteCode, users::UserId};
+    use opentalk_types_common::users::UserId;
     use pretty_assertions::assert_eq;
     use rstest::rstest;
 
     use crate::{OpenTalkAuthorizerBackend, event::test_utils::MODULE_FEATURES};
 
     const USER_ID: UserId = UserId::from_u128(0x0001);
-    const INVITE_CODE: InviteCode = InviteCode::from_u128(0x0002);
 
     #[tokio::test]
     #[rstest]
     #[case::user_get(SubjectCollection::from_iter([Subject::from(USER_ID)]), Get, Allowed)]
     #[case::user_post(SubjectCollection::from_iter([Subject::from(USER_ID)]), Post, Allowed)]
-    #[case::invite_code_get(SubjectCollection::from_iter([Subject::from(INVITE_CODE)]), Get, Denied)]
-    #[case::invite_code_post(SubjectCollection::from_iter([Subject::from(INVITE_CODE)]), Post, Denied)]
-    #[case::unauth_code_get(SubjectCollection::default(), Get, AuthenticationRequired)]
-    #[case::unauth_code_post(SubjectCollection::default(), Post, AuthenticationRequired)]
+    #[case::unauthenticated_get(SubjectCollection::from_iter([Subject::Unauthenticated]), Get, AuthenticationRequired)]
+    #[case::unauthenticated_post(SubjectCollection::from_iter([Subject::Unauthenticated]), Post, AuthenticationRequired)]
     async fn authorize_room_name_verify(
         #[case] subjects: SubjectCollection,
         #[case] access_method: AccessMethod,

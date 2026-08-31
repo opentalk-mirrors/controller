@@ -16,7 +16,6 @@ workspace = true
 [dependencies]
 async-stream.workspace = true
 async-trait.workspace = true
-chrono.workspace = true
 diesel-async.workspace = true
 futures-util.workspace = true
 opentalk-database.workspace = true

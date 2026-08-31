@@ -64,19 +64,6 @@ pub(crate) fn interweave_result_streams<'a, T: 'a>(
     }
 }
 
-/// Verifies if invites can be read for a given room
-/// Returns an error if invites the action is not allowed
-pub fn verify_invite_read(tariff: &TariffResource, room: &Room) -> Result<(), CaptureApiError> {
-    if is_room_guest_access_allowed(room, tariff) {
-        Ok(())
-    } else {
-        Err(ApiError::not_found()
-            .with_code("service_unavailable")
-            .with_message("Invites are not available: either the guest feature is disabled, guest access is disabled for this room or the room is encrypted".to_string())
-            .into())
-    }
-}
-
 /// Verifies if invites can be written for a given room
 /// Returns an error if invites the action is not allowed
 pub fn verify_invite_write(tariff: &TariffResource, room: &Room) -> Result<(), CaptureApiError> {

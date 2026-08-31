@@ -11,7 +11,6 @@ use chrono::{DateTime, Duration, Utc};
 use futures::pin_mut;
 use futures_core::Stream;
 use futures_util::{StreamExt, TryStreamExt};
-use opentalk_controller_api_authorization::authorization::AuthorizationChange;
 use opentalk_controller_service_facade::RequestUser;
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::{
@@ -728,30 +727,12 @@ impl ControllerBackend {
                 default_user_language,
             )
             .await?;
-            let invite_for_room = inventory
-                .get_or_create_valid_invite_for_room(room.id, current_user.id)
-                .await?;
 
             let created_by = if event.created_by == current_user.id {
                 current_user
             } else {
                 inventory.get_user(event.created_by).await?
             };
-
-            // Add the permission for the invite code, just in case it has been created by
-            // the `Invite::get_first_for_room(…)` call above. That function is not able to
-            // add the policy, because it has no access to the `RoomsPoliciesBuilderExt` trait.
-            self.authorizer
-                .apply_change(&AuthorizationChange::AddInviteCodeToRoom {
-                    room: room.id,
-                    invite_code: invite_for_room.invite_code,
-                    expiration: invite_for_room.expiration,
-                })
-                .await
-                .map_err(|e| {
-                    log::error!("Could not apply changes in the authorization database: {e:?}");
-                    ApiError::internal()
-                })?;
 
             if let Some(mail_service) = self.mail_service.as_ref() {
                 let notification_values = UpdateNotificationValues {
@@ -762,7 +743,6 @@ impl ControllerBackend {
                     room,
                     sip_config,
                     users_to_notify: invited_users,
-                    invite_for_room,
                 };
 
                 notify_invitees_about_update(

@@ -19,16 +19,12 @@ impl OpenTalkAuthorizerBackend {
     ///
     /// Access rights for the [`Event`] resource.
     ///
-    /// ```text
-    /// | Subject                 | Access |
-    /// | ----------------------- | ------ |
-    /// | **Owner**               | rw     |
-    /// | **Moderator**           | r-     |
-    /// | **Invited-User**        | r-     |
-    /// | **Unrelated-User**      | --     |
-    /// | **Valid Invite-Code**   | --     |
-    /// | **Invalid Invite-Code** | --     |
-    /// ```
+    /// | Subject          | Access |
+    /// | -----------------| ------ |
+    /// | **Owner**        | rw     |
+    /// | **Moderator**    | r-     |
+    /// | **Invited-User** | r-     |
+    /// | **Guest**        | --     |
     ///
     /// [`Event`]: opentalk_controller_api_authorization::authorization::Resource::Event
     pub(crate) async fn authorize_event(
@@ -41,7 +37,7 @@ impl OpenTalkAuthorizerBackend {
             owner: Access::ReadWrite,
             moderator: Access::Read,
             invited_user: Access::Read,
-            invite_code: Access::None,
+            guest_user: Access::None,
         };
 
         self.apply_acl_for_event(subjects, method, event_id, acl)
@@ -56,13 +52,12 @@ mod tests {
     use mockall::predicate::eq;
     use opentalk_controller_api_authorization::authorization::{
         AccessMethod::{self, Get as GET, Post as POST},
-        Admission::{self, Allowed, Denied},
+        Admission::{self, Allowed, AuthenticationRequired, Denied},
         AuthorizationTarget, AuthorizerBackend, Resource, Subject, SubjectCollection,
     };
     use opentalk_controller_settings::test_util;
     use opentalk_inventory::{
         AuthorizationInventory,
-        AuthorizationInviteCodeValidity::{self, Invalid, Valid},
         AuthorizationUserRole::{self, Invited, Owner, Unrelated},
         MockAuthorizationInventory, MockInventoryProvider,
     };
@@ -71,8 +66,7 @@ mod tests {
     use rstest::rstest;
 
     use super::super::test_utils::{
-        EVENT_ID, INVITE_CODE, USER_ID, create_authorizer_with_role,
-        create_authorizer_with_validity,
+        EVENT_ID, USER_ID, create_authorizer_with_guest_access, create_authorizer_with_role,
     };
     use crate::{
         OpenTalkAuthorizerBackend,
@@ -87,8 +81,10 @@ mod tests {
     #[case::moderator_post(Invited(Moderator), POST, Denied)]
     #[case::user_get(Invited(User), GET, Allowed)]
     #[case::user_post(Invited(User), POST, Denied)]
-    #[case::unrelated_get(Unrelated, GET, Denied)]
-    #[case::unrelated_post(Unrelated, POST, Denied)]
+    #[case::unrelated_get(Unrelated { guest_access: false }, GET, Denied)]
+    #[case::unrelated_get(Unrelated { guest_access: true }, GET, Denied)]
+    #[case::unrelated_post(Unrelated { guest_access: false }, POST, Denied)]
+    #[case::unrelated_post(Unrelated { guest_access: true }, POST, Denied)]
     async fn user(
         #[case] role: AuthorizationUserRole,
         #[case] access_method: AccessMethod,
@@ -108,19 +104,19 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case::valid_get(Valid, GET, Denied)]
-    #[case::valid_post(Valid, POST, Denied)]
-    #[case::invalid_get(Invalid, GET, Denied)]
-    #[case::invalid_post(Invalid, POST, Denied)]
-    async fn invite_code(
-        #[case] validity: AuthorizationInviteCodeValidity,
+    #[case::guest_access_get(true, GET, AuthenticationRequired)]
+    #[case::guest_access_post(true, POST, AuthenticationRequired)]
+    #[case::non_guest_access_get(false, GET, AuthenticationRequired)]
+    #[case::non_guest_access_post(false, POST, AuthenticationRequired)]
+    async fn unauthenticated(
+        #[case] guest_access: bool,
         #[case] access_method: AccessMethod,
         #[case] expected_admission: Admission,
     ) {
-        let authorizer = create_authorizer_with_validity(validity);
+        let authorizer = create_authorizer_with_guest_access(guest_access);
         let admission = authorizer
             .authorize(AuthorizationTarget {
-                authenticated_subjects: SubjectCollection::from_iter([Subject::from(INVITE_CODE)]),
+                authenticated_subjects: SubjectCollection::from_iter([Subject::Unauthenticated]),
                 resource: Resource::Event(EVENT_ID),
                 access_method,
             })
@@ -134,17 +130,18 @@ mod tests {
         let mut inventory = MockAuthorizationInventory::new();
         let _ = inventory
             .expect_get_event_user_role()
-            .with(eq(EVENT_ID), eq(USER_ID))
-            .return_once(move |_, _| Ok(Invited(User)));
-        let _ = inventory
-            .expect_get_event_invite_code_validity()
             .with(
                 eq(EVENT_ID),
-                eq(INVITE_CODE),
+                eq(USER_ID),
                 eq(DISABLED_FEATURES),
                 eq(MODULE_FEATURES),
             )
-            .return_once(move |_, _, _, _| Ok(Valid));
+            .return_once(move |_, _, _, _| Ok(Invited(User)));
+
+        let _ = inventory
+            .expect_get_event_guest_allowed()
+            .with(eq(EVENT_ID), eq(DISABLED_FEATURES), eq(MODULE_FEATURES))
+            .return_once(move |_, _, _| Ok(false));
         let inventory: Box<dyn AuthorizationInventory> = Box::new(inventory);
 
         let mut inventory_provider = MockInventoryProvider::new();
@@ -160,7 +157,7 @@ mod tests {
         let admission = authorizer
             .authorize(AuthorizationTarget {
                 authenticated_subjects: SubjectCollection::from_iter([
-                    Subject::from(INVITE_CODE),
+                    Subject::Unauthenticated,
                     Subject::from(USER_ID),
                 ]),
                 resource: Resource::Event(EVENT_ID),
@@ -176,17 +173,21 @@ mod tests {
         let mut inventory = MockAuthorizationInventory::new();
         let _ = inventory
             .expect_get_event_user_role()
-            .with(eq(EVENT_ID), eq(USER_ID))
-            .return_once(move |_, _| Ok(Unrelated));
-        let _ = inventory
-            .expect_get_event_invite_code_validity()
             .with(
                 eq(EVENT_ID),
-                eq(INVITE_CODE),
+                eq(USER_ID),
                 eq(DISABLED_FEATURES),
                 eq(MODULE_FEATURES),
             )
-            .return_once(move |_, _, _, _| Ok(Invalid));
+            .return_once(move |_, _, _, _| {
+                Ok(Unrelated {
+                    guest_access: false,
+                })
+            });
+        let _ = inventory
+            .expect_get_event_guest_allowed()
+            .with(eq(EVENT_ID), eq(DISABLED_FEATURES), eq(MODULE_FEATURES))
+            .return_once(move |_, _, _| Ok(false));
         let inventory: Box<dyn AuthorizationInventory> = Box::new(inventory);
 
         let mut inventory_provider = MockInventoryProvider::new();
@@ -203,7 +204,7 @@ mod tests {
             .authorize(AuthorizationTarget {
                 authenticated_subjects: SubjectCollection::from_iter([
                     Subject::from(USER_ID),
-                    Subject::from(INVITE_CODE),
+                    Subject::Unauthenticated,
                 ]),
                 resource: Resource::Event(EVENT_ID),
                 access_method: AccessMethod::Get,

@@ -25,16 +25,12 @@ impl OpenTalkAuthorizerBackend {
     /// user subject (Owner, Invited(_)) may `GET`. Invite codes are denied — they reach the room
     /// through the meeting-time `/rooms/{room_id}/start` endpoint, not through this resource.
     ///
-    /// ```text
     /// | Subject                 | Access |
     /// | ----------------------- | ------ |
     /// | **Owner**               | rw     |
     /// | **Moderator**           | r-     |
     /// | **Invited-User**        | r-     |
-    /// | **Unrelated-User**      | --     |
-    /// | **Valid Invite-Code**   | --     |
-    /// | **Invalid Invite-Code** | --     |
-    /// ```
+    /// | **Guest**               | --     |
     ///
     /// [`EventInstance`]: opentalk_controller_api_authorization::authorization::Resource::EventInstance
     /// [`Event`]: opentalk_controller_api_authorization::authorization::Resource::Event
@@ -48,7 +44,7 @@ impl OpenTalkAuthorizerBackend {
             owner: Access::ReadWrite,
             moderator: Access::Read,
             invited_user: Access::Read,
-            invite_code: Access::None,
+            guest_user: Access::None,
         };
 
         self.apply_acl_for_event(subjects, method, event_id, acl)
@@ -60,13 +56,10 @@ impl OpenTalkAuthorizerBackend {
 mod tests {
     use opentalk_controller_api_authorization::authorization::{
         AccessMethod::{self, Get, Patch},
-        Admission::{self, Allowed, Denied},
+        Admission::{self, Allowed, AuthenticationRequired, Denied},
         AuthorizationTarget, AuthorizerBackend, Resource, Subject, SubjectCollection,
     };
-    use opentalk_inventory::{
-        AuthorizationInviteCodeValidity::{self, Invalid, Valid},
-        AuthorizationUserRole::{self, Invited, Owner, Unrelated},
-    };
+    use opentalk_inventory::AuthorizationUserRole::{self, Invited, Owner, Unrelated};
     use opentalk_types_api_v1::events::InstanceId;
     use opentalk_types_common::{
         events::invites::InviteRole::{Moderator, User},
@@ -76,8 +69,7 @@ mod tests {
     use rstest::rstest;
 
     use super::super::test_utils::{
-        EVENT_ID, INVITE_CODE, USER_ID, create_authorizer_with_role,
-        create_authorizer_with_validity,
+        EVENT_ID, USER_ID, create_authorizer_with_guest_access, create_authorizer_with_role,
     };
 
     /// A constant `InstanceId` used by tests. Its value is irrelevant
@@ -96,8 +88,10 @@ mod tests {
     #[case::moderator_patch(Invited(Moderator), Patch, Denied)]
     #[case::user_get(Invited(User), Get, Allowed)]
     #[case::user_patch(Invited(User), Patch, Denied)]
-    #[case::unrelated_get(Unrelated, Get, Denied)]
-    #[case::unrelated_patch(Unrelated, Patch, Denied)]
+    #[case::unrelated_get(Unrelated { guest_access: false }, Get, Denied)]
+    #[case::unrelated_get(Unrelated { guest_access: true }, Get, Denied)]
+    #[case::unrelated_patch(Unrelated { guest_access: false }, Patch, Denied)]
+    #[case::unrelated_patch(Unrelated { guest_access: true }, Patch, Denied)]
     async fn user(
         #[case] role: AuthorizationUserRole,
         #[case] access_method: AccessMethod,
@@ -117,19 +111,19 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case::valid_get(Valid, Get, Denied)]
-    #[case::valid_patch(Valid, Patch, Denied)]
-    #[case::invalid_get(Invalid, Get, Denied)]
-    #[case::invalid_patch(Invalid, Patch, Denied)]
-    async fn invite_code(
-        #[case] validity: AuthorizationInviteCodeValidity,
+    #[case::guest_access_get(true, Get, AuthenticationRequired)]
+    #[case::guest_access_patch(true, Patch, AuthenticationRequired)]
+    #[case::non_guest_access_get(false, Get, AuthenticationRequired)]
+    #[case::non_guest_access_patch(false, Patch, AuthenticationRequired)]
+    async fn unauthenticated(
+        #[case] guest_access: bool,
         #[case] access_method: AccessMethod,
         #[case] expected_admission: Admission,
     ) {
-        let authorizer = create_authorizer_with_validity(validity);
+        let authorizer = create_authorizer_with_guest_access(guest_access);
         let admission = authorizer
             .authorize(AuthorizationTarget {
-                authenticated_subjects: SubjectCollection::from_iter([Subject::from(INVITE_CODE)]),
+                authenticated_subjects: SubjectCollection::from_iter([Subject::Unauthenticated]),
                 resource: Resource::EventInstance(EVENT_ID, instance_id()),
                 access_method,
             })

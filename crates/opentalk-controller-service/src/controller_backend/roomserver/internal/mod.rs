@@ -69,7 +69,7 @@ pub(crate) struct InternalRoomServer {
 
 impl InternalRoomServer {
     /// Create a new internal roomserver backend
-    #[expect(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         room_tasks: RoomTaskRegistry<WebSocketAdapter>,
         settings_provider: SettingsProvider,
@@ -274,20 +274,24 @@ impl LiveKitProxyBackend for InternalRoomServer {
         room_id: RoomId,
         mut headers: HeaderMap,
         raw_query: Option<String>,
+        v1: bool,
     ) -> Result<reqwest::Response, ApiError> {
         let Some(task_handle) = self.room_tasks.get_task_handle(&room_id).await else {
             return Err(ApiError::not_found());
         };
 
         let mut livekit_service_url = task_handle.livekit_service_url().await?;
-        _ = livekit_service_url
-            .path_segments_mut()
-            .map_err(|()| {
+        {
+            let mut segments = livekit_service_url.path_segments_mut().map_err(|()| {
                 log::error!("Invalid livekit URL, cannot be base");
                 ApiError::internal()
-            })?
-            .push("rtc")
-            .push("validate");
+            })?;
+            let _ = segments.push("rtc");
+            if v1 {
+                let _ = segments.push("v1");
+            }
+            let _ = segments.push("validate");
+        }
         livekit_service_url.set_query(raw_query.as_deref());
 
         let auth_headers = match headers.entry(AUTHORIZATION) {

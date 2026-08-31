@@ -18,12 +18,10 @@ impl OpenTalkAuthorizerBackend {
     /// This resource allows listing event instances. Any registered user can
     /// access this endpoint.
     ///
-    /// ```text
-    /// | Subject                 | Access |
-    /// | ----------------------- | ------ |
-    /// | **User**                | r-     |
-    /// | **Invite-Code**         | --     |
-    /// ```
+    /// | Subject     | Access |
+    /// | ------------| ------ |
+    /// | **User**    | r-     |
+    /// | **Guest**   | --     |
     ///
     /// [`EventsInstances`]: opentalk_controller_api_authorization::authorization::Resource::EventsInstances
     pub(crate) fn authorize_events_instances(
@@ -41,19 +39,18 @@ mod tests {
 
     use opentalk_controller_api_authorization::authorization::{
         AccessMethod::{self, Get, Post},
-        Admission::{self, Allowed, Denied},
+        Admission::{self, Allowed, AuthenticationRequired, Denied},
         AuthorizationTarget, AuthorizerBackend, Resource, Subject, SubjectCollection,
     };
     use opentalk_controller_settings::test_util;
     use opentalk_inventory::MockInventoryProvider;
-    use opentalk_types_common::{rooms::invite_codes::InviteCode, users::UserId};
+    use opentalk_types_common::users::UserId;
     use pretty_assertions::assert_eq;
     use rstest::rstest;
 
     use crate::{OpenTalkAuthorizerBackend, event::test_utils::MODULE_FEATURES};
 
     const USER_ID: UserId = UserId::from_u128(0x0001);
-    const INVITE_CODE: InviteCode = InviteCode::from_u128(0x0002);
 
     #[tokio::test]
     #[rstest]
@@ -79,9 +76,9 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case::invite_code_get(Get, Denied)]
-    #[case::invite_code_post(Post, Denied)]
-    async fn invite_code(
+    #[case::guest_get(Get, AuthenticationRequired)]
+    #[case::guest_post(Post, Denied)]
+    async fn unauthenticated(
         #[case] access_method: AccessMethod,
         #[case] expected_admission: Admission,
     ) {
@@ -93,7 +90,7 @@ mod tests {
         );
         let admission = authorizer
             .authorize(AuthorizationTarget {
-                authenticated_subjects: SubjectCollection::from_iter([Subject::from(INVITE_CODE)]),
+                authenticated_subjects: SubjectCollection::from_iter([Subject::Unauthenticated]),
                 resource: Resource::EventsInstances,
                 access_method,
             })

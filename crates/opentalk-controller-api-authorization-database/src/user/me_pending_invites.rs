@@ -19,12 +19,10 @@ impl OpenTalkAuthorizerBackend {
     /// acceptance/decline happens via the per-event `EventInvite`
     /// resource, not here — and invite codes have no access.
     ///
-    /// ```text
-    /// | Subject                 | Access |
-    /// | ----------------------- | ------ |
-    /// | **User**                | r-     |
-    /// | **Invite-Code**         | --     |
-    /// ```
+    /// | Subject    | Access |
+    /// | ---------- | ------ |
+    /// | **User**   | r-     |
+    /// | **Guest**  | --     |
     ///
     /// [`UserMePendingInvites`]: opentalk_controller_api_authorization::authorization::Resource::UserMePendingInvites
     pub(crate) fn authorize_user_me_pending_invites(
@@ -42,24 +40,23 @@ mod tests {
 
     use opentalk_controller_api_authorization::authorization::{
         AccessMethod::{self, Get, Post},
-        Admission::{self, Allowed, Denied},
+        Admission::{self, Allowed, AuthenticationRequired, Denied},
         AuthorizationTarget, AuthorizerBackend, Resource, Subject, SubjectCollection,
     };
     use opentalk_controller_settings::test_util;
     use opentalk_inventory::MockInventoryProvider;
-    use opentalk_types_common::{rooms::invite_codes::InviteCode, users::UserId};
+    use opentalk_types_common::users::UserId;
     use pretty_assertions::assert_eq;
     use rstest::rstest;
 
     use crate::{OpenTalkAuthorizerBackend, event::test_utils::MODULE_FEATURES};
 
     const USER_ID: UserId = UserId::from_u128(0x0001);
-    const INVITE_CODE: InviteCode = InviteCode::from_u128(0x0002);
 
     #[tokio::test]
     #[rstest]
-    #[case::user_get(Get, Allowed)]
-    #[case::user_post(Post, Denied)]
+    #[case::get(Get, Allowed)]
+    #[case::post(Post, Denied)]
     async fn user(#[case] access_method: AccessMethod, #[case] expected_admission: Admission) {
         let inventory_provider = MockInventoryProvider::new();
         let authorizer = OpenTalkAuthorizerBackend::new(
@@ -80,9 +77,9 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case::invite_code_get(Get, Denied)]
-    #[case::invite_code_post(Post, Denied)]
-    async fn invite_code(
+    #[case::get(Get, AuthenticationRequired)]
+    #[case::post(Post, Denied)]
+    async fn unauthenticated(
         #[case] access_method: AccessMethod,
         #[case] expected_admission: Admission,
     ) {
@@ -94,7 +91,7 @@ mod tests {
         );
         let admission = authorizer
             .authorize(AuthorizationTarget {
-                authenticated_subjects: SubjectCollection::from_iter([Subject::from(INVITE_CODE)]),
+                authenticated_subjects: SubjectCollection::from_iter([Subject::Unauthenticated]),
                 resource: Resource::UserMePendingInvites,
                 access_method,
             })
