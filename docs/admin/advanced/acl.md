@@ -26,5 +26,5 @@ ACL and have been removed:
 - `opentalk-controller fix-acl`
 
 Neither is necessary any more, because the authorization middleware derives
-its decisions directly from the tables that already model the authoritative
+its decisions directly from the database tables that already model the authoritative
 state (users, rooms, events, invites and tariffs).
