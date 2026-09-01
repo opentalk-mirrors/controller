@@ -284,10 +284,10 @@ api_key = { id = "roomserver", secret = "secret" }
 [roomserver.modules]
 
 # Handles auto-moderation functionality such as the talking stick.
-#[roomserver.modules.automod]
+[roomserver.modules.automod]
 
 # Handles room chat functionality.
-#[roomserver.modules.chat]
+[roomserver.modules.chat]
 # RoomServer chat rate limiting configuration.
 #
 # The implementation uses the token bucket algorithm. Each chat message consumes one token, and the
@@ -330,7 +330,7 @@ service_url = "http://localhost:7880"
 #[roomserver.modules.meeting_report]
 
 # Handles moderation functionality.
-#[roomserver.modules.moderation]
+[roomserver.modules.moderation]
 
 # Handles recording functionality.
 #[roomserver.modules.recording]
@@ -343,10 +343,10 @@ service_url = "http://localhost:7880"
 [roomserver.modules.echo]
 
 # Handles meeting polls functionality.
-#[roomserver.modules.polls]
+[roomserver.modules.polls]
 
 # Handles emoji reactions.
-#[roomserver.modules.reaction]
+[roomserver.modules.reaction]
 
 # Handles shared folder integration. This allows automatic creation of shares on a NextCloud
 # instance using the OCS API
@@ -359,7 +359,7 @@ service_url = "http://localhost:7880"
 #[roomserver.modules.subroom_audio]
 
 # Handles timer functionality including the coffee-break timer.
-#[roomserver.modules.timer]
+[roomserver.modules.timer]
 
 # Handles training participation report functionality. Participants are asked to confirm their
 # presence repeatedly at pre-configured time intervals. These confirmations are documented in the
@@ -382,7 +382,7 @@ service_url = "http://localhost:7880"
 #api_key = { id = "transcription", secret = "secret" }
 
 # Handles the raising hand functionality.
-#[roomserver.modules.raise_hands]
+[roomserver.modules.raise_hands]
 
 # Handles whiteboard integration. The whiteboard is a collaborative drawing board that can be used
 # during the meeting.
