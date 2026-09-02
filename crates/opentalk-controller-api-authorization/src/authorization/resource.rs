@@ -4,12 +4,8 @@
 
 use opentalk_types_api_v1::events::InstanceId;
 use opentalk_types_common::{
-    assets::AssetId,
-    events::EventId,
-    rooms::{RoomId, RoomIdOrAlias},
-    roomserver::Token,
-    streaming::StreamingTargetId,
-    users::UserId,
+    assets::AssetId, events::EventId, rooms::RoomIdOrAlias, roomserver::Token,
+    streaming::StreamingTargetId, users::UserId,
 };
 
 /// Specification of a resource provided by the OpenTalk Controller API.
@@ -133,7 +129,7 @@ pub enum Resource {
     /// An asset download for a room.
     ///
     /// Served under `/v1/rooms/{room_id_or_alias}/assets/{asset_id}/download`.
-    RoomAssetDownload(RoomId, AssetId),
+    RoomAssetDownload(RoomIdOrAlias, AssetId),
 
     /// The list of streaming targets for a room.
     ///
@@ -332,9 +328,9 @@ pub(super) mod actix_web_impls {
                     Ok(Resource::RoomAsset(room_id_or_alias, asset_id))
                 }
                 "/v1/rooms/{room_id_or_alias}/assets/{asset_id}/download" => {
-                    let (room_id, asset_id) =
-                        extract_path::<(RoomId, AssetId)>(req.path(), pattern)?;
-                    Ok(Resource::RoomAssetDownload(room_id, asset_id))
+                    let (room_id_or_alias, asset_id) =
+                        extract_path::<(RoomIdOrAlias, AssetId)>(req.path(), pattern)?;
+                    Ok(Resource::RoomAssetDownload(room_id_or_alias, asset_id))
                 }
                 "/v1/rooms/{room_id_or_alias}/assets/{asset_id}/proxy" => {
                     let (room_id_or_alias, asset_id) =
