@@ -84,8 +84,8 @@ impl AuthorizerBackend for OpenTalkAuthorizerBackend {
             Resource::RoomAsset(room_id, _) => {
                 self.authorize_room_asset(subjects, method, &room_id).await
             }
-            Resource::RoomAssetDownload(room_id, _) => {
-                self.authorize_room_asset_download(subjects, method, room_id)
+            Resource::RoomAssetDownload(room_id_or_alias, _) => {
+                self.authorize_room_asset_download(subjects, method, room_id_or_alias)
                     .await
             }
             Resource::RoomStreamingTargets(room_id) => {
