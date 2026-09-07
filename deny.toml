@@ -163,26 +163,6 @@ ignore = [
   # tree of actix-web becomes compatible / updated.
   "RUSTSEC-2026-0104",
 
-  # proc-macro-error2
-  #
-  # | proc-macro-error2 2.0.1 registry+https://github.com/rust-lang/crates.io-index
-  # |
-  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0173
-  # | The author of `proc-macro-error2` has [confirmed](https://github.com/GnomedDev/proc-macro-error-2/issues/17#issuecomment-4643215473) that the crate is no longer maintained and recommends that users migrate away from it.
-  # |
-  # | `proc-macro-error2` was originally created as a maintained fork of [`proc-macro-error`](https://crates.io/crates/proc-macro-error) (see [RUSTSEC-2024-0370](https://rustsec.org/advisories/RUSTSEC-2024-0370)). Both the original crate and this fork are now unmaintained.
-  # |
-  # | ## Possible Alternative(s)
-  # |
-  # | - [manyhow](https://crates.io/crates/manyhow)
-  # | - [proc-macro2-diagnostics](https://github.com/SergioBenitez/proc-macro2-diagnostics)
-  # | Announcement: https://github.com/GnomedDev/proc-macro-error-2/issues/17
-  # | Solution: No safe upgrade is available!
-  #
-  # tabled-derive v0.11.0 depends on proc-macro-error2, which is a currently unmaintained fork of proc-macro-error.
-  # Suppressed until tabled drops or replaces it.
-  "RUSTSEC-2026-0173",
-
   # ttf-parser
   #
   # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0192.html
@@ -587,6 +567,7 @@ skip = [
   { name = "darling_macro", version = "0.21" },
   { name = "darling_macro", version = "0.23" },
   { name = "digest", version = "0.10" },
+  { name = "dirs", version = "6.0.0" },
   { name = "event-listener", version = "2" },
   { name = "fastrand", version = "1" },
   { name = "fixedbitset", version = "0.4" },
@@ -611,6 +592,7 @@ skip = [
   { name = "jsonwebtoken", version = "10" },
   { name = "linux-raw-sys", version = "0.3" },
   { name = "litemap", version = "0.7" },
+  { name = "livekit-api", version = "0.6.4" },
   { name = "md-5", version = "0.10" },
   { name = "miniz_oxide", version = "0.8" },
   { name = "num-bigint", version = "0.4" },
