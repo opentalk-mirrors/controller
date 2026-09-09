@@ -379,12 +379,12 @@ api_key = { id = "roomserver", secret = "secret" }
 # bucket is refilled at a fixed rate each second. This allows short bursts of messages while
 # limiting the sustained message rate.
 #[roomserver.modules.chat.rate_limit]
-# The tokens that are added to the bucket per second.
+# The number of sustained messages per second.
 #tokens_per_second = 10
-# The maximum amount of tokens that a token bucket can hold at a time.
+# The burst size. A user can send 30 messages within a second without being throttled.
 #token_bucket_size = 30
-# If a participant has sent this many requests in a second, they will be told to slow down.
-# Must be between 0.0 and 1.0 (inclusive).
+# If 80% of the token bucket is used, the RoomServer will signal the frontend to slow down.
+# The frontend will enforce a slight delay before another message can be sent.
 #slow_down_threshold = 0.8
 
 # Handles end-to-end encryption functionality.
@@ -479,9 +479,6 @@ service_url = "http://localhost:7880"
 
 # Handles excalidraw whiteboard integration. Excalidraw is a collaborative drawing board.
 #[roomserver.modules.excalidraw]
-
-#[stun]
-#uris = ["stun:127.0.0.1:3478"]
 
 #[call_in]
 # Set a phone number which will be displayed to the user
