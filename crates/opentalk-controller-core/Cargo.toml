@@ -32,6 +32,7 @@ jsonwebtoken.workspace = true
 lapin.workspace = true
 lapin-pool.workspace = true
 livekit-api.workspace = true
+metrics-exporter-prometheus.workspace = true
 openidconnect.workspace = true
 opentalk-asset-storage.workspace = true
 opentalk-controller-api-actix-web.workspace = true
@@ -50,6 +51,7 @@ opentalk-inventory-database.workspace = true
 opentalk-jobs.workspace = true
 opentalk-keycloak-admin.workspace = true
 opentalk-roomserver-modules.workspace = true
+opentalk-roomserver-room.workspace = true
 opentalk-roomserver-types = { workspace = true, features = ["actix"] }
 opentalk-roomserver-web-api.workspace = true
 opentalk-service-auth = { workspace = true, features = ["actix"] }

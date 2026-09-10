@@ -184,7 +184,7 @@ impl Controller {
         optional_config_path: Option<PathBuf>,
     ) -> Result<Self> {
         let settings = settings_provider.get();
-        let metrics = metrics::CombinedMetrics::try_init()
+        let metrics = metrics::CombinedMetrics::try_init(&settings.roomserver.kind)
             .whatever_context("Failed to initialize metrics")?;
 
         opentalk_db_storage::migrations::migrate_from_url(&settings.database.url)

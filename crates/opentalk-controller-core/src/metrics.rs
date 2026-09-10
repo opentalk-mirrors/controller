@@ -7,21 +7,33 @@ use std::sync::Arc;
 use actix_http::{StatusCode, body::BoxBody};
 use actix_web::{HttpResponse, HttpResponseBuilder, dev::PeerAddr, get, web::Data};
 use itertools::Itertools as _;
+use metrics_exporter_prometheus::{BuildError, Matcher, PrometheusBuilder, PrometheusHandle};
 use opentalk_controller_service::{RedisMetrics, metrics::EndpointMetrics};
-use opentalk_controller_settings::SettingsProvider;
+use opentalk_controller_settings::{RoomServerKind, SettingsProvider};
 use opentalk_database::DatabaseMetrics;
+use opentalk_roomserver_room::metrics::{
+    CONNECTION_MEETING_TIME, CONNECTION_MEETING_TIME_BUCKETS, ROOM_LIFE_TIME,
+    ROOM_LIFE_TIME_BUCKETS,
+};
 use opentelemetry::{global, otel_error};
 use opentelemetry_sdk::{error::OTelSdkError, metrics::SdkMeterProvider};
 use prometheus::{Encoder, Registry, TextEncoder};
-use snafu::{Backtrace, Snafu};
+use snafu::{Backtrace, ResultExt, Snafu};
 
 use crate::Result;
 
 #[derive(Debug, Snafu)]
-#[snafu(context(false))]
-pub struct MetricViewError {
-    source: OTelSdkError,
-    backtrace: Backtrace,
+pub enum MetricsInitError {
+    #[snafu(display("Failed to configure the OpenTelemetry Prometheus exporter"))]
+    OtelExporter {
+        source: OTelSdkError,
+        backtrace: Backtrace,
+    },
+    #[snafu(display("Failed to install the roomserver metrics recorder"))]
+    RoomServerRecorder {
+        source: BuildError,
+        backtrace: Backtrace,
+    },
 }
 
 pub struct CombinedMetrics {
@@ -29,14 +41,16 @@ pub struct CombinedMetrics {
     pub(super) endpoint: Arc<EndpointMetrics>,
     pub(super) database: Arc<DatabaseMetrics>,
     pub(super) redis: Arc<RedisMetrics>,
+    pub(super) roomserver: Option<PrometheusHandle>,
 }
 
 impl CombinedMetrics {
-    pub fn try_init() -> Result<Self, MetricViewError> {
+    pub fn try_init(roomserver_kind: &RoomServerKind) -> Result<Self, MetricsInitError> {
         let registry = prometheus::Registry::new();
         let exporter = opentelemetry_prometheus::exporter()
             .with_registry(registry.clone())
-            .build()?;
+            .build()
+            .context(OtelExporterSnafu)?;
 
         let provider_builder = SdkMeterProvider::builder().with_reader(exporter);
         let provider_builder = EndpointMetrics::append_views(provider_builder);
@@ -45,6 +59,25 @@ impl CombinedMetrics {
 
         global::set_meter_provider(provider_builder.build());
         let meter = global::meter("ot-controller");
+
+        let roomserver = match roomserver_kind {
+            RoomServerKind::Internal { .. } => Some(
+                PrometheusBuilder::new()
+                    .set_buckets_for_metric(
+                        Matcher::Full(CONNECTION_MEETING_TIME.to_string()),
+                        CONNECTION_MEETING_TIME_BUCKETS,
+                    )
+                    .context(RoomServerRecorderSnafu)?
+                    .set_buckets_for_metric(
+                        Matcher::Full(ROOM_LIFE_TIME.to_string()),
+                        ROOM_LIFE_TIME_BUCKETS,
+                    )
+                    .context(RoomServerRecorderSnafu)?
+                    .install_recorder()
+                    .context(RoomServerRecorderSnafu)?,
+            ),
+            RoomServerKind::External { .. } => None,
+        };
 
         let endpoint = Arc::new(EndpointMetrics::new(&meter));
         let database = Arc::new(DatabaseMetrics::new(&meter));
@@ -55,6 +88,7 @@ impl CombinedMetrics {
             endpoint,
             database,
             redis,
+            roomserver,
         })
     }
 }
@@ -94,7 +128,11 @@ pub async fn metrics(
         return HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR);
     }
 
-    let response = String::from_utf8(buf).unwrap_or_default();
+    let mut response = String::from_utf8(buf).unwrap_or_default();
+    if let Some(roomserver) = &metrics.roomserver {
+        response.push('\n');
+        response.push_str(&roomserver.render());
+    }
 
     HttpResponseBuilder::new(StatusCode::OK)
         .content_type("text/plain")
