@@ -997,6 +997,7 @@ impl ControllerBackend {
             RoomParametersPatch {
                 password: patch.room.password,
                 title: patch.title,
+                show_meeting_details: patch.show_meeting_details,
             },
         )
         .await?;
